@@ -14,12 +14,12 @@ describe("owly error explanations", () => {
 
   it("recognises duplicates and validation errors", () => {
     expect(explainError("duplicate key value violates unique constraint").title).toMatch(/already exists/i);
-    expect(explainError("phone is required").title).toMatch(/missing or not valid/i);
+    expect(explainError("phone is required").title).toMatch(/missing or wrong/i);
   });
 
   it("keeps the original message so support can still see it", () => {
     const message = errorToMessage("Failed to fetch");
-    expect(message).toContain("What the system reported");
+    expect(message).toContain("The exact message");
     expect(message).toContain("Failed to fetch");
   });
 

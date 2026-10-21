@@ -3,7 +3,7 @@ import { answerLocally, getPageHints, KNOWLEDGE, OWLY_TOPICS } from "@/lib/owly-
 describe("Owly offline knowledge base", () => {
   it("answers 'how do I import students from CSV?' with real import steps", () => {
     const answer = answerLocally("How do I import students from CSV?");
-    expect(answer).toContain("Import students from CSV");
+    expect(answer).toContain("Import pupils from a spreadsheet");
     expect(answer).toContain("Confirm & Import");
     expect(answer).toMatch(/\n1\. /); // numbered steps
     expect(answer).toContain("📍"); // where-to-go line
@@ -18,11 +18,11 @@ describe("Owly offline knowledge base", () => {
     expect(payment).toContain("Mobile Money");
 
     const attendance = answerLocally("how do I mark attendance?");
-    expect(attendance).toContain("Select Class");
+    expect(attendance).toContain("Choose the class");
     expect(attendance).toContain("Save");
 
     const grades = answerLocally("how do I enter marks?");
-    expect(grades).toContain("CA1");
+    expect(grades).toContain("Save Grades");
     expect(grades).toContain("Publish Grades");
 
     const reports = answerLocally("how do I print report cards?");
@@ -42,7 +42,7 @@ describe("Owly offline knowledge base", () => {
 
   it("explains offline behaviour without any network", () => {
     const offline = answerLocally("does this work with no internet?");
-    expect(offline).toContain("Offline");
+    expect(offline).toContain("Work without internet");
     expect(offline).toContain("Sync Center");
   });
 

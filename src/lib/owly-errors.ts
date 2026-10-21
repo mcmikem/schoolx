@@ -25,11 +25,11 @@ const RULES: Rule[] = [
     match: /offline|network|failed to fetch|fetch failed|timeout|timed out|abort/i,
     explanation: {
       title: "That did not reach the server",
-      summary: "The connection dropped or took too long. Your entry is still on this device.",
+      summary: "The connection dropped, or it took too long. Your work is still on this phone.",
       steps: [
-        "Check the signal indicator. If you are offline, keep working — the change uploads by itself later.",
+        "Look at the signal bar. If you are offline, keep working. The change uploads later by itself.",
         "Open Sync Center to see what is still waiting.",
-        "Once you have signal, try the same action again.",
+        "When you have signal, try the same action again.",
       ],
     },
   },
@@ -37,10 +37,10 @@ const RULES: Rule[] = [
     match: /permission|not allowed|row-level|rls|unauthori[sz]ed|forbidden|\b401\b|\b403\b/i,
     explanation: {
       title: "Your account is not allowed to do that",
-      summary: "The action was refused for this role or this class, not because the data is wrong.",
+      summary: "The app refused this action for your role or this class. The data is not wrong.",
       steps: [
-        "Check that you are in the right role (for example, a class teacher can only mark their own class).",
-        "If you should have access, ask the headmaster or admin to add the role or assign the class.",
+        "Check that you are using the right role. For example, a class teacher can only mark their own class.",
+        "If you should have access, ask the head teacher or admin to add the role or assign the class.",
         "Reload the page after the role is changed.",
       ],
     },
@@ -49,23 +49,23 @@ const RULES: Rule[] = [
     match: /duplicate|already exists|unique constraint|already registered/i,
     explanation: {
       title: "That record already exists",
-      summary: "The app stopped a second copy from being created.",
+      summary: "The app stopped a second copy from being made.",
       steps: [
-        "Search for the pupil, staff member or fee item before adding it again.",
-        "Open the existing record and edit it instead.",
-        "If two real people share a name, add something that tells them apart (a second name or admission number).",
+        "Search for the pupil, staff member or fee item before you add it again.",
+        "Open the one that already exists and edit it instead.",
+        "If two people share a name, add something to tell them apart, like a second name or admission number.",
       ],
     },
   },
   {
     match: /required|invalid|must be|validation|missing|not a number|out of range/i,
     explanation: {
-      title: "Some details are missing or not valid",
+      title: "Some details are missing or wrong",
       summary: "The form was not saved because one of the fields needs attention.",
       steps: [
         "Look for the field marked in red and fill it in.",
-        "Check that numbers are digits only — no spaces, commas or currency symbols.",
-        "Save again once the field is corrected.",
+        "Type numbers only. Do not add spaces, commas or the letters UGX.",
+        "Save again after you fix the field.",
       ],
     },
   },
@@ -76,20 +76,20 @@ const RULES: Rule[] = [
       summary: "It may have been removed, or it belongs to a different school.",
       steps: [
         "Go back to the list and search for it again.",
-        "If someone else deleted it, ask them to restore it or add it again.",
-        "Reload the page in case the list is out of date.",
+        "If someone deleted it, ask them to add it again.",
+        "Reload the page in case the list is old.",
       ],
     },
   },
   {
     match: /storage|quota|indexeddb|disk|space/i,
     explanation: {
-      title: "This device is low on storage",
-      summary: "Offline saving needs a little space, and the device could not write the change.",
+      title: "This phone is low on space",
+      summary: "Saving offline needs a little space, and the phone could not write the change.",
       steps: [
         "Close other apps and tabs to free memory.",
-        "Clear old downloads or photos from the device.",
-        "Connect to the internet and open Sync Center so pending work can upload and be removed.",
+        "Delete old downloads or photos from the phone.",
+        "Connect to the internet and open Sync Center. Waiting work can upload and be removed.",
       ],
     },
   },
@@ -97,10 +97,10 @@ const RULES: Rule[] = [
     match: /server|internal|\b500\b|\b502\b|\b503\b|unavailable/i,
     explanation: {
       title: "The server had a problem",
-      summary: "This is not something you did wrong. Nothing was lost on your side.",
+      summary: "This is not your mistake. Nothing was lost on your side.",
       steps: [
-        "Wait a moment and try again — most of these clear on their own.",
-        "If it keeps happening, send the message to the support team with the WhatsApp button in this chat.",
+        "Wait a moment and try again. Most of these clear on their own.",
+        "If it keeps happening, send the message to the team with the WhatsApp button in this chat.",
       ],
     },
   },
@@ -108,10 +108,10 @@ const RULES: Rule[] = [
 
 const FALLBACK: OwlyErrorExplanation = {
   title: "That action did not finish",
-  summary: "The app could not complete it. The details below are what the system reported.",
+  summary: "The app could not complete it. Below is the exact message the system gave.",
   steps: [
     "Try the same action once more.",
-    "If it fails again, send this message to support from the WhatsApp button in this chat.",
+    "If it fails again, send this message to the team with the WhatsApp button in this chat.",
   ],
 };
 
@@ -127,6 +127,6 @@ export function errorToMessage(raw: string): string {
   const detail = (raw ?? "").trim().slice(0, 300);
   const lines: string[] = [`**${explanation.title}**`, "", explanation.summary, ""];
   explanation.steps.forEach((step, index) => lines.push(`${index + 1}. ${step}`));
-  if (detail) lines.push("", "**What the system reported**", `\`${detail}\``);
+  if (detail) lines.push("", "**The exact message**", `\`${detail}\``);
   return lines.join("\n");
 }

@@ -10,6 +10,10 @@
  * "done" test matters most: a new user needs to know what success looks like,
  * otherwise they stop to ask whether it worked.
  *
+ * Copy rules: short sentences, common words, one action per sentence. Explain
+ * any word that is not everyday English. Keep the app's button names in bold so
+ * the user can look for the same words on screen.
+ *
  * Steps are written against routes that exist and match the real nav, so a
  * walkthrough never dead-ends a user on a 404.
  */
@@ -33,8 +37,6 @@ export interface Walkthrough {
   steps: WalkthroughStep[];
 }
 
-const ATTENDANCE = "Open Attendance from the sidebar";
-
 /**
  * Keyed by `users.role`. Staff routinely hold several roles (see AGENTS.md), so
  * lookup walks the user's full role list and takes the first match — a headmaster
@@ -44,31 +46,31 @@ export const WALKTHROUGHS: Record<string, Walkthrough> = {
   teacher: {
     id: "teacher",
     title: "Your first day, step by step",
-    intro: "Four things, in the order you will do them. Skip any step you already know.",
+    intro: "Do these four jobs in this order. Skip any job you already know.",
     steps: [
       {
         href: "/dashboard/attendance",
         title: "Take the register",
-        how: "Tap a pupil's row to mark them Present. Swipe right for Absent, swipe left for Late. There is also a one-pupil-at-a-time view if you are registering 40 children and cannot aim accurately.",
-        done: "Each pupil's row shows a coloured status, and the summary at the top counts up.",
+        how: "Open Attendance. Pick your class. Tap a pupil to mark Present. Swipe right for Absent. Swipe left for Late. If the list is hard to tap, use One pupil at a time.",
+        done: "Each pupil's row shows a colour. The numbers at the top count Present, Absent and Late.",
       },
       {
         href: "/dashboard/grades",
         title: "Enter marks for your subject",
-        how: "Pick the class, tap your subject card, and type the continuous assessment mark. Save between pupils.",
-        done: "The subject card fills up and the pupil's total and grade appear next to their name.",
+        how: "Open Grades. Pick the class and your subject. Type each pupil's mark. Move to the next box and it saves.",
+        done: "The mark stays in the box. The pupil's total and grade appear next to their name.",
       },
       {
         href: "/dashboard/homework",
         title: "Set homework",
-        how: "Choose the class and subject, write the task, and set a due date. Each pupil submits their own.",
-        done: "The homework appears in the list with submissions counted against it.",
+        how: "Open Homework. Pick the class and subject. Write the task. Choose the date it is due.",
+        done: "The homework appears in the list. You can see how many pupils have handed it in.",
       },
       {
         href: "/dashboard/classes",
         title: "Message a class or parent",
-        how: "Pick recipients — a whole class or individual parents — and write the message. It queues and sends when there is signal. From here, use Messages in the sidebar if your role includes it.",
-        done: "The message shows as Delivered or Queued in your sent list.",
+        how: "Open Messages. Choose one parent, one class, or the whole school. Write your message. It sends when there is signal.",
+        done: "The message shows Delivered or Queued in your sent list.",
       },
     ],
   },
@@ -76,31 +78,31 @@ export const WALKTHROUGHS: Record<string, Walkthrough> = {
   headmaster: {
     id: "headmaster",
     title: "Your first week as headmaster",
-    intro: "Set up the school once, then check it is working. Everything after this is daily routine.",
+    intro: "Set up the school once. Then check that it works. After that, most days are routine.",
     steps: [
       {
         href: "/dashboard/settings",
         title: "Finish the setup wizard",
-        how: "Open Settings and run the setup wizard to set terms, grading and fees. The rest of the app reads from these, so nothing else works properly until they are set.",
-        done: "The wizard reports complete and your dashboard numbers stop showing zero.",
+        how: "Open Settings. Run the setup wizard. It asks for terms, grading and fees. The rest of the app uses these answers.",
+        done: "The wizard says it is complete. Your dashboard numbers stop showing zero.",
       },
       {
         href: "/dashboard/staff",
         title: "Add your staff",
-        how: "Add each staff member with their role. Anyone who also teaches or is a parent gets both roles ticked.",
-        done: "They appear in the staff list and can sign in with the email you set.",
+        how: "Open Staff. Add each person. Tick every role they do. A teacher who is also a parent gets both roles.",
+        done: "Each person appears in the staff list. They can sign in with the email you gave.",
       },
       {
         href: "/dashboard/students",
         title: "Bring the pupils in",
-        how: "Import from CSV for speed, or Add Student for individuals. The importer tells you which rows it skipped and why.",
-        done: "Your roll shows pupils in the right classes with admission numbers.",
+        how: "Open Students. Add one pupil, or import a spreadsheet for a whole class. The app tells you which rows it skipped and why.",
+        done: "Every pupil is in the right class. Each one has a student number.",
       },
       {
         href: "/dashboard/reports",
         title: "Print the first report cards",
-        how: "Set the term and class, draft the headmaster remarks in bulk, then edit only the ones worth editing. Preview before printing.",
-        done: "A preview matches the Uganda format, with your school's logo and colours.",
+        how: "Open Reports. Choose the term and class. Write the head teacher remarks. You can write them for the whole class at once, then edit only the ones you want. Preview before you print.",
+        done: "The preview matches the Uganda report format. It shows your school name, logo and colours.",
       },
     ],
   },
@@ -108,31 +110,31 @@ export const WALKTHROUGHS: Record<string, Walkthrough> = {
   bursar: {
     id: "bursar",
     title: "Fees and payments, start to finish",
-    intro: "From setting a fee to taking payment and reporting on it.",
+    intro: "This is the money path: set the fee, take the money, give a receipt, then follow up.",
     steps: [
       {
         href: "/dashboard/fee-structure",
         title: "Set the fee structure",
-        how: "Create the fee structure per class or term. Everything you record later is calculated from this.",
-        done: "Each class shows what a pupil owes for the current term.",
+        how: "Open Fee Structure. Add what each class pays for the term. You can add items like tuition and development.",
+        done: "Each class shows what one pupil owes for this term.",
       },
       {
         href: "/dashboard/fees",
         title: "Record a payment",
-        how: "Open a pupil, then Payments, then Record Payment. Enter the amount and channel. The receipt number is generated for you.",
-        done: "The balance falls and a receipt appears under that pupil's payments.",
+        how: "Open Fees. Tap the pupil. Tap Payments. Tap Record Payment. Type the amount and how it was paid.",
+        done: "The balance goes down. A receipt appears under that pupil's payments.",
       },
       {
         href: "/dashboard/fees",
         title: "Record a payment that is not cash",
-        how: "Use the same dialog and pick the channel — bank transfer, mobile money, or a note for anything else.",
-        done: "The payment shows under the right channel in the fee report.",
+        how: "Use the same Record Payment form. Choose Mobile Money, Bank Transfer or another way. For mobile money, type the transaction ID from the parent's phone.",
+        done: "The payment shows under the right payment method in the fee report.",
       },
       {
         href: "/dashboard/fees",
         title: "Send a reminder to those who have not paid",
-        how: "Select the unpaid pupils and send. It goes by SMS to parents and is queued if you are offline.",
-        done: "The reminder shows as sent or queued with the date.",
+        how: "Open Fees. Select the pupils who still owe money. Tap Send Reminder. It goes by SMS to their parents.",
+        done: "The reminder shows Sent or Queued, with the date.",
       },
     ],
   },
@@ -140,31 +142,31 @@ export const WALKTHROUGHS: Record<string, Walkthrough> = {
   admin: {
     id: "admin",
     title: "Setting the school up",
-    intro: "The order that stops you coming back later to fix something.",
+    intro: "Do these jobs in this order. It saves you from coming back to fix things later.",
     steps: [
       {
         href: "/dashboard/settings",
         title: "Run the setup wizard",
-        how: "Open Settings and run the setup wizard: terms, grading, fees, report layout. It reads as one job but unlocks four other features.",
-        done: "The wizard reports complete.",
+        how: "Open Settings. Run the setup wizard. It asks for terms, grading, fees and the report layout.",
+        done: "The wizard says it is complete.",
       },
       {
         href: "/dashboard/settings",
         title: "Create classes",
-        how: "Classes are created in Settings, alongside the wizard. Assign a class teacher to each one. Marks and reports are recorded per class, so this comes first.",
-        done: "Classes appear in the dropdown on Attendance, Grades and Reports.",
+        how: "Open Settings. Create each class. Choose one class teacher for each class. Marks and reports follow the class.",
+        done: "The classes appear in the dropdown on Attendance, Grades and Reports.",
       },
       {
         href: "/dashboard/staff",
         title: "Add staff",
-        how: "Add each staff member and give them every role they actually hold.",
-        done: "They can sign in and see exactly the parts of the app their roles allow.",
+        how: "Open Staff. Add each person. Tick every role they do.",
+        done: "They can sign in. They see only the pages their roles allow.",
       },
       {
         href: "/dashboard/students",
         title: "Import pupils",
-        how: "Use the CSV importer for a whole class. It reports skipped rows with the reason, so nothing fails silently.",
-        done: "The roll is complete and each pupil is in the right class.",
+        how: "Open Students. Use the spreadsheet import for a whole class. The app tells you which rows it skipped and why.",
+        done: "Every pupil is in the right class. The class list is complete.",
       },
     ],
   },
@@ -200,29 +202,29 @@ export function pickWalkthrough(roles: readonly string[] | undefined | null): Wa
 export const FALLBACK_WALKTHROUGH: Walkthrough = {
   id: "general",
   title: "Getting around",
-  intro: "The four screens you will use most.",
+  intro: "These are the four screens you will use most.",
   steps: [
     {
       href: "/dashboard",
       title: "Your dashboard",
-      how: "The numbers at the top are today's. Everything links through to the detail behind it.",
-      done: "The dashboard shows your school, the current term, and today's numbers.",
+      how: "The numbers at the top are for today. Tap a number to see the details behind it.",
+      done: "You can see your school, the current term and today's numbers.",
     },
     {
       href: "/dashboard/attendance",
       title: "The register",
-      how: "Tap to mark Present, swipe right for Absent, left for Late. Works with no signal.",
-      done: "Coloured statuses appear against each pupil.",
+      how: "Open Attendance. Tap a pupil to mark Present. Swipe right for Absent. Swipe left for Late. It works without signal.",
+      done: "Each pupil's row shows a colour.",
     },
     {
       title: "Finding anything",
-      how: "The search box at the top of the sidebar searches every page you have access to. Type two or three letters.",
-      done: "Matching pages appear in the list as you type.",
+      how: "Use the search box at the top of the sidebar. Type two or three letters of the page name.",
+      done: "The pages that match appear as you type.",
     },
     {
       title: "Asking Owly",
-      how: "Tap Owly in the bottom right and ask in plain language. He answers offline too.",
-      done: "You get an answer with steps, and a link to the page it refers to.",
+      how: "Tap Owly in the bottom right corner. Ask your question in your own words. Owly answers even without internet.",
+      done: "You get an answer with steps and a link to the page.",
     },
   ],
 };

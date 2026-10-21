@@ -69,8 +69,9 @@ const UNBLOCKED_PAGES: Array<{ match: RegExp; suggestion: OwlySuggestion }> = [
       id: "attendance-first",
       kind: "unblocked",
       title: "Not sure where to start with attendance?",
-      detail: "Tap a pupil's row to mark them Present. Swipe right for Absent, left for Late. One pupil at a time is easier — tap the card icon.",
-      cta: "Show me the swipe guide",
+      detail:
+        "Tap a pupil's row to mark them Present. Swipe right for Absent. Swipe left for Late. If the list is crowded, use One pupil at a time.",
+      cta: "Show me how to mark attendance",
     },
   },
   {
@@ -79,7 +80,8 @@ const UNBLOCKED_PAGES: Array<{ match: RegExp; suggestion: OwlySuggestion }> = [
       id: "fees-first",
       kind: "unblocked",
       title: "Recording your first payment?",
-      detail: "Open a pupil, then Payments, then Record Payment. Enter the amount and channel — the receipt number is generated for you.",
+      detail:
+        "Open a pupil. Tap Payments. Tap Record Payment. Type the amount and how it was paid. The app makes the receipt number for you.",
       cta: "Walk me through a payment",
     },
   },
@@ -89,8 +91,8 @@ const UNBLOCKED_PAGES: Array<{ match: RegExp; suggestion: OwlySuggestion }> = [
       id: "grades-first",
       kind: "unblocked",
       title: "Where do I enter marks?",
-      detail: "Choose a class, tap a subject card, and enter continuous assessment. Save as you go — nothing is lost when you move between subjects.",
-      cta: "Walk me through marking",
+      detail: "Choose a class. Tap a subject. Type the marks. They save as you move from box to box.",
+      cta: "Walk me through entering marks",
     },
   },
   {
@@ -99,8 +101,9 @@ const UNBLOCKED_PAGES: Array<{ match: RegExp; suggestion: OwlySuggestion }> = [
       id: "students-first",
       kind: "unblocked",
       title: "Adding pupils one by one?",
-      detail: "For a whole class, use Import Students with a CSV instead — it is faster and you can fix errors before anything is saved.",
-      cta: "Show me the CSV columns",
+      detail:
+        "For a whole class, import a spreadsheet instead. It is faster, and you can fix mistakes before you save.",
+      cta: "Show me how to import pupils",
     },
   },
   {
@@ -109,7 +112,8 @@ const UNBLOCKED_PAGES: Array<{ match: RegExp; suggestion: OwlySuggestion }> = [
       id: "reports-first",
       kind: "unblocked",
       title: "Printing report cards?",
-      detail: "Set up terms and grades once, then every card picks them up automatically. Draft the headmaster remarks in bulk and edit only the ones you want to change.",
+      detail:
+        "Set up terms and grades once. Then every card fills in by itself. You can write the head teacher remarks for the whole class at once.",
       cta: "Walk me through report cards",
     },
   },
@@ -131,7 +135,8 @@ export function getSuggestions(signals: SuggestionSignals): OwlySuggestion[] {
       id: "sync-pending",
       kind: "unblocked",
       title: `${signals.pendingSyncCount} ${signals.pendingSyncCount === 1 ? "change is" : "changes are"} waiting to sync`,
-      detail: "You are offline. Everything you enter is saved on this device and uploads by itself once there is signal — nothing is lost.",
+      detail:
+        "You are offline. Everything you enter is saved on this device and uploads by itself once there is signal — nothing is lost.",
       cta: "What syncs offline?",
     });
   }
@@ -143,7 +148,8 @@ export function getSuggestions(signals: SuggestionSignals): OwlySuggestion[] {
       id: "first-run",
       kind: "first-run",
       title: "New here?",
-      detail: "I can walk you through the three things your role does most, in about two minutes. You can skip it and come back any time.",
+      detail:
+        "I can walk you through the main jobs your role does, in about two minutes. You can skip it and come back any time.",
       cta: "Show me around",
     });
   }
@@ -166,7 +172,8 @@ export function getSuggestions(signals: SuggestionSignals): OwlySuggestion[] {
       id: "offline-brief",
       kind: "stuck",
       title: "Working without signal",
-      detail: "Attendance, marks and payments all keep working offline. Only sending SMS and sharing needs a connection.",
+      detail:
+        "Attendance, marks and payments all keep working offline. Only sending SMS and sharing needs a connection.",
       cta: "What works offline?",
     });
   }
