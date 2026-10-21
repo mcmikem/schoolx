@@ -3,13 +3,20 @@ import { useAuth } from "@/lib/auth-context";
 import OwlAssistant from "@/components/OwlAssistant";
 
 /**
- * Dismissing Owly must dismiss it.
+ * Owly's interruption policy and exit paths.
  *
- * The launcher used to decide what to do from "does Owly have a suggestion?"
- * rather than "is the assistant open?", so while Owly was blinking the close
- * button toggled the suggestion popup and the user got a second window every
- * time they tried to shut the first. These tests pin the exit paths.
+ * Two things must stay true:
+ *   1. The launcher only throws a suggestion at someone who looks stuck. Being
+ *      new or offline is not a reason to interrupt.
+ *   2. Dismissing Owly dismisses it. The launcher used to decide from "does
+ *      Owly have a suggestion?" rather than "is the assistant open?", so while
+ *      it was blinking the close button opened the suggestion popup instead.
  */
+
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
+  usePathname: () => "/dashboard/fees",
+}));
 
 jest.mock("@/lib/auth-context", () => ({ useAuth: jest.fn() }));
 
@@ -24,6 +31,11 @@ const walkthrough = () => document.querySelector("[data-owl-walkthrough]");
 const suggestion = () => document.querySelector("[data-owl-suggestion]");
 const chat = () => document.querySelector("div[data-owl-assistant]");
 
+const seedVisits = (page: string, count: number) => {
+  localStorage.setItem("owly_seen_v1::u1", JSON.stringify(true));
+  localStorage.setItem("owly_visits_v1::u1", JSON.stringify({ pages: { [page]: count }, total: count }));
+};
+
 beforeEach(() => {
   localStorage.clear();
   mockUseAuth.mockReturnValue({
@@ -32,44 +44,33 @@ beforeEach(() => {
   } as unknown as ReturnType<typeof useAuth>);
 });
 
-describe("closing Owly", () => {
-  it("closes the walkthrough instead of opening the suggestion popup", () => {
+describe("Owly only interrupts a stuck user", () => {
+  it("opens the chat, not a suggestion, for a first-time user", () => {
     render(<OwlAssistant />);
 
-    // A new user makes Owly blink; the first tap opens its suggestion.
     fireEvent.click(fab()!);
-    expect(suggestion()).not.toBeNull();
-
-    // Acting on it starts the guided tour, which opens the assistant too.
-    fireEvent.click(screen.getByRole("button", { name: "Show me around" }));
-    expect(walkthrough()).not.toBeNull();
-    expect(chat()).not.toBeNull();
-
-    // The launcher now shows a close icon. Tapping it must leave nothing open.
-    fireEvent.click(fab()!);
-    expect(walkthrough()).toBeNull();
     expect(suggestion()).toBeNull();
-    expect(chat()).toBeNull();
+    expect(chat()).not.toBeNull();
   });
 
-  it("closes on Escape", () => {
+  it("offers a suggestion after the same page has been opened three times", () => {
+    seedVisits("/dashboard/fees", 3);
     render(<OwlAssistant />);
 
-    fireEvent.click(fab()!);
-    fireEvent.click(screen.getByRole("button", { name: "Show me around" }));
-    expect(walkthrough()).not.toBeNull();
+    // Nothing pops up on its own; the badge waits to be tapped.
+    expect(suggestion()).toBeNull();
 
-    fireEvent.keyDown(window, { key: "Escape" });
-    expect(walkthrough()).toBeNull();
+    fireEvent.click(fab()!);
+    expect(suggestion()).not.toBeNull();
     expect(chat()).toBeNull();
+    expect(screen.getByText("Recording your first payment?")).toBeInTheDocument();
   });
 
   it("does not re-show a suggestion the user waved away", () => {
+    seedVisits("/dashboard/fees", 3);
     render(<OwlAssistant />);
 
     fireEvent.click(fab()!);
-    expect(suggestion()).not.toBeNull();
-
     fireEvent.click(screen.getByRole("button", { name: "Not now" }));
     expect(suggestion()).toBeNull();
 
@@ -77,5 +78,41 @@ describe("closing Owly", () => {
     fireEvent.click(fab()!);
     expect(suggestion()).toBeNull();
     expect(chat()).not.toBeNull();
+  });
+});
+
+describe("closing Owly", () => {
+  it("closes the tour instead of revealing or opening another window", () => {
+    render(<OwlAssistant />);
+
+    fireEvent.click(fab()!);
+    fireEvent.click(screen.getByRole("button", { name: "Show me around" }));
+    expect(walkthrough()).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Close walkthrough" }));
+    expect(walkthrough()).toBeNull();
+    expect(suggestion()).toBeNull();
+    expect(chat()).toBeNull();
+  });
+
+  it("closes the launcher itself when the assistant is open", () => {
+    render(<OwlAssistant />);
+
+    fireEvent.click(fab()!);
+    expect(chat()).not.toBeNull();
+
+    fireEvent.click(fab()!);
+    expect(chat()).toBeNull();
+    expect(suggestion()).toBeNull();
+  });
+
+  it("closes on Escape", () => {
+    render(<OwlAssistant />);
+
+    fireEvent.click(fab()!);
+    expect(chat()).not.toBeNull();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(chat()).toBeNull();
   });
 });

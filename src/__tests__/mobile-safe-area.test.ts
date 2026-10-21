@@ -79,15 +79,17 @@ describe("floating UI clears the bottom nav through one shared value", () => {
   });
 });
 
-describe("Owly's blink is honest and accessible", () => {
-  it("has a real animation rather than the old permanent status pulse", () => {
-    expect(css).toContain("@keyframes owly-attention");
-    expect(css).toContain(".animate-owly-pulse");
+describe("Owly's idle motion is alive, not a status blink", () => {
+  it("bobs gently instead of pulsing a coloured halo", () => {
+    expect(css).toContain("@keyframes owly-alive");
+    expect(css).toContain(".animate-owly-alive");
+    expect(css).not.toContain(".animate-owly-pulse");
+    expect(owl).toContain("animate-owly-alive");
   });
 
   it("stops for people who ask for reduced motion", () => {
     const reduced = css.slice(css.indexOf("prefers-reduced-motion: reduce"));
-    expect(reduced).toContain(".animate-owly-pulse");
+    expect(reduced).toContain(".animate-owly-alive");
   });
 
   it("no longer blinks a generic 'online' dot", () => {

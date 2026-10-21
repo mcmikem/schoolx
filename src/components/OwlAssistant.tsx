@@ -418,12 +418,14 @@ export default function OwlAssistant() {
 
   const hints = getPageHints(pathname || "");
 
-  // Owly only speaks when it has a reason to. `attention` is the single gate on
-  // every interrupting affordance: the blink, the question-mark badge, and the
-  // popup that opens when tapped. A suggestion the user has waved away stops
-  // nagging for the rest of the session -- but a genuinely urgent one (unsynced
-  // work) is raised again next time the app starts.
-  const currentSuggestion = owly.suggestions.find((s) => !dismissedSuggestions.has(s.id)) ?? null;
+  // Owly only interrupts when it has evidence the user is going in circles.
+  // First-run and offline notices still exist in `owly-suggestions.ts`, but
+  // they must not blink the launcher or throw a popup at someone who is simply
+  // new or working without signal -- that is what made Owly feel nagging.
+  // A suggestion the user has waved away stays quiet for the rest of the
+  // session; a genuinely stuck user is recognised again next time.
+  const currentSuggestion =
+    owly.suggestions.find((s) => s.id.endsWith("-repeat") && !dismissedSuggestions.has(s.id)) ?? null;
   const attention = !open && currentSuggestion !== null;
   const tour = pickWalkthrough(user?.roles?.length ? user.roles : user?.role ? [user.role] : []);
   const fallbackTour = tour ?? FALLBACK_WALKTHROUGH;
@@ -478,10 +480,6 @@ export default function OwlAssistant() {
   const handleSuggestionCta = () => {
     if (!currentSuggestion) return;
     dismissSuggestion(currentSuggestion.id);
-    if (currentSuggestion.id === "first-run") {
-      openWalkthrough(fallbackTour);
-      return;
-    }
     if (currentSuggestion.href) {
       router.push(currentSuggestion.href);
       setOpen(false);
@@ -603,22 +601,19 @@ export default function OwlAssistant() {
               width={56}
               height={56}
               loading="eager"
-              className="rounded-2xl"
+              className="animate-owly-alive rounded-2xl"
             />
-            {/* Owly blinks only when it actually has something to offer. The
-                old pulsing green dot meant "there is a server" — meaningless to
-                a teacher, and it never stopped, so it taught people to ignore
-                the one indicator that now matters. */}
+            {/* The badge is the only interrupting signal, and it appears only
+                when the user has been round the same page enough times to look
+                stuck. No coloured halo: the owl's idle motion already says it
+                is awake, and a second blinking thing competed with this one. */}
             {attention && (
-              <>
-                <span className="absolute inset-0 rounded-2xl animate-owly-pulse" aria-hidden />
-                <span
-                  className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-[var(--green)] text-white shadow-lg"
-                  aria-hidden
-                >
-                  <MaterialIcon icon="help" size={14} />
-                </span>
-              </>
+              <span
+                className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-[var(--green)] text-white shadow-lg"
+                aria-hidden
+              >
+                <MaterialIcon icon="help" size={14} />
+              </span>
             )}
           </div>
         )}

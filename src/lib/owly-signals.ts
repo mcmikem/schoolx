@@ -28,8 +28,6 @@ const EMPTY_VISITS: VisitState = { pages: {}, total: 0 };
 
 export interface OwlySignals extends SuggestionSignals {
   suggestions: OwlySuggestion[];
-  /** True only when Owly genuinely has something to offer. Drives the blinking. */
-  shouldBlink: boolean;
 }
 
 /**
@@ -128,5 +126,5 @@ export function useOwlySignals(opts: {
 
   const suggestions = useMemo(() => getSuggestions(signals), [signals]);
 
-  return { ...signals, suggestions, shouldBlink: suggestions.length > 0 };
+  return { ...signals, suggestions };
 }

@@ -1946,33 +1946,35 @@ table tr {
   }
 }
 
-/* Owly's "I have something for you" halo.
-   A soft expanding ring, not the old pulsing status dot: the dot pulsed forever
-   regardless of whether there was anything to say, which is how it taught people
-   to ignore the one indicator that now only appears when a suggestion is real. */
-@keyframes owly-attention {
-  0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 55%, transparent);
-  }
-  70% {
-    box-shadow: 0 0 0 14px color-mix(in srgb, var(--green) 0%, transparent);
-  }
+/* Owly's idle life.
+   A slow bob and tilt, not a coloured halo: the owl should read as a character
+   that is present and awake, while the question-mark badge -- which only shows
+   when the user looks stuck -- carries the actual "I can help" signal. The old
+   expanding green ring pulsed like a notification and competed with the badge. */
+@keyframes owly-alive {
+  0%,
   100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 0%, transparent);
+    transform: translateY(0) rotate(0deg);
+  }
+  30% {
+    transform: translateY(-2px) rotate(-1.5deg);
+  }
+  65% {
+    transform: translateY(0.5px) rotate(1.5deg);
   }
 }
 
-.animate-owly-pulse {
-  animation: owly-attention 2s ease-out infinite;
+.animate-owly-alive {
+  animation: owly-alive 4.5s ease-in-out infinite;
+  transform-origin: 50% 70%;
+  will-change: transform;
 }
 
-/* Respect the OS-level motion preference. A blinking control is an accessibility
-   problem for people with vestibular disorders, and the question-mark badge
-   already carries the same information non-visually. */
+/* Respect the OS-level motion preference. Idle movement is decoration, so it
+   stops entirely; the static owl and the badge still communicate everything. */
 @media (prefers-reduced-motion: reduce) {
-  .animate-owly-pulse {
+  .animate-owly-alive {
     animation: none;
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--green) 55%, transparent);
   }
 }
 
