@@ -7,7 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import {
   ONBOARDING_VIDEOS,
   onboardingPosterUrl,
-  onboardingVideoUrl,
+  preferredOnboardingVideoUrl,
   type OnboardingVideoKey,
 } from "@/lib/onboarding-videos";
 
@@ -105,7 +105,7 @@ function VideoLessonModal({ lesson, onClose }: { lesson: OnboardingVideoKey; onC
   const startPlayback = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
-    v.src = onboardingVideoUrl(lesson);
+    v.src = preferredOnboardingVideoUrl(lesson);
     v.load();
     void v.play().catch(() => {
       /* the user can still press play on the native controls */

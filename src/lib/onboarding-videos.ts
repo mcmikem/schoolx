@@ -61,8 +61,38 @@ export const ONBOARDING_VIDEOS: Record<OnboardingVideoKey, OnboardingVideo> = {
   },
 };
 
-export const onboardingVideoUrl = (key: OnboardingVideoKey) =>
-  asset(`teacher-${key === "comments" ? "report-comments" : key === "tests" ? "class-tests" : key}.mp4`);
+const slug = (key: OnboardingVideoKey) =>
+  key === "comments" ? "teacher-report-comments" : key === "tests" ? "teacher-class-tests" : `teacher-${key}`;
 
-export const onboardingPosterUrl = (key: OnboardingVideoKey) =>
-  asset(`teacher-${key === "comments" ? "report-comments" : key === "tests" ? "class-tests" : key}.jpg`);
+export const onboardingVideoUrl = (key: OnboardingVideoKey) => asset(`${slug(key)}.mp4`);
+
+export const onboardingPosterUrl = (key: OnboardingVideoKey) => asset(`${slug(key)}.jpg`);
+
+/**
+ * The 480p rendition, for slow or metered connections.
+ *
+ * Measured over the real CDN: at 400 kbps (Slow 3G) the 720p file takes
+ * ~30-36s to arrive for a ~33s clip, so playback stalls. The 480p file is
+ * about half the bytes and keeps up.
+ */
+export const onboardingVideoLiteUrl = (key: OnboardingVideoKey) => asset(`${slug(key)}-lite.mp4`);
+
+/**
+ * Pick the smallest rendition that still plays at the user's connection.
+ *
+ * `navigator.connection` is Chromium-only; everywhere else the full quality
+ * file is used, which is the right default for a fast connection.
+ */
+export function preferredOnboardingVideoUrl(key: OnboardingVideoKey): string {
+  if (typeof navigator === "undefined") return onboardingVideoUrl(key);
+  const connection = (
+    navigator as Navigator & {
+      connection?: { effectiveType?: string; saveData?: boolean };
+    }
+  ).connection;
+  if (!connection) return onboardingVideoUrl(key);
+  if (connection.saveData) return onboardingVideoLiteUrl(key);
+  const type = connection.effectiveType;
+  if (type === "slow-2g" || type === "2g" || type === "3g") return onboardingVideoLiteUrl(key);
+  return onboardingVideoUrl(key);
+}

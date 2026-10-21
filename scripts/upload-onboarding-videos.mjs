@@ -44,6 +44,11 @@ const FILES = [
   { src: 'web-ob-2-marks.mp4', dest: 'teacher-marks.mp4', type: 'video/mp4' },
   { src: 'web-ob-3-comments.mp4', dest: 'teacher-report-comments.mp4', type: 'video/mp4' },
   { src: 'web-ob-4-tests.mp4', dest: 'teacher-class-tests.mp4', type: 'video/mp4' },
+  // 480p renditions for slow/metered connections -- roughly half the bytes.
+  { src: 'lite-ob-1-attendance.mp4', dest: 'teacher-attendance-lite.mp4', type: 'video/mp4' },
+  { src: 'lite-ob-2-marks.mp4', dest: 'teacher-marks-lite.mp4', type: 'video/mp4' },
+  { src: 'lite-ob-3-comments.mp4', dest: 'teacher-report-comments-lite.mp4', type: 'video/mp4' },
+  { src: 'lite-ob-4-tests.mp4', dest: 'teacher-class-tests-lite.mp4', type: 'video/mp4' },
   { src: 'web-ob-1-attendance.jpg', dest: 'teacher-attendance.jpg', type: 'image/jpeg' },
   { src: 'web-ob-2-marks.jpg', dest: 'teacher-marks.jpg', type: 'image/jpeg' },
   { src: 'web-ob-3-comments.jpg', dest: 'teacher-report-comments.jpg', type: 'image/jpeg' },
