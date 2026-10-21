@@ -112,8 +112,17 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
         { href: "/dashboard/staff", label: "Staff", icon: "person" },
         {
           href: "/dashboard/grades",
-          label: "Grades & Reports",
+          label: "Grades",
           icon: "menu_book",
+        },
+        {
+          // The reports used to be one collapsed group away, behind a label
+          // that said "Financial" on a page of academic analytics. A teacher
+          // or headmaster looking for reports after grading should not have
+          // to go hunting for them.
+          href: "/dashboard/reports",
+          label: "Reports",
+          icon: "analytics",
         },
         {
           href: "/dashboard/timetable",
@@ -180,11 +189,6 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
           href: "/dashboard/students/id-cards",
           label: "ID Cards",
           icon: "id_card",
-        },
-        {
-          href: "/dashboard/reports",
-          label: "Financial Reports",
-          icon: "analytics",
         },
         {
           href: "/dashboard/teacher-performance",
@@ -506,6 +510,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
           label: "Record Grades",
           icon: "grade",
         },
+        { href: "/dashboard/reports", label: "Class Reports", icon: "analytics" },
         { href: "/dashboard/exams", label: "Exams", icon: "fact_check" },
       ],
     },

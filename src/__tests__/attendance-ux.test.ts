@@ -73,12 +73,48 @@ describe("one-pupil view stays put", () => {
   it("is swipeable like the register, and says so", () => {
     // Both gestures reach the same markAttendance the register uses, so the
     // muscle memory carries over instead of having to be re-learned.
-    expect(page).toMatch(/focusStudent\.id[^)]*onSwipeRight|onSwipeRight=\{\(\) => markAttendance\(focusStudent\.id/);
-    expect(page).toContain("onSwipeLeft={() => markAttendance(focusStudent.id, leftSwipeStatus(focusStatus))}");
-    expect(page).toContain("onTap={() => markAttendance(focusStudent.id, tapStatus(focusStatus))}");
-    // Same reveal/action pairing as the register rows.
+    expect(page).toMatch(
+      /focusStudent\.id[^)]*onSwipeRight|onSwipeRight=\{\(\) => markFocusAndAdvance\(focusStudent\.id/,
+    );
+    expect(page).toContain("onSwipeLeft={() => markFocusAndAdvance(focusStudent.id, leftSwipeStatus())}");
+    expect(page).toContain("onTap={() => markFocusAndAdvance(focusStudent.id, tapStatus(focusStatus))}");
+    // Same reveal/action pairing as the register rows: red for Absent on the
+    // right, green for Present on the left.
     expect(page).toContain("rightAction={ABSENT_SWIPE}");
-    expect(page).toContain("leftAction={LATE_SWIPE}");
+    expect(page).toContain("leftAction={PRESENT_SWIPE}");
+  });
+
+  it("swipes left for Present and right for Absent, and leaves the rare marks to the buttons", () => {
+    // These two are written on nearly every child, so they are the two the
+    // gesture carries. Late and Excused are rare and are picked from the
+    // buttons, where a stray thumb cannot set them.
+    expect(page).toContain('function leftSwipeStatus(): AttendanceStatus {\n  return "present";\n}');
+    expect(page).toContain('onSwipeRight={() => markAttendance(student.id, "absent")}');
+    expect(page).toContain("onSwipeLeft={() => markAttendance(student.id, leftSwipeStatus())}");
+    // The card carries all four marks as buttons.
+    expect(page).toContain('{ key: "excused", label: "Excused"');
+  });
+
+  it("says what the swipe does with a colour and a buzz", () => {
+    const swipe = fs.readFileSync(path.join(ROOT, "src/components/attendance/SwipeRow.tsx"), "utf8");
+    // One pulse for Present, two for Absent.
+    expect(swipe).toMatch(/PRESENT_SWIPE[\s\S]*?vibrate: 15/);
+    expect(swipe).toMatch(/ABSENT_SWIPE[\s\S]*?vibrate: \[25, 45, 25\]/);
+    // And the commit has to use it.
+    expect(swipe).toContain("navigator.vibrate(pattern ?? 10)");
+  });
+
+  it("always offers a way out of the one-pupil view", () => {
+    // A full-screen dialog that traps the teacher is a dialog they stop
+    // opening: corner button, back link and Escape.
+    expect(page).toContain("Close and go back to the register");
+    expect(page).toContain('aria-label="Close and go back to the register"');
+    expect(page).toContain('if (event.key === "Escape") setFocusStudentId(null)');
+  });
+
+  it("moves on to the next pupil by itself once one is marked", () => {
+    expect(page).toContain("markFocusAndAdvance");
+    expect(page).toContain("const nextUnmarked = list.findIndex((s, i) => i > current && !attendance[s.id]);");
   });
 
   it("offers every status as a large target, plus clear and next", () => {

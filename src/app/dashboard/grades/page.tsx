@@ -342,6 +342,11 @@ export default function GradesPage() {
     return labels;
   }, [track]);
   const [selectedSubject, setSelectedSubject] = useState("");
+  // A teacher who is assigned one class and one subject should land on the
+  // marks, not on a form asking them to choose what they already chose.
+  // The pickers are still there, one tap away, for the days they cover for
+  // someone else.
+  const [showTargetPicker, setShowTargetPicker] = useState(false);
   // Scope the pickers to what this teacher actually teaches. Previously both
   // listed every class and subject in the school, and the assignment check ran
   // only inside the 500ms autosave -- so a teacher could fill a 40-cell grid
@@ -355,6 +360,28 @@ export default function GradesPage() {
     teacherScoped && selectedClass
       ? subjects.filter((s) => teacherSubjects.some((ts) => ts.class_id === selectedClass && ts.subject_id === s.id))
       : subjects;
+
+  /**
+   * The one class and subject this teacher is assigned, when there is only
+   * one of each.
+   *
+   * A rural teacher is usually given one class and one subject, and the page
+   * made them pick both before they could type a single mark. The choice was
+   * already made for them in the staff assignments; the page just did not
+   * know it. When there is exactly one target, the marks open on it.
+   */
+  const teacherTargets = teacherScoped
+    ? classOptions
+        .map((cls) => ({
+          cls,
+          subjects: subjects.filter((s) =>
+            teacherSubjects.some((ts) => ts.class_id === cls.id && ts.subject_id === s.id),
+          ),
+        }))
+        .filter((t) => t.subjects.length > 0)
+    : [];
+  const singleTarget =
+    teacherTargets.length === 1 && teacherTargets[0].subjects.length === 1 ? teacherTargets[0] : null;
   const [coverage, setCoverage] = useState<TopicCoverage[]>([]);
   const [syllabusTopicNames, setSyllabusTopicNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -1319,6 +1346,16 @@ export default function GradesPage() {
   const selectedClassName = selectedClassObj
     ? `${selectedClassObj.name}${selectedClassObj.stream ? ` ${selectedClassObj.stream}` : ""}`
     : "";
+
+  // Open on the teacher's own class and subject when there is only one of
+  // each. The pickers stay one tap away for the days they cover for someone
+  // else.
+  useEffect(() => {
+    if (!singleTarget) return;
+    if (selectedClass && selectedSubject) return;
+    if (!selectedClass) setSelectedClass(singleTarget.cls.id);
+    if (!selectedSubject) setSelectedSubject(singleTarget.subjects[0].id);
+  }, [singleTarget, selectedClass, selectedSubject]);
   const topics = useMemo(
     () => (syllabusTopicNames.length > 0 ? syllabusTopicNames : DEFAULT_TOPICS),
     [syllabusTopicNames],
@@ -1435,27 +1472,12 @@ export default function GradesPage() {
           }
           actions={
             <div className="flex flex-wrap gap-2">
-              {selectedClass &&
-                selectedSubject &&
-                (caLocked ? (
-                  <Button
-                    variant="secondary"
-                    onClick={handleUnlockCA}
-                    disabled={saving}
-                    icon={<MaterialIcon icon="lock_open" className="text-lg" />}
-                  >
-                    Open for Edits ({lockedByName})
-                  </Button>
-                ) : (
-                  <Button
-                    variant="danger"
-                    onClick={handleLockCA}
-                    disabled={saving || !selectedClass || !selectedSubject}
-                    icon={<MaterialIcon icon="lock" className="text-lg" />}
-                  >
-                    Close for Edits (Lock)
-                  </Button>
-                ))}
+              {/*
+                  The lock used to sit up here, in the page header, while the
+                  pupils it locks were a long scroll further down. A control
+                  that freezes the work belongs next to the work, so it moved
+                  down to the marks list.
+                */}
               <Button
                 variant="secondary"
                 onClick={handleExportGrades}
@@ -1493,51 +1515,60 @@ export default function GradesPage() {
             the previous one raised.
           */}{" "}
         {/* Class picker — the one thing that has to be right before the
-            subject list below means anything. */}
-        <div className="grid grid-cols-1 gap-3">
-          <div>
-            <label htmlFor="grade-target-class" className="block text-sm font-semibold mb-2 text-primary">
-              Target Class
-            </label>
-            {classesLoading ? (
-              <div className="bg-[var(--navy-soft)] border border-[rgba(0,31,63,0.12)] rounded-xl p-4">
-                <p className="text-[var(--t1)] text-sm font-medium">Loading classes...</p>
-                <p className="text-[var(--t3)] text-xs mt-1">The class list is still being fetched for this school.</p>
-              </div>
-            ) : classes.length === 0 ? (
-              <div className="bg-[var(--amber-soft)] border border-[var(--amber)]/20 rounded-xl p-4">
-                {isClassScopedRole(user?.role) ? (
-                  <>
-                    <p className="text-[var(--t1)] text-sm font-medium">No classes assigned yet</p>
-                    <p className="text-[var(--amber)] text-xs mt-1">
-                      Your administrator hasn&apos;t assigned you to a class or subject yet.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-[var(--t1)] text-sm font-medium">No classes found</p>
-                    <p className="text-[var(--amber)] text-xs mt-1">Contact support if this persists.</p>
-                  </>
-                )}
-              </div>
-            ) : (
-              <select
-                id="grade-target-class"
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
-                className="w-full bg-surface-container-lowest border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary text-sm font-medium"
-              >
-                <option value="">Select Class</option>
-                {classOptions.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                    {c.stream ? ` ${c.stream}` : ""}
-                  </option>
-                ))}
-              </select>
-            )}
+            subject list below means anything.
+
+            A teacher with exactly one class and one subject does not see
+            this at all: the marks open on the target that was assigned to
+            them, and the "change" link in the context bar brings the
+            pickers back for the days they cover for someone else. */}
+        {!(singleTarget && !showTargetPicker) && (
+          <div className="grid grid-cols-1 gap-3">
+            <div>
+              <label htmlFor="grade-target-class" className="block text-sm font-semibold mb-2 text-primary">
+                Target Class
+              </label>
+              {classesLoading ? (
+                <div className="bg-[var(--navy-soft)] border border-[rgba(0,31,63,0.12)] rounded-xl p-4">
+                  <p className="text-[var(--t1)] text-sm font-medium">Loading classes...</p>
+                  <p className="text-[var(--t3)] text-xs mt-1">
+                    The class list is still being fetched for this school.
+                  </p>
+                </div>
+              ) : classes.length === 0 ? (
+                <div className="bg-[var(--amber-soft)] border border-[var(--amber)]/20 rounded-xl p-4">
+                  {isClassScopedRole(user?.role) ? (
+                    <>
+                      <p className="text-[var(--t1)] text-sm font-medium">No classes assigned yet</p>
+                      <p className="text-[var(--amber)] text-xs mt-1">
+                        Your administrator hasn&apos;t assigned you to a class or subject yet.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[var(--t1)] text-sm font-medium">No classes found</p>
+                      <p className="text-[var(--amber)] text-xs mt-1">Contact support if this persists.</p>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <select
+                  id="grade-target-class"
+                  value={selectedClass}
+                  onChange={(e) => setSelectedClass(e.target.value)}
+                  className="w-full bg-surface-container-lowest border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary text-sm font-medium"
+                >
+                  <option value="">Select Class</option>
+                  {classOptions.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                      {c.stream ? ` ${c.stream}` : ""}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
           </div>
-        </div>
+        )}
         {/* Sticky context. Once marks are on screen, a teacher scrolling a
             long register needs to be able to answer "which subject is this?"
             without scrolling back up. Sits above the grid on phones, beside it
@@ -1551,15 +1582,18 @@ export default function GradesPage() {
               </span>
               <button
                 type="button"
-                onClick={() => setSelectedSubject("")}
+                onClick={() => {
+                  setShowTargetPicker(true);
+                  setSelectedSubject("");
+                }}
                 className="ml-auto min-h-11 text-xs font-semibold text-[var(--primary)] hover:underline"
               >
-                Change subject
+                Change class or subject
               </button>
             </div>
           </div>
         )}
-        {subjectOptions.length > 0 && (
+        {subjectOptions.length > 0 && !(singleTarget && !showTargetPicker) && (
           <section aria-labelledby="subject-picker-heading" className="mb-4">
             <div className="mb-2 flex items-baseline justify-between gap-3">
               <h2 id="subject-picker-heading" className="text-sm font-semibold text-[var(--t1)]">
@@ -1785,6 +1819,32 @@ export default function GradesPage() {
                 <MaterialIcon icon="lock" className="text-xs" />
                 Submitted
               </span>
+            )}
+            {/* The lock lives here, with the pupils it freezes.
+
+                It used to sit in the page header, a screen away from the
+                marks it locks: a teacher who wanted to close the register
+                had to scroll up to find it, and a teacher halfway down a
+                list of forty had no idea it existed. The control that ends
+                the work belongs beside the work. */}
+            {caLocked ? (
+              <Button
+                variant="secondary"
+                onClick={handleUnlockCA}
+                disabled={saving}
+                icon={<MaterialIcon icon="lock_open" className="text-lg" />}
+              >
+                Open for Edits ({lockedByName})
+              </Button>
+            ) : (
+              <Button
+                variant="danger"
+                onClick={handleLockCA}
+                disabled={saving || !selectedClass || !selectedSubject}
+                icon={<MaterialIcon icon="lock" className="text-lg" />}
+              >
+                Close for Edits (Lock)
+              </Button>
             )}
           </div>
         )}
@@ -2697,9 +2757,11 @@ export default function GradesPage() {
           >
             {isSubmitted
               ? "Submitted ✓"
-              : staff.some((s: any) => s.role === "dean_of_studies" || s.role === "dos")
-                ? "Submit to Dean"
-                : "Submit to HM"}
+              : /* Not every school has a dean of studies, and plenty of them
+                   call the role something else. The workflow knows where the
+                   marks go; the button should just say what the teacher is
+                   doing. */
+                "Submit Grades"}
           </button>
         </div>
       </div>

@@ -25,6 +25,7 @@ import { useAuth } from "@/lib/auth-context";
 import { PAYMENT_METHODS } from "@/lib/constants";
 import { updateRecord } from "@/lib/crud-service";
 import { formatCurrency } from "@/lib/currency";
+import { generateWhatsAppShareLink } from "@/lib/whatsapp";
 import { bucketTriageBalances, matchesFeeStatus, partitionFeeRoster, TRIAGE_BANDS } from "@/lib/fee-triage";
 // NOTE: If your school uses fee_terms as the primary system, this fees page
 // uses fee_structure instead. The fee_terms module at /dashboard/fee-terms is
@@ -61,6 +62,7 @@ const FeeFormModal = lazyWithIdlePrefetch(() => import("@/components/fees/FeeFor
 const FeeImportModal = lazyWithIdlePrefetch(() => import("@/components/fees/FeeImportModal"));
 const MobileMoneyImportModal = lazyWithIdlePrefetch(() => import("@/components/fees/MobileMoneyImportModal"));
 const ReceiptModal = lazyWithIdlePrefetch(() => import("@/components/fees/ReceiptModal"));
+const ReceiptPrompt = lazyWithIdlePrefetch(() => import("@/components/fees/ReceiptPrompt"));
 const InvoiceModal = lazyWithIdlePrefetch(() => import("@/components/fees/InvoiceModal"));
 const AdjustmentModal = lazyWithIdlePrefetch(() => import("@/components/fees/AdjustmentModal"));
 const FeePaymentHistory = lazyWithIdlePrefetch(() => import("@/components/fees/FeePaymentHistory"));
@@ -317,6 +319,12 @@ export default function FinanceHubPage() {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [recordedPaymentDate, setRecordedPaymentDate] = useState("");
   const [recordedPaymentAmount, setRecordedPaymentAmount] = useState<number | undefined>();
+  // The payment bar, not a modal. Taking a payment used to open a receipt
+  // dialog over the list the bursar was working down; it had to be closed
+  // before the next parent could be served. Now the payment lands and a
+  // small bar offers the receipt, then gets out of the way.
+  const [showReceiptPrompt, setShowReceiptPrompt] = useState(false);
+  const [recordedReceiptNumber, setRecordedReceiptNumber] = useState<string | null>(null);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [showFeeModal, setShowFeeModal] = useState(false);
   const [showFeeImport, setShowFeeImport] = useState(false);
@@ -1057,6 +1065,11 @@ export default function FinanceHubPage() {
         allow_overpayment: newPayment.allow_overpayment || undefined,
       });
 
+      // Hoisted: the receipt number belongs on the receipt the bursar hands
+      // over, and the block that mints it is conditional on the payment
+      // having been written.
+      let receiptNumberForRecord: string | null = null;
+
       if (!isDemo && school?.id && paymentResult?.id) {
         // Retry-after-timeout returns the EXISTING payment row (idempotent),
         // so first check whether it already has a receipt — minting a second
@@ -1105,6 +1118,8 @@ export default function FinanceHubPage() {
           }
         }
 
+        receiptNumberForRecord = receiptNumber;
+
         if (!existingNumber) {
           await withTimeout(
             supabase.from("receipts").insert({
@@ -1125,12 +1140,16 @@ export default function FinanceHubPage() {
       if (student) {
         setRecordedPaymentDate(paymentResult.payment_date);
         setRecordedPaymentAmount(Number(paymentResult.amount_paid));
+        setRecordedReceiptNumber(receiptNumberForRecord);
         setSelectedStudent({
           ...student,
           paid: student.paid + parsedAmount,
           balance: Math.max(0, student.balance - parsedAmount),
         });
-        setShowReceiptModal(true);
+        // Not the whole receipt: a small bar, so the bursar can carry on
+        // serving the queue and still send the receipt if the parent wants
+        // one.
+        setShowReceiptPrompt(true);
       }
       toast.success("Payment recorded successfully");
       if (!isDemo) void refetchPayments();
@@ -1399,10 +1418,12 @@ export default function FinanceHubPage() {
 
   const handlePrintReceipt = () => {
     if (receiptRef.current) {
+      // The same paper the bursar saw on screen. The print window has no
+      // Tailwind, so the receipt's own class names are what carry the
+      // styling -- which is why they are semantic names and not only
+      // utility classes.
       const printContent = receiptRef.current.innerHTML;
-      const logoUrl = school?.logo_url || "";
       const schoolName = school?.name || "School";
-      const schoolColor = school?.primary_color || "#002045";
       const escapeHtml = (s: string) =>
         String(s)
           .replace(/&/g, "&amp;")
@@ -1413,30 +1434,25 @@ export default function FinanceHubPage() {
 
       const html = `
           <html><head><title>Fee Receipt</title><style>
-          body{font-family:Arial,sans-serif;padding:20px;max-width:400px;margin:0 auto}
-          .header{text-align:center;border-bottom:2px solid ${schoolColor};padding-bottom:15px;margin-bottom:15px}
-          .logo{max-width:80px;max-height:60px;margin-bottom:10px}
-          .school-name{font-size:20px;font-weight:bold;color:${schoolColor};margin:5px 0}
-          .school-info{font-size:11px;color:#666;margin-bottom:5px}
-          .receipt-title{font-size:14px;color:#666;margin-top:5px;font-weight:bold}
-          .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed #ddd}
-          .label{color:#666;font-size:13px}
-          .value{font-weight:bold;font-size:13px}
-          .total{font-size:16px;border-top:2px solid ${schoolColor};margin-top:10px;padding-top:10px;font-weight:bold}
-          .footer{text-align:center;margin-top:25px;font-size:11px;color:#999;border-top:1px solid #eee;padding-top:15px}
-          .thank-you{font-weight:bold;color:${schoolColor};margin-bottom:5px}
-        </style></head><body>
-          <div class="header">
-            ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" class="logo" alt="${escapeHtml(schoolName)}">` : ""}
-            <div class="school-name">${escapeHtml(schoolName)}</div>
-            <div class="school-info">Tel: ${escapeHtml(school?.phone || "")} | Email: ${escapeHtml(school?.email || "")}</div>
-            <div class="receipt-title">OFFICIAL RECEIPT</div>
-          </div>
+          body{font-family:Arial,sans-serif;padding:16px;max-width:400px;margin:0 auto;color:#1a1a1a}
+          .receipt-paper{border:1px solid #e4e4e7;padding:18px 16px}
+          .receipt-header{text-align:center}
+          .receipt-logo{width:52px;height:52px;border-radius:10px;object-fit:cover;display:block;margin:0 auto 8px}
+          .receipt-school{font-size:18px;font-weight:800;line-height:1.2}
+          .receipt-meta{font-size:11px;color:#666;margin-top:4px}
+          .receipt-title{font-size:10px;letter-spacing:.18em;color:#888;text-transform:uppercase;font-weight:800;margin-top:10px}
+          .receipt-rule{border-top:1px dashed #d4d4d8;margin:12px 0}
+          .receipt-row{display:flex;justify-content:space-between;gap:12px;padding:3px 0;font-size:12px}
+          .receipt-label{color:#666}
+          .receipt-value{font-weight:700}
+          .receipt-total{text-align:center;margin-top:14px;border-top:2px solid #000;padding-top:12px}
+          .receipt-total-label{font-size:9px;letter-spacing:.2em;color:#888;text-transform:uppercase;font-weight:700}
+          .receipt-amount{font-size:24px;font-weight:800;font-family:'Courier New',monospace}
+          .receipt-stamp{display:inline-block;border:1px solid #999;border-radius:999px;padding:2px 10px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;margin-top:6px}
+          .receipt-footer{text-align:center;font-size:11px;color:#888}
+          .receipt-thanks{font-weight:700;color:#000}
+          </style></head><body>
           ${printContent}
-          <div class="footer">
-            <div class="thank-you">Thank you for your payment!</div>
-            <div>Powered by ${APP_NAME}</div>
-          </div>
         </body></html>`;
 
       let iframe = document.getElementById("print-iframe") as HTMLIFrameElement;
@@ -1465,6 +1481,82 @@ export default function FinanceHubPage() {
   const handleViewReceipt = (student: StudentBalance) => {
     setSelectedStudent(student);
     setShowReceiptModal(true);
+  };
+
+  /**
+   * Send the receipt to the parent.
+   *
+   * Two ways, because that is how parents actually receive things: WhatsApp
+   * for the ones who use it, SMS for everyone else. Both go out with the
+   * receipt number, the amount and what is left, so a parent can answer the
+   * question they are really asking -- "how much is left?" -- without
+   * ringing the school.
+   */
+  const receiptParentPhone = useMemo(() => {
+    if (!selectedStudent) return null;
+    const match = students.find((s) => s.id === selectedStudent.id) as { parent_phone?: string | null } | undefined;
+    return match?.parent_phone ?? null;
+  }, [selectedStudent, students]);
+
+  const receiptMessage = useMemo(() => {
+    if (!selectedStudent) return "";
+    const amount = recordedPaymentAmount ?? selectedStudent.paid;
+    const parts = [
+      `${school?.name || "School"}: payment received`,
+      `${selectedStudent.name} (${selectedStudent.student_number})`,
+      `Amount: ${formatCurrency(amount)}`,
+    ];
+    if (recordedReceiptNumber) parts.push(`Receipt: ${recordedReceiptNumber}`);
+    if (selectedStudent.balance > 0) {
+      parts.push(`Balance: ${formatCurrency(selectedStudent.balance)}`);
+    } else {
+      parts.push("Paid in full. Thank you.");
+    }
+    return parts.join("\n");
+  }, [selectedStudent, recordedPaymentAmount, recordedReceiptNumber, school?.name]);
+
+  const sendReceiptWhatsApp = () => {
+    if (!receiptParentPhone) {
+      toast.error("No parent phone number on this pupil");
+      return;
+    }
+    const link = generateWhatsAppShareLink(receiptParentPhone, receiptMessage);
+    window.open(link, "_blank", "noopener,noreferrer");
+    setShowReceiptPrompt(false);
+  };
+
+  const sendReceiptSms = async () => {
+    if (!receiptParentPhone) {
+      toast.error("No parent phone number on this pupil");
+      return;
+    }
+    try {
+      const res = await fetch("/api/sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: receiptParentPhone,
+          message: receiptMessage,
+          schoolId: school?.id,
+        }),
+      });
+      if (!res.ok) throw new Error(`SMS API returned ${res.status}`);
+      const smsResult = await res.json().catch(() => null);
+      const smsData = smsResult?.data || {};
+      if (smsData.status === "sent") {
+        toast.success("Receipt sent to the parent");
+        setShowReceiptPrompt(false);
+      } else if (smsData.status === "fallback" && typeof smsData.whatsappLink === "string") {
+        window.open(smsData.whatsappLink, "_blank", "noopener,noreferrer");
+        toast.error("SMS failed. Opened WhatsApp instead.");
+        setShowReceiptPrompt(false);
+      } else {
+        throw new Error("SMS could not be sent");
+      }
+    } catch (err) {
+      logger.warn("Send receipt SMS failed:", err);
+      toast.error("Could not send the SMS");
+    }
   };
 
   const handlePaymentChange = (updates: Partial<typeof newPayment>) => {
@@ -2357,6 +2449,20 @@ export default function FinanceHubPage() {
           saving={saving}
         />
 
+        <ReceiptPrompt
+          isOpen={showReceiptPrompt}
+          studentName={selectedStudent?.name}
+          amount={recordedPaymentAmount}
+          parentPhone={receiptParentPhone}
+          onSendWhatsApp={sendReceiptWhatsApp}
+          onSendSms={sendReceiptSms}
+          onViewReceipt={() => {
+            setShowReceiptPrompt(false);
+            setShowReceiptModal(true);
+          }}
+          onDismiss={() => setShowReceiptPrompt(false)}
+        />
+
         <ReceiptModal
           isOpen={showReceiptModal}
           student={selectedStudent}
@@ -2365,6 +2471,14 @@ export default function FinanceHubPage() {
           onPrint={handlePrintReceipt}
           paymentDate={recordedPaymentDate}
           paymentAmount={recordedPaymentAmount}
+          receiptNumber={recordedReceiptNumber}
+          schoolDetails={{
+            phone: school?.phone ?? undefined,
+            email: school?.email ?? undefined,
+            code: school?.school_code ?? undefined,
+            logoUrl: school?.logo_url ?? undefined,
+            color: school?.primary_color ?? undefined,
+          }}
           contentRef={receiptRef}
         />
 

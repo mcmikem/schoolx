@@ -3,7 +3,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AttendanceMarkCard } from "@/components/attendance/AttendanceMarkCard";
 import { RollCallPhoto } from "@/components/attendance/RollCallPhoto";
-import { ABSENT_SWIPE, LATE_SWIPE, SwipeRow } from "@/components/attendance/SwipeRow";
+import { ABSENT_SWIPE, PRESENT_SWIPE, SwipeRow } from "@/components/attendance/SwipeRow";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -37,11 +37,16 @@ type AttendanceStatus = (typeof STATUS_CYCLE)[number];
  * The three marks offered on the card, with the colours that say "this one is
  * set". Declared here rather than inside the card so the register, the
  * one-pupil view and any future surface all agree on what "Absent" looks like.
+ *
+ * Late and Excused are on the card as buttons, not on the swipe: they are the
+ * rare marks, and the swipe is reserved for the two the teacher writes on
+ * almost every child.
  */
 const CARD_STATUSES = [
   { key: "present", label: "Present", icon: "check_circle", activeBg: "bg-secondary", activeText: "text-white" },
   { key: "absent", label: "Absent", icon: "cancel", activeBg: "bg-error", activeText: "text-white" },
   { key: "late", label: "Late", icon: "schedule", activeBg: "bg-tertiary", activeText: "text-white" },
+  { key: "excused", label: "Excused", icon: "verified", activeBg: "bg-[var(--violet)]", activeText: "text-white" },
 ] as const;
 
 const STATUS_CONFIG: Record<AttendanceStatus, { color: string; bg: string; label: string; icon: string }> = {
@@ -88,10 +93,17 @@ function tapStatus(current: string | undefined): AttendanceStatus {
   return current === "present" ? "absent" : "present";
 }
 
-/** Swipe left walks Late -> Excused -> Late. Excused is rare enough to share
- *  the gesture with Late rather than giving it its own. */
-function leftSwipeStatus(current: string | undefined): AttendanceStatus {
-  return current === "late" ? "excused" : "late";
+/**
+ * Swipe left = Present, swipe right = Absent.
+ *
+ * These are the two marks written on nearly every child, so they are the two
+ * the gesture should carry -- a green sweep to the left, a red sweep to the
+ * right, one buzz for Present and two for Absent. Late and Excused are rare
+ * and are picked from the buttons instead, where they cannot be set by a
+ * stray thumb.
+ */
+function leftSwipeStatus(): AttendanceStatus {
+  return "present";
 }
 
 /** Tally a saved batch by status for the post-save summary. */
@@ -771,6 +783,53 @@ export default function AttendancePage() {
     ? `${focusStudent.first_name?.[0] ?? ""}${focusStudent.last_name?.[0] ?? ""}`.toUpperCase()
     : "";
 
+  /**
+   * Mark a pupil and move on to the next one.
+   *
+   * The register does this by itself, so the single-pupil view must too: the
+   * teacher is working down a list, not choosing one child to study. The
+   * short delay lets the new mark register on screen before the view swaps,
+   * and when every pupil is marked the view stays where it is rather than
+   * jumping to the top of the class.
+   */
+  const focusAdvanceTimer = useRef<number | null>(null);
+  const markFocusAndAdvance = useCallback(
+    (studentId: string, status: string) => {
+      markAttendance(studentId, status);
+      if (focusAdvanceTimer.current) window.clearTimeout(focusAdvanceTimer.current);
+      focusAdvanceTimer.current = window.setTimeout(() => {
+        focusAdvanceTimer.current = null;
+        const list = focusList;
+        const current = list.findIndex((s) => s.id === studentId);
+        if (current < 0) return;
+        const nextUnmarked = list.findIndex((s, i) => i > current && !attendance[s.id]);
+        if (nextUnmarked === -1) return; // everyone after this one is marked
+        setFocusStudentId(list[nextUnmarked].id);
+      }, 350);
+    },
+    // `attendance` is read at the time the timer fires, so the marked child
+    // counts as marked by then.
+    [focusList, attendance, markAttendance],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (focusAdvanceTimer.current) window.clearTimeout(focusAdvanceTimer.current);
+    };
+  }, []);
+
+  // Escape closes the one-pupil view. On a phone the corner button is the
+  // way out, but a teacher on a laptop (or anyone who taps the screen and
+  // expects Escape to work) must not be stuck in a full-screen dialog.
+  useEffect(() => {
+    if (!focusStudentId) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setFocusStudentId(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [focusStudentId]);
+
   const exportAttendance = () => {
     if (!selectedClass || students.length === 0) return;
 
@@ -873,9 +932,16 @@ export default function AttendancePage() {
         Built to the shape of the grades page's mobile card, because that is
         what a teacher's thumb already knows: initials, name, then the thing to
         do. Swipeable like the register, so the same muscle memory works in
-        both. Marking does not navigate -- the pupil stays put and the counter
-        holds, because a view that jumps away the moment you tap is the view
-        you stop trusting. */}
+        both -- swipe left for Present, right for Absent.
+
+        Marking moves on to the next unmarked pupil by itself. The register
+        does the same, and a teacher working down a list of forty should not
+        have to hunt for the next name: the mark is made, the count ticks
+        over, and the next child is already on screen.
+
+        There is always a way out: the close button in the corner, the
+        "All pupils" link, and the Escape key. A full-screen view that traps
+        you is a view you stop opening. */}
       {focusStudent && (
         <div
           className="fixed inset-0 z-[150] flex flex-col bg-[var(--bg)]"
@@ -894,16 +960,25 @@ export default function AttendancePage() {
             <span className="ml-auto rounded-full bg-[var(--surface-container-low)] px-3 py-1 text-xs font-bold text-[var(--t2)]">
               {focusPosition + 1} / {focusList.length}
             </span>
+            <button
+              type="button"
+              onClick={() => setFocusStudentId(null)}
+              aria-label="Close and go back to the register"
+              title="Close"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--t2)]"
+            >
+              <MaterialIcon icon="close" style={{ fontSize: 20 }} />
+            </button>
           </div>
 
           <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-5 pb-6">
             <SwipeRow
               id={`att-focus-${focusStudent.id}`}
-              onSwipeRight={() => markAttendance(focusStudent.id, "absent")}
-              onSwipeLeft={() => markAttendance(focusStudent.id, leftSwipeStatus(focusStatus))}
-              onTap={() => markAttendance(focusStudent.id, tapStatus(focusStatus))}
+              onSwipeRight={() => markFocusAndAdvance(focusStudent.id, "absent")}
+              onSwipeLeft={() => markFocusAndAdvance(focusStudent.id, leftSwipeStatus())}
+              onTap={() => markFocusAndAdvance(focusStudent.id, tapStatus(focusStatus))}
               rightAction={ABSENT_SWIPE}
-              leftAction={LATE_SWIPE}
+              leftAction={PRESENT_SWIPE}
               className="flex w-full max-w-md flex-col items-center gap-5"
             >
               <div className="flex flex-col items-center text-center">
@@ -946,7 +1021,7 @@ export default function AttendancePage() {
                       key={option}
                       type="button"
                       aria-pressed={active}
-                      onClick={() => markAttendance(focusStudent.id, option)}
+                      onClick={() => markFocusAndAdvance(focusStudent.id, option)}
                       className={`flex min-h-24 flex-col items-center justify-center gap-1 rounded-2xl border-2 text-base font-bold transition-colors ${
                         active
                           ? `${cfg.bg} border-[var(--primary)] text-[var(--on-surface)]`
@@ -961,7 +1036,7 @@ export default function AttendancePage() {
               </div>
 
               <p className="text-center text-xs text-[var(--t3)]">
-                Tap the card to mark Present &middot; swipe the card left for Late, right for Absent
+                Swipe the card left for Present, right for Absent &middot; one buzz for Present, two for Absent
               </p>
 
               <div className="flex w-full max-w-md gap-3">
@@ -1725,9 +1800,9 @@ export default function AttendancePage() {
                           onMark={(next) => markAttendance(student.id, next)}
                           onTapCycle={() => handleTapStatus(student.id)}
                           onFocus={() => setFocusStudentId(student.id)}
-                          leftAction={LATE_SWIPE}
+                          leftAction={PRESENT_SWIPE}
                           rightAction={ABSENT_SWIPE}
-                          onSwipeLeft={() => markAttendance(student.id, leftSwipeStatus(studentStatus))}
+                          onSwipeLeft={() => markAttendance(student.id, leftSwipeStatus())}
                           onSwipeRight={() => markAttendance(student.id, "absent")}
                           flash={flashId === student.id}
                           peek={!peekDone && index === 0}

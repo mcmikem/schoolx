@@ -142,6 +142,34 @@ function optionLabels(select: HTMLSelectElement, placeholder: string) {
 }
 
 /**
+ * A teacher with one class and one subject lands straight on the marks: the
+ * page opens on the target that was assigned to them, because asking them to
+ * choose what they already chose was the complaint. The pickers are still
+ * there, one tap away, for the days they cover for someone else.
+ *
+ * These tests are about what the picker OFFERS when it is opened, so they
+ * open it first.
+ */
+async function openTargetPicker() {
+  // Wait for the allocations to land. With one allocation the page opens on
+  // the target and the change link appears; with more, the picker is showing
+  // its options. Either way, one of the two has to be true before the
+  // picker can be read.
+  await waitFor(() => {
+    if (screen.queryByRole("button", { name: /change class or subject/i })) return;
+    const label = screen.queryByText(/target class/i);
+    const select = label?.parentElement?.querySelector("select");
+    expect(select && select.options.length > 1).toBe(true);
+  });
+
+  const change = screen.queryByRole("button", { name: /change class or subject/i });
+  if (change) {
+    fireEvent.click(change);
+    await waitFor(() => expect(screen.getByText(/target class/i)).toBeInTheDocument());
+  }
+}
+
+/**
  * Subjects are no longer a `<select>`. The teacher picks one by tapping a card
  * that carries its own progress, so the assertions read the cards instead.
  * These tests pin which subjects are *offered* for a given class and role --
@@ -182,21 +210,39 @@ describe("grade picker scoping (scenario #18)", () => {
   });
 
   it("lists the whole school before a class is chosen", async () => {
+    // Two allocations, so the page does not open on a single target and the
+    // subject list is still the unfiltered one.
+    mockAllocations = [
+      { subject_id: "sub-math", class_id: "class-1" },
+      { subject_id: "sub-eng", class_id: "class-1" },
+    ];
     render(<GradesPage />);
 
     // Guards the tests below: if the list were empty everywhere, "scoped"
     // would pass for the wrong reason.
     await waitFor(() => {
-      expect(subjectChoices()).toEqual([
-        "Mathematics",
-        "English",
-        "Science",
-      ]);
+      expect(subjectChoices()).toEqual(["Mathematics", "English", "Science"]);
     });
+  });
+
+  it("opens straight on the one class and subject the teacher was given", async () => {
+    // One allocation: the marks open on it, with no picking.
+    render(<GradesPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/primary 3/i).length).toBeGreaterThan(0);
+    });
+    // The class picker is not in the way, and the change link is.
+    await waitFor(() => {
+      expect(screen.queryByText(/target class/i)).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: /change class or subject/i })).toBeInTheDocument();
   });
 
   it("never offers a teacher a class they are not allocated to", async () => {
     render(<GradesPage />);
+
+    await openTargetPicker();
 
     await waitFor(() => {
       const labels = optionLabels(selectUnder(/target class/i), "Select Class");
@@ -213,6 +259,7 @@ describe("grade picker scoping (scenario #18)", () => {
 
     // The class list is scoped, so it starts empty and fills once the
     // allocations land. Reading it before that yields no options at all.
+    await openTargetPicker();
     await waitFor(() => {
       expect(optionLabels(selectUnder(/target class/i), "Select Class").length).toBeGreaterThan(0);
     });
@@ -236,6 +283,7 @@ describe("grade picker scoping (scenario #18)", () => {
     ];
     render(<GradesPage />);
 
+    await openTargetPicker();
     await waitFor(() => {
       expect(optionLabels(selectUnder(/target class/i), "Select Class").length).toBe(2);
     });
@@ -264,6 +312,11 @@ describe("grade picker scoping (scenario #18)", () => {
     mockAllocations = [];
     render(<GradesPage />);
 
+    // No allocation means no single target, so the picker stays on screen --
+    // empty.
+    await waitFor(() => {
+      expect(screen.getByText(/target class/i)).toBeInTheDocument();
+    });
     await waitFor(() => {
       expect(optionLabels(selectUnder(/target class/i), "Select Class")).toEqual([]);
     });
@@ -277,6 +330,7 @@ describe("grade picker scoping (scenario #18)", () => {
     mockRole = "headmaster";
     render(<GradesPage />);
 
+    await openTargetPicker();
     await waitFor(() => {
       const classes = optionLabels(selectUnder(/target class/i), "Select Class");
       expect(classes.join(" ")).toContain("Primary 4");
@@ -295,17 +349,25 @@ describe("grade picker scoping (scenario #18)", () => {
 describe("grade workflow retreat controls (scenario #19)", () => {
   /** Picks a class and a subject, whichever options the role is allowed to see. */
   async function selectClassAndSubject() {
-    await waitFor(() => {
-      expect(optionLabels(selectUnder(/target class/i), "Select Class").length).toBeGreaterThan(0);
-    });
-    const classSelect = selectUnder(/target class/i);
-    const p3 = Array.from(classSelect.options).find((o) => o.textContent?.includes("Primary 3"))!;
-    fireEvent.change(classSelect, { target: { value: p3.value } });
+    // With one allocation the page has already opened on the target, so the
+    // pickers are only there for the tests that ask for them.
+    // The change link only exists once a target is open, so its presence
+    // means the page has already landed on the teacher's own class.
+    const alreadyOpen = screen.queryByRole("button", { name: /change class or subject/i }) !== null;
+    if (!alreadyOpen) {
+      await openTargetPicker();
+      await waitFor(() => {
+        expect(optionLabels(selectUnder(/target class/i), "Select Class").length).toBeGreaterThan(0);
+      });
+      const classSelect = selectUnder(/target class/i);
+      const p3 = Array.from(classSelect.options).find((o) => o.textContent?.includes("Primary 3"))!;
+      fireEvent.change(classSelect, { target: { value: p3.value } });
 
-    await waitFor(() => {
-      expect(subjectChoices().length).toBeGreaterThan(0);
-    });
-    chooseSubject("Mathematics");
+      await waitFor(() => {
+        expect(subjectChoices().length).toBeGreaterThan(0);
+      });
+      chooseSubject("Mathematics");
+    }
 
     // The workflow block only renders once a class *and* subject are chosen.
     await screen.findByLabelText(/grades progress/i);

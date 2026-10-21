@@ -1,7 +1,6 @@
 "use client";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { isRouteAllowed, MODULE_FOR_ROUTE } from "@/components/dashboard/AccessControlGuard";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -90,7 +89,6 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
   const showExpanded = !isDesktop ? isOpen : isHovered || isPinnedOpen;
   const isVisible = isDesktop || isOpen;
   const staffRole = user?.role as UserRole | undefined;
-  const canInviteStaff = staffRole ? canAccess(staffRole, "staff") : false;
   // Everyone this person is, not just the one recorded as primary. Rural staff
   // routinely combine jobs — headmaster who also teaches, bursar who is also a
   // teacher — and a single-role sidebar left those people with no way to reach
@@ -193,24 +191,13 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
         userId={user?.id}
       />
 
-      {showExpanded && canInviteStaff && (
-        <div className="px-3 pb-1">
-          <div className="rounded-2xl p-4 text-white bg-[#0e2a1e] shadow-[0_16px_32px_rgba(14,42,30,0.35)]">
-            <p className="text-[13px] font-bold tracking-tight">Bring your team aboard</p>
-            <p className="text-xs text-white/70 mt-1 leading-snug">
-              Invite teachers and bursars to run the school together.
-            </p>
-            <Link
-              href="/dashboard/staff"
-              onClick={onNavigate}
-              className="mt-3 flex items-center justify-center gap-1.5 rounded-full bg-white px-3 py-2 text-[12px] font-bold text-[var(--t1)] no-underline transition-transform hover:scale-[1.02] active:scale-[0.98]"
-            >
-              Invite staff
-              <MaterialIcon icon="arrow_outward" style={{ fontSize: 14 }} />
-            </Link>
-          </div>
-        </div>
-      )}
+      {/*
+          The "Bring your team aboard" card used to sit here, between the
+          navigation and the footer. It was a promotion for a task a headmaster
+          does once, taking a third of the drawer's height, and it pushed the
+          pages they actually use further down. Staff are invited from the
+          Staff page, which is one tap away in the menu.
+        */}
 
       {showExpanded && (
         <div className="px-4 py-3 border-t border-[var(--border)] space-y-2">

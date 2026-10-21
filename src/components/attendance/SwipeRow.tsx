@@ -28,11 +28,34 @@ export interface SwipeAction {
   icon: string;
   /** Fill behind the label while swiping. */
   background: string;
+  /**
+   * Vibration when the swipe commits.
+   *
+   * A thumb on a phone is looking at the card, not the screen, so the
+   * pattern is the confirmation: one short pulse for Present, two for Absent.
+   * The teacher knows what they marked without looking up.
+   */
+  vibrate?: number | number[];
 }
 
-export const ABSENT_SWIPE: SwipeAction = { label: "Absent", icon: "cancel", background: "#dc2626" };
-export const PRESENT_SWIPE: SwipeAction = { label: "Present", icon: "check_circle", background: "#059669" };
-export const LATE_SWIPE: SwipeAction = { label: "Late", icon: "schedule", background: "#b45309" };
+export const ABSENT_SWIPE: SwipeAction = {
+  label: "Absent",
+  icon: "cancel",
+  background: "#dc2626",
+  vibrate: [25, 45, 25],
+};
+export const PRESENT_SWIPE: SwipeAction = {
+  label: "Present",
+  icon: "check_circle",
+  background: "#059669",
+  vibrate: 15,
+};
+export const LATE_SWIPE: SwipeAction = {
+  label: "Late",
+  icon: "schedule",
+  background: "#b45309",
+  vibrate: [15, 60, 15],
+};
 
 interface SwipeRowProps {
   id?: string;
@@ -87,8 +110,16 @@ export function SwipeRow({
     dir: 0 | 1 | -1;
     suppressClick: boolean;
     actions: { onSwipeRight: () => void; onSwipeLeft: () => void };
-  }>({ start: null, dir: 0, suppressClick: false, actions: { onSwipeRight, onSwipeLeft } });
+    patterns: { right: number | number[] | undefined; left: number | number[] | undefined };
+  }>({
+    start: null,
+    dir: 0,
+    suppressClick: false,
+    actions: { onSwipeRight, onSwipeLeft },
+    patterns: { right: rightAction.vibrate, left: leftAction.vibrate },
+  });
   machine.current.actions = { onSwipeRight, onSwipeLeft };
+  machine.current.patterns = { right: rightAction.vibrate, left: leftAction.vibrate };
 
   useEffect(() => {
     const el = fgRef.current;
@@ -141,7 +172,10 @@ export function SwipeRow({
       const action = resolveSwipe(dx);
       if (!action) return;
       m.suppressClick = true;
-      if (typeof navigator.vibrate === "function") navigator.vibrate(10);
+      // The pattern says what was marked: one pulse for Present, two for
+      // Absent, so the teacher can keep their eyes on the child.
+      const pattern = action === "right" ? m.patterns.right : m.patterns.left;
+      if (typeof navigator.vibrate === "function") navigator.vibrate(pattern ?? 10);
       if (action === "right") m.actions.onSwipeRight();
       else m.actions.onSwipeLeft();
     };
