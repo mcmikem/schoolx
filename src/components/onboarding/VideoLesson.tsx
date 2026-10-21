@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import MaterialIcon from "@/components/MaterialIcon";
+import { Modal } from "@/components/ui/Modal";
 import {
   ONBOARDING_VIDEOS,
   onboardingPosterUrl,
@@ -11,7 +12,7 @@ import {
 } from "@/lib/onboarding-videos";
 
 /**
- * "Watch it" button + modal player for the teacher onboarding clips.
+ * "Watch it" button + player for the teacher onboarding clips.
  *
  * The video element is not mounted until the user asks for it: the poster is
  * a plain image, so the page costs ~50 KB and a teacher on a slow connection
@@ -45,6 +46,54 @@ export function VideoLessonButton({
   );
 }
 
+/** Poster card used on the marketing site: a thumbnail that opens the player. */
+export function VideoLessonCard({
+  lesson,
+  title,
+  blurb,
+}: {
+  lesson: OnboardingVideoKey;
+  title?: string;
+  blurb?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const meta = ONBOARDING_VIDEOS[lesson];
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        data-video-lesson={lesson}
+        className="group block w-full overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--brand-green)]/40 hover:shadow-md"
+      >
+        <span className="relative block aspect-video w-full overflow-hidden bg-slate-900">
+          <Image
+            src={onboardingPosterUrl(lesson)}
+            alt=""
+            fill
+            sizes="(max-width: 640px) 100vw, 380px"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          <span className="absolute inset-0 flex items-center justify-center bg-slate-950/25 transition-colors group-hover:bg-slate-950/35">
+            <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-white/95 text-slate-900 shadow-lg">
+              <MaterialIcon icon="play_arrow" size={28} />
+            </span>
+          </span>
+          <span className="absolute bottom-2.5 right-2.5 rounded-full bg-slate-950/75 px-2 py-0.5 text-[11px] font-semibold text-white">
+            {meta.duration}s
+          </span>
+        </span>
+        <span className="block px-4 py-3.5">
+          <span className="block text-sm font-semibold text-slate-900">{title ?? meta.title}</span>
+          <span className="mt-1 block text-sm leading-6 text-slate-600">{blurb ?? meta.blurb}</span>
+        </span>
+      </button>
+      {open ? <VideoLessonModal lesson={lesson} onClose={() => setOpen(false)} /> : null}
+    </>
+  );
+}
+
 function VideoLessonModal({ lesson, onClose }: { lesson: OnboardingVideoKey; onClose: () => void }) {
   const meta = ONBOARDING_VIDEOS[lesson];
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -52,7 +101,7 @@ function VideoLessonModal({ lesson, onClose }: { lesson: OnboardingVideoKey; onC
 
   // The <video> element is always mounted (without a source, so nothing is
   // downloaded). Starting it from the click keeps the browser's autoplay
-  // gesture rule happy — the user tapped, so it plays with sound.
+  // gesture rule happy -- the user tapped, so it plays with sound.
   const startPlayback = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
@@ -76,31 +125,14 @@ function VideoLessonModal({ lesson, onClose }: { lesson: OnboardingVideoKey; onC
     onClose();
   }, [onClose]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
-    };
-    document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [close]);
+  // Note: no unmount cleanup effect here. `close` is recreated on every
+  // render, so an effect depending on it would fire its cleanup immediately
+  // and close the modal the moment it opened. Removing the <video> from the
+  // DOM already stops the download.
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label={meta.title}
-      onClick={close}
-    >
-      <div
-        className="w-full max-w-3xl overflow-hidden rounded-2xl bg-[var(--surface)] shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal isOpen onClose={close} size="xl" showClose={false} className="max-w-3xl">
+      <div className="-m-6">
         <div className="flex items-start justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
           <div>
             <h2 className="text-base font-semibold text-[var(--t1)]">{meta.title}</h2>
@@ -140,7 +172,7 @@ function VideoLessonModal({ lesson, onClose }: { lesson: OnboardingVideoKey; onC
                 className="object-cover"
               />
               <span className="absolute inset-0 flex items-center justify-center">
-                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/95 text-[var(--primary)] shadow-lg transition-transform group-hover:scale-105">
+                <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-white/95 text-[var(--primary)] shadow-lg transition-transform group-hover:scale-105">
                   <MaterialIcon icon="play_arrow" size={32} />
                 </span>
               </span>
@@ -162,6 +194,6 @@ function VideoLessonModal({ lesson, onClose }: { lesson: OnboardingVideoKey; onC
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

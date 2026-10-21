@@ -11,6 +11,7 @@ import AnimatedLogo from "@/components/AnimatedLogo";
 import { MaterialIcon } from "@/components/marketing/MaterialIcon";
 import { FadeIn } from "@/components/marketing/FadeIn";
 import { FAQItem } from "@/components/marketing/FAQItem";
+import { VideoTourSection } from "@/components/marketing/VideoTourSection";
 import { smoothScroll } from "@/lib/scroll";
 
 const LaptopMockup = dynamic(() => import("@/components/LaptopMockup"));
@@ -609,6 +610,9 @@ export default function HomePage() {
             </div>
           </FadeIn>
         </section>
+
+        {/* ===== SEE IT WORKING: FOUR SHORT CLIPS ===== */}
+        <VideoTourSection />
 
         {/* ===== INSTALL ON ANY DEVICE ===== */}
         <section id="install" className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
