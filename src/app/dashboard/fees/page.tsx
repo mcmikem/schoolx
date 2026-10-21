@@ -171,6 +171,8 @@ export default function FinanceHubPage() {
   const { classes, loading: classesLoading } = useClasses(school?.id);
   const {
     feeStructure,
+    loading: feeStructureLoading,
+    error: feeStructureError,
     createFeeStructure,
     updateFeeStructure,
     deleteFeeStructure,
@@ -1911,6 +1913,18 @@ export default function FinanceHubPage() {
                 style={{ width: `${Math.min(100, Math.max(0, partition.realizationRate))}%` }}
               />
             </div>
+          </div>
+          {/* TEMP DIAGNOSTIC — remove once the "everything is 0" bug is fixed. */}
+          <div
+            data-testid="fees-debug"
+            className="px-4 py-2 text-[11px] text-[var(--t3)] tabular-nums border-t border-[var(--border)] break-words"
+          >
+            DEBUG · school {school?.id ? school.id.slice(0, 8) : "—"} · students {students.length}
+            {studentsLoading ? " (loading)" : ""}
+            {studentsError ? ` (err: ${studentsError})` : ""} · fees {feeStructure.length}
+            {feeStructureLoading ? " (loading)" : ""}
+            {feeStructureError ? ` (err: ${feeStructureError})` : ""} · payments {completePayments.length} · adjustments{" "}
+            {adjustments.length} · isDemo {String(isDemo)}
           </div>
         </section>
 
