@@ -1,6 +1,7 @@
 "use client";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import type { FeeOption } from "@/components/fees/FeePicker";
@@ -171,8 +172,6 @@ export default function FinanceHubPage() {
   const { classes, loading: classesLoading } = useClasses(school?.id);
   const {
     feeStructure,
-    loading: feeStructureLoading,
-    error: feeStructureError,
     createFeeStructure,
     updateFeeStructure,
     deleteFeeStructure,
@@ -338,6 +337,20 @@ export default function FinanceHubPage() {
   const [saving, setSaving] = useState(false);
   const [sendingReminders, setSendingReminders] = useState(false);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
+  // The header card clips its contents (the premium motif uses overflow-hidden),
+  // so an absolutely-positioned menu was cut off at the card edge as soon as it
+  // opened. Anchor it to the button but render it in a portal under <body>.
+  const [headerMenuPosition, setHeaderMenuPosition] = useState<{ top: number; right: number } | null>(null);
+
+  const toggleHeaderMenu = (anchor: HTMLElement) => {
+    if (showHeaderMenu) {
+      setShowHeaderMenu(false);
+      return;
+    }
+    const rect = anchor.getBoundingClientRect();
+    setHeaderMenuPosition({ top: rect.bottom + 8, right: Math.max(8, window.innerWidth - rect.right) });
+    setShowHeaderMenu(true);
+  };
   // Seeded from ?tab=structure so other screens (the bursar dashboard's "set
   // fees" prompt) can link straight to the fee list instead of Balances.
   const [balanceSubTab, setBalanceSubTab] = useState(() =>
@@ -1808,11 +1821,11 @@ export default function FinanceHubPage() {
               {/* Six free-standing buttons pushed "Add Payment" off the
                   first screenful and made every action look equally urgent.
                   One primary, the rest behind a menu. */}
-              <div className="relative">
+              <div>
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => setShowHeaderMenu((v) => !v)}
+                  onClick={(event) => toggleHeaderMenu(event.currentTarget)}
                   aria-expanded={showHeaderMenu}
                   aria-haspopup="menu"
                   aria-label="More fee actions"
@@ -1820,47 +1833,53 @@ export default function FinanceHubPage() {
                   <MaterialIcon icon="more_horiz" />
                   More
                 </Button>
-                {showHeaderMenu && (
-                  <>
-                    <button
-                      type="button"
-                      className="fixed inset-0 z-10 cursor-default"
-                      aria-label="Close menu"
-                      onClick={() => setShowHeaderMenu(false)}
-                    />
-                    <div
-                      role="menu"
-                      className="absolute right-0 z-20 mt-1 w-60 rounded-xl border border-outline-variant bg-surface-container-lowest p-1.5 shadow-lg"
-                    >
-                      {[
-                        { label: "Scholarship/Discount", icon: "tune", run: () => setShowAdjustmentModal(true) },
-                        { label: "Payment Plans", icon: "event_note", run: () => setShowCreatePlan(true) },
-                        { label: "Bulk Import", icon: "upload_file", run: () => setShowFeeImport(true) },
-                        { label: "MoMo Import", icon: "smartphone", run: () => setShowMobileImport(true) },
-                        { label: "Set New Fees", icon: "add", run: () => setShowFeeModal(true), id: "set-new-fees" },
-                      ].map((item) => (
-                        <button
-                          key={item.label}
-                          id={item.id}
-                          role="menuitem"
-                          type="button"
-                          onClick={() => {
-                            setShowHeaderMenu(false);
-                            item.run();
-                          }}
-                          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 min-h-[44px] text-left text-sm font-medium text-on-surface hover:bg-surface-container"
-                        >
-                          <MaterialIcon icon={item.icon} className="text-[18px] text-on-surface-variant" />
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
               </div>
             </div>
           }
         />
+
+        {showHeaderMenu &&
+          headerMenuPosition &&
+          typeof document !== "undefined" &&
+          createPortal(
+            <>
+              <button
+                type="button"
+                className="fixed inset-0 z-[60] cursor-default"
+                aria-label="Close menu"
+                onClick={() => setShowHeaderMenu(false)}
+              />
+              <div
+                role="menu"
+                style={{ top: headerMenuPosition.top, right: headerMenuPosition.right }}
+                className="fixed z-[70] w-60 max-w-[calc(100vw-1rem)] rounded-xl border border-outline-variant bg-surface-container-lowest p-1.5 shadow-lg"
+              >
+                {[
+                  { label: "Scholarship/Discount", icon: "tune", run: () => setShowAdjustmentModal(true) },
+                  { label: "Payment Plans", icon: "event_note", run: () => setShowCreatePlan(true) },
+                  { label: "Bulk Import", icon: "upload_file", run: () => setShowFeeImport(true) },
+                  { label: "MoMo Import", icon: "smartphone", run: () => setShowMobileImport(true) },
+                  { label: "Set New Fees", icon: "add", run: () => setShowFeeModal(true), id: "set-new-fees" },
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    id={item.id}
+                    role="menuitem"
+                    type="button"
+                    onClick={() => {
+                      setShowHeaderMenu(false);
+                      item.run();
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 min-h-[44px] text-left text-sm font-medium text-on-surface hover:bg-surface-container"
+                  >
+                    <MaterialIcon icon={item.icon} className="text-[18px] text-on-surface-variant" />
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </>,
+            document.body,
+          )}
 
         {/*
           The money story, told once. This used to be rendered four separate
@@ -1914,21 +1933,13 @@ export default function FinanceHubPage() {
               />
             </div>
           </div>
-          {/* TEMP DIAGNOSTIC — remove once the "everything is 0" bug is fixed. */}
-          <div
-            data-testid="fees-debug"
-            className="px-4 py-2 text-[11px] text-[var(--t3)] tabular-nums border-t border-[var(--border)] break-words"
-          >
-            DEBUG · school {school?.id ? school.id.slice(0, 8) : "—"} · students {students.length}
-            {studentsLoading ? " (loading)" : ""}
-            {studentsError ? ` (err: ${studentsError})` : ""} · fees {feeStructure.length}
-            {feeStructureLoading ? " (loading)" : ""}
-            {feeStructureError ? ` (err: ${feeStructureError})` : ""} · payments {completePayments.length} · adjustments{" "}
-            {adjustments.length} · isDemo {String(isDemo)}
-          </div>
         </section>
 
         <PageGuidance
+          // `payments` arrives after the first render, so `defaultOpen` was
+          // captured while it was still empty and the guide stayed expanded over
+          // a school that already has receipts. Remount once the ledger loads.
+          key={payments.length === 0 ? "guidance-empty" : "guidance-populated"}
           title="How to Manage Fees"
           defaultOpen={payments.length === 0}
           tips={[
