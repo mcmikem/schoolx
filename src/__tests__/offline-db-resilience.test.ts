@@ -26,11 +26,23 @@ describe("offline database open failures", () => {
     jest.useFakeTimers();
     setIndexedDB({ open: () => ({}) as IDBOpenDBRequest });
     jest.resetModules();
-    const { offlineDB } = await import("@/lib/offline");
+    const { offlineDB, DB_OPEN_TIMEOUT_MS } = await import("@/lib/offline");
 
     const read = offlineDB.getAllFromCache("students", { school_id: "school-1" });
     const assertion = expect(read).rejects.toThrow(/timed out/i);
-    jest.advanceTimersByTime(4000);
+    jest.advanceTimersByTime(DB_OPEN_TIMEOUT_MS + 10);
+    await assertion;
+  });
+
+  it("keeps successful server fetches usable when a cache write times out", async () => {
+    jest.useFakeTimers();
+    setIndexedDB({ open: () => ({}) as IDBOpenDBRequest });
+    jest.resetModules();
+    const { offlineDB, DB_OPEN_TIMEOUT_MS } = await import("@/lib/offline");
+
+    const cacheWrite = offlineDB.cacheFromServer("fee_structure", []);
+    const assertion = expect(cacheWrite).resolves.toBeUndefined();
+    jest.advanceTimersByTime(DB_OPEN_TIMEOUT_MS + 10);
     await assertion;
   });
 

@@ -70,6 +70,20 @@ interface OfflineRecord {
 }
 
 const MAX_RETRY_ATTEMPTS = 3;
+
+/**
+ * How long the app waits for the local database to open before giving up on
+ * it and loading from the network instead.
+ *
+ * Opening this database means creating 44 object stores and their indexes on
+ * a first run. A low-end Android under memory pressure can take ten seconds
+ * to get there, and a deadline that fires first does not just cost a slow
+ * screen: it throws away the connection the browser is still building, so the
+ * next visit starts from scratch. Ten seconds is long enough for a slow
+ * phone and still bounded, so a genuinely blocked upgrade cannot hang the
+ * screen.
+ */
+export const DB_OPEN_TIMEOUT_MS = 10000;
 const SOFT_DELETE_TABLES = new Set(["grades", "fee_payments", "fee_structure", "fee_adjustments"]);
 
 // PostgREST answers 404 with code PGRST205 for a table that is not in the
@@ -110,12 +124,20 @@ class OfflineDB {
       // fee structure) sits on `loading: true` forever and the screen renders
       // zeros. Fail fast instead: the callers catch this and load from the
       // network.
+      //
+      // Four seconds was too impatient for a slow phone. Opening this
+      // database means creating 44 stores and their indexes on a first run,
+      // and a low-end Android under memory pressure can take ten seconds to
+      // get there. A deadline that fires first does not just cost a slow
+      // screen: it throws away the connection the browser is still building,
+      // so the caller gives up and the next visit starts from scratch --
+      // which is why the page showed zeros until the user refreshed.
       timer = setTimeout(() => {
         finish(() => {
           this.initPromise = null;
           reject(new Error("Offline database open timed out"));
         });
-      }, 4000);
+      }, DB_OPEN_TIMEOUT_MS);
 
       let request: IDBOpenDBRequest;
       try {
@@ -148,9 +170,18 @@ class OfflineDB {
           db.close();
           if (this.db === db) this.db = null;
         };
-        // If the deadline already rejected, do not leak the connection.
+        // The deadline already fired, but the open did finish. Keep the
+        // connection: the caller that gave up will be back, and handing it a
+        // database that is already open is the difference between a page
+        // that loads and a page that shows zeros until it is refreshed.
         if (settled) {
-          db.close();
+          if (this.db) {
+            // Another connection is already in use. Keep the one we have.
+            db.close();
+          } else {
+            this.db = db;
+          }
+          this.initPromise = null;
           return;
         }
         finish(() => {
