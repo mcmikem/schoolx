@@ -175,7 +175,30 @@ export function useCompleteFeePayments(schoolId?: string) {
 
   useEffect(() => {
     if (!schoolId || isDemo || isDemoSchool(schoolId)) {
-      setPayments([]);
+      // Demo workspace: the ledger runs from the bundled demo payments so the
+      // collected/cleared headline stats are populated instead of reading zero.
+      setPayments(
+        DEMO_FEE_PAYMENTS.map((p) => ({
+          id: String(p.id),
+          student_id: String(p.student_id),
+          amount_paid: p.amount_paid,
+          fee_id: p.fee_id ? String(p.fee_id) : null,
+          // Demo fee rows are authored against the 2025 academic year; shift
+          // payment dates forward so they land in the school's current year.
+          payment_date: typeof p.payment_date === "string" ? p.payment_date.replace("2025-", "2026-") : p.payment_date,
+          payment_method: String(p.payment_method),
+          payment_reference: p.payment_reference ?? null,
+        })) as Array<{
+          id: string;
+          student_id: string;
+          amount_paid: number;
+          fee_id: string | null;
+          payment_date: string;
+          payment_method: string;
+          payment_reference: string | null;
+        }>,
+      );
+      setTruncated(false);
       setLoading(false);
       return;
     }

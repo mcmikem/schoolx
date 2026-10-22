@@ -108,6 +108,7 @@ function renderQuestion(q: ExamQuestion, paper: ExamPaper): string {
   ${q.choices.length ? renderChoices(q) : ""}
 
   ${needsTeacher ? renderAnswerSpace(q) : ""}
+  ${!needsTeacher && !q.choices.length && (q.kind === "numeric" || q.kind === "short_answer") ? `<input type="text" name="${escapeHtml(q.id)}" data-answer="1" aria-label="Answer to question ${escapeHtml(String(q.number ?? ""))}" placeholder="Write your answer here"></input>` : ""}
   ${
     needsTeacher
       ? `<div class="q__marking q__marking--human">Needs a teacher — write your answer above</div>`

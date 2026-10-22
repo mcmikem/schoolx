@@ -97,7 +97,10 @@ function readHeader(text: string, options: ParseOptions) {
     classLevel: options.classLevel ?? pick(/\bclass\s*[:\-]?\s*([A-Za-z0-9. ]{1,12})/i),
     subject: options.subject ?? pick(/\bsubject\s*[:\-]?\s*([A-Za-z ]{3,30})/i),
     year: options.year ?? (pick(/\b(20\d{2})\b/) ? Number(pick(/\b(20\d{2})\b/)) : null),
-    term: options.term ?? pick(/\bterm\s*[:\-]?\s*([A-Za-z0-9]{1,4})/i),
+    // Term values are ordinals ("1", "2") or Roman numerals ("II"). A loose
+    // alphanumeric match reads the sentence "long-term smokers" and prints
+    // "smok" on the cover. Only ordinal and roman spellings count.
+    term: options.term ?? pick(/\bterm\s*[:\-]?\s*([IVXivx]{1,4}|\d)\b(?![a-z])/i),
     totalMarks:
       options.totalMarks ??
       (pick(/\btotal\s*(?:marks?)?\s*[:\-]?\s*(\d{1,3})/i)
@@ -381,7 +384,11 @@ function buildQuestion(
   // Confidence, deducted for specific doubts rather than guessed at.
   let confidence = context.ocr ? 0.82 : 0.95;
   if (number === null) confidence -= 0.3;
-  if (marks === null) confidence -= 0.08;
+  // Missing printed marks cost only a little on a scan: the scan itself is the
+  // known uncertainty, and this paper prints no marks at all, which is a fact
+  // about the paper rather than a misread. Flagging every scanned question
+  // would bury the real "check me" cases in noise.
+  if (marks === null) confidence -= context.ocr ? 0.02 : 0.08;
   if (kind === "multiple_choice" && choices.length < 2) confidence -= 0.25;
   if (diagrams.length > 0) confidence -= 0.1;
   if (text.length < 8) confidence -= 0.2;

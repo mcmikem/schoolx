@@ -44,7 +44,9 @@ Total marks: 14
 
 export default function ExamLabPage() {
   const [text, setText] = useState(SAMPLE);
-  const [ocr, setOcr] = useState(true);
+  // Default to a manual paste, which is what the sample below is. File reads
+  // set this from how they actually extracted the text.
+  const [ocr, setOcr] = useState(false);
   const [showModel, setShowModel] = useState(false);
   const [reading, setReading] = useState<string | null>(null);
   const [howRead, setHowRead] = useState<string | null>(null);
@@ -53,7 +55,7 @@ export default function ExamLabPage() {
 
   const result = useMemo(() => {
     try {
-      return parsePaper(text, { ocr, subject: "Mathematics", classLevel: "P.7" });
+      return parsePaper(text, { ocr });
     } catch (e) {
       // A parser that throws should say so here rather than blanking the page.
       return { paper: null, warnings: [`Parser threw: ${e instanceof Error ? e.message : String(e)}`] };
@@ -141,8 +143,9 @@ export default function ExamLabPage() {
                       setHowRead(`Read as ${result.method} — ${result.pages} page${result.pages === 1 ? "" : "s"}.`);
                       setRawExtract(result.text);
                       // The parse flag must match how the text actually arrived,
-                      // or the warnings lie about the source.
-                      if (result.method === "ocr") setOcr(true);
+                      // or the warnings lie about the source -- a text-layer
+                      // read would carry an OCR penalty it did not earn.
+                      setOcr(result.method === "ocr");
                       if (!result.text.trim()) {
                         setError(
                           "The PDF gave no readable text at all — neither a text layer nor anything Tesseract could recognise. Nothing was parsed.",
