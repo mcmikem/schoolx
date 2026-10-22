@@ -234,3 +234,47 @@ describe("renderPaperForm", () => {
     expect(rendered).not.toMatch(/<img src="data:image/);
   });
 });
+
+describe("OCR fragment boundaries", () => {
+  it("detached table numbers do not become questions", () => {
+    const paper = [
+      "1. Explain how enzyme activity contributes to reduced lung efficiency.",
+      "Task: (a) Explain how. (b) Suggest strategies.",
+      "2.",
+      "16 / 14",
+      "3. Analyse how data show structure function relationships.",
+    ].join("\n");
+    const { paper: parsed, warnings } = parsePaper(paper);
+    expect(parsed.questions.map((q) => q.number)).toEqual([1, 2, 3]);
+    expect(parsed.questions.some((q) => q.text.includes("16 / 14"))).toBe(true);
+    expect(warnings.join("\n")).not.toMatch(/out of order/);
+  });
+
+  it("OCR-glued Task headers open the task run", () => {
+    const paper = [
+      "Task explanation?",
+      "1. Compare the goats in the scenario.",
+      "T AS K:",
+      "(a) Explain how oxygen transport differs between the two goats.",
+      "(b) Suggest strategies to restore productivity in the herd.",
+    ].join("\n");
+    const { paper: parsed } = parsePaper(paper);
+    const q1 = parsed.questions.find((q) => q.number === 1);
+    expect(q1?.kind).toBe("long_answer");
+    expect(q1?.choices).toHaveLength(0);
+    expect(q1?.text).toContain("(a) Explain how oxygen transport differs");
+  });
+
+  it("essay sub-prompts never become radio choices when Task line is lost", () => {
+    const paper = [
+      "1. A clinic investigated how smoking affects respiratory health. Samples were analysed.",
+      "(a) Explain how structural changes in epithelial tissue impair its normal function in smokers.",
+      "(b) Suggest five public-health or lifestyle strategies to reduce tissue damage and promote recovery.",
+      "2. Residents living near charcoal-burning sites complain of fatigue. Parameter Control Group Exposed Residents.",
+    ].join("\n");
+    const { paper: parsed } = parsePaper(paper);
+    const q1 = parsed.questions.find((q) => q.number === 1);
+    expect(q1?.choices).toHaveLength(0);
+    expect(q1?.kind).toBe("long_answer");
+  });
+});

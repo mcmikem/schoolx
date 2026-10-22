@@ -178,12 +178,27 @@ export function parsePaper(source: string, options: ParseOptions = {}): ParsedTe
   const blocks: Block[] = [];
   let current: Block | null = null;
 
+  // Real papers number their questions in one ascending run. OCR column runs
+  // shatter tables so every cell number ("<tab>2.", "16.") arrives detached and
+  // looks exactly like a question start -- which is how a 60-question paper
+  // becomes 122 fragments. A start is therefore only believed when its number
+  // has not been used and it does not go backwards; anything else stays with
+  // the question it landed in.
+  const seenNumbers = new Set<number>();
+  let lastNumber: number | null = null;
+
   for (const raw of lines) {
     const line = raw.trimEnd();
     if (PAGE_NOISE.test(line.trim())) continue;
 
-    const startsQuestion = QUESTION_START.test(line);
-    if (startsQuestion) {
+    const startMatch = line.match(QUESTION_START);
+    const number = startMatch ? Number(startMatch[1]) : null;
+    const isFragment = number !== null && (seenNumbers.has(number) || (lastNumber !== null && number < lastNumber));
+    if (startMatch && !isFragment) {
+      if (number !== null) {
+        seenNumbers.add(number);
+        lastNumber = number;
+      }
       current = { lines: [line] };
       blocks.push(current);
       continue;
@@ -268,7 +283,11 @@ function buildQuestion(
   // Either "Task:"/"Tasks:" with more text after it (merged line), or the
   // bare word alone. A prose line that merely begins with the word "task" is
   // not a header.
-  const TASK_HEADER = /^\s*tasks?\s*:(.*)$|^\s*tasks?\s*$/i;
+  // OCR readers break "Task:" into letter runs ("T AS K:", "T ASK:"), so the
+  // spaced spelling is matched too. The letter gaps make the loose pattern
+  // safe: ordinary prose never spells the word that far apart.
+  const TASK_HEADER =
+    /^\s*tasks?\s*:(.*)$|^\s*tasks?\s*$|^\s*t[\s]*a[\s]*s[\s]*k[\s]*s?\s*:\s*(.*)$|^\s*t[\s]*a[\s]*s[\s]*k[\s]*s?\s*$/i;
   let inTaskRun = false;
 
   for (const rawLine of afterNumber.split("\n")) {
@@ -290,7 +309,7 @@ function buildQuestion(
         choices.length = 0;
       }
       inTaskRun = true;
-      const remainder = (taskHeader[1] ?? "").trim();
+      const remainder = (taskHeader[1] ?? taskHeader[2] ?? "").trim();
       // "Task:" on its own line still opens the run; a merged line keeps the
       // sub-prompt it swallowed so the stem does not lose its first words.
       if (remainder) stemLines.push(remainder);
@@ -322,6 +341,28 @@ function buildQuestion(
     // lone "A" mid-sentence is a word, not an option. And inside a Task run the
     // labels are sub-prompts of one essay question, never options.
     const isTaskPrompt = inTaskRun && Boolean(choiceMatch);
+    // A scanner that dropped the "Task:" line leaves the essay sub-prompts
+    // looking like options: "(a) Explain how enzyme activity and connective
+    // tissue changes contribute to reduced lung efficiency." Multiple-choice
+    // options are short; full imperative sentences carrying a task verb are
+    // parts of one essay, detected here even though the header was lost. The
+    // whole run goes back into the stem, the same rescue the Task header does.
+    const readsAsTaskPrompt =
+      choiceMatch &&
+      !isTaskPrompt &&
+      choiceMatch[2].length > 60 &&
+      /\b(explain|analyse|analyze|suggest|propose|justify|describe|discuss|design|relate|assess|evaluate)\b/i.test(
+        choiceMatch[2],
+      );
+    if (readsAsTaskPrompt) {
+      if (choices.length > 0) {
+        stemLines.push(...choices.map((choice) => `${choice.label} ${choice.text}`));
+        choices.length = 0;
+      }
+      inTaskRun = true;
+      stemLines.push(line);
+      continue;
+    }
     if (choiceMatch && !isTaskPrompt && (stemLines.length > 0 || choices.length > 0)) {
       if (continuesOptionRun(choices, choiceMatch[1])) {
         choices.push({ label: choiceMatch[1], text: choiceMatch[2] });

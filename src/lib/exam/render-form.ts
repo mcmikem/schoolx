@@ -107,12 +107,21 @@ function renderQuestion(q: ExamQuestion, paper: ExamPaper): string {
 
   ${q.choices.length ? renderChoices(q) : ""}
 
+  ${needsTeacher ? renderAnswerSpace(q) : ""}
   ${
     needsTeacher
-      ? `<div class="q__marking q__marking--human">Needs a teacher</div>`
+      ? `<div class="q__marking q__marking--human">Needs a teacher — write your answer above</div>`
       : `<div class="q__marking q__marking--auto">Marked automatically</div>`
   }
 </li>`;
+}
+
+// An essay leaves the pupil somewhere to write. Without a full-width box the
+// rendered form reads as a marking report rather than a paper the pupil can
+// sit; the marking script's collector already picks textarea values up.
+function renderAnswerSpace(q: ExamQuestion): string {
+  const tall = q.kind === "long_answer" || q.text.length > 300;
+  return `<textarea name="${escapeHtml(q.id)}" data-answer="1" rows="${tall ? 8 : 3}" aria-label="Answer to question ${escapeHtml(String(q.number ?? ""))}" placeholder="Write your answer here"></textarea>`;
 }
 
 function renderChoices(q: ExamQuestion): string {
