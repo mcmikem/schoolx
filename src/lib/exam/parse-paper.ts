@@ -21,8 +21,15 @@ import {
   strategyFor,
 } from "./exam-model";
 
-/** A question starts with its number, then a dot/bracket, then a stem. */
-const QUESTION_START = /^\s*(?:question\s*)?(\d{1,2})\s*[.)]\s*(?=\S)/i;
+/**
+ * A question starts with its number, then a dot/bracket, then a stem.
+ *
+ * A dot followed by another digit is a decimal -- "4.8 L", "0.5 mM" -- not a
+ * question 4 with stem "8 L?" Data-table papers are dense with these, and
+ * without the guard every decimal spawns a phantom question that then makes
+ * the numbering check report the paper as misread.
+ */
+const QUESTION_START = /^\s*(?:question\s*)?(\d{1,2})\s*(?:\.(?!\d)|[)])\s*(?=\S)/i;
 
 /** "(a) ...", "(i) ...", "A. ..." -- an option, not a new question. */
 const CHOICE_LINE = /^\s*(?:\(?([a-z]|[ivx]{1,4}|\d{1,2})\)?)\s*[.):]?\s+(\S.*)$/i;
@@ -236,10 +243,22 @@ function buildQuestion(
   const stemLines: string[] = [];
   const diagrams: DiagramRef[] = [];
   let diagramCounter = 0;
+  // Essay questions print "Task:" before their sub-prompts, and those
+  // sub-prompts are labelled (a)/(b)/(i) exactly like multiple-choice options.
+  // After a Task header the labels are parts of one essay, not choices -- the
+  // alternative is reading a long-answer paper as a two-choice quiz.
+  const TASK_HEADER = /^\s*tasks?\s*:?\s*$/i;
+  let inTaskRun = false;
 
   for (const rawLine of afterNumber.split("\n")) {
     const line = rawLine.trim();
     if (!line) continue;
+
+    if (TASK_HEADER.test(line)) {
+      inTaskRun = true;
+      stemLines.push(line);
+      continue;
+    }
 
     if (DIAGRAM_LINE.test(line)) {
       diagramCounter++;
@@ -262,13 +281,18 @@ function buildQuestion(
     // noticed.
     //
     // Second, the labels must form a run: a, b, c or 1, 2, 3 or i, ii, iii. A
-    // lone "A" mid-sentence is a word, not an option.
-    if (choiceMatch && (stemLines.length > 0 || choices.length > 0)) {
+    // lone "A" mid-sentence is a word, not an option. And inside a Task run the
+    // labels are sub-prompts of one essay question, never options.
+    const isTaskPrompt = inTaskRun && Boolean(choiceMatch);
+    if (choiceMatch && !isTaskPrompt && (stemLines.length > 0 || choices.length > 0)) {
       if (continuesOptionRun(choices, choiceMatch[1])) {
         choices.push({ label: choiceMatch[1], text: choiceMatch[2] });
         continue;
       }
     }
+    // A line that breaks the label run ends a Task run as well: the essay's
+    // sub-prompts have stopped, so the next (a) belongs to a fresh judgement.
+    if (choiceMatch && !isTaskPrompt) inTaskRun = false;
     stemLines.push(line);
   }
 
