@@ -95,6 +95,8 @@ export interface ExamQuestion {
 
   /** Raw text the parser saw, so a teacher can see what it was working from. */
   sourceText: string;
+  /** Original PDF page numbers containing this question. */
+  sourcePages?: number[];
 }
 
 export interface DiagramRef {

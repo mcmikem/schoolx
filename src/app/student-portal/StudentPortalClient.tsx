@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/lib/supabase";
-import { withTimeout } from "@/lib/hooks/utils";
 import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
-import type { PortalStudent } from "@/lib/supabase-server";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
+import { useAuth } from "@/lib/auth-context";
+import { withTimeout } from "@/lib/hooks/utils";
+import { supabase } from "@/lib/supabase";
+import type { PortalStudent } from "@/lib/supabase-server";
+import StudentPractice from "./StudentPractice";
 
 /** The server-rendered shape. Identical to what the browser fetch returns. */
 type StudentRecord = PortalStudent;
@@ -277,6 +278,7 @@ export default function StudentPortalClient({ initial }: { initial: PortalInitia
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <StudentPractice schoolId={school?.id} classId={student.class_id} studentId={student.id} isDemo={isDemo} />
           <Card>
             <div className="p-4 border-b border-gray-100">
               <div className="flex items-center justify-between">

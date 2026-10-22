@@ -152,6 +152,11 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
           icon: "fact_check",
         },
         {
+          href: "/dashboard/exam-lab",
+          label: "Past Paper Practice",
+          icon: "auto_stories",
+        },
+        {
           href: "/dashboard/homework",
           label: "Assignments",
           icon: "assignment",
@@ -518,7 +523,10 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
       label: "Assignments",
       icon: "assignment",
       defaultOpen: true,
-      items: [{ href: "/dashboard/homework", label: "Class Tests", icon: "assignment" }],
+      items: [
+        { href: "/dashboard/homework", label: "Class Tests", icon: "assignment" },
+        { href: "/dashboard/exam-lab", label: "Past Paper Practice", icon: "auto_stories" },
+      ],
     },
     {
       label: "Planning",

@@ -52,6 +52,8 @@ export interface ParseOptions {
   /** True when the text came from OCR and should be trusted less. */
   ocr?: boolean;
   page?: number;
+  /** Original pages, in order; when present, used to retain question locations. */
+  pageTexts?: string[];
   title?: string | null;
   classLevel?: string | null;
   subject?: string | null;
@@ -171,13 +173,20 @@ function guessKind(stem: string, choices: Choice[], marks: number | null): Quest
  */
 export function parsePaper(source: string, options: ParseOptions = {}): ParsedText {
   const warnings: string[] = [];
-  const text = options.ocr ? normaliseOcr(source) : source;
-  const lines = text.split("\n");
+  const pageTexts = options.pageTexts?.length ? options.pageTexts : [source];
+  const text = options.ocr ? pageTexts.map(normaliseOcr).join("\n\n") : pageTexts.join("\n\n");
+  const lines = pageTexts.flatMap((pageText, index) =>
+    (options.ocr ? normaliseOcr(pageText) : pageText)
+      .split("\n")
+      .map((line) => ({ line, page: (options.page ?? 1) + index })),
+  );
   const header = readHeader(text, options);
   const page = options.page ?? 1;
 
   interface Block {
     lines: string[];
+    linePages: number[];
+    pages: Set<number>;
   }
   const blocks: Block[] = [];
   let current: Block | null = null;
@@ -191,7 +200,8 @@ export function parsePaper(source: string, options: ParseOptions = {}): ParsedTe
   const seenNumbers = new Set<number>();
   let lastNumber: number | null = null;
 
-  for (const raw of lines) {
+  for (const entry of lines) {
+    const raw = entry.line;
     const line = raw.trimEnd();
     if (PAGE_NOISE.test(line.trim())) continue;
 
@@ -203,13 +213,15 @@ export function parsePaper(source: string, options: ParseOptions = {}): ParsedTe
         seenNumbers.add(number);
         lastNumber = number;
       }
-      current = { lines: [line] };
+      current = { lines: [line], linePages: [entry.page], pages: new Set([entry.page]) };
       blocks.push(current);
       continue;
     }
     // Text before the first numbered question is header or an instruction page.
     if (!current) continue;
     current.lines.push(line);
+    current.linePages.push(entry.page);
+    current.pages.add(entry.page);
   }
 
   if (blocks.length === 0) {
@@ -259,9 +271,9 @@ export function parsePaper(source: string, options: ParseOptions = {}): ParsedTe
 }
 
 function buildQuestion(
-  block: { lines: string[] },
+  block: { lines: string[]; linePages: number[]; pages: Set<number> },
   index: number,
-  all: Array<{ lines: string[] }>,
+  all: Array<{ lines: string[]; linePages: number[]; pages: Set<number> }>,
   context: { page: number; ocr: boolean; warnings: string[] },
 ): ExamQuestion {
   const body = block.lines.join("\n");
@@ -327,7 +339,10 @@ function buildQuestion(
     currentSub = null;
   };
 
+  let afterNumberIndex = 0;
   for (const rawLine of afterNumber.split("\n")) {
+    const originalPage = block.linePages[afterNumberIndex] ?? context.page;
+    afterNumberIndex++;
     const line = rawLine.trim();
     if (!line) continue;
 
@@ -359,8 +374,8 @@ function buildQuestion(
     if (DIAGRAM_LINE.test(line)) {
       diagramCounter++;
       diagrams.push({
-        page: context.page,
-        label: `figure ${diagramCounter} on page ${context.page}`,
+        page: originalPage,
+        label: `figure ${diagramCounter} on page ${originalPage}`,
         // No crop: the parser reads text, it does not cut pictures. A null here
         // is honest -- the renderer shows the gap and asks for the image.
         imageDataUri: null,
@@ -464,6 +479,7 @@ function buildQuestion(
     diagrams,
     confidence,
     sourceText: block.lines.join("\n"),
+    sourcePages: [...block.pages].sort((left, right) => left - right),
   };
 }
 

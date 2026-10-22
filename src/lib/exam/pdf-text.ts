@@ -39,6 +39,8 @@ const TESSERACT = {
 
 export interface ExtractionResult {
   text: string;
+  /** Text split by original PDF page, for locating questions in the source. */
+  pageTexts: string[];
   /** "text layer" when read from the PDF itself; "ocr" when read from pixels. */
   method: "text layer" | "ocr";
   pages: number;
@@ -87,7 +89,7 @@ export async function extractTextFromPdf(
   }
 
   if (textLayerChars / pages >= MIN_CHARS_PER_PAGE) {
-    return { text: pageTexts.join("\n\n"), method: "text layer", pages };
+    return { text: pageTexts.join("\n\n"), pageTexts, method: "text layer", pages };
   }
 
   // Not enough text: these are rendered pixels. Say so, then read them.
@@ -102,7 +104,7 @@ export async function extractTextFromPdf(
     ocrText.push(await recognise(canvas, options.progress));
   }
 
-  return { text: ocrText.join("\n\n"), method: "ocr", pages };
+  return { text: ocrText.join("\n\n"), pageTexts: ocrText, method: "ocr", pages };
 }
 
 async function renderToCanvas(page: PDFPageProxy): Promise<HTMLCanvasElement> {

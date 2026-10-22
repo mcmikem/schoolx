@@ -2461,6 +2461,31 @@ ON storage.objects FOR DELETE
 TO authenticated
 USING (bucket_id = 'student-photos');
 
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('exam-papers', 'exam-papers', false, 10485760, ARRAY['application/pdf'])
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "School staff manage source papers" ON storage.objects;
+CREATE POLICY "School staff manage source papers"
+ON storage.objects FOR ALL TO authenticated
+USING (bucket_id = 'exam-papers' AND (storage.foldername(name))[1] = my_school_id()::text AND is_staff_role())
+WITH CHECK (bucket_id = 'exam-papers' AND (storage.foldername(name))[1] = my_school_id()::text AND is_staff_role());
+
+DROP POLICY IF EXISTS "Students view assigned source papers" ON storage.objects;
+CREATE POLICY "Students view assigned source papers"
+ON storage.objects FOR SELECT TO authenticated
+USING (
+    bucket_id = 'exam-papers'
+    AND EXISTS (
+        SELECT 1 FROM exams
+        WHERE exams.id::text = (storage.foldername(name))[2]
+          AND exams.school_id = my_school_id()
+          AND exams.class_id IN (SELECT class_id FROM students WHERE id IN (SELECT my_student_ids()))
+          AND EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'student')
+          AND exams.paper_model #>> '{assignment,published}' = 'true'
+    )
+);
+
 -- ============================================
 -- HOMEWORK TABLE
 -- ============================================
@@ -2619,6 +2644,25 @@ CREATE INDEX IF NOT EXISTS idx_exam_paper_answers_exam
     ON exam_paper_answers (exam_id, student_id);
 CREATE INDEX IF NOT EXISTS idx_exam_paper_answers_school
     ON exam_paper_answers (school_id, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS exam_paper_submissions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    exam_id UUID NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    answers JSONB NOT NULL DEFAULT '{}'::jsonb,
+    submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    marks_awarded NUMERIC(7,2),
+    feedback TEXT,
+    marked_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    marked_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (exam_id, student_id),
+    CHECK (marks_awarded IS NULL OR marks_awarded >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_exam_paper_submissions_exam
+    ON exam_paper_submissions (school_id, exam_id, submitted_at DESC);
 
 -- ============================================
 -- DORMS TABLE
@@ -3570,6 +3614,54 @@ CREATE POLICY "School users exam_scores all" ON exam_scores FOR ALL TO authentic
 ALTER TABLE exam_paper_answers ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users exam answers all" ON exam_paper_answers;
 CREATE POLICY "School users exam answers all" ON exam_paper_answers FOR ALL TO authenticated USING (school_id = my_school_id() AND is_staff_role()) WITH CHECK (school_id = my_school_id() AND is_staff_role());
+
+ALTER TABLE exam_paper_submissions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Staff manage paper submissions" ON exam_paper_submissions;
+CREATE POLICY "Staff manage paper submissions" ON exam_paper_submissions FOR ALL TO authenticated
+USING (
+  school_id = my_school_id() AND is_staff_role()
+  AND EXISTS (
+    SELECT 1 FROM exams
+    WHERE exams.id = exam_paper_submissions.exam_id
+      AND exams.school_id = exam_paper_submissions.school_id
+      AND (
+        NOT EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role IN ('teacher', 'class_teacher'))
+        OR exams.class_id IN (
+          SELECT id FROM classes WHERE class_teacher_id = (SELECT id FROM users WHERE auth_id = auth.uid())
+          UNION
+          SELECT class_id FROM teacher_subjects WHERE teacher_id = (SELECT id FROM users WHERE auth_id = auth.uid())
+        )
+      )
+  )
+)
+WITH CHECK (
+  school_id = my_school_id() AND is_staff_role()
+  AND EXISTS (
+    SELECT 1 FROM exams
+    WHERE exams.id = exam_paper_submissions.exam_id
+      AND exams.school_id = exam_paper_submissions.school_id
+      AND (
+        NOT EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role IN ('teacher', 'class_teacher'))
+        OR exams.class_id IN (
+          SELECT id FROM classes WHERE class_teacher_id = (SELECT id FROM users WHERE auth_id = auth.uid())
+          UNION
+          SELECT class_id FROM teacher_subjects WHERE teacher_id = (SELECT id FROM users WHERE auth_id = auth.uid())
+        )
+      )
+  )
+);
+DROP POLICY IF EXISTS "Students read own paper submissions" ON exam_paper_submissions;
+CREATE POLICY "Students read own paper submissions" ON exam_paper_submissions FOR SELECT TO authenticated
+USING (student_id IN (SELECT my_student_ids()) AND EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'student'));
+DROP POLICY IF EXISTS "Students submit own published papers" ON exam_paper_submissions;
+CREATE POLICY "Students submit own published papers" ON exam_paper_submissions FOR INSERT TO authenticated
+WITH CHECK (
+    student_id IN (SELECT my_student_ids())
+    AND EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'student')
+    AND school_id = my_school_id()
+    AND marks_awarded IS NULL AND feedback IS NULL AND marked_by IS NULL
+    AND EXISTS (SELECT 1 FROM exams WHERE exams.id = exam_id AND exams.school_id = exam_paper_submissions.school_id AND exams.paper_model #>> '{assignment,published}' = 'true')
+);
 
 ALTER TABLE dorms ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users dorms select" ON dorms;
@@ -5165,6 +5257,16 @@ WITH CHECK (
   school_id = my_school_id() AND in_teachers_scope(class_id)
 )
 ;
+
+DROP POLICY IF EXISTS "Students view assigned practice papers" ON exams;
+CREATE POLICY "Students view assigned practice papers"
+ON exams FOR SELECT TO authenticated
+USING (
+  school_id = my_school_id()
+  AND class_id IN (SELECT class_id FROM students WHERE id IN (SELECT my_student_ids()))
+  AND EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'student')
+  AND paper_model #>> '{assignment,published}' = 'true'
+);
 
 
 

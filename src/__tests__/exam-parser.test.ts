@@ -11,8 +11,8 @@
  * because a teacher reads a confident question as a fact.
  */
 
-import { normaliseOcr, parsePaper } from "@/lib/exam/parse-paper";
 import { needsHuman, needsReview, reconcile, strategyFor } from "@/lib/exam/exam-model";
+import { normaliseOcr, parsePaper } from "@/lib/exam/parse-paper";
 import { renderPaperForm } from "@/lib/exam/render-form";
 
 /** A plausible digital paper: clean text, real questions. */
@@ -111,6 +111,18 @@ describe("parsePaper on a clean digital paper", () => {
     // not find an answer key. Without one, short answers go to a teacher.
     expect(paper.questions.every((q) => q.acceptedAnswers.length === 0)).toBe(true);
     expect(strategyFor(paper.questions[0])).toBe("never");
+  });
+});
+
+describe("page-aware question locations", () => {
+  it("retains source pages, including a question that continues onto another page", () => {
+    const paper = parsePaper("", {
+      pageTexts: ["1. First question body", "continued question details\nSee diagram below\n2. Second question"],
+    }).paper;
+
+    expect(paper.questions[0].sourcePages).toEqual([1, 2]);
+    expect(paper.questions[0].diagrams[0].page).toBe(2);
+    expect(paper.questions[1].sourcePages).toEqual([2]);
   });
 });
 
