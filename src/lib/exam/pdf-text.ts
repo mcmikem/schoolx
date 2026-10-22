@@ -79,7 +79,15 @@ export async function extractTextFromPdf(
     const text = rebuildLayout(
       content.items.flatMap((item) =>
         item && typeof item === "object" && "str" in item
-          ? [{ str: item.str, x: item.transform[4], y: item.transform[5] }]
+          ? [
+              {
+                str: item.str,
+                x: item.transform[4],
+                y: item.transform[5],
+                width: item.width,
+                height: item.height,
+              },
+            ]
           : [],
       ),
     );

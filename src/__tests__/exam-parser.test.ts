@@ -274,7 +274,8 @@ describe("OCR fragment boundaries", () => {
     const q1 = parsed.questions.find((q) => q.number === 1);
     expect(q1?.kind).toBe("long_answer");
     expect(q1?.choices).toHaveLength(0);
-    expect(q1?.text).toContain("(a) Explain how oxygen transport differs");
+    expect(q1?.text).not.toContain("Explain how oxygen transport differs");
+    expect(q1?.subTasks?.[0].text).toContain("Explain how oxygen transport differs");
   });
 
   it("essay sub-prompts never become radio choices when Task line is lost", () => {
@@ -288,5 +289,37 @@ describe("OCR fragment boundaries", () => {
     const q1 = parsed.questions.find((q) => q.number === 1);
     expect(q1?.choices).toHaveLength(0);
     expect(q1?.kind).toBe("long_answer");
+  });
+
+  it("keeps nested roman subparts distinct from the next lettered part", () => {
+    const paper = [
+      "1. Explain the plant responses shown in the data.",
+      "Task:",
+      "(a) i. Explain the first response in detail.",
+      "ii. Explain the second response in detail.",
+      "(b) Propose a management plan for the farm.",
+    ].join("\n");
+    const question = parsePaper(paper).paper.questions[0];
+    expect(question.subTasks?.map((part) => part.label)).toEqual(["a(i)", "a(ii)", "b"]);
+    expect(new Set(question.subTasks?.map((part) => part.label)).size).toBe(question.subTasks?.length);
+  });
+
+  it("combines consecutive text fragments carrying the same printed part label", () => {
+    const question = parsePaper(
+      [
+        "1. Explain the inheritance pattern.",
+        "Task:",
+        "(a) Calculate the probability of the condition.",
+        "(a) Analyse why the allele remains in the population.",
+        "(b) Advise the family.",
+      ].join("\n"),
+    ).paper.questions[0];
+    expect(question.subTasks).toEqual([
+      {
+        label: "a",
+        text: "Calculate the probability of the condition. Analyse why the allele remains in the population.",
+      },
+      { label: "b", text: "Advise the family." },
+    ]);
   });
 });

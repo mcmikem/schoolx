@@ -76,7 +76,11 @@ describe("parser against a real data-table biology paper", () => {
     const q = paper.questions[0];
     expect(q.kind).toBe("long_answer");
     expect(q.choices.length).toBe(0);
-    expect(q.text).toContain("(a) Explain how enzyme activity changes impair lung function.");
+    expect(q.text).not.toContain("Explain how enzyme activity changes impair lung function.");
+    expect(q.subTasks?.map((part) => part.text)).toEqual([
+      "Explain how enzyme activity changes impair lung function.",
+      "Suggest physiologically supported strategies to prevent such damage.",
+    ]);
   });
 
   it("reads lettered table rows as table geometry, not as multiple-choice options", () => {

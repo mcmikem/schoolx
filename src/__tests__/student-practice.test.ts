@@ -1,5 +1,12 @@
 import type { ExamQuestion } from "@/lib/exam/exam-model";
-import { answerKey, isQuestionAnswered, questionNeedsOriginalPage, questionStem } from "@/lib/exam/student-practice";
+import {
+  answerKey,
+  displayQuestionSubTaskLabel,
+  isQuestionAnswered,
+  questionNeedsOriginalPage,
+  questionStem,
+  subTaskAnswerKey,
+} from "@/lib/exam/student-practice";
 
 function makeQuestion(overrides: Partial<ExamQuestion> = {}): ExamQuestion {
   return {
@@ -50,5 +57,21 @@ describe("student practice question helpers", () => {
       ],
     });
     expect(questionStem(question)).toBe("Answer each part below.");
+  });
+
+  it("keeps repeated printed part labels separately answerable", () => {
+    const question = makeQuestion({
+      subTasks: [
+        { label: "a", text: "Calculate the probability." },
+        { label: "a", text: "Explain the evolutionary advantage." },
+      ],
+    });
+    const firstKey = subTaskAnswerKey(question, 0);
+    const secondKey = subTaskAnswerKey(question, 1);
+    expect(firstKey).not.toBe(secondKey);
+    expect(displayQuestionSubTaskLabel(44, question, 0)).toBe("44(a) (1)");
+    expect(displayQuestionSubTaskLabel(44, question, 1)).toBe("44(a) (2)");
+    expect(isQuestionAnswered(question, { [firstKey]: "One answer" })).toBe(false);
+    expect(isQuestionAnswered(question, { [firstKey]: "One answer", [secondKey]: "Another answer" })).toBe(true);
   });
 });

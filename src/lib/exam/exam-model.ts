@@ -59,6 +59,15 @@ export interface Choice {
 
 export interface SubTask extends Choice {}
 
+export interface ExamTable {
+  /** Cell content in its original row and column order. */
+  rows: string[][];
+  /** Number of leading rows treated as column headings. */
+  headerRows: number;
+}
+
+export type ExamContentBlock = { type: "text"; text: string } | { type: "table"; tableIndex: number };
+
 export interface ExamQuestion {
   id: string;
   /** 1-based, as printed. Kept separate from array order. */
@@ -74,6 +83,11 @@ export interface ExamQuestion {
   choices: Choice[];
   /** Present for numeric and short_answer. */
   acceptedAnswers: string[];
+
+  /** Table cells reconstructed from positioned text in the source PDF. */
+  tables?: ExamTable[];
+  /** Original reading order for stem text and reconstructed tables. */
+  contentBlocks?: ExamContentBlock[];
 
   /**
    * Essay sub-prompts captured in a Task block: (a) …, (b) …, i., ii. … Each

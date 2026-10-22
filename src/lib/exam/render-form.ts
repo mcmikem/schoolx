@@ -20,12 +20,13 @@
 import {
   type ExamPaper,
   type ExamQuestion,
-  REVIEW_THRESHOLD,
   needsHuman,
   needsReview,
+  REVIEW_THRESHOLD,
   reconcile,
   strategyFor,
 } from "./exam-model";
+import { displayQuestionSubTaskLabel } from "./student-practice";
 
 export interface RenderOptions {
   /** Emit the self-marking script. Off by default so a paper can be handed out unmarked. */
@@ -94,7 +95,7 @@ function renderQuestion(q: ExamQuestion, paper: ExamPaper): string {
 
   ${doubtful ? flag(q) : ""}
 
-  <p class="q__text">${escapeHtml(q.text) || "<em>No question text was recognised.</em>"}</p>
+  ${renderQuestionContent(q)}
 
   ${q.diagrams
     .map(
@@ -117,6 +118,34 @@ function renderQuestion(q: ExamQuestion, paper: ExamPaper): string {
 </li>`;
 }
 
+function renderQuestionContent(q: ExamQuestion): string {
+  if (!q.contentBlocks?.length) {
+    return `<p class="q__text">${escapeHtml(q.text) || "<em>No question text was recognised.</em>"}</p>${renderTables(q)}`;
+  }
+  return q.contentBlocks
+    .map((block) =>
+      block.type === "text" ? `<p class="q__text">${escapeHtml(block.text)}</p>` : renderTable(q, block.tableIndex),
+    )
+    .join("");
+}
+
+function renderTables(q: ExamQuestion): string {
+  return (q.tables ?? []).map((_, tableIndex) => renderTable(q, tableIndex)).join("");
+}
+
+function renderTable(q: ExamQuestion, tableIndex: number): string {
+  const table = q.tables?.[tableIndex];
+  if (!table) return "";
+  const rows = table.rows.map((row, rowIndex) => {
+    const tag = rowIndex < table.headerRows ? "th" : "td";
+    const cells = row.map((cell) => `<${tag}>${escapeHtml(cell)}</${tag}>`).join("");
+    return `<tr>${cells}</tr>`;
+  });
+  const header = rows.slice(0, table.headerRows).join("");
+  const body = rows.slice(table.headerRows).join("");
+  return `<div class="q__table-wrap"><table class="q__table" aria-label="Question ${escapeHtml(String(q.number ?? ""))} data table ${tableIndex + 1}">${header ? `<thead>${header}</thead>` : ""}<tbody>${body}</tbody></table></div>`;
+}
+
 // An essay leaves the pupil somewhere to write. Without a full-width box the
 // rendered form reads as a marking report rather than a paper the pupil can
 // sit; the marking script's collector already picks textarea values up.
@@ -132,9 +161,9 @@ function renderSubTasks(q: ExamQuestion): string {
   return (q.subTasks ?? [])
     .map(
       (part, i) => `<div class="subtask">
-      <div class="subtask__label">${escapeHtml(String(q.number ?? ""))}${escapeHtml(part.label)}</div>
+      <div class="subtask__label">${escapeHtml(displayQuestionSubTaskLabel(q.number ?? "", q, i))}</div>
       <p class="subtask__prompt">${escapeHtml(part.text)}</p>
-      <textarea name="${escapeHtml(q.id)}::${escapeHtml(part.label)}" data-answer="1" data-part="${i}" rows="5" aria-label="Answer to part ${escapeHtml(String(q.number ?? ""))} ${escapeHtml(part.label)}" placeholder="Write your answer to ${escapeHtml(String(q.number ?? ""))}${escapeHtml(part.label)} here"></textarea>
+      <textarea name="${escapeHtml(q.id)}::${escapeHtml(part.label)}::${i}" data-answer="1" data-part="${i}" rows="5" aria-label="Answer to part ${escapeHtml(String(q.number ?? ""))} ${escapeHtml(part.label)}" placeholder="Write your answer to ${escapeHtml(String(q.number ?? ""))}${escapeHtml(part.label)} here"></textarea>
     </div>`,
     )
     .join("");
@@ -285,6 +314,10 @@ body { margin:0; background:#f6f7f9; color:var(--ink); font:16px/1.5 system-ui,-
 .q__num { font-weight:700; }
 .q__marks { font-size:.75rem; color:var(--muted); }
 .q__text { margin:.4rem 0 .6rem; }
+.q__table-wrap { margin:.65rem 0; max-width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.q__table { border-collapse:collapse; width:100%; font-size:.9rem; }
+.q__table th,.q__table td { border:1px solid var(--line); padding:.4rem .5rem; text-align:left; vertical-align:top; }
+.q__table th { background:#f4f6f8; font-weight:700; }
 .q--flagged { background:#fffdf5; border-left:3px solid #f0c14b; padding-left:.75rem; }
 .flag { font-size:.8125rem; margin:.35rem 0; }
 .flag summary { cursor:pointer; color:var(--warn); font-weight:600; }

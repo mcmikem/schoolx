@@ -14,8 +14,10 @@
 import {
   type Choice,
   type DiagramRef,
+  type ExamContentBlock,
   type ExamPaper,
   type ExamQuestion,
+  type ExamTable,
   type MarkingStrategy,
   type QuestionKind,
   type SubTask,
@@ -281,6 +283,7 @@ function buildQuestion(
   const numberMatch = body.match(QUESTION_START);
   const number = numberMatch ? Number(numberMatch[1]) : null;
   const afterNumber = numberMatch ? body.slice(numberMatch[0].length) : body;
+  const { tables, tableLineIndexes, tableStartIndexes } = extractTables(afterNumber.split("\n"));
 
   const marksMatch = afterNumber.match(MARKS);
   const marks = marksMatch ? Number(marksMatch[1] ?? marksMatch[2]) : null;
@@ -305,13 +308,27 @@ function buildQuestion(
   const TASK_HEADER =
     /^\s*tasks?\s*:(.*)$|^\s*tasks?\s*$|^\s*t[\s]*a[\s]*s[\s]*k[\s]*s?\s*:\s*(.*)$|^\s*t[\s]*a[\s]*s[\s]*k[\s]*s?\s*$/i;
   let inTaskRun = false;
-  // Essay parts get their own answer spaces, so the task block is also read
-  // structurally. The stem keeps its full text regardless; the capture is the
-  // structured duplicate the rendered form breaks out into per-part boxes.
+  // Essay parts get their own answer spaces, so task text must not also remain
+  // in the stem where students would see it twice.
   const subTasks: SubTask[] = [];
   let currentSub: SubTask | null = null;
+  let currentMajorLabel: string | null = null;
+  const normalizePartLabel = (rawLabel: string) => {
+    const label = rawLabel.toLowerCase();
+    if (/^[a-d]$/.test(label)) {
+      currentMajorLabel = label;
+      return label;
+    }
+    if (/^(?:i{1,3}|iv)$/.test(label) && currentMajorLabel) return `${currentMajorLabel}(${label})`;
+    return label;
+  };
+  const appendSubTask = (part: SubTask) => {
+    const previous = subTasks[subTasks.length - 1];
+    if (previous?.label === part.label) previous.text = `${previous.text} ${part.text}`.trim();
+    else subTasks.push(part);
+  };
   const flushSub = () => {
-    if (currentSub) subTasks.push(currentSub);
+    if (currentSub) appendSubTask(currentSub);
     currentSub = null;
   };
   // "(a)" "(b)" "i." "(ii)" "(" roman ")" ... only ever opens a new part when
@@ -334,7 +351,8 @@ function buildQuestion(
       const from = (matches[i].index ?? 0) + matches[i][0].length;
       const to = i + 1 < matches.length ? (matches[i + 1].index ?? line.length) : line.length;
       const text = line.slice(from, to).trim();
-      if (text) subTasks.push({ label: matches[i][1].toLowerCase(), text });
+      const label = normalizePartLabel(matches[i][1]);
+      if (text) appendSubTask({ label, text });
     }
     currentSub = null;
   };
@@ -342,7 +360,13 @@ function buildQuestion(
   let afterNumberIndex = 0;
   for (const rawLine of afterNumber.split("\n")) {
     const originalPage = block.linePages[afterNumberIndex] ?? context.page;
+    const lineIndex = afterNumberIndex;
     afterNumberIndex++;
+    if (tableLineIndexes.has(lineIndex)) {
+      const tableIndex = tableStartIndexes.get(lineIndex);
+      if (tableIndex !== undefined) stemLines.push(`\u0001TABLE_${tableIndex}\u0001`);
+      continue;
+    }
     const line = rawLine.trim();
     if (!line) continue;
 
@@ -362,12 +386,11 @@ function buildQuestion(
       }
       inTaskRun = true;
       const remainder = (taskHeader[1] ?? taskHeader[2] ?? "").trim();
-      // "Task:" on its own line still opens the run; a merged line keeps the
-      // sub-prompt it swallowed so the stem does not lose its first words.
+      // "Task:" on its own line opens the run; merged task text belongs only
+      // in the structured parts, not in the stem as well.
       if (remainder) {
-        stemLines.push(remainder);
         captureSpan(remainder);
-      } else stemLines.push(line);
+      }
       continue;
     }
 
@@ -414,7 +437,6 @@ function buildQuestion(
         choices.length = 0;
       }
       inTaskRun = true;
-      stemLines.push(line);
       captureSpan(line);
       continue;
     }
@@ -428,21 +450,26 @@ function buildQuestion(
     // sub-prompts have stopped, so the next (a) belongs to a fresh judgement.
     if (choiceMatch && !isTaskPrompt) inTaskRun = false;
     if (isTaskPrompt && choiceMatch) {
-      const label = choiceMatch[1].toLowerCase();
-      const text = choiceMatch[2].trim();
-      if (label && text) {
-        flushSub();
-        currentSub = { label, text };
-      }
+      captureSpan(line);
+      continue;
     } else if (inTaskRun) {
       captureSpan(line);
+      continue;
     }
     stemLines.push(line);
   }
   flushSub();
 
-  const text = stemLines.join(" ").replace(MARKS, "").trim();
-  const kind = guessKind(text, choices, marks);
+  const rawStem = stemLines.join(" ").replace(MARKS, "").trim();
+  const contentBlocks = buildContentBlocks(rawStem);
+  const text = contentBlocks
+    .filter((block) => block.type === "text")
+    .map((block) => block.text)
+    .join(" ")
+    .trim();
+  const kind = subTasks.length > 0 ? "long_answer" : guessKind(text, choices, marks);
+  const subTaskLabels = subTasks.map((part) => part.label);
+  const hasRepeatedSubTaskLabels = new Set(subTaskLabels).size < subTaskLabels.length;
 
   // Confidence, deducted for specific doubts rather than guessed at.
   let confidence = context.ocr ? 0.82 : 0.95;
@@ -454,6 +481,7 @@ function buildQuestion(
   if (marks === null) confidence -= context.ocr ? 0.02 : 0.08;
   if (kind === "multiple_choice" && choices.length < 2) confidence -= 0.25;
   if (diagrams.length > 0) confidence -= 0.1;
+  if (hasRepeatedSubTaskLabels) confidence -= 0.18;
   if (text.length < 8) confidence -= 0.2;
   // A question whose body is mostly its own options has lost its stem.
   if (choices.length > 0 && text.length < 4) confidence -= 0.2;
@@ -462,6 +490,11 @@ function buildQuestion(
   if (confidence < 0.5) {
     context.warnings.push(
       `Question ${number ?? index + 1} parsed poorly (confidence ${confidence}). It probably needs re-doing by hand.`,
+    );
+  }
+  if (hasRepeatedSubTaskLabels) {
+    context.warnings.push(
+      `Question ${number ?? index + 1} has repeated part labels; check them against the original paper.`,
     );
   }
 
@@ -475,12 +508,66 @@ function buildQuestion(
     // Accepted answers are not invented. An empty list means a human decides,
     // which is why the strategy for short_answer also requires one.
     acceptedAnswers: [],
+    tables: tables.length > 0 ? tables : undefined,
+    contentBlocks: tables.length > 0 ? contentBlocks : undefined,
     subTasks: subTasks.length > 0 ? subTasks : undefined,
     diagrams,
     confidence,
     sourceText: block.lines.join("\n"),
     sourcePages: [...block.pages].sort((left, right) => left - right),
   };
+}
+
+function buildContentBlocks(rawStem: string): ExamContentBlock[] {
+  const blocks: ExamContentBlock[] = [];
+  const marker = /\u0001TABLE_(\d+)\u0001/g;
+  let previousIndex = 0;
+  for (const match of rawStem.matchAll(marker)) {
+    const start = match.index ?? 0;
+    const text = rawStem.slice(previousIndex, start).trim();
+    if (text) blocks.push({ type: "text", text });
+    blocks.push({ type: "table", tableIndex: Number(match[1]) });
+    previousIndex = start + match[0].length;
+  }
+  const trailingText = rawStem.slice(previousIndex).trim();
+  if (trailingText) blocks.push({ type: "text", text: trailingText });
+  return blocks;
+}
+
+function extractTables(lines: string[]): {
+  tables: ExamTable[];
+  tableLineIndexes: Set<number>;
+  tableStartIndexes: Map<number, number>;
+} {
+  const tables: ExamTable[] = [];
+  const tableLineIndexes = new Set<number>();
+  const tableStartIndexes = new Map<number, number>();
+  let index = 0;
+  while (index < lines.length) {
+    if (!lines[index].includes("\t")) {
+      index++;
+      continue;
+    }
+    const start = index;
+    const rows: string[][] = [];
+    while (index < lines.length && lines[index].includes("\t")) {
+      const cells = lines[index].split("\t").map((cell) => cell.trim());
+      if (cells.length < 2 || (rows.length > 0 && cells.length !== rows[0].length)) break;
+      rows.push(cells);
+      index++;
+    }
+    if (rows.length >= 2 && rows.reduce((count, row) => count + row.length, 0) >= 6) {
+      for (let lineIndex = start; lineIndex < start + rows.length; lineIndex++) tableLineIndexes.add(lineIndex);
+      tableStartIndexes.set(start, tables.length);
+      const isNumeric = (value: string) => /^[+-]?(?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?%?$/.test(value);
+      const headerRows =
+        rows.length > 1 && rows[1].filter(isNumeric).length >= Math.ceil((rows[1].length - 1) / 2) ? 1 : 0;
+      tables.push({ rows, headerRows });
+    } else {
+      index = Math.max(index, start + 1);
+    }
+  }
+  return { tables, tableLineIndexes, tableStartIndexes };
 }
 
 /** Small stable hash, so re-parsing the same paper yields the same id. */

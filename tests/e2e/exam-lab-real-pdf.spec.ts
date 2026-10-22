@@ -33,6 +33,25 @@ test("Exam Lab reads and parses the supplied Biology PDF", async ({ page }) => {
   const parsedForm = page.frameLocator('iframe[title="Rendered exam form"]');
   const questionCount = await parsedForm.locator("li.q").count();
   expect(questionCount).toBe(60);
+  const firstQuestion = parsedForm.locator("li.q").first();
+  const firstTable = firstQuestion.locator("table").first();
+  await expect(firstTable).toContainText("Observation");
+  await expect(firstTable).toContainText("Elastic fiber content (%)");
+  await expect(firstTable).toContainText("95");
+  await expect(firstQuestion.locator(".q__text").first()).not.toContainText("Elastic fiber content (%)");
+  const firstQuestionHtml = await firstQuestion.innerHTML();
+  expect(firstQuestionHtml.indexOf("<table")).toBeLessThan(firstQuestionHtml.indexOf("Reference: Respiratory Tissue Research Journal"));
+  await expect(firstQuestion.locator(".subtask__prompt")).toHaveCount(2);
+  await expect(firstQuestion.locator(".q__text").first()).not.toContainText("Explain how enzyme activity");
+  const question44 = parsedForm.locator("li.q").nth(43);
+  expect(await question44.locator(".subtask__label").allTextContents()).toEqual([
+    "44(a)",
+    "44(b)",
+  ]);
+  const repeatedPartNames = await question44.locator('textarea[data-answer="1"]').evaluateAll((fields) =>
+    fields.map((field) => (field as HTMLTextAreaElement).name),
+  );
+  expect(new Set(repeatedPartNames).size).toBe(repeatedPartNames.length);
   await expect(parsedForm.getByText(/marks do not add up/i)).toBeVisible();
   console.log(`Real Biology PDF: ${questionCount} parsed questions`);
   console.log(`Real Biology PDF preview: ${(await parsedForm.locator("body").innerText()).slice(0, 1200)}`);

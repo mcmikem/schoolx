@@ -6,7 +6,13 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import type { ExamPaper, ExamQuestion } from "@/lib/exam/exam-model";
-import { answerKey, isQuestionAnswered, questionNeedsOriginalPage, questionStem } from "@/lib/exam/student-practice";
+import {
+  displayQuestionSubTaskLabel,
+  isQuestionAnswered,
+  questionNeedsOriginalPage,
+  questionStem,
+  subTaskAnswerKey,
+} from "@/lib/exam/student-practice";
 import { withTimeout } from "@/lib/hooks/utils";
 import { supabase } from "@/lib/supabase";
 
@@ -584,6 +590,51 @@ function QuestionScreen({
   const needsOriginal = questionNeedsOriginalPage(question);
   const sourcePages = question.sourcePages?.length ? question.sourcePages : [1];
   const prompt = questionStem(question);
+  const renderTable = (tableIndex: number) => {
+    const table = question.tables?.[tableIndex];
+    if (!table) return null;
+    return (
+      <div
+        key={`${question.id}-table-${tableIndex}`}
+        className="mt-4 max-w-full overflow-x-auto rounded-lg border border-gray-200"
+      >
+        <table
+          className="w-full border-collapse text-left text-sm"
+          aria-label={`Question ${question.number ?? questionIndex + 1} data table ${tableIndex + 1}`}
+        >
+          {table.headerRows > 0 && (
+            <thead className="bg-gray-100">
+              {table.rows.slice(0, table.headerRows).map((row, rowIndex) => (
+                <tr key={`head-${rowIndex}`}>
+                  {row.map((cell, cellIndex) => (
+                    <th
+                      key={cellIndex}
+                      scope="col"
+                      className="border-b border-r border-gray-200 px-3 py-2 font-semibold last:border-r-0"
+                    >
+                      {cell}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+          )}
+          <tbody>
+            {table.rows.slice(table.headerRows).map((row, rowIndex) => (
+              <tr key={`row-${rowIndex}`} className="odd:bg-white even:bg-gray-50">
+                {row.map((cell, cellIndex) => (
+                  <td key={cellIndex} className="border-t border-r border-gray-200 px-3 py-2 align-top last:border-r-0">
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="px-3 py-1 text-xs text-gray-500 sm:hidden">Swipe sideways to see all columns.</p>
+      </div>
+    );
+  };
 
   return (
     <article>
@@ -595,8 +646,28 @@ function QuestionScreen({
           {question.marks !== null ? `${question.marks} marks` : "Marks not stated"}
         </span>
       </div>
-      {prompt && (
-        <h3 className="mt-3 whitespace-pre-wrap text-lg font-semibold leading-7 text-gray-950 sm:text-xl">{prompt}</h3>
+      {question.contentBlocks?.length ? (
+        question.contentBlocks.map((block, blockIndex) =>
+          block.type === "text" ? (
+            <p
+              key={`${question.id}-text-${blockIndex}`}
+              className="mt-3 whitespace-pre-wrap text-lg font-semibold leading-7 text-gray-950 sm:text-xl"
+            >
+              {block.text}
+            </p>
+          ) : (
+            renderTable(block.tableIndex)
+          ),
+        )
+      ) : (
+        <>
+          {prompt && (
+            <h3 className="mt-3 whitespace-pre-wrap text-lg font-semibold leading-7 text-gray-950 sm:text-xl">
+              {prompt}
+            </h3>
+          )}
+          {question.tables?.map((_, tableIndex) => renderTable(tableIndex))}
+        </>
       )}
 
       {(needsOriginal || sourceUrl) && (
@@ -654,12 +725,12 @@ function QuestionScreen({
 
       {question.subTasks?.length ? (
         <div className="mt-5 space-y-4">
-          {question.subTasks.map((part) => {
-            const key = answerKey(question.id, part.label);
+          {question.subTasks.map((part, partIndex) => {
+            const key = subTaskAnswerKey(question, partIndex);
             return (
               <div key={key} className="rounded-xl border border-gray-200 p-3 sm:p-4">
                 <label htmlFor={`answer-${key}`} className="block text-sm font-semibold leading-6 text-gray-900">
-                  ({part.label}) {part.text}
+                  {displayQuestionSubTaskLabel(question.number ?? questionIndex + 1, question, partIndex)} {part.text}
                 </label>
                 <textarea
                   id={`answer-${key}`}

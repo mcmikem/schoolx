@@ -1,5 +1,6 @@
 import { parsePaper } from "@/lib/exam/parse-paper";
 import { rebuildLayout } from "@/lib/exam/pdf-lines";
+import { renderPaperForm } from "@/lib/exam/render-form";
 
 /**
  * Built from the real failure: an A-level biology scenario paper whose text
@@ -23,6 +24,7 @@ const SHREDDED_PAGE = [
   { str: "Vital capacity (L)", x: 40, y: 655 },
   { str: "4.8", x: 220, y: 655 },
   { str: "2.9", x: 320, y: 655 },
+  { str: "Reference: Original biology report", x: 40, y: 640 },
   { str: "Task:", x: 40, y: 620 },
   { str: "(a) Explain how enzyme activity changes contribute to reduced", x: 40, y: 605 },
   { str: "(b) Suggest physiologically supported strategies to prevent damage.", x: 40, y: 590 },
@@ -46,13 +48,13 @@ describe("rebuildLayout: shredded text items rejoin into visual lines", () => {
 
   it("groups a table row across its cells", () => {
     const text = rebuildLayout(SHREDDED_PAGE);
-    expect(text).toContain("Elastic fiber content (%) 95 40");
-    expect(text).toContain("Observation Non-smoker Smoker");
+    expect(text).toContain("Elastic fiber content (%)\t95\t40");
+    expect(text).toContain("Observation\tNon-smoker\tSmoker");
   });
 
   it("keeps decimals intact from separate-numbered papers", () => {
     const text = rebuildLayout(SHREDDED_PAGE);
-    expect(text).toContain("4.8 2.9");
+    expect(text).toContain("4.8\t2.9");
   });
 
   it("drops whitespace-only runs instead of manufacturing empty lines", () => {
@@ -73,6 +75,30 @@ describe("the parsed result of a shredded page", () => {
   it("carries the essay tasks in the question, not as choices", () => {
     const { paper } = run();
     for (const q of paper.questions) expect(q.kind).toBe("long_answer");
-    expect(paper.questions[0].text).toContain("Suggest physiologically supported strategies");
+    expect(paper.questions[0].text).not.toContain("Suggest physiologically supported strategies");
+    expect(paper.questions[0].subTasks?.map((part) => part.text)).toEqual([
+      "Explain how enzyme activity changes contribute to reduced",
+      "Suggest physiologically supported strategies to prevent damage.",
+    ]);
+  });
+
+  it("preserves table rows and cells as structured data, not stem prose", () => {
+    const question = run().paper.questions[0];
+    expect(question.tables?.[0].rows).toEqual([
+      ["Observation", "Non-smoker", "Smoker"],
+      ["Elastic fiber content (%)", "95", "40"],
+      ["Vital capacity (L)", "4.8", "2.9"],
+    ]);
+    expect(question.text).not.toContain("Elastic fiber content");
+    expect(question.text).toContain("Reference: Original biology report");
+    expect(question.contentBlocks?.map((block) => block.type)).toEqual(["text", "table", "text"]);
+  });
+
+  it("renders reconstructed tables as accessible HTML tables", () => {
+    const form = renderPaperForm(run().paper);
+    expect(form).toContain('<table class="q__table"');
+    expect(form).toContain("<th>Observation</th>");
+    expect(form).toContain("<td>95</td>");
+    expect(form.indexOf('<table class="q__table"')).toBeLessThan(form.indexOf("Reference: Original biology report"));
   });
 });

@@ -22,6 +22,10 @@ export interface PositionedItem {
   x: number;
   /** Vertical position; larger values sit higher up the page. */
   y: number;
+  /** Width of the text run, used to retain large inter-column gaps. */
+  width?: number;
+  /** Text height in page units, used to scale the column-gap threshold. */
+  height?: number;
 }
 
 /** How far apart two runs' vertical positions can be and still share a line. */
@@ -64,9 +68,16 @@ export function rebuildLayout(items: PositionedItem[]): string {
 }
 
 function joinLine(runs: PositionedItem[]): string {
-  return runs
-    .map((run) => run.str.trim())
-    .join(" ")
-    .replace(/\s{2,}/g, " ")
-    .trim();
+  return runs.reduce((line, run, index) => {
+    const content = run.str.trim();
+    if (!content) return line;
+    if (index === 0) return content;
+
+    const previous = runs[index - 1];
+    const gap = run.x - (previous.x + (previous.width ?? 0));
+    const height = run.height ?? previous.height;
+    const threshold = height === undefined ? 24 : Math.max(8, height * 0.7);
+    const followsQuestionNumber = /^\d{1,2}[.)]$/.test(previous.str.trim());
+    return `${line}${!followsQuestionNumber && gap >= threshold ? "\t" : " "}${content}`;
+  }, "");
 }
