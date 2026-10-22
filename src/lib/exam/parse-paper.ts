@@ -18,6 +18,7 @@ import {
   type ExamQuestion,
   type MarkingStrategy,
   type QuestionKind,
+  type SubTask,
   strategyFor,
 } from "./exam-model";
 
@@ -292,6 +293,39 @@ function buildQuestion(
   const TASK_HEADER =
     /^\s*tasks?\s*:(.*)$|^\s*tasks?\s*$|^\s*t[\s]*a[\s]*s[\s]*k[\s]*s?\s*:\s*(.*)$|^\s*t[\s]*a[\s]*s[\s]*k[\s]*s?\s*$/i;
   let inTaskRun = false;
+  // Essay parts get their own answer spaces, so the task block is also read
+  // structurally. The stem keeps its full text regardless; the capture is the
+  // structured duplicate the rendered form breaks out into per-part boxes.
+  const subTasks: SubTask[] = [];
+  let currentSub: SubTask | null = null;
+  const flushSub = () => {
+    if (currentSub) subTasks.push(currentSub);
+    currentSub = null;
+  };
+  // "(a)" "(b)" "i." "(ii)" "(" roman ")" ... only ever opens a new part when
+  // we are inside a Task block. A mid-sentence "a)" elsewhere is a word, and
+  // staying out of the task run spares the scenario text.
+  const SPAN_LABEL = /\(?\s*(a|b|c|d|i{1,3}|iv)\s*\)?\s*[.):]\s+/gi;
+  const captureSpan = (line: string) => {
+    const matches = [...line.matchAll(SPAN_LABEL)];
+    if (matches.length === 0) {
+      // A label-less line inside the run continues the part it follows.
+      const anchor = currentSub ?? subTasks[subTasks.length - 1];
+      if (anchor) anchor.text += ` ${line.trim()}`;
+      return;
+    }
+    flushSub();
+    if (matches[0].index !== undefined && matches[0].index > 0) {
+      // Prose before the first label stays in the stem; it has no part.
+    }
+    for (let i = 0; i < matches.length; i++) {
+      const from = (matches[i].index ?? 0) + matches[i][0].length;
+      const to = i + 1 < matches.length ? (matches[i + 1].index ?? line.length) : line.length;
+      const text = line.slice(from, to).trim();
+      if (text) subTasks.push({ label: matches[i][1].toLowerCase(), text });
+    }
+    currentSub = null;
+  };
 
   for (const rawLine of afterNumber.split("\n")) {
     const line = rawLine.trim();
@@ -315,8 +349,10 @@ function buildQuestion(
       const remainder = (taskHeader[1] ?? taskHeader[2] ?? "").trim();
       // "Task:" on its own line still opens the run; a merged line keeps the
       // sub-prompt it swallowed so the stem does not lose its first words.
-      if (remainder) stemLines.push(remainder);
-      else stemLines.push(line);
+      if (remainder) {
+        stemLines.push(remainder);
+        captureSpan(remainder);
+      } else stemLines.push(line);
       continue;
     }
 
@@ -364,6 +400,7 @@ function buildQuestion(
       }
       inTaskRun = true;
       stemLines.push(line);
+      captureSpan(line);
       continue;
     }
     if (choiceMatch && !isTaskPrompt && (stemLines.length > 0 || choices.length > 0)) {
@@ -375,8 +412,19 @@ function buildQuestion(
     // A line that breaks the label run ends a Task run as well: the essay's
     // sub-prompts have stopped, so the next (a) belongs to a fresh judgement.
     if (choiceMatch && !isTaskPrompt) inTaskRun = false;
+    if (isTaskPrompt && choiceMatch) {
+      const label = choiceMatch[1].toLowerCase();
+      const text = choiceMatch[2].trim();
+      if (label && text) {
+        flushSub();
+        currentSub = { label, text };
+      }
+    } else if (inTaskRun) {
+      captureSpan(line);
+    }
     stemLines.push(line);
   }
+  flushSub();
 
   const text = stemLines.join(" ").replace(MARKS, "").trim();
   const kind = guessKind(text, choices, marks);
@@ -412,6 +460,7 @@ function buildQuestion(
     // Accepted answers are not invented. An empty list means a human decides,
     // which is why the strategy for short_answer also requires one.
     acceptedAnswers: [],
+    subTasks: subTasks.length > 0 ? subTasks : undefined,
     diagrams,
     confidence,
     sourceText: block.lines.join("\n"),

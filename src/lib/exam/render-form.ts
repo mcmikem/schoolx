@@ -107,7 +107,7 @@ function renderQuestion(q: ExamQuestion, paper: ExamPaper): string {
 
   ${q.choices.length ? renderChoices(q) : ""}
 
-  ${needsTeacher ? renderAnswerSpace(q) : ""}
+  ${needsTeacher ? (q.subTasks?.length ? renderSubTasks(q) : renderAnswerSpace(q)) : ""}
   ${!needsTeacher && !q.choices.length && (q.kind === "numeric" || q.kind === "short_answer") ? `<input type="text" name="${escapeHtml(q.id)}" data-answer="1" aria-label="Answer to question ${escapeHtml(String(q.number ?? ""))}" placeholder="Write your answer here"></input>` : ""}
   ${
     needsTeacher
@@ -123,6 +123,21 @@ function renderQuestion(q: ExamQuestion, paper: ExamPaper): string {
 function renderAnswerSpace(q: ExamQuestion): string {
   const tall = q.kind === "long_answer" || q.text.length > 300;
   return `<textarea name="${escapeHtml(q.id)}" data-answer="1" rows="${tall ? 8 : 3}" aria-label="Answer to question ${escapeHtml(String(q.number ?? ""))}" placeholder="Write your answer here"></textarea>`;
+}
+
+// Each part of an essay task is its own answer: (a) about mechanisms, (b)
+// about strategies. One shared box invites the pupil to answer (a) only; the
+// marking plan for these papers scores parts separately.
+function renderSubTasks(q: ExamQuestion): string {
+  return (q.subTasks ?? [])
+    .map(
+      (part, i) => `<div class="subtask">
+      <div class="subtask__label">${escapeHtml(String(q.number ?? ""))}${escapeHtml(part.label)}</div>
+      <p class="subtask__prompt">${escapeHtml(part.text)}</p>
+      <textarea name="${escapeHtml(q.id)}::${escapeHtml(part.label)}" data-answer="1" data-part="${i}" rows="5" aria-label="Answer to part ${escapeHtml(String(q.number ?? ""))} ${escapeHtml(part.label)}" placeholder="Write your answer to ${escapeHtml(String(q.number ?? ""))}${escapeHtml(part.label)} here"></textarea>
+    </div>`,
+    )
+    .join("");
 }
 
 function renderChoices(q: ExamQuestion): string {
@@ -276,6 +291,9 @@ body { margin:0; background:#f6f7f9; color:var(--ink); font:16px/1.5 system-ui,-
 .flag__why { color:var(--muted); margin:.3rem 0; }
 .flag__raw pre { white-space:pre-wrap; background:#f4f5f7; padding:.5rem; border-radius:.35rem; font-size:.75rem; overflow-x:auto; }
 .choices { display:grid; gap:.4rem; margin:.5rem 0; }
+.subtask { margin:.5rem 0; }
+.subtask__label { font-weight:700; }
+.subtask__prompt { margin:.2rem 0 .3rem; }
 .choice { display:flex; gap:.6rem; align-items:flex-start; padding:.55rem .6rem; border:1px solid var(--line); border-radius:.5rem; min-height:44px; }
 .choice input { margin-top:.25rem; width:18px; height:18px; flex:none; }
 .choice__label { font-weight:600; min-width:1.2rem; }

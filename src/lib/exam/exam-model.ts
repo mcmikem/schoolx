@@ -57,6 +57,8 @@ export interface Choice {
   text: string;
 }
 
+export interface SubTask extends Choice {}
+
 export interface ExamQuestion {
   id: string;
   /** 1-based, as printed. Kept separate from array order. */
@@ -72,6 +74,14 @@ export interface ExamQuestion {
   choices: Choice[];
   /** Present for numeric and short_answer. */
   acceptedAnswers: string[];
+
+  /**
+   * Essay sub-prompts captured in a Task block: (a) …, (b) …, i., ii. … Each
+   * part is answered and marked on its own, so the renderer gives every one
+   * its own space instead of one box for the whole question. Absent when the
+   * question has no task block.
+   */
+  subTasks?: SubTask[];
 
   /**
    * Images found inside the question, described by position on the page rather

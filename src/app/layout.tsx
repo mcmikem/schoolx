@@ -6,6 +6,7 @@ import "./globals-dark-hex.css";
 import Script from "next/script";
 import { AppUpdatePrompt } from "@/components/AppUpdatePrompt";
 import DebugPing from "@/components/DebugPing";
+import DiagnosticsPanel from "@/components/DiagnosticsPanel";
 import { APP_NAME } from "@/lib/app-name";
 import { logger } from "@/lib/logger";
 import DeferredChrome from "./deferred-chrome";
@@ -164,6 +165,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <DeferredChrome />
           <AppUpdatePrompt />
+          <DiagnosticsPanel />
         </Providers>
         {process.env.NODE_ENV === "development" && <DebugPing />}
       </body>
