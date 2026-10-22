@@ -53,9 +53,18 @@ The proxy handles: security headers (CSP, HSTS), Supabase auth session check, de
 - Profile fetch bypasses RLS via `/api/auth/me/` using `supabaseAdmin` (service role)
 - `authInitialized` flag tracks whether initial auth check completed (not `loading`)
 - `loading` only toggles during explicit login (`SIGNED_IN`); starts as `false`
-- `signIn()` tries email variants (`@omuto.org`, `@omuto.sms`) then phone
+- `signIn()` posts to `/api/auth/signin/` (the server resolves the phone→email map); it only falls back to racing direct Supabase identities when that POST is unreachable
 - Demo mode requires `DEMO_ADMIN_PASSWORD` + `ENABLE_DEV_TEST_ROUTES` + `NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES` in `.env.local`
 - Session timeout: 30 min with 5 min warning via `useSessionTimeout`
+
+## Sign-in invariants (do not regress)
+
+- **Never call `getSession()`, `getUser()` or `refreshSession()` inside the `onAuthStateChange` handler** (including `fetchUserData`, which it awaits). auth-js awaits that handler *while holding its storage lock*: the call waits for a lock that can only be released after the handler returns, then times out. Use the `session` the event carries; let `/api/auth/me/` decide whether the token is good; refresh only outside the callback (the 401 path).
+- **Never pre-emptively refresh from the client clock** (`expires_at < Date.now()`). A device an hour ahead sees a freshly issued token as expired; this is what broke sign-in on one Windows PC while the server was returning 200. The server validates `exp`.
+- `/api/auth/signin/` is the authority for the phone→email mapping. Do not re-order the client into guessing first.
+- `/login`, `/register` and `/forgot-password` must keep the **long** service-worker navigation deadline; the short cached-copy deadline serves the previous deploy's JS.
+- Only GoTrue's explicit credential words count as a wrong password. Timeouts, aborts and "could not start your session" are transient and must not count toward the lockout.
+- Any change to a locked auth file must pass `npm run test:auth` (the pre-commit hook runs it automatically when a locked file is staged).
 
 ## Key conventions
 

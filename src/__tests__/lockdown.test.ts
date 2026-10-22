@@ -178,6 +178,23 @@ describe("🔒 LOCKDOWN: Auth Context", () => {
     expect(authContext).not.toContain('if (event === "TOKEN_REFRESHED") setLoading');
   });
 
+  it("must never refresh from inside the auth-state callback", () => {
+    // auth-js awaits the onAuthStateChange handler while holding its storage
+    // lock. fetchUserData runs inside that handler, so a refreshSession() there
+    // waits on a lock only the handler's return can release — and times out.
+    // A device whose clock is ahead made every sign-in take this path even
+    // though the server had accepted the password.
+    const fetchBody = authContext.match(/const fetchUserData = useCallback\([\s\S]*?\n  \);/);
+    expect(fetchBody).not.toBeNull();
+    const body = fetchBody![0];
+    expect(body).not.toContain("expires_at * 1000 < Date.now() + 6000");
+    const meAt = body.indexOf('fetch("/api/auth/me/"');
+    const refreshAt = body.indexOf("supabase.auth.refreshSession()");
+    expect(meAt).toBeGreaterThan(-1);
+    // Any refresh belongs to the 401 branch, after the profile request.
+    expect(refreshAt).toBeGreaterThan(meAt);
+  });
+
   it("must use withSupabaseLockRetry for getUser calls", () => {
     expect(authContext).toContain("withSupabaseLockRetry");
   });

@@ -45,8 +45,10 @@ for f in "${LOCKED_FILES[@]}"; do
 done
 
 STAGED_LOCKED=$(git diff --cached --name-only | grep -E "^($LOCKED_PATTERN)$" || true)
+AUTH_FILES_CHANGED=0
 
 if [ -n "$STAGED_LOCKED" ]; then
+  AUTH_FILES_CHANGED=1
   if [ "$ALLOW_AUTH_CHANGES" != "1" ]; then
     echo ""
     echo "🔒 LOCKED FILES MODIFIED — Changes blocked!"
@@ -58,10 +60,9 @@ if [ -n "$STAGED_LOCKED" ]; then
     echo ""
     echo "These files are locked to prevent accidental breakage."
     echo "To proceed, you MUST:"
-    echo "  1. Run: npm test -- --testPathPatterns=lockdown"
-    echo "  2. Run: npm run test:regression"
-    echo "  3. Verify all tests pass"
-    echo "  4. Commit with: ALLOW_AUTH_CHANGES=1 git commit -m \"your message\""
+    echo "  1. Run: npm run test:auth"
+    echo "  2. Verify every auth, lockdown and regression test passes"
+    echo "  3. Commit with: ALLOW_AUTH_CHANGES=1 git commit -m \"your message\""
     echo ""
     echo "If you did not intend to modify these files, revert them:"
     echo "  git restore --staged $STAGED_LOCKED"
@@ -131,12 +132,22 @@ if [ $? -ne 0 ]; then
 fi
 echo "  ✅ TypeScript passed"
 
-echo "  [4/4] Regression tests..."
-npm run test:regression --silent 2>&1 | tail -n 5
-if [ ${PIPESTATUS[0]} -ne 0 ]; then
-  echo "❌ Regression tests failed. Fix before committing."
-  exit 1
+if [ "$AUTH_FILES_CHANGED" = "1" ]; then
+  echo "  [4/4] Auth contract tests (locked file changed)..."
+  npm run test:auth --silent 2>&1 | tail -n 8
+  if [ ${PIPESTATUS[0]} -ne 0 ]; then
+    echo "❌ Auth contract tests failed. Fix before committing."
+    exit 1
+  fi
+  echo "  ✅ Auth contract tests passed"
+else
+  echo "  [4/4] Regression tests..."
+  npm run test:regression --silent 2>&1 | tail -n 5
+  if [ ${PIPESTATUS[0]} -ne 0 ]; then
+    echo "❌ Regression tests failed. Fix before committing."
+    exit 1
+  fi
+  echo "  ✅ Regression tests passed"
 fi
-echo "  ✅ Regression tests passed"
 
 echo "✅ All checks passed. Committing..."

@@ -1,0 +1,20 @@
+# The sign-in path. A change here needs a deliberate review by the owner,
+# not a drive-by edit. Pair with branch protection ("Require review from Code
+# Owners") so this file has teeth.
+/src/lib/auth-context.tsx @mcmikem
+/src/lib/auth-context-types.ts @mcmikem
+/src/lib/auth-login.ts @mcmikem
+/src/lib/auth-phone.ts @mcmikem
+/src/lib/auth-failure.ts @mcmikem
+/src/lib/supabase-lock.ts @mcmikem
+/src/lib/useSessionTimeout.ts @mcmikem
+/src/app/login/ @mcmikem
+/src/app/register/ @mcmikem
+/src/app/api/auth/ @mcmikem
+/src/app/api/register/ @mcmikem
+/src/proxy.ts @mcmikem
+/public/sw.js @mcmikem
+/.husky/pre-commit @mcmikem
+/src/__tests__/lockdown.test.ts @mcmikem
+/src/__tests__/slow-network-auth.test.ts @mcmikem
+/src/__tests__/auth-failure.test.ts @mcmikem
