@@ -92,6 +92,7 @@ CREATE POLICY "Students submit own published papers"
       SELECT 1 FROM exams
       WHERE exams.id = exam_id
         AND exams.school_id = exam_paper_submissions.school_id
+        AND exams.class_id IN (SELECT class_id FROM students WHERE id IN (SELECT my_student_ids()))
         AND exams.paper_model #>> '{assignment,published}' = 'true'
     )
   );

@@ -3660,7 +3660,7 @@ WITH CHECK (
     AND EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'student')
     AND school_id = my_school_id()
     AND marks_awarded IS NULL AND feedback IS NULL AND marked_by IS NULL
-    AND EXISTS (SELECT 1 FROM exams WHERE exams.id = exam_id AND exams.school_id = exam_paper_submissions.school_id AND exams.paper_model #>> '{assignment,published}' = 'true')
+    AND EXISTS (SELECT 1 FROM exams WHERE exams.id = exam_id AND exams.school_id = exam_paper_submissions.school_id AND exams.class_id IN (SELECT class_id FROM students WHERE id IN (SELECT my_student_ids())) AND exams.paper_model #>> '{assignment,published}' = 'true')
 );
 
 ALTER TABLE dorms ENABLE ROW LEVEL SECURITY;
