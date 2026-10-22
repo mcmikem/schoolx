@@ -208,6 +208,10 @@ export function parsePaper(source: string, options: ParseOptions = {}): ParsedTe
     );
   }
 
+  // The same message twice carries nothing the first did not. A long paper can
+  // genuinely produce identical warnings -- two tables with the same decimal,
+  // two stubs with the same confidence -- and the doubled list reads as a
+  // bug rather than as a finding.
   return {
     paper: {
       id: `paper-${hash(`${header.title ?? ""}${text.length}${questions.length}`)}`,
@@ -220,7 +224,7 @@ export function parsePaper(source: string, options: ParseOptions = {}): ParsedTe
       ocrApplied: Boolean(options.ocr),
       questions,
     },
-    warnings,
+    warnings: [...new Set(warnings)],
   };
 }
 

@@ -32,4 +32,15 @@ describe("parser against a real data-table biology paper", () => {
     expect(paper.questions.length).toBe(3);
     expect(needsHuman(paper).length).toBe(3);
   });
+
+  it("never says the same thing twice", () => {
+    // Two stub questions with identical bodies each fall below the review
+    // line the same way; the report should carry that finding once.
+    const stubs = "5. Hello\nfig. 1\n\n6. Hello\nfig. 1\n";
+    const { warnings } = parsePaper(stubs, { ocr: true });
+    const poorly = warnings.filter((w) => w.startsWith("Question 5 parsed poorly"));
+    const duplicated = warnings.filter((w) => w.startsWith("Question 6 parsed poorly"));
+    expect(poorly.length).toBe(1);
+    expect(duplicated.length).toBe(1);
+  });
 });

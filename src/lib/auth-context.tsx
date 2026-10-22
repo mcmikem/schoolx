@@ -34,7 +34,7 @@ import {
 } from "./auth-context-types";
 import { clearDemoStorage, decryptDemoData, readDemoStorage } from "./auth-demo";
 import { classifyAuthFailure } from "./auth-failure";
-import { buildAuthEmailFromPhone, buildAuthLoginAttempts } from "./auth-login";
+import { buildAuthEmailFromPhone, buildAuthLoginAttempts, type AuthLoginAttempt } from "./auth-login";
 import { buildPhoneLookupCandidates } from "./auth-phone";
 import { DEFAULT_FEATURE_STAGE, FeatureStage } from "./featureStages";
 import { timeoutSignal } from "./hooks/utils";
@@ -966,9 +966,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     while (Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 1000));
       try {
+        // getSession() can itself wait on the auth storage lock. Bound each
+        // read so this helper can never outlive the deadline it was given.
         const {
           data: { session },
-        } = await supabase!.auth.getSession();
+        } = await Promise.race([
+          supabase!.auth.getSession(),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error("getSession timed out")), 2000)),
+        ]);
         if (session?.user) {
           return { role: session.user.user_metadata?.role || "admin" };
         }
@@ -996,49 +1001,210 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * Returns null when the API could not be reached or is not available, so
    * the caller can fall back to the client-side attempts.
    */
-  async function apiSignIn(identifier: string, password: string): Promise<{ error: any; role?: string } | null> {
-    let res: Response;
+  async function apiSignIn(
+    identifier: string,
+    password: string,
+    controller: AbortController,
+    onAuthoritativeAnswer?: () => void,
+  ): Promise<{ error: any; role?: string; definitive?: boolean } | null> {
+    // Our own API is the fast path, but it must not hold the button forever.
+    // Some proxies and antivirus products stall a POST instead of failing it:
+    // the request never reaches the server, so no log entry appears and the
+    // user sits on "Signing in..." for minutes while every later click is
+    // swallowed by the in-flight guard. The deadline covers the whole
+    // exchange (headers and body), and the caller can also abort it the
+    // moment a direct sign-in wins.
+    const timeout = setTimeout(() => controller.abort(), getConnectionTimeout(15000));
     try {
-      res = await fetch("/api/auth/signin/", {
+      const res = await fetch("/api/auth/signin/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier, password }),
+        signal: controller.signal,
       });
+
+      let payload: {
+        success?: boolean;
+        data?: { access_token?: string; refresh_token?: string; role?: string };
+        error?: string;
+      } = {};
+      try {
+        payload = await res.json();
+      } catch {
+        // A non-JSON answer is a proxy error page, not a decision.
+      }
+
+      // A direct attempt may have signed the same person in while this
+      // response was travelling. Starting a second session would emit a
+      // duplicate SIGNED_IN and a duplicate profile fetch.
+      if (controller.signal.aborted) return null;
+
+      if (res.ok && payload.data?.access_token && payload.data.refresh_token) {
+        // The server has answered and is setting the session. There is
+        // nothing to gain from starting the direct attempts behind it. If
+        // setSession fails or times out, the caller starts them instead.
+        onAuthoritativeAnswer?.();
+        // setSession also delivers SIGNED_IN to the subscribers, and the
+        // profile fetch runs inside that delivery. A stuck session must not
+        // hold the whole login: bound it.
+        try {
+          const { data, error } = await Promise.race([
+            supabase!.auth.setSession({
+              access_token: payload.data.access_token,
+              refresh_token: payload.data.refresh_token,
+            }),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("setSession timed out")), getConnectionTimeout(10000)),
+            ),
+          ]);
+          if (!error && data.session) {
+            return { error: null, role: payload.data.role || "admin" };
+          }
+        } catch {
+          // Fall through: the direct attempts are still available.
+        }
+        return { error: { message: "Could not start your session. Please try again." } };
+      }
+
+      // The server answered, so it is the authority on this sign-in: it
+      // already tried every identity the number could belong to.
+      if (res.status === 401 || res.status === 400) {
+        // The password was checked against every identity: this is the final
+        // answer, not a reason to try the direct path.
+        onAuthoritativeAnswer?.();
+      }
+      if (res.status === 401 || res.status === 400 || res.status === 429 || res.status === 503) {
+        return {
+          error: { message: payload.error || "Invalid phone number or password" },
+          // 401/400 is a verdict on the password; 429/503 is an outage or a
+          // rate limit, which the direct path may get around.
+          definitive: res.status === 401 || res.status === 400,
+        };
+      }
+
+      return null;
     } catch {
       // Our own API is unreachable: offline, a captive portal, or a proxy
-      // that blocks the path. The client-side attempts below still work.
+      // that blocks or stalls the path. The client-side attempts below still
+      // work.
       return null;
+    } finally {
+      clearTimeout(timeout);
     }
+  }
 
-    let payload: {
-      success?: boolean;
-      data?: { access_token?: string; refresh_token?: string; role?: string };
-      error?: string;
-    } = {};
-    try {
-      payload = await res.json();
-    } catch {
-      // A non-JSON answer is a proxy error page, not a decision.
-    }
+  /**
+   * Sign in directly against Supabase, trying every identity the typed number
+   * could belong to at the same time.
+   *
+   * The identities are independent calls, so serialising them only adds their
+   * latencies together. On a phone the network is the whole cost; a wrong
+   * format answers as quickly as a right one. The first identity that
+   * authenticates wins and the rest are ignored.
+   *
+   * This is the fallback for a stalled `/api/auth/signin/`: it talks straight
+   * to Supabase and therefore works on the devices where our own POST never
+   * gets through.
+   */
+  async function runDirectSignInAttempts(
+    attempts: AuthLoginAttempt[],
+    password: string,
+    phone: string,
+  ): Promise<{ error: any; role?: string; definitive?: boolean } | null> {
+    // Slow networks need LONGER per-attempt deadlines, not shorter: a deadline
+    // that fires while the real answer is still in flight reports an outage
+    // for a password that was never checked.
+    const attemptTimeoutMs = isSlowConnection() || wasSlowDevice() ? 15000 : 10000;
+    let lastError: unknown = null;
+    // The first answer Supabase actually checked the password against. A
+    // fallback format timing out must not turn a wrong password into an
+    // outage message (or the other way round).
+    let credentialError: unknown = null;
+    let sawTimeout = false;
 
-    if (res.ok && payload.data?.access_token && payload.data.refresh_token) {
-      const { data, error } = await supabase!.auth.setSession({
-        access_token: payload.data.access_token,
-        refresh_token: payload.data.refresh_token,
-      });
-      if (!error && data.session) {
-        return { error: null, role: payload.data.role || "admin" };
+    const runOne = async (attempt: AuthLoginAttempt) => {
+      try {
+        const { data, error } = await Promise.race([
+          withSupabaseLockRetry(async () =>
+            attempt.type === "email"
+              ? await supabase!.auth.signInWithPassword({
+                  email: attempt.value,
+                  password,
+                })
+              : await supabase!.auth.signInWithPassword({
+                  phone: attempt.value,
+                  password,
+                }),
+          ),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Login attempt timed out")), attemptTimeoutMs),
+          ),
+        ]);
+
+        if (error) {
+          lastError = error;
+          const errMsg = (error.message || "").toLowerCase();
+          const isInvalidCredentials =
+            errMsg.includes("invalid login credentials") ||
+            errMsg.includes("invalid login") ||
+            errMsg.includes("wrong password") ||
+            errMsg.includes("incorrect password");
+          const isUserNotFound =
+            errMsg.includes("user not found") || errMsg.includes("no user") || errMsg.includes("email not found");
+          if ((isInvalidCredentials || isUserNotFound) && !credentialError) {
+            credentialError = error;
+          }
+          throw error;
+        }
+
+        if (!data.user) {
+          const noUser = new Error("No user returned from Supabase");
+          lastError = noUser;
+          throw noUser;
+        }
+
+        // Remember the winning format so the next login starts with it.
+        setRememberedFormat(phone, `${attempt.type}:${attempt.value.toLowerCase()}`);
+        // Return success — onAuthStateChange is the single source of truth for
+        // fetching the profile, so a slow profile fetch cannot strand a
+        // successful sign-in on the login page.
+        return {
+          error: null,
+          role: data.user.user_metadata?.role || "admin",
+        };
+      } catch (attemptError) {
+        if (attemptError instanceof Error && attemptError.message === "Login attempt timed out") {
+          rememberSlowDevice();
+          sawTimeout = true;
+          lastError = {
+            message: "Connection timed out. Please check your internet and try again.",
+          };
+        } else {
+          lastError = attemptError;
+        }
+        throw attemptError;
       }
-      return { error: { message: "Could not start your session. Please try again." } };
-    }
+    };
 
-    // The server answered, so it is the authority on this sign-in: it already
-    // tried every identity the number could belong to.
-    if (res.status === 401 || res.status === 400 || res.status === 429 || res.status === 503) {
-      return { error: { message: payload.error || "Invalid phone number or password" } };
+    try {
+      return await Promise.any(attempts.map(runOne));
+    } catch {
+      // Every identity failed. A timed-out request can still land after its
+      // deadline (cold project, slow phone), so look for a session once more
+      // before reporting failure -- the login may have actually worked.
+      if (sawTimeout) {
+        const landed = await waitForLateSignIn(4000);
+        if (landed) {
+          return { error: null, role: landed.role };
+        }
+      }
+      return {
+        error: credentialError || lastError || { message: "Invalid phone number or password" },
+        // Every format actually answered, and at least one said the password
+        // was wrong. No amount of waiting will change that verdict.
+        definitive: !sawTimeout && Boolean(credentialError),
+      };
     }
-
-    return null;
   }
 
   async function signIn(phone: string, password: string) {
@@ -1048,29 +1214,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: { message: "Login already in progress" } };
       }
       signInLock.current = true;
-      // Safety: if a request hangs forever (poor internet), auto-release the
-      // lock so the user can retry without refreshing the page.
-      // Must exceed the whole attempt loop -- the budget is 60s and a timed
-      // out attempt waits for its late answer inside that -- or a duplicate
-      // submit mid-loop would run a second concurrent loop.
+      // Backstop only: every path below is bounded, so this should never fire.
+      // It exists so a future regression cannot leave the form disabled
+      // forever after a single stalled request.
       signInLockTimer.current = setTimeout(() => {
         logger.warn("[Auth] signInLock auto-released after timeout");
         signInLock.current = false;
         signInLockTimer.current = null;
-      }, 75000);
-
-      // The fast path: one request, and the server knows the account. If our
-      // own API cannot be reached, the client-side attempts below take over.
-      const viaApi = await apiSignIn(phone, password);
-      if (viaApi) {
-        releaseSignInLock();
-        return viaApi;
-      }
+      }, 45000);
 
       const attempts = buildAuthLoginAttempts(phone);
-      // Fast path: try the format that worked last time first. Legacy-format
-      // accounts otherwise burn seconds failing the primary format on EVERY
-      // login before succeeding on a fallback.
+      // Fast path: try the format that worked last time first, so legacy
+      // accounts do not lead with a format that is known to fail for them.
       const remembered = getRememberedFormat(phone);
       if (remembered) {
         const hitIndex = attempts.findIndex((a) => `${a.type}:${a.value.toLowerCase()}` === remembered);
@@ -1079,176 +1234,133 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           attempts.unshift(hit);
         }
       }
-      // Slow networks need LONGER per-attempt timeouts, not shorter: a timeout
-      // that fires while the real response is still in flight makes the loop
-      // try wrong fallback formats, fail, toast "invalid login" — and then the
-      // late success still signs the user in seconds later.
-      //
-      // Eight seconds was too tight for a phone on a slow link: every attempt
-      // timed out, the loop burned through four formats, and the sign-in
-      // failed after half a minute with the password never actually checked.
-      // The deadline is now generous from the start, a device that has felt a
-      // slow link keeps that deadline, and the whole loop is bounded so it
-      // cannot run away.
-      let attemptTimeoutMs = isSlowConnection() || wasSlowDevice() ? 15000 : 10000;
-      // The whole sign-in gets a budget, so a link that is merely slow cannot
-      // turn into an endless wait.
-      const signInBudgetMs = 60000;
-      const signInStartedAt = Date.now();
-      let lastError: unknown = null;
-      // The first answer Supabase actually checked the password against. Later
-      // attempts can be fallback formats that time out on a slow network, and
-      // returning those instead would report an outage as a wrong password.
-      let credentialError: unknown = null;
 
-      for (let i = 0; i < attempts.length; i++) {
-        const attempt = attempts[i];
-        // Short delay between attempts to avoid hammering Supabase and
-        // triggering rate limits on poor networks.
-        if (i > 0) {
-          await new Promise((resolve) => setTimeout(resolve, 300));
+      // Both paths race, so a stalled POST cannot hold the button while a
+      // direct sign-in that would have worked sits idle. The API gets a short
+      // head start because it resolves the identity server-side in one round
+      // trip: on a healthy link it answers first, and starting the direct
+      // calls at the same instant would sign the same person in twice and
+      // fetch the profile twice on every login.
+      const apiController = new AbortController();
+      let apiAnswered = false;
+      const markApiAnswered = () => {
+        apiAnswered = true;
+      };
+      const apiPromise = apiSignIn(phone, password, apiController, markApiAnswered);
+
+      // The direct attempts are started on demand: immediately if the API has
+      // not answered by the head-start deadline, or as soon as the API fails
+      // (including a session that could not be set). They are never started
+      // behind a healthy API answer, which would sign the same person in
+      // twice and fetch the profile twice.
+      let directStarted = false;
+      let resolveDirect!: (result: { error: any; role?: string } | null) => void;
+      const directPromise = new Promise<{ error: any; role?: string } | null>((resolve) => {
+        resolveDirect = resolve;
+      });
+      const startDirect = () => {
+        if (directStarted) return;
+        directStarted = true;
+        runDirectSignInAttempts(attempts, password, phone).then(resolveDirect, (error) => resolveDirect({ error }));
+      };
+
+      const headStartTimer = setTimeout(() => {
+        // A 401/400 marks the API as answered: its verdict is final, so the
+        // direct path is not started. A 429/503 does not mark it answered --
+        // that is our route or its upstream failing, and the direct path
+        // reaches Supabase over a different route.
+        if (!apiAnswered) startDirect();
+      }, getConnectionTimeout(3000));
+
+      apiPromise.then((result) => {
+        if (!result) {
+          // Unreachable, blocked, or timed out.
+          startDirect();
+          return;
         }
-
-        try {
-          const { data, error } = await Promise.race([
-            withSupabaseLockRetry(async () =>
-              attempt.type === "email"
-                ? await supabase!.auth.signInWithPassword({
-                    email: attempt.value,
-                    password,
-                  })
-                : await supabase!.auth.signInWithPassword({
-                    phone: attempt.value,
-                    password,
-                  }),
-            ),
-            new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error("Login attempt timed out")), attemptTimeoutMs),
-            ),
-          ]);
-
-          if (error) {
-            lastError = error;
-            const errMsg = (error.message || "").toLowerCase();
-            const isInvalidCredentials =
-              errMsg.includes("invalid login credentials") ||
-              errMsg.includes("invalid login") ||
-              errMsg.includes("wrong password") ||
-              errMsg.includes("incorrect password");
-            const isUserNotFound =
-              errMsg.includes("user not found") || errMsg.includes("no user") || errMsg.includes("email not found");
-
-            if ((isInvalidCredentials || isUserNotFound) && !credentialError) {
-              credentialError = error;
-            }
-
-            // The auth server already answered — this is an outage or a rate
-            // limit, not a question about which email format the account uses.
-            // Every other format would hit the same dead gateway, so keep
-            // going only costs the user four round-trips before they are told
-            // the truth. (A per-attempt timeout is deliberately not in here:
-            // that request is still in flight, and only waiting it out lets
-            // the post-loop session check see it land.)
-            const failureKind = classifyAuthFailure(error.message);
-            if (failureKind === "transient" || failureKind === "rate_limited") {
-              break;
-            }
-
-            // Only fast-fail on explicit "wrong password" - we can't distinguish
-            // "user doesn't exist" from "wrong password" when Supabase returns
-            // "invalid credentials". Try all formats to be safe.
-            const isExplicitWrongPassword =
-              isInvalidCredentials && (errMsg.includes("wrong password") || errMsg.includes("incorrect password"));
-
-            if (isExplicitWrongPassword && attempts.length === 1) {
-              // Only fail fast if there's exactly one attempt and we got explicit
-              // "wrong password" - otherwise try all formats
-              break;
-            }
-            // Try next format on "user not found", generic "invalid credentials",
-            // or any transient error
-            if (isUserNotFound || !isExplicitWrongPassword) {
-              continue;
-            }
-            break;
-          }
-
-          if (!data.user) {
-            lastError = { message: "No user returned from Supabase" };
-            continue;
-          }
-
-          releaseSignInLock();
-          // Remember the winning format so the next login tries it first.
-          setRememberedFormat(phone, `${attempt.type}:${attempt.value.toLowerCase()}`);
-          // Return success — onAuthStateChange handler is the single source of
-          // truth for fetching user profile. This avoids race conditions where
-          // fetchUserData times out and leaves the user stranded on the login page.
-          return {
-            error: null,
-            role: data.user.user_metadata?.role || "admin",
-          };
-        } catch (attemptError) {
-          if (attemptError instanceof Error && attemptError.message === "Login attempt timed out") {
-            // The deadline fired while the request was still in flight. On a
-            // cold project (a phone that has never signed in is usually the
-            // first request after the free-tier instance went to sleep) that
-            // answer lands ten or twenty seconds later -- and it is the
-            // RIGHT answer, because the account is not in the format we just
-            // tried. Throwing the attempt away and moving to the next format
-            // spent the whole budget on requests that were all going to be
-            // too slow, and the sign-in failed after half a minute with the
-            // password never actually checked.
-            //
-            // So: wait for the late answer before trying anything else.
-            rememberSlowDevice();
-            const remaining = signInBudgetMs - (Date.now() - signInStartedAt);
-            if (remaining <= 2000) {
-              lastError = {
-                message: "Connection timed out. Please check your internet and try again.",
-              };
-              break;
-            }
-            const landed = await waitForLateSignIn(Math.min(remaining, 25000));
-            if (landed) {
-              releaseSignInLock();
-              return {
-                error: null,
-                role: landed.role,
-              };
-            }
-            lastError = {
-              message: "Connection timed out. Please check your internet and try again.",
-            };
-          } else {
-            lastError = attemptError;
-          }
+        if (!result.error) {
+          if (!directStarted) resolveDirect(null);
+          return;
         }
-      }
-
-      // Every format failed — but a timed-out attempt can still complete AFTER
-      // the loop moved on (slow networks). If a session exists now, the login
-      // actually worked: report success instead of a bogus "invalid login"
-      // error that contradicts the redirect seconds later.
-      try {
-        const {
-          data: { session },
-        } = await supabase!.auth.getSession();
-        if (session?.user) {
-          releaseSignInLock();
-          return {
-            error: null,
-            role: session.user.user_metadata?.role || "admin",
-          };
+        if (result.definitive) {
+          // A real credential answer: do not fire more auth requests.
+          if (!directStarted) resolveDirect(null);
+          return;
         }
-      } catch {
-        // Session check failed — fall through to the real error below.
-      }
+        // A 429/503, or a session that could not be set. The direct path is
+        // still worth a try.
+        startDirect();
+      });
+
+      // Resolve on the first success. If both fail, prefer a real credential
+      // answer over a timeout so the login page reports the right thing.
+      const isTimeoutError = (error: any) =>
+        /timed? out|timeout|network|fetch|connection/i.test(String(error?.message || error || ""));
+
+      const outcome = await new Promise<{ error: any; role?: string; source: "api" | "direct" }>((resolve) => {
+        let pending = 2;
+        let bestError: any = null;
+        let definitiveError: any = null;
+        let graceTimer: ReturnType<typeof setTimeout> | null = null;
+        let settled = false;
+
+        const finish = (
+          result: { error: any; role?: string; definitive?: boolean } | null,
+          source: "api" | "direct",
+        ) => {
+          pending -= 1;
+          if (result && !result.error) {
+            if (!settled) {
+              settled = true;
+              if (graceTimer) clearTimeout(graceTimer);
+              resolve({ ...result, source });
+            }
+            return;
+          }
+          if (result?.error && (!bestError || (isTimeoutError(bestError) && !isTimeoutError(result.error)))) {
+            bestError = result.error;
+          }
+          // A wrong password is final. Do not keep the user on "Signing in..."
+          // for the other path's full network deadline; give it a short grace
+          // in case it is about to succeed through a different identity.
+          if (result?.definitive && !definitiveError) {
+            definitiveError = result.error;
+            if (pending > 0 && !settled) {
+              graceTimer = setTimeout(() => {
+                if (!settled) {
+                  settled = true;
+                  resolve({ error: definitiveError, source });
+                }
+              }, 2000);
+            }
+          }
+          if (pending === 0 && !settled) {
+            settled = true;
+            if (graceTimer) clearTimeout(graceTimer);
+            resolve({
+              error: bestError || { message: "Invalid phone number or password" },
+              source,
+            });
+          }
+        };
+
+        apiPromise.then(
+          (result) => finish(result, "api"),
+          (error) => finish({ error }, "api"),
+        );
+        directPromise.then(
+          (result) => finish(result, "direct"),
+          (error) => finish({ error }, "direct"),
+        );
+      });
+
+      // The race is over. If the API is still in flight, cancel it before it
+      // can call setSession and emit a second SIGNED_IN for the same person.
+      clearTimeout(headStartTimer);
+      apiController.abort();
 
       releaseSignInLock();
-      return {
-        error: credentialError || lastError || { message: "Invalid phone number or password" },
-      };
+      return outcome.error ? { error: outcome.error } : { error: null, role: outcome.role };
     } catch (error) {
       releaseSignInLock();
       return { error };

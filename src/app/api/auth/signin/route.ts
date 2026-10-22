@@ -38,6 +38,31 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 const isUsableServiceKey = (key?: string): key is string => Boolean(key && key.length > 20 && !key.startsWith("your-"));
 
+/** No single outbound call may hold the whole sign-in open. */
+const OUTBOUND_TIMEOUT_MS = 12000;
+
+function outboundTimeout(ms: number): { signal: AbortSignal; done: () => void } {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return { signal: controller.signal, done: () => clearTimeout(timer) };
+}
+
+/** Resolve with `fallback` if a query has not answered in time, so a slow
+ *  lookup degrades to the candidate list instead of stalling the route. */
+async function withDeadline<T>(promise: PromiseLike<T>, ms: number, fallback: T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      Promise.resolve(promise),
+      new Promise<T>((resolve) => {
+        timer = setTimeout(() => resolve(fallback), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 /** Sign-in attempts allowed per IP per five minutes. A school shares one
  *  address behind mobile data, so this is a brake on guessing, not a quota
  *  on staff. */
@@ -81,6 +106,7 @@ function candidateEmails(identifier: string): string[] {
  * returned nothing. This is the same request the SDK makes.
  */
 async function signInWithEmail(email: string, password: string) {
+  const { signal, done } = outboundTimeout(OUTBOUND_TIMEOUT_MS);
   try {
     const res = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
       method: "POST",
@@ -89,6 +115,7 @@ async function signInWithEmail(email: string, password: string) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ email, password }),
+      signal,
     });
     const body = (await res.json().catch(() => ({}))) as {
       access_token?: string;
@@ -115,6 +142,8 @@ async function signInWithEmail(email: string, password: string) {
     };
   } catch (e) {
     return { session: null, error: { message: e instanceof Error ? e.message : "Sign-in failed" } };
+  } finally {
+    done();
   }
 }
 
@@ -141,14 +170,27 @@ async function lookupProfileEmail(identifier: string): Promise<string | null> {
     );
     if (phoneCandidates.length === 0) return null;
 
-    const { data: profiles } = await admin.from("users").select("email, auth_id").in("phone", phoneCandidates).limit(1);
+    const profiles = await withDeadline(
+      (async () => {
+        const { data } = await admin.from("users").select("email, auth_id").in("phone", phoneCandidates).limit(1);
+        return data as Array<{ email?: string | null; auth_id?: string | null }> | null;
+      })(),
+      OUTBOUND_TIMEOUT_MS,
+      null,
+    );
     const profile = profiles?.[0];
     if (profile?.email) return String(profile.email).toLowerCase();
 
     // No email on the profile: ask the auth user directly.
     if (profile?.auth_id) {
-      const { data: authUser } = await admin.auth.admin.getUserById(profile.auth_id);
-      const authEmail = authUser?.user?.email;
+      const authEmail = await withDeadline(
+        (async () => {
+          const { data } = await admin.auth.admin.getUserById(profile.auth_id!);
+          return data?.user?.email ?? null;
+        })(),
+        OUTBOUND_TIMEOUT_MS,
+        null,
+      );
       if (authEmail) return authEmail.toLowerCase();
     }
     return null;

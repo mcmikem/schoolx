@@ -75,9 +75,9 @@ export default function ExamLabPage() {
         <header style={{ marginBottom: 16 }}>
           <h1 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 4px" }}>Exam Lab</h1>
           <p style={{ margin: 0, fontSize: 13, color: "#5b6472" }}>
-            Paste a paper&rsquo;s <strong>text</strong> to see it parsed. This is step 5&ndash;7 of the pipeline: text
-            in, questions out, mobile form rendered. There is no OCR yet, so a scanned PDF will not get you here on its
-            own.
+            Drop in a past paper &mdash; a PDF (scans are read by OCR here in the browser) or a text file &mdash; or
+            paste its text. You get the parsed questions, the form a pupil would answer on, and an honest list of
+            anything the parser was unsure about.
           </p>
         </header>
 

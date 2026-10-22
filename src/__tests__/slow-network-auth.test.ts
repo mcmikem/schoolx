@@ -73,6 +73,49 @@ describe("the sign-in asks the server which account the number belongs to", () =
   });
 });
 
+describe("a stalled sign-in POST cannot freeze the login button", () => {
+  it("bounds the API exchange with an abort deadline", () => {
+    // A proxy/antivirus can hold a POST open instead of failing it. Without a
+    // deadline the button never leaves "Signing in...", no log entry appears,
+    // and every later click is swallowed by the in-flight guard.
+    expect(authContext).toMatch(/apiSignIn\([\s\S]*?controller: AbortController/);
+    expect(authContext).toContain("signal: controller.signal");
+    expect(authContext).toContain("controller.abort()");
+  });
+
+  it("races the direct Supabase attempts after a short head start", () => {
+    // The direct attempts go straight to Supabase, so they still work on the
+    // devices where our own POST is stalled. They must not wait for the API
+    // to fail first.
+    expect(authContext).toContain("runDirectSignInAttempts");
+    expect(authContext).toContain("startDirect");
+    expect(authContext).toContain("getConnectionTimeout(3000)");
+    // All identity formats run together; the first success wins.
+    expect(authContext).toContain("Promise.any(attempts.map(runOne))");
+  });
+
+  it("does not start a second session when a direct attempt wins the race", () => {
+    // The API checks the abort flag before calling setSession, and the race
+    // cancels it as soon as it is over, so a direct win cannot be followed by
+    // a second SIGNED_IN for the same person.
+    expect(authContext).toMatch(/if \(controller\.signal\.aborted\) return null;/);
+    expect(authContext).toMatch(/apiController\.abort\(\);/);
+  });
+});
+
+describe("the server sign-in route cannot be held open by one slow lookup", () => {
+  it("bounds outbound Supabase calls", () => {
+    const route = path.join(ROOT, "src/app/api/auth/signin/route.ts");
+    const src = fs.readFileSync(route, "utf8");
+    expect(src).toContain("OUTBOUND_TIMEOUT_MS");
+    expect(src).toContain("withDeadline");
+    // The token request carries the abort signal; the timer is cleared in
+    // `finally` so a successful sign-in does not leave it pending.
+    expect(src).toMatch(/body: JSON\.stringify\(\{ email, password \}\),\s*signal,/);
+    expect(src).toContain("done();");
+  });
+});
+
 describe("the local database is not in front of the data", () => {
   it("reads the cache and the server at the same time", () => {
     // The cache used to be read first and the network second, which put the
