@@ -2,6 +2,8 @@
 
 import type { PDFPageProxy } from "pdfjs-dist";
 
+import { rebuildLayout } from "./pdf-lines";
+
 /**
  * PDF → text, entirely in the browser.
  *
@@ -69,11 +71,16 @@ export async function extractTextFromPdf(
   for (let i = 1; i <= pages; i++) {
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
-    const text = content.items
-      .map((item) => ("str" in item ? item.str : ""))
-      .join("\n")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
+    // Runs are rejoined into visual lines first. The naive one-newline-per-run
+    // join shreds anything laid out as a table, and this PDF's questions
+    // routinely sit in cells: the paper walks out of extraction unreadable.
+    const text = rebuildLayout(
+      content.items.flatMap((item) =>
+        item && typeof item === "object" && "str" in item
+          ? [{ str: item.str, x: item.transform[4], y: item.transform[5] }]
+          : [],
+      ),
+    );
     pageTexts.push(text);
     textLayerChars += text.length;
     page.cleanup();

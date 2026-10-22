@@ -22,14 +22,19 @@ import {
 } from "./exam-model";
 
 /**
- * A question starts with its number, then a dot/bracket, then a stem.
+ * A question starts with its number, then a dot/bracket.
  *
  * A dot followed by another digit is a decimal -- "4.8 L", "0.5 mM" -- not a
  * question 4 with stem "8 L?" Data-table papers are dense with these, and
  * without the guard every decimal spawns a phantom question that then makes
  * the numbering check report the paper as misread.
+ *
+ * The stem does not have to share the line with the number: several real
+ * papers print "35." alone, with the body on the next line, because of how
+ * the typesetter broke the text runs. Requiring same-line text would make
+ * those questions invisible.
  */
-const QUESTION_START = /^\s*(?:question\s*)?(\d{1,2})\s*(?:\.(?!\d)|[)])\s*(?=\S)/i;
+const QUESTION_START = /^\s*(?:question\s*)?(\d{1,2})\s*(?:\.(?!\d)|[)])/i;
 
 /** "(a) ...", "(i) ...", "A. ..." -- an option, not a new question. */
 const CHOICE_LINE = /^\s*(?:\(?([a-z]|[ivx]{1,4}|\d{1,2})\)?)\s*[.):]?\s+(\S.*)$/i;
@@ -135,8 +140,14 @@ function nextRoman(roman: string): string {
 function guessKind(stem: string, choices: Choice[], marks: number | null): QuestionKind {
   if (choices.length >= 2) return "multiple_choice";
   // A long stem that asks for a discussion is a long answer whatever else it
-  // looks like. Marks help: papers usually give essay questions more.
-  if (/\b(explain|describe|discuss|state|give reasons|outline|suggest|advise)\b/i.test(stem)) {
+  // looks like. Marks help: papers usually give essay questions more. The verb
+  // list is taken from what Ugandan papers actually print on extended tasks --
+  // "propose" and "analyse" appear far more often than "discuss".
+  if (
+    /\b(explain|describe|discuss|state|give reasons|outline|suggest|advise|propose|analyse|analyze|assess|evaluate|justify)\b/i.test(
+      stem,
+    )
+  ) {
     return "long_answer";
   }
   if (marks !== null && marks >= 10) return "long_answer";
@@ -250,17 +261,40 @@ function buildQuestion(
   // Essay questions print "Task:" before their sub-prompts, and those
   // sub-prompts are labelled (a)/(b)/(i) exactly like multiple-choice options.
   // After a Task header the labels are parts of one essay, not choices -- the
-  // alternative is reading a long-answer paper as a two-choice quiz.
-  const TASK_HEADER = /^\s*tasks?\s*:?\s*$/i;
+  // alternative is reading a long-answer paper as a two-choice quiz. The
+  // header may also share its line with the first sub-prompt ("Task: (a)
+  // Analyse ..."), because the typesetter put them close enough together that
+  // layout reconstruction joins the runs; the remainder is still stem text.
+  // Either "Task:"/"Tasks:" with more text after it (merged line), or the
+  // bare word alone. A prose line that merely begins with the word "task" is
+  // not a header.
+  const TASK_HEADER = /^\s*tasks?\s*:(.*)$|^\s*tasks?\s*$/i;
   let inTaskRun = false;
 
   for (const rawLine of afterNumber.split("\n")) {
     const line = rawLine.trim();
     if (!line) continue;
 
-    if (TASK_HEADER.test(line)) {
+    const taskHeader = line.match(TASK_HEADER);
+    if (taskHeader) {
+      // Data-table questions label their rows A/B/C -- site A, site B, condition
+      // A -- and those rows sit in the question before its Task block. If the
+      // question turns out to be essay-structured, the lettered run was table
+      // geometry, not options: an MCQ paper does not print "Task:" at all. A
+      // run kept through this point would reclassify a data-table essay as a
+      // two-choice quiz. The rows are not thrown away either: they are the
+      // question's data, so they go back into the stem where the reader can
+      // still see the table the essay argues about.
+      if (choices.length > 0) {
+        stemLines.push(...choices.map((choice) => `${choice.label} ${choice.text}`));
+        choices.length = 0;
+      }
       inTaskRun = true;
-      stemLines.push(line);
+      const remainder = (taskHeader[1] ?? "").trim();
+      // "Task:" on its own line still opens the run; a merged line keeps the
+      // sub-prompt it swallowed so the stem does not lose its first words.
+      if (remainder) stemLines.push(remainder);
+      else stemLines.push(line);
       continue;
     }
 
