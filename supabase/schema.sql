@@ -1303,9 +1303,13 @@ CREATE TABLE IF NOT EXISTS report_cards (
     next_term_opens DATE,
     class_teacher_name TEXT,
     head_teacher_name TEXT,
+    class_teacher_remark TEXT,
+    head_teacher_remark TEXT,
+    remark_updated_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(student_id, academic_year, term)
 );
+CREATE INDEX IF NOT EXISTS idx_report_cards_class_term ON report_cards (class_id, academic_year, term);
 ALTER TABLE report_cards ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users report_cards all" ON report_cards;
 CREATE POLICY "School users report_cards all" ON report_cards FOR ALL TO authenticated USING (school_id = my_school_id() AND is_staff_role()) WITH CHECK (school_id = my_school_id() AND is_staff_role());
@@ -2563,7 +2567,10 @@ CREATE TABLE IF NOT EXISTS exams (
     term INTEGER,
     academic_year TEXT,
     created_by UUID REFERENCES users(id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    -- The parsed question structure of a past paper (from the Exam Lab). NULL
+    -- for exams created directly in the Exams page, which are score-only.
+    paper_model JSONB
 );
 
 -- ============================================
@@ -2584,6 +2591,34 @@ CREATE TABLE IF NOT EXISTS exam_scores (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(student_id, subject_id, exam_type, term, academic_year)
 );
+
+-- ============================================
+-- EXAM PAPER ANSWERS TABLE
+-- ============================================
+-- One row per pupil, per question, per saved paper. The Exam Lab's marking
+-- script writes the closed-form questions it is allowed to mark; essay tasks
+-- are marked here by hand and nothing is marked the paper did not declare
+-- machine-markable. UNIQUE is the reconciliation guarantee: re-recording a
+-- mark updates this row rather than adding to the tally.
+CREATE TABLE IF NOT EXISTS exam_paper_answers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    exam_id UUID NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    question_number INTEGER NOT NULL,
+    answer TEXT,
+    marks_awarded NUMERIC(5,1),
+    marked_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT exam_paper_answers_marks_nonnegative CHECK (marks_awarded IS NULL OR marks_awarded >= 0),
+    UNIQUE (exam_id, student_id, question_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_exam_paper_answers_exam
+    ON exam_paper_answers (exam_id, student_id);
+CREATE INDEX IF NOT EXISTS idx_exam_paper_answers_school
+    ON exam_paper_answers (school_id, updated_at DESC);
 
 -- ============================================
 -- DORMS TABLE
@@ -3531,6 +3566,10 @@ CREATE POLICY "School users exams all" ON exams FOR ALL TO authenticated USING (
 ALTER TABLE exam_scores ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users exam_scores all" ON exam_scores;
 CREATE POLICY "School users exam_scores all" ON exam_scores FOR ALL TO authenticated USING (student_id IN (SELECT id FROM students WHERE school_id = my_school_id())) WITH CHECK (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()));
+
+ALTER TABLE exam_paper_answers ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users exam answers all" ON exam_paper_answers;
+CREATE POLICY "School users exam answers all" ON exam_paper_answers FOR ALL TO authenticated USING (school_id = my_school_id() AND is_staff_role()) WITH CHECK (school_id = my_school_id() AND is_staff_role());
 
 ALTER TABLE dorms ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users dorms select" ON dorms;

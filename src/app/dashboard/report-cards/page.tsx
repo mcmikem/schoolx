@@ -1,20 +1,16 @@
 "use client";
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import MaterialIcon from "@/components/MaterialIcon";
-import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { VideoLessonButton } from "@/components/onboarding/VideoLesson";
 import { OwlyHelpLink } from "@/components/owly/OwlyHelpLink";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { generateUgandaPrimaryBody, ugandaDocumentShell } from "@/components/reports/ugandaPrimaryReport";
-import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print-window";
-import { suggestClassTeacherRemark, suggestHeadTeacherRemark } from "@/lib/report-remarks";
-import { canSendSms } from "@/lib/sms-permissions";
-import { writeAnalysisRemark } from "@/lib/report-analysis";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
-import { VideoLessonButton } from "@/components/onboarding/VideoLesson";
 import { PageHeader } from "@/components/ui/PageHeader";
 import PersonInitials from "@/components/ui/PersonInitials";
 import SearchField from "@/components/ui/SearchField";
@@ -23,23 +19,27 @@ import { useAcademic } from "@/lib/academic-context";
 import { APP_NAME } from "@/lib/app-name";
 import { useAuth } from "@/lib/auth-context";
 import {
+  type CBCSubjectEntry,
   calculateCBCSubject,
   cbcIdentifierValue,
-  summarizeCBCSubjects,
-  type CBCSubjectEntry,
   escapeHtml,
   generateCBCReportHTML,
+  summarizeCBCSubjects,
 } from "@/lib/cbc-report";
 import { DEMO_GRADES, DEMO_SUBJECTS } from "@/lib/demo-data";
-import { useClasses, useFeeAdjustments, useFeePayments, useFeeStructure, useStudents, useSubjects } from "@/lib/hooks";
 import { computeFeeClearance, type FeeClearance } from "@/lib/fee-clearance";
+import { type ReportLayoutId, resolveUseBot, SETTING_KEYS } from "@/lib/grading-tracks";
+import { useClasses, useFeeAdjustments, useFeePayments, useFeeStructure, useStudents, useSubjects } from "@/lib/hooks";
 import { isTimeoutResult, timeoutFallback, withTimeout } from "@/lib/hooks/utils";
 import { logger } from "@/lib/logger";
+import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print-window";
+import { writeAnalysisRemark } from "@/lib/report-analysis";
 import { competencyBadge, reportGradeColor } from "@/lib/report-card-presentation";
 import { searchReportList } from "@/lib/report-list";
+import { suggestClassTeacherRemark, suggestHeadTeacherRemark } from "@/lib/report-remarks";
 import { classicReportSubject, rankCompleteReports, summarizeClassicReport } from "@/lib/report-summary";
 import { loadSchoolSettings } from "@/lib/school-settings";
-import { type ReportLayoutId, SETTING_KEYS, resolveUseBot } from "@/lib/grading-tracks";
+import { canSendSms } from "@/lib/sms-permissions";
 import {
   bucketUgandaSubject,
   orderUgandaSubjects,
@@ -98,6 +98,13 @@ export default function ReportCardsPage() {
   const [hideWithFees, setHideWithFees] = useState(true);
   const [reports, setReports] = useState<StudentReport[]>([]);
   const [comments, setComments] = useState<Record<string, { classTeacher: string; hm: string }>>({});
+  // Remarks that were saved for this class, loaded from report_cards. The
+  // comments map above is what the teacher sees; this is what is on the
+  // server. Generation must not overwrite it, and a page reload must bring
+  // it back.
+  const [savedRemarks, setSavedRemarks] = useState<Record<string, { classTeacher: string; hm: string }>>({});
+  const [remarksLoaded, setRemarksLoaded] = useState(false);
+  const remarkLoadToken = useRef(0);
   // Behaviour / co-curricular ratings, 1-5. The report printed four empty
   // boxes for every pupil in every school because nothing could be written
   // there; these are what fill them.
@@ -687,7 +694,7 @@ export default function ReportCardsPage() {
 
       setHasMissingMarks(missingMarks);
       setReports(reportList);
-      setComments(initialComments);
+      setComments(mergeWithSavedRemarks(initialComments));
       setGenerated(true);
       setOfflinePreview(offline);
 
@@ -807,7 +814,7 @@ export default function ReportCardsPage() {
 
       setHasMissingMarks(hasMissing);
       setReports(allReports);
-      setComments(initialComments);
+      setComments(mergeWithSavedRemarks(initialComments));
       setGenerated(true);
 
       if (isDemo) {
@@ -834,11 +841,161 @@ export default function ReportCardsPage() {
     }
   };
 
+  /**
+   * Merge freshly generated remark text with what is already saved. A saved
+   * remark always wins: the teacher wrote it, the generator only proposed it.
+   */
+  const mergeWithSavedRemarks = (
+    generated: Record<string, { classTeacher: string; hm: string }>,
+  ): Record<string, { classTeacher: string; hm: string }> => {
+    const merged: Record<string, { classTeacher: string; hm: string }> = { ...generated };
+    for (const [studentId, saved] of Object.entries(savedRemarks)) {
+      merged[studentId] = {
+        classTeacher: saved.classTeacher,
+        hm: saved.hm,
+      };
+    }
+    return merged;
+  };
+
   const handleCommentChange = (studentId: string, field: "classTeacher" | "hm", value: string) => {
     setComments((prev) => ({
       ...prev,
       [studentId]: { ...prev[studentId], [field]: value },
     }));
+  };
+
+  /**
+   * Write remarks to the report_cards row for this pupil and term.
+   *
+   * Upsert on (student_id, academic_year, term) so a remark written before
+   * the cards were generated still lands -- the row appears with the remark
+   * on it, and the later "Generate" fills in the rest of the card. The
+   * remark columns are deliberately NOT part of the generate payload, so
+   * regenerating a card never wipes a teacher's words.
+   */
+  const persistRemarks = async (changes: { studentId: string; field: "classTeacher" | "hm"; value: string }[]) => {
+    if (isDemo) {
+      // A demo user has no row of their own, so there is nowhere to save.
+      // Say so once, rather than failing silently on every keystroke.
+      toast.info("Demo mode: remarks are not saved to a school record.");
+      return;
+    }
+    if (!school?.id || !selectedClass || changes.length === 0) return;
+    try {
+      const { supabase: sb } = await import("@/lib/supabase");
+      for (const change of changes) {
+        const column = change.field === "classTeacher" ? "class_teacher_remark" : "head_teacher_remark";
+        const result = await withTimeout(
+          sb.from("report_cards").upsert(
+            {
+              school_id: school.id,
+              student_id: change.studentId,
+              class_id: selectedClass,
+              academic_year: academicYear,
+              term: currentTerm,
+              [column]: change.value,
+              remark_updated_at: new Date().toISOString(),
+            },
+            { onConflict: "student_id,academic_year,term" },
+          ),
+          10000,
+          timeoutFallback(),
+        );
+        if (isTimeoutResult(result)) {
+          toast.error("Saving is taking too long. Check your connection before leaving this page.");
+          return;
+        }
+        if (result.error) {
+          logger.error("Failed to save remark:", result.error);
+          toast.error("The remark could not be saved. It will be lost when you leave this page.");
+          return;
+        }
+      }
+      setSavedRemarks((prev) => {
+        const next = { ...prev };
+        for (const change of changes) {
+          next[change.studentId] = {
+            classTeacher: change.field === "classTeacher" ? change.value : (next[change.studentId]?.classTeacher ?? ""),
+            hm: change.field === "hm" ? change.value : (next[change.studentId]?.hm ?? ""),
+          };
+        }
+        return next;
+      });
+    } catch (err) {
+      logger.error("Failed to save remark:", err);
+      toast.error("The remark could not be saved.");
+    }
+  };
+
+  /**
+   * Load the remarks already written for this class, so a teacher who comes
+   * back tomorrow finds their words where they left them.
+   */
+  const loadSavedRemarks = useCallback(async () => {
+    const requestToken = ++remarkLoadToken.current;
+    setRemarksLoaded(false);
+    setSavedRemarks({});
+    if (!school?.id || !selectedClass) {
+      return;
+    }
+    if (isDemo) {
+      setRemarksLoaded(true);
+      return;
+    }
+    try {
+      const { supabase: sb } = await import("@/lib/supabase");
+      const { data, error } = await withTimeout(
+        sb
+          .from("report_cards")
+          .select("student_id, class_teacher_remark, head_teacher_remark, remark_updated_at")
+          .eq("class_id", selectedClass)
+          .eq("academic_year", academicYear)
+          .eq("term", currentTerm),
+        10000,
+        timeoutFallback(),
+      );
+      if (requestToken !== remarkLoadToken.current) return;
+      if (error) {
+        logger.error("Failed to load saved remarks:", error);
+        setRemarksLoaded(true);
+        return;
+      }
+      const loaded: Record<string, { classTeacher: string; hm: string }> = {};
+      for (const row of data || []) {
+        const classTeacher = row.class_teacher_remark || "";
+        const hm = row.head_teacher_remark || "";
+        if (!classTeacher && !hm && !row.remark_updated_at) continue;
+        loaded[row.student_id] = { classTeacher, hm };
+      }
+      setSavedRemarks(loaded);
+      // Anything already saved wins over the freshly generated text.
+      if (Object.keys(loaded).length > 0) {
+        setComments((prev) => {
+          const next = { ...prev };
+          for (const [studentId, remark] of Object.entries(loaded)) {
+            next[studentId] = {
+              classTeacher: remark.classTeacher,
+              hm: remark.hm,
+            };
+          }
+          return next;
+        });
+      }
+    } catch (err) {
+      if (requestToken === remarkLoadToken.current) logger.error("Failed to load saved remarks:", err);
+    } finally {
+      if (requestToken === remarkLoadToken.current) setRemarksLoaded(true);
+    }
+  }, [school?.id, selectedClass, academicYear, currentTerm, isDemo]);
+
+  useEffect(() => {
+    void loadSavedRemarks();
+  }, [loadSavedRemarks]);
+
+  const handleCommentBlur = (studentId: string, field: "classTeacher" | "hm") => {
+    if (!remarksLoaded) return;
+    void persistRemarks([{ studentId, field, value: comments[studentId]?.[field] ?? "" }]);
   };
 
   const BEHAVIOUR_SKILLS = ["Discipline", "Cleanliness", "Responsibility", "Sports"];
@@ -1963,9 +2120,11 @@ export default function ReportCardsPage() {
                                     id={`teacher-comment-${report.studentId}`}
                                     rows={3}
                                     value={studentComment.classTeacher}
+                                    disabled={!remarksLoaded && !isDemo}
                                     onChange={(e) =>
                                       handleCommentChange(report.studentId, "classTeacher", e.target.value)
                                     }
+                                    onBlur={() => handleCommentBlur(report.studentId, "classTeacher")}
                                     className="min-h-11 w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm leading-relaxed"
                                     placeholder="Class teacher comment..."
                                   />
@@ -1981,7 +2140,9 @@ export default function ReportCardsPage() {
                                     id={`hm-comment-${report.studentId}`}
                                     rows={3}
                                     value={studentComment.hm}
+                                    disabled={!remarksLoaded && !isDemo}
                                     onChange={(e) => handleCommentChange(report.studentId, "hm", e.target.value)}
+                                    onBlur={() => handleCommentBlur(report.studentId, "hm")}
                                     className="min-h-11 w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm leading-relaxed"
                                     placeholder="HM comment..."
                                   />

@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseClientOptions } from "@/lib/api-utils";
 
 const startTime = Date.now();
@@ -41,12 +41,15 @@ export async function GET(request: NextRequest) {
 
       const readOk = !readError;
 
-      const { error: writeError } = await supabase
+      const healthCheckKey = `__health_check__:${crypto.randomUUID()}`;
+      const { error: writeError, data: healthCheckRow } = await supabase
         .from("rate_limit_log")
-        .insert({ key: "__health_check__", created_at: new Date().toISOString() });
+        .insert({ key: healthCheckKey, created_at: new Date().toISOString() })
+        .select("id")
+        .maybeSingle();
 
-      if (!writeError) {
-        await supabase.from("rate_limit_log").delete().eq("key", "__health_check__");
+      if (!writeError && healthCheckRow?.id) {
+        await supabase.from("rate_limit_log").delete().eq("id", healthCheckRow.id);
       }
 
       checks.database = {

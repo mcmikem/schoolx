@@ -93,3 +93,6 @@ public/downloads/*.apk
 # Stitch UI redesign mockups (reviewed 2026-10-03; not adopted -- the app's
 # existing tokens already match them to within a few ΔE)
 stitch_ugandan_schools_ui_redesign/
+
+# agent skill dependency repo (heavy, vendored-only)
+.agents/skills/video-shotcraft/

@@ -21,11 +21,16 @@ npm run test:e2e      # playwright test
 # CI / build status checks (run locally after pushing)
 npm run check:ci              # one-shot GitHub Actions + Vercel status
 npm run check:ci -- --watch   # poll every 15s until done
+
+# Post-deploy smoke (health, login page, SW build, sign-in, profile, DB write)
+BASE_URL=https://skoolmate.omuto.org \
+  SMOKE_PHONE=... SMOKE_PASSWORD=... SMOKE_CRON_SECRET=... \
+  npm run smoke:prod
 ```
 
 Pre-commit hook runs: `lint-staged → typecheck → test:regression`. All must pass.
 
-**Post-push workflow:** Always run `npm run check:ci` after pushing to verify GitHub Actions and Vercel build status before notifying the user. This catches secret-scan failures, build errors, or Vercel deployment issues without manual browser checking.
+**Post-push workflow:** Always run `npm run check:ci` after pushing to verify GitHub Actions and Vercel build status before notifying the user. This catches secret-scan failures, build errors, or Vercel deployment issues without manual browser checking. Once the deployment is live, run `npm run smoke:prod` with the `SMOKE_*` credentials to prove sign-in, profile and DB write still work. `.github/workflows/smoke.yml` does the same automatically after CI on `main` (add `SMOKE_PHONE`/`SMOKE_PASSWORD` repo secrets; without them it runs the public checks only).
 
 Env vars for `check:ci` (optional):
 - `GITHUB_TOKEN` — required for private repos
