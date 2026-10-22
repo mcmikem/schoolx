@@ -46,7 +46,9 @@ describe("service worker slow-link and offline behaviour", () => {
 
   it("uses a shorter navigation deadline when a cached copy exists", () => {
     expect(sw).toContain("NAVIGATION_TIMEOUT_CACHED_MS");
-    expect(sw).toMatch(/hasCachedCopy\s*\?\s*NAVIGATION_TIMEOUT_CACHED_MS\s*:\s*NAVIGATION_TIMEOUT_MS/);
+    expect(sw).toMatch(
+      /hasCachedCopy\s*&&\s*!isAuthRoute\s*\?\s*NAVIGATION_TIMEOUT_CACHED_MS\s*:\s*NAVIGATION_TIMEOUT_MS/,
+    );
   });
 
   it("falls back to the dashboard shell, never the public marketing page, for offline dashboard URLs", () => {
@@ -133,5 +135,13 @@ describe("service worker never serves a stale module graph", () => {
   it("keeps the intent documented next to the code that has to honour it", () => {
     // If someone restores cache-firsting, the stale comment goes with it.
     expect(sw).toMatch(/runtime chunks/i);
+  });
+});
+
+describe("service worker sign-in pages", () => {
+  it("never races the network against a short deadline for login, register or forgot-password", () => {
+    const sw = read("public/sw.js");
+    expect(sw).toContain("isAuthRoute");
+    expect(sw).toMatch(/hasCachedCopy\s*&&\s*!isAuthRoute\s*\?\s*NAVIGATION_TIMEOUT_CACHED_MS/);
   });
 });

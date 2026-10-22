@@ -255,15 +255,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ])) as Awaited<ReturnType<typeof supabase.auth.getSession>>
           ).data.session;
         }
-        if (session && session.expires_at && session.expires_at * 1000 < Date.now() + 6000) {
-          const { data: refreshed } = (await Promise.race([
-            supabase.auth.refreshSession(),
-            new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error("refreshSession timed out")), getConnectionTimeout(6000)),
-            ),
-          ])) as Awaited<ReturnType<typeof supabase.auth.refreshSession>>;
-          if (refreshed.session) session = refreshed.session;
-        }
+        // Never refresh here. This function runs inside the auth-state
+        // callback, which the library awaits while it still holds its own
+        // storage lock, so refreshSession() waits on the lock that can only be
+        // released after this function returns. On a device whose clock is
+        // ahead of the server's, even a freshly issued token looks expired,
+        // which made every Windows sign-in wait out the refresh deadline and
+        // then report a failure for a password the server had accepted. The
+        // server is the authority on the token: call /api/auth/me/ with it and
+        // let a 401 trigger the refresh path below, outside this callback.
         const token = session?.access_token;
         if (!token) {
           // No access token yet (e.g. right after sign-in fires). Never clear

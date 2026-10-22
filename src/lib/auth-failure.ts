@@ -53,6 +53,14 @@ const TRANSIENT_PATTERNS: RegExp[] = [
   /network request failed/i,
   /connection (?:is )?(?:closed|reset|refused)/i,
   /unable to connect/i,
+  // The password WAS accepted but the session could not be started (apiSignIn's
+  // own wording when setSession fails or times out). Nothing was rejected, so it
+  // must not read as "Invalid login details" or count toward the lockout.
+  /could not start your session/i,
+  // A request cancelled by our own deadline or by the browser: Chrome says
+  // "signal is aborted without reason", Safari/Firefox "The operation was aborted".
+  /\babort(?:ed|error)?\b/i,
+  /err_(?:connection|network|timed_out|name_not_resolved|internet_disconnected|ssl|cert)/i,
   /econnrefused|etimedout|enotfound|epipe/i,
 ];
 

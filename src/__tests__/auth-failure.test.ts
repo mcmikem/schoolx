@@ -144,3 +144,21 @@ describe("signIn does not serialise identity guesses", () => {
     expect(directBody).toContain("definitive: !sawTimeout && Boolean(credentialError)");
   });
 });
+
+describe("failures where the password was never rejected", () => {
+  it.each([
+    "Could not start your session. Please try again.",
+    "signal is aborted without reason",
+    "The operation was aborted.",
+    "AbortError: The user aborted a request.",
+    "net::ERR_CONNECTION_RESET",
+    "net::ERR_SSL_PROTOCOL_ERROR",
+  ])("classifies %p as transient, not as a wrong password", (message) => {
+    expect(classifyAuthFailure(message)).toBe("transient");
+    expect(countsAsCredentialGuess(classifyAuthFailure(message))).toBe(false);
+  });
+
+  it("still treats a real rejection as credentials", () => {
+    expect(classifyAuthFailure("Invalid login credentials")).toBe("credentials");
+  });
+});

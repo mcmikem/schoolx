@@ -155,7 +155,13 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       (async () => {
         const hasCachedCopy = Boolean(await caches.match(request));
-        const timeoutMs = hasCachedCopy ? NAVIGATION_TIMEOUT_CACHED_MS : NAVIGATION_TIMEOUT_MS;
+        // Sign-in pages never take the short cached-copy shortcut. A cached /login is
+        // the copy of the PREVIOUS deploy until the waiting worker is applied, and
+        // its JS is what talks to the server: serving it after 1.2s on a slow link
+        // is how a device keeps running an old sign-in flow. Offline still falls
+        // back to the cached copy, just not as a race against a slow network.
+        const isAuthRoute = /^\/(login|register|forgot-password)(\/|$)/.test(url.pathname);
+        const timeoutMs = hasCachedCopy && !isAuthRoute ? NAVIGATION_TIMEOUT_CACHED_MS : NAVIGATION_TIMEOUT_MS;
         let navigationTimer;
         const navigationTimeout = new Promise((_, reject) => {
           navigationTimer = setTimeout(() => reject(new Error('navigation timeout')), timeoutMs);

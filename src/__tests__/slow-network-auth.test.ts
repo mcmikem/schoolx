@@ -44,6 +44,21 @@ describe("the profile fetch does not fight the auth client for the session", () 
     expect(guardAt).toBeGreaterThan(-1);
     expect(getSessionAt).toBeGreaterThan(guardAt);
   });
+
+  it("never asks the auth client to refresh while the callback holds its lock", () => {
+    const fetchBody = authContext.match(/const fetchUserData = useCallback\([\s\S]*?\n  \);/);
+    expect(fetchBody).not.toBeNull();
+    const body = fetchBody![0];
+    // The server decides whether the token is still good: the profile request
+    // goes out with the token the event carried, before any refresh.
+    const meAt = body.indexOf('fetch("/api/auth/me/"');
+    const refreshAt = body.indexOf("supabase.auth.refreshSession()");
+    expect(meAt).toBeGreaterThan(-1);
+    expect(refreshAt).toBeGreaterThan(meAt);
+    // A client clock running ahead must not turn a freshly issued token into a
+    // pre-emptive refresh that deadlocks on the lock this callback holds.
+    expect(body).not.toContain("expires_at * 1000 < Date.now() + 6000");
+  });
 });
 
 describe("the sign-in asks the server which account the number belongs to", () => {
