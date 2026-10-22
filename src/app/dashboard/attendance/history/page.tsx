@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useClasses } from "@/lib/hooks";
 import MaterialIcon from "@/components/MaterialIcon";
+import { canAccess, type UserRole } from "@/lib/roles";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
@@ -13,6 +14,9 @@ import { logger } from "@/lib/logger";
 
 export default function AttendanceHistoryPage() {
   const { school, user } = useAuth();
+  // Same "export" permission as the daily register: taking records out of the
+  // app is a head-office job, not a teacher's.
+  const canExport = canAccess((user?.role as UserRole) || "teacher", "export");
   const { classes } = useClasses(school?.id);
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
@@ -169,15 +173,17 @@ export default function AttendanceHistoryPage() {
           title="Attendance History"
           subtitle="View and export attendance records"
           actions={
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={exportCsv}
-              disabled={records.length === 0}
-              icon={<MaterialIcon icon="download" />}
-            >
-              Export CSV
-            </Button>
+            canExport ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={exportCsv}
+                disabled={records.length === 0}
+                icon={<MaterialIcon icon="download" />}
+              >
+                Export CSV
+              </Button>
+            ) : null
           }
         />
 

@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { isHeadOffice } from "@/lib/head-office";
 import MaterialIcon from "@/components/MaterialIcon";
 import { timeoutFallback, withTimeout } from "@/lib/hooks/utils";
 import { offlineDB } from "@/lib/offline";
@@ -18,7 +19,11 @@ function localISODate(date: Date): string {
 }
 
 export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string; userId?: string }) {
-  const { isDemo } = useAuth();
+  const { isDemo, user } = useAuth();
+  // The school calendar is shared: a term start, an exam week, a visiting
+  // inspector. It belongs to the head office, so a teacher sees the events
+  // but does not add to them.
+  const canAddEvent = isHeadOffice(user?.role);
   const [calendarEvents, setCalendarEvents] = useState<
     Array<{ id: string; title: string; start_date: string; event_type: string }>
   >([]);
@@ -294,19 +299,21 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
       )}
 
       <div className="mt-3 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => {
-            setShowAddEvent(!showAddEvent);
-            if (!showAddEvent) {
-              setNewEventDate(selectedDate || todayIso);
-            }
-          }}
-          className="flex items-center gap-1.5 rounded-full bg-[var(--primary)] px-4 py-2 text-xs font-semibold text-white hover:bg-[var(--primary-700)]"
-        >
-          <MaterialIcon icon="add" className="text-[14px]" />
-          Add event
-        </button>
+        {canAddEvent ? (
+          <button
+            type="button"
+            onClick={() => {
+              setShowAddEvent(!showAddEvent);
+              if (!showAddEvent) {
+                setNewEventDate(selectedDate || todayIso);
+              }
+            }}
+            className="flex items-center gap-1.5 rounded-full bg-[var(--primary)] px-4 py-2 text-xs font-semibold text-white hover:bg-[var(--primary-700)]"
+          >
+            <MaterialIcon icon="add" className="text-[14px]" />
+            Add event
+          </button>
+        ) : null}
         {!showAddEvent && currentMonthEvents.length > 0 && !selectedDate && (
           <div className="flex items-center gap-2 text-xs text-[var(--t3)]">
             <span className="inline-block h-2 w-2 rounded-full bg-[var(--primary)]" />

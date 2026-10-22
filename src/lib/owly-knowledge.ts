@@ -409,7 +409,7 @@ export const KNOWLEDGE: OwlyEntry[] = [
     where: "**Attendance** (sidebar → Today) — the *Attendance Center*",
     steps: [
       "Choose the class and the date. Today is already chosen.",
-      "Mark each pupil: **Present**, **Absent**, **Late** or **Excused**. Tap once to mark Present. Swipe right for Absent. Swipe left for Late.",
+      "Mark each pupil: **Present**, **Absent**, **Late** or **Excused**. Tap a pupil to mark Present, tap again for Absent. Swipe left for Present, right for Absent. Use the row buttons for Late or Excused.",
       "Marked pupils move out of the way. Tap **Show marked** to see them again.",
       "Tap **Save**. Any pupil you did not mark is saved as Present.",
       "For many days at once, open the **⋯ menu**, then **Bulk date-range marking**.",
@@ -603,9 +603,9 @@ export const KNOWLEDGE: OwlyEntry[] = [
     steps: [
       "Give work to a class and choose the date it is due.",
       "**Homework Submissions** shows who handed it in and who did not.",
-      "Send a reminder to parents through **Notices** or **Messages**.",
+      "Tell the head office if a parent needs reminding -- notices and parent SMS are sent by the office, not by teachers.",
     ],
-    facts: ["Teachers see homework that is still waiting on their dashboard."],
+    facts: ["Homework still waiting on you is listed under Homework Submissions."],
   },
   {
     id: "timetable",

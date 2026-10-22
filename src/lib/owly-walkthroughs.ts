@@ -59,7 +59,7 @@ export const WALKTHROUGHS: Record<string, Walkthrough> = {
         href: "/dashboard/attendance",
         video: "attendance",
         title: "Take the register",
-        how: "Open Attendance. Pick your class. Tap a pupil to mark Present. Swipe right for Absent. Swipe left for Late. If the list is hard to tap, use One pupil at a time.",
+        how: "Open Attendance. Pick your class. Tap a pupil to mark Present, tap again for Absent. Swipe left for Present, right for Absent. Use the row buttons for Late or Excused. If the list is hard to tap, use One pupil at a time.",
         done: "Each pupil's row shows a colour. The numbers at the top count Present, Absent and Late.",
       },
       {
@@ -77,10 +77,10 @@ export const WALKTHROUGHS: Record<string, Walkthrough> = {
         done: "The homework appears in the list. You can see how many pupils have handed it in.",
       },
       {
-        href: "/dashboard/classes",
-        title: "Message a class or parent",
-        how: "Open Messages. Choose one parent, one class, or the whole school. Write your message. It sends when there is signal.",
-        done: "The message shows Delivered or Queued in your sent list.",
+        href: "/dashboard/attendance",
+        title: "Ask the office to reach a parent",
+        how: "Teachers do not send parent messages -- the head office sends notices and SMS. Mark what happened in Attendance or Report Cards, then tell the office what the parent needs to hear.",
+        done: "The office has the detail and confirms the parent was told.",
       },
     ],
   },

@@ -7,6 +7,7 @@ import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import MaterialIcon from "@/components/MaterialIcon";
+import { canAccess, type UserRole } from "@/lib/roles";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
@@ -24,6 +25,9 @@ const STATUS_OPTIONS = [
 
 export default function PeriodAttendancePage() {
   const { school, user } = useAuth();
+  // Same "export" permission as the daily register: taking records out of the
+  // app is a head-office job, not a teacher's.
+  const canExport = canAccess((user?.role as UserRole) || "teacher", "export");
   const toast = useToast();
   const { classes } = useClasses(school?.id);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
@@ -108,15 +112,17 @@ export default function PeriodAttendancePage() {
           title="Period Attendance"
           subtitle="Mark attendance for each period"
           actions={
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={exportCsv}
-              disabled={students.length === 0}
-              icon={<MaterialIcon icon="download" />}
-            >
-              Export CSV
-            </Button>
+            canExport ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={exportCsv}
+                disabled={students.length === 0}
+                icon={<MaterialIcon icon="download" />}
+              >
+                Export CSV
+              </Button>
+            ) : null
           }
         />
 
@@ -240,8 +246,9 @@ export default function PeriodAttendancePage() {
             </div>
 
             <div
-        data-page-action-bar=""
-        className="mobile-sticky-action sticky bottom-[calc(84px+env(safe-area-inset-bottom,0px))] z-10 -mx-4 border-t border-[var(--border)] bg-[var(--surface)]/95 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+              data-page-action-bar=""
+              className="mobile-sticky-action sticky bottom-[calc(84px+env(safe-area-inset-bottom,0px))] z-10 -mx-4 border-t border-[var(--border)] bg-[var(--surface)]/95 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none"
+            >
               <Button
                 onClick={saveAttendance}
                 disabled={saving || Object.keys(attendanceMap).length === 0}

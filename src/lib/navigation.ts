@@ -566,12 +566,6 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
       items: [{ href: "/dashboard/substitutions", label: "Substitutions", icon: "swap_vert" }],
     },
     {
-      label: "Feedback",
-      icon: "feedback",
-      defaultOpen: true,
-      items: [{ href: "/dashboard/feedback", label: "Feedback", icon: "feedback" }],
-    },
-    {
       label: "Report Cards",
       icon: "description",
       defaultOpen: true,

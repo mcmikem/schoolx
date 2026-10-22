@@ -56,8 +56,10 @@ import {
   getNextGradeWorkflowStatusActions,
   getPrevGradeWorkflowStatusActions,
   gradeWorkflowRank,
+  canUnlockGradeSheet,
 } from "@/lib/operations";
 import { isClassScopedRole } from "@/lib/roles";
+import { canAccess, type UserRole } from "@/lib/roles";
 import { loadSchoolSettings } from "@/lib/school-settings";
 import { supabase } from "@/lib/supabase";
 
@@ -222,6 +224,9 @@ async function syncStudentGrades(params: {
 
 export default function GradesPage() {
   const { school, user, isDemo } = useAuth();
+  // Exporting takes the marks or register out of the app, so it follows the
+  // same "export" permission the daily register already used.
+  const canExport = canAccess((user?.role as UserRole) || "teacher", "export");
   const { academicYear, currentTerm, isTermLocked } = useAcademic();
   // The exams page already honours this; the grades page did not, so exam marks
   // stayed editable on a locked term. Only exam is gated -- CA is governed by
@@ -1442,6 +1447,10 @@ export default function GradesPage() {
     };
   }, [topics, getTopicStatus]);
 
+  // The banner says "Contact DOS to unlock" -- so only the roles that can
+  // actually approve a sheet get the unlock button, or the page contradicts
+  // itself.
+  const canUnlockCA = canUnlockGradeSheet(user?.role);
   const isSubmitted = submissionStatus !== "draft";
   const isPublished = submissionStatus === "published";
   const nextWorkflowActions = getNextGradeWorkflowStatusActions(submissionStatus, user?.role);
@@ -1547,13 +1556,15 @@ export default function GradesPage() {
                   that freezes the work belongs next to the work, so it moved
                   down to the marks list.
                 */}
-              <Button
-                variant="secondary"
-                onClick={handleExportGrades}
-                icon={<MaterialIcon icon="cloud_download" className="text-lg" />}
-              >
-                Export
-              </Button>
+              {canExport ? (
+                <Button
+                  variant="secondary"
+                  onClick={handleExportGrades}
+                  icon={<MaterialIcon icon="cloud_download" className="text-lg" />}
+                >
+                  Export
+                </Button>
+              ) : null}
               {/*
                   Save used to live here as well as in the sticky bar, calling a
                   different handler -- handleSaveGrades here against
@@ -1861,7 +1872,8 @@ export default function GradesPage() {
             {caLocked && (
               <div className="flex items-center gap-2 px-4 py-2 bg-[var(--red-soft)] border border-[var(--red)]/20 rounded-xl text-sm font-medium text-[var(--red-ink)]">
                 <MaterialIcon icon="lock" className="text-lg" />
-                CA marks are locked for this subject/class. Contact DOS to unlock.
+                CA marks are locked for this subject/class.{" "}
+                {canUnlockCA ? 'Use "Open for Edits" to reopen them.' : "Contact DOS to unlock."}
               </div>
             )}
 
@@ -1925,14 +1937,16 @@ export default function GradesPage() {
                 list of forty had no idea it existed. The control that ends
                 the work belongs beside the work. */}
             {caLocked ? (
-              <Button
-                variant="secondary"
-                onClick={handleUnlockCA}
-                disabled={saving}
-                icon={<MaterialIcon icon="lock_open" className="text-lg" />}
-              >
-                Open for Edits ({lockedByName})
-              </Button>
+              canUnlockCA ? (
+                <Button
+                  variant="secondary"
+                  onClick={handleUnlockCA}
+                  disabled={saving}
+                  icon={<MaterialIcon icon="lock_open" className="text-lg" />}
+                >
+                  Open for Edits ({lockedByName})
+                </Button>
+              ) : null
             ) : (
               <Button
                 variant="danger"

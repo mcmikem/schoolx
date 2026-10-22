@@ -348,8 +348,8 @@ export function getNextGradeWorkflowStatusActions(
  * answered "no way back" by handing every teacher the ability to un-publish
  * anyone's grades.
  */
-const GRADE_PUBLISH_ROLES = ["headmaster", "admin", "school_admin"] as const;
-const GRADE_APPROVE_ROLES = ["dean_of_studies", ...GRADE_PUBLISH_ROLES] as const;
+export const GRADE_PUBLISH_ROLES = ["headmaster", "admin", "school_admin"] as const;
+export const GRADE_APPROVE_ROLES = ["dean_of_studies", ...GRADE_PUBLISH_ROLES] as const;
 
 export function getPrevGradeWorkflowStatusActions(
   status: GradeWorkflowStatus,
@@ -622,4 +622,18 @@ export function calculateUgandaPayrollTaxes(grossPay: number): PayrollTaxResult 
     totalDeductions,
     netPay,
   };
+}
+
+/**
+ * Who may reopen a locked continuous-assessment sheet.
+ *
+ * A teacher can lock their own CA when they finish it -- that stops anyone
+ * editing it mid-term. Unlocking it is a different act: it reopens work that
+ * has been signed off, so it belongs to the same people who approve a grade
+ * sheet. The banner in the grades page says "Contact DOS to unlock", and
+ * this is the rule that makes that sentence true.
+ */
+export function canUnlockGradeSheet(role: string | null | undefined): boolean {
+  if (!role) return false;
+  return (GRADE_APPROVE_ROLES as readonly string[]).includes(role);
 }

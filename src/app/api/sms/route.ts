@@ -20,9 +20,12 @@ import { generateWhatsAppShareLink } from "@/lib/whatsapp";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { validateRequest, smsRequestSchema } from "@/lib/validation";
 import { logger } from "@/lib/logger";
+import { SMS_ALLOWED_ROLES as SMS_ALLOWED_ROLE_LIST } from "@/lib/sms-permissions";
 
 const { apiKey: AFRICAS_TALKING_API_KEY } = getAfricasTalkingConfig();
-const SMS_ALLOWED_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "bursar", "secretary"];
+// Shared with the buttons that offer SMS, so the UI never offers what the
+// API refuses. See src/lib/sms-permissions.ts.
+const SMS_ALLOWED_ROLES = SMS_ALLOWED_ROLE_LIST;
 
 async function handlePost(request: NextRequest) {
   try {

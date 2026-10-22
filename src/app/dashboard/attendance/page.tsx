@@ -1618,7 +1618,8 @@ export default function AttendancePage() {
                       <p className="font-bold text-sm text-[var(--t1)]">How marking works</p>
                       <ol className="mt-2 space-y-1.5 text-[13px] text-[var(--t2)] list-decimal list-inside">
                         <li>Everyone counts as Present. You only mark the ones who are not there.</li>
-                        <li>Tap a pupil who is absent. Tap again to change it to Late or Excused.</li>
+                        <li>Tap a pupil to mark them Absent. Tap again to put them back to Present.</li>
+                        <li>Use the row buttons for Late or Excused.</li>
                         <li>Swipe a row left for Present, right for Absent.</li>
                         <li>When you finish, tap Save.</li>
                       </ol>

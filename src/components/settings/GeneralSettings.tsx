@@ -61,7 +61,11 @@ export default function GeneralSettings({
   savingStage,
   refreshSchool,
 }: GeneralSettingsProps) {
-  const { school } = useAuth();
+  const { school, user } = useAuth();
+  // The database only lets school admins update the school row (RLS:
+  // is_school_admin -> school_admin, headmaster, admin, super_admin). Showing
+  // a teacher the editable form meant a save that the row policy refuses.
+  const canEditSchool = ["school_admin", "headmaster", "admin", "super_admin"].includes(user?.role || "");
   const [primaryColor, setPrimaryColor] = useState(school?.primary_color || "#005ce6");
   const [accentColor, setAccentColor] = useState(school?.accent_color || "#f97316");
 
@@ -490,6 +494,8 @@ export default function GeneralSettings({
               value={schoolData.name}
               onChange={(e) => setSchoolData({ ...schoolData, name: e.target.value })}
               className="input"
+              readOnly={!canEditSchool}
+              disabled={!canEditSchool}
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -552,47 +558,55 @@ export default function GeneralSettings({
           </div>
 
           <div className="pt-4">
-            <button onClick={saveSchoolSettings} disabled={saving} className="btn btn-primary">
-              <MaterialIcon icon="save" className="text-lg" />
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
+            {canEditSchool ? (
+              <button onClick={saveSchoolSettings} disabled={saving} className="btn btn-primary">
+                <MaterialIcon icon="save" className="text-lg" />
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+            ) : (
+              <p className="text-sm text-[var(--t3)]">
+                School details are set by the head office. Ask them to change them.
+              </p>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl mt-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-lg font-semibold text-[var(--t1)]">Package stage</h2>
-            <p className="text-sm text-[var(--t3)]">Disable modules that fall outside your current package.</p>
+      {canEditSchool && (
+        <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--t1)]">Package stage</h2>
+              <p className="text-sm text-[var(--t3)]">Disable modules that fall outside your current package.</p>
+            </div>
+            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-[#2E9448]">{selectedStage}</span>
           </div>
-          <span className="text-xs font-semibold uppercase tracking-[0.3em] text-[#2E9448]">{selectedStage}</span>
-        </div>
-        <div className="grid gap-3">
-          {stageOrder.map((stageKey) => {
-            const stage = FEATURE_STAGES[stageKey];
-            const isActive = stageKey === selectedStage;
-            return (
-              <button
-                key={stageKey}
-                onClick={() => handleStageChange(stageKey)}
-                disabled={savingStage || isActive}
-                className={`w-full text-left rounded-2xl border px-4 py-4 transition ${
-                  isActive ? "border-[#2E9448] bg-[#eaf4ed]" : "border-[#e1e7f0] bg-white hover:border-[#2E9448]/60"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--t1)]">{stage.label}</p>
-                    <p className="text-xs text-[var(--t3)] mt-1">{stage.description}</p>
+          <div className="grid gap-3">
+            {stageOrder.map((stageKey) => {
+              const stage = FEATURE_STAGES[stageKey];
+              const isActive = stageKey === selectedStage;
+              return (
+                <button
+                  key={stageKey}
+                  onClick={() => handleStageChange(stageKey)}
+                  disabled={savingStage || isActive}
+                  className={`w-full text-left rounded-2xl border px-4 py-4 transition ${
+                    isActive ? "border-[#2E9448] bg-[#eaf4ed]" : "border-[#e1e7f0] bg-white hover:border-[#2E9448]/60"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--t1)]">{stage.label}</p>
+                      <p className="text-xs text-[var(--t3)] mt-1">{stage.description}</p>
+                    </div>
+                    {isActive && <span className="text-xs font-semibold text-[#2E9448]">Active</span>}
                   </div>
-                  {isActive && <span className="text-xs font-semibold text-[#2E9448]">Active</span>}
-                </div>
-              </button>
-            );
-          })}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }

@@ -13,6 +13,7 @@ import {
   useState,
 } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import { canSendSms } from "@/lib/sms-permissions";
 import { Modal } from "@/components/ui/Modal";
 import OnboardingTips from "@/components/OnboardingTips";
 import PersonInitials from "@/components/ui/PersonInitials";
@@ -214,6 +215,9 @@ export default function StudentRegistryPanel({
 }: StudentRegistryPanelProps) {
   const { user } = useAuth();
   const canExport = user?.role ? canAccess(user.role as UserRole, "export") : false;
+  // The SMS API refuses roles outside SMS_ALLOWED_ROLES, so the button is
+  // hidden rather than offered and then rejected with a 403.
+  const canSms = canSendSms(user?.role);
   // Data saver is right about the cost — 500 passport photos is real 3G
   // traffic — but it used to be a silent swap: the avatar turned into initials
   // and the only clue was a banner further down the toolbar. The toggle hands
@@ -1149,25 +1153,27 @@ export default function StudentRegistryPanel({
                         </td>
                         <td data-label="Actions">
                           <div style={{ display: "flex", gap: 2 }}>
-                            <button
-                              onClick={() => onSmsParent(student)}
-                              title="SMS Parent"
-                              aria-label={`SMS parent of ${student.first_name} ${student.last_name}`}
-                              style={{
-                                background: "none",
-                                border: "none",
-                                cursor: "pointer",
-                                padding: 0,
-                                width: 44,
-                                height: 44,
-                                display: "inline-flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                borderRadius: 8,
-                              }}
-                            >
-                              <MaterialIcon style={{ fontSize: 18, color: "var(--t3)" }}>sms</MaterialIcon>
-                            </button>
+                            {canSms && (
+                              <button
+                                onClick={() => onSmsParent(student)}
+                                title="SMS Parent"
+                                aria-label={`SMS parent of ${student.first_name} ${student.last_name}`}
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  padding: 0,
+                                  width: 44,
+                                  height: 44,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  borderRadius: 8,
+                                }}
+                              >
+                                <MaterialIcon style={{ fontSize: 18, color: "var(--t3)" }}>sms</MaterialIcon>
+                              </button>
+                            )}
                             {canManage && (
                               <>
                                 <button
@@ -1298,7 +1304,7 @@ export default function StudentRegistryPanel({
                             {student.boarding_status && student.boarding_status !== "day" && (
                               <span
                                 className="ml-1 rounded px-1.5 py-0.5 text-xs font-semibold"
-                                style={{ background: "rgba(155,89,182,0.15)", color: "#0d9488" }}
+                                style={{ background: "rgba(155,89,182,0.15)", color: "var(--secondary-600)" }}
                               >
                                 {student.boarding_status}
                               </span>
@@ -1333,15 +1339,17 @@ export default function StudentRegistryPanel({
                     </dl>
 
                     <div className="mt-3 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onSmsParent(student)}
-                        aria-label={`SMS parent of ${student.first_name} ${student.last_name}`}
-                        className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] text-[13px] font-semibold text-[var(--t2)] transition-transform active:scale-[0.98]"
-                      >
-                        <MaterialIcon style={{ fontSize: 16 }}>sms</MaterialIcon>
-                        SMS
-                      </button>
+                      {canSms && (
+                        <button
+                          type="button"
+                          onClick={() => onSmsParent(student)}
+                          aria-label={`SMS parent of ${student.first_name} ${student.last_name}`}
+                          className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] text-[13px] font-semibold text-[var(--t2)] transition-transform active:scale-[0.98]"
+                        >
+                          <MaterialIcon style={{ fontSize: 16 }}>sms</MaterialIcon>
+                          SMS
+                        </button>
+                      )}
                       {canManage && (
                         <>
                           <button

@@ -8,6 +8,7 @@ import { OwlyHelpLink } from "@/components/owly/OwlyHelpLink";
 import { generateUgandaPrimaryBody, ugandaDocumentShell } from "@/components/reports/ugandaPrimaryReport";
 import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print-window";
 import { suggestClassTeacherRemark, suggestHeadTeacherRemark } from "@/lib/report-remarks";
+import { canSendSms } from "@/lib/sms-permissions";
 import { writeAnalysisRemark } from "@/lib/report-analysis";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
@@ -79,6 +80,9 @@ interface StudentReport {
 
 export default function ReportCardsPage() {
   const { school, user, isDemo } = useAuth();
+  // The SMS endpoint only accepts these roles; offering the button to anyone
+  // else meant a silent 403 when they pressed it.
+  const canSms = canSendSms(user?.role);
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
   const { classes } = useClasses(school?.id);
@@ -2011,15 +2015,17 @@ export default function ReportCardsPage() {
                                 >
                                   <MaterialIcon className="text-xl">description</MaterialIcon>
                                 </button>
-                                <button
-                                  onClick={() => handleSendSms(report)}
-                                  disabled={sendingSms || report.isComplete === false}
-                                  title="Send SMS"
-                                  aria-label={`Send results by SMS for ${report.name}`}
-                                  className="min-h-11 min-w-11 p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)] disabled:opacity-40"
-                                >
-                                  <MaterialIcon className="text-xl">sms</MaterialIcon>
-                                </button>
+                                {canSms && (
+                                  <button
+                                    onClick={() => handleSendSms(report)}
+                                    disabled={sendingSms || report.isComplete === false}
+                                    title="Send SMS"
+                                    aria-label={`Send results by SMS for ${report.name}`}
+                                    className="min-h-11 min-w-11 p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)] disabled:opacity-40"
+                                  >
+                                    <MaterialIcon className="text-xl">sms</MaterialIcon>
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>

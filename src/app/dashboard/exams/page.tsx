@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
+import { isHeadOffice } from "@/lib/head-office";
 import { useStudents, useClasses, useSubjects, useExamScores, useExams } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import {
@@ -29,6 +30,9 @@ import { NoData } from "@/components/EmptyState";
 
 export default function ExamsPage() {
   const { school, user, isDemo } = useAuth();
+  // Exam papers are school-wide: every class sits them. Teachers score the
+  // papers for their subject, but the paper itself is set by the head office.
+  const canManageExams = isHeadOffice(user?.role);
   const { academicYear, currentTerm, isTermLocked } = useAcademic();
   const toast = useToast();
   const router = useRouter();
@@ -242,10 +246,12 @@ export default function ExamsPage() {
                   <MaterialIcon icon="lock" className="text-sm" /> Term Locked
                 </span>
               )}
-              <Button onClick={() => setShowAddExam(true)} disabled={termLocked} variant="primary">
-                <MaterialIcon icon="add" className="text-lg" />
-                Create Exam
-              </Button>
+              {canManageExams ? (
+                <Button onClick={() => setShowAddExam(true)} disabled={termLocked} variant="primary">
+                  <MaterialIcon icon="add" className="text-lg" />
+                  Create Exam
+                </Button>
+              ) : null}
             </div>
           }
         />
