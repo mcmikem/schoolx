@@ -79,6 +79,48 @@
         }
       },
       "updatedAt": "2026-10-15T00:00:00.000Z"
+    },
+    "/student-portal/practice": {
+      "targetKind": "existing-ui",
+      "projectId": "450043c7-e09e-4fbc-a8dd-7f8b2b3fdd20",
+      "baselineDraftId": "3b38d36d-a521-42c7-a358-a49bc50776ab",
+      "activeDraftId": "3b38d36d-a521-42c7-a358-a49bc50776ab",
+      "designSystemPath": ".superdesign/design-system.md",
+      "contextFiles": [
+        ".superdesign/design-system.md",
+        ".superdesign/init/theme.md:1:18",
+        "src/app/globals.css:131:220",
+        "src/app/globals.css:398:460",
+        "tailwind.config.js",
+        "src/app/student-portal/StudentPractice.tsx",
+        "src/app/student-portal/StudentPortalClient.tsx",
+        "src/components/exam/PdfSourceViewer.tsx",
+        "src/components/ui/Card.tsx",
+        "src/components/ui/index.tsx",
+        "src/components/MaterialIcon.tsx"
+      ],
+      "fingerprints": {
+        ".superdesign/design-system.md": "9259e3a4b0344ac83b0cfc8ce0fb1f4b998fae6f11c451b200deea4d06ed74ec",
+        ".superdesign/init/theme.md": "ff8b79c3ac57f938db6d9e0230c098d72cb40caa4db3a71d4f4f48f61ccb9622",
+        "src/app/globals.css": "e81f6032bdd6fedf9c3baf1571faf4aefbf679bf206bdf2acfdebac1ccc86de5",
+        "tailwind.config.js": "c37f85521f65776f09f47d5cc2d9b43768feb42a13b14a1df681a3e133e51cef",
+        "src/app/student-portal/StudentPractice.tsx": "62e21c29d6c741f92394697333778eef42599d0355ef4b958d4d545ed997a5d4",
+        "src/app/student-portal/StudentPortalClient.tsx": "6ec0a63e8f66b235454f8b46147cac831001e04f69c3b8511b354857314e904e",
+        "src/components/exam/PdfSourceViewer.tsx": "422f69a00a10445a4a69ed5c5ff8b8e8e3b7b7ac04214b6539f80e365e5729fa",
+        "src/components/ui/Card.tsx": "953958c00e66ed05666e86c34030fd9569b259bd84fe657b16cbe35a923321d2",
+        "src/components/ui/index.tsx": "7a8804acdf9457c8860cacc1a18d3c0cb31690595d50515b02389cfa2a663cd3",
+        "src/components/MaterialIcon.tsx": "e8092aadde009cac25f0a73e0915740178c2448baf035340fae4393b3288733e"
+      },
+      "components": [],
+      "drafts": {
+        "3b38d36d-a521-42c7-a358-a49bc50776ab": {
+          "title": "Phone-first Student Exam Flow",
+          "visualDirection": "One question at a time, source-page access, locally saved progress, and clear hand-in flow in existing SkoolMate style",
+          "parentDraftId": null,
+          "currentVersion": 2
+        }
+      },
+      "updatedAt": "2026-10-22T20:31:59.249Z"
     }
   }
 }

@@ -114,6 +114,56 @@ describe("parsePaper on a clean digital paper", () => {
   });
 });
 
+describe("numbered-item exam papers", () => {
+  it("recognises UMTA-style Item labels and does not absorb section headings", () => {
+    const paper = parsePaper(`
+SECTION A
+All items in this section are compulsory
+Item 1.
+During a practical, calculate the lens power. (4 marks)
+Item 2.
+Explain the uses of a satellite. (5 marks)
+SECTION B.
+PART I
+Attempt one item from this part.
+Item 3:
+Determine the density of the sample. (6 marks)
+`).paper;
+
+    expect(paper.questions.map((question) => question.number)).toEqual([1, 2, 3]);
+    expect(paper.questions[1].text).not.toContain("SECTION B");
+    expect(paper.questions[2].text).not.toContain("PART I");
+  });
+
+  it("does not mistake logic-gate input labels for answer parts", () => {
+    const question = parsePaper(`
+Item 1.
+Design and explain the satellite logic circuit.
+Task:
+(a) Draw the circuit and construct its truth table.
+(b) Explain when the satellite transmits.
+(d) Transmission requires daytime (Input A) or an imaging request (Input B), and the target area condition (Input C).
+`).paper.questions[0];
+
+    expect(question.subTasks?.map((part) => part.label)).toEqual(["a", "b", "d"]);
+    expect(question.subTasks?.[2].text).toContain("Input A");
+    expect(question.subTasks?.[2].text).toContain("Input C");
+  });
+
+  it("recovers bare and blanked subpart labels from flattened PDF text", () => {
+    const question = parsePaper(`
+Item 1.
+Apply the physics concepts to the situation.
+a Explaining the first process in detail.
+b Determine the second result.
+() Identification of the final component.
+`).paper.questions[0];
+
+    expect(question.subTasks?.map((part) => part.label)).toEqual(["a", "b", "c"]);
+    expect(question.subTasks?.[2].text).toContain("Identification");
+  });
+});
+
 describe("page-aware question locations", () => {
   it("retains source pages, including a question that continues onto another page", () => {
     const paper = parsePaper("", {
@@ -186,6 +236,14 @@ describe("normaliseOcr", () => {
     expect(normaliseOcr("I) Another")).toContain("1) Another");
   });
 
+  it("fixes punctuation OCR misreads after a numbered question", () => {
+    const source = ["Exercise 1.2", "1, lfset A = {6, 7, 8}, use this set. 2. Give four examples."].join("\n");
+    const parsed = parsePaper(source, { ocr: true }).paper;
+
+    expect(normaliseOcr(source)).toContain("1. lfset A");
+    expect(parsed.questions.map((question) => question.number)).toEqual([1, 2]);
+  });
+
   it("splits words the OCR has run together across a case boundary", () => {
     expect(normaliseOcr("multiplicationIsCommutative")).toBe("multiplication Is Commutative");
   });
@@ -196,6 +254,45 @@ describe("normaliseOcr", () => {
 
   it("collapses runs of whitespace without losing line structure", () => {
     expect(normaliseOcr("a   b\n\n\n\nc")).toBe("a b\n\nc");
+  });
+});
+
+describe("book-page filtering", () => {
+  it("skips contents and preface pages and stops questions at section headings", () => {
+    const { paper, warnings } = parsePaper("", {
+      ocr: true,
+      pageTexts: [
+        ["Table of Contents", "1.1 Mappings ........ 7", "1.2 Relations ........ 9", "2.1 Sets ........ 15"].join("\n"),
+        ["Preface", "This book introduces mathematics topics."].join("\n"),
+        [
+          "Exercise 1.1",
+          "1. Given sets A and B.",
+          "2. State their relation.",
+          "1.2 Identifying Domain and Range of a Mapping",
+          "This lesson text is not a question.",
+        ].join("\n"),
+      ],
+    });
+
+    expect(paper.questions.map((question) => question.number)).toEqual([1, 2]);
+    expect(paper.questions[0].sourcePages).toEqual([3]);
+    expect(paper.questions[1].text).not.toContain("lesson text");
+    expect(warnings.some((warning) => /contents or preface pages were skipped/i.test(warning))).toBe(true);
+  });
+
+  it("attaches a scanned source page to a detected diagram in the student form", () => {
+    const pageImage = "data:image/jpeg;base64,c2Nhbm5lZC1wYWdl";
+    const { paper } = parsePaper("", {
+      ocr: true,
+      pageTexts: ["1. Explain the diagram below."],
+      pageImages: { 1: pageImage },
+    });
+    const html = renderPaperForm(paper);
+
+    expect(paper.questions[0].diagrams[0].imageDataUri).toBe(pageImage);
+    expect(html).toContain("View original scanned page 1 (full page)");
+    expect(html).toContain(pageImage);
+    expect(html).not.toContain("Image not captured");
   });
 });
 
@@ -237,6 +334,11 @@ describe("renderPaperForm", () => {
   it("warns when the marks do not reconcile", () => {
     const broken = { ...paper, totalMarks: 99 };
     expect(renderPaperForm(broken)).toContain("The marks do not add up");
+  });
+
+  it("does not warn about missing marks when the source paper gives no total", () => {
+    const noMarkScheme = parsePaper("Item 1. Explain the circuit.").paper;
+    expect(renderPaperForm(noMarkScheme)).not.toContain("The marks do not add up");
   });
 
   it("does not invent an image for a diagram it never captured", () => {

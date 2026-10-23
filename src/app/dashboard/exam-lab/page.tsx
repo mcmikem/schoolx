@@ -60,12 +60,16 @@ export default function ExamLabPage() {
   const { subjects } = useSubjects(school?.id);
   const [text, setText] = useState(SAMPLE);
   const [extractedPages, setExtractedPages] = useState<string[] | null>(null);
+  const [extractedPageImages, setExtractedPageImages] = useState<Record<number, string> | null>(null);
   // Default to a manual paste, which is what the sample below is. File reads
   // set this from how they actually extracted the text.
   const [ocr, setOcr] = useState(false);
   const [showModel, setShowModel] = useState(false);
   const [reading, setReading] = useState<string | null>(null);
   const [howRead, setHowRead] = useState<string | null>(null);
+  const [scanPageCount, setScanPageCount] = useState<number | null>(null);
+  const [scanPageStart, setScanPageStart] = useState(1);
+  const [scanPageEnd, setScanPageEnd] = useState(10);
   const [rawExtract, setRawExtract] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sourceFile, setSourceFile] = useState<File | null>(null);
@@ -104,12 +108,16 @@ export default function ExamLabPage() {
 
   const result = useMemo(() => {
     try {
-      return parsePaper(text, { ocr, pageTexts: extractedPages ?? undefined });
+      return parsePaper(text, {
+        ocr,
+        pageTexts: extractedPages ?? undefined,
+        pageImages: extractedPageImages ?? undefined,
+      });
     } catch (e) {
       // A parser that throws should say so here rather than blanking the page.
       return { paper: null, warnings: [`Parser threw: ${e instanceof Error ? e.message : String(e)}`] };
     }
-  }, [text, ocr, extractedPages]);
+  }, [text, ocr, extractedPages, extractedPageImages]);
 
   const practiceTitle =
     title || paperOverride?.title || result.paper?.title || sourceFile?.name.replace(/\.pdf$/i, "") || "";
@@ -124,6 +132,7 @@ export default function ExamLabPage() {
   const resumePaper = async (savedPaper: SavedPaper) => {
     if (sourceUrl?.startsWith("blob:")) URL.revokeObjectURL(sourceUrl);
     setSourcePdfData(null);
+    setExtractedPageImages(null);
     setSelectedSavedId(savedPaper.id);
     setPaperOverride(savedPaper.paper_model);
     setSourceFile(null);
@@ -248,6 +257,37 @@ export default function ExamLabPage() {
       setSaveMessage(saveError instanceof Error ? saveError.message : "Could not save this paper.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const readSelectedScanPages = async () => {
+    if (!sourcePdfData || scanPageCount === null) return;
+    setError(null);
+    setReading("Preparing the selected pages...");
+    try {
+      const result = await extractTextFromPdf(sourcePdfData.slice(0), {
+        pageRange: { start: scanPageStart, end: scanPageEnd },
+        progress: setReading,
+      });
+      setReading(null);
+      setScanPageCount(null);
+      setHowRead(
+        result.pagesRead
+          ? `Read pages ${result.pagesRead.start}-${result.pagesRead.end} of ${result.pages} using ${result.method}.`
+          : `Read as ${result.method} — ${result.pages} page${result.pages === 1 ? "" : "s"}.`,
+      );
+      setRawExtract(result.text);
+      setExtractedPages(result.pageTexts);
+      setExtractedPageImages(result.pageImages ?? null);
+      setOcr(true);
+      if (!result.text.trim()) {
+        setError("No readable text was found on those pages. Try another page range or check the original PDF.");
+      } else {
+        setText(result.text);
+      }
+    } catch (err) {
+      setReading(null);
+      setError(err instanceof Error ? err.message : "Could not read those pages. Try again.");
     }
   };
 
@@ -471,6 +511,8 @@ export default function ExamLabPage() {
                   setSelectedSavedId(null);
                   setPaperOverride(null);
                   setExtractedPages(null);
+                  setExtractedPageImages(null);
+                  setScanPageCount(null);
                   setTeacherConfirmed(false);
                   setSourceFile(isPdf ? file : null);
                   setSourcePdfData(null);
@@ -487,9 +529,24 @@ export default function ExamLabPage() {
                         progress: (message) => setReading(message),
                       });
                       setReading(null);
+                      if (result.needsPageSelection) {
+                        setText("");
+                        setExtractedPages(null);
+                        setExtractedPageImages(null);
+                        setRawExtract(null);
+                        setOcr(true);
+                        setScanPageCount(result.pages);
+                        setScanPageStart(1);
+                        setScanPageEnd(1);
+                        setHowRead(
+                          `This is a scanned PDF with ${result.pages} pages. Choose the pages that contain the exam questions.`,
+                        );
+                        return;
+                      }
                       setHowRead(`Read as ${result.method} — ${result.pages} page${result.pages === 1 ? "" : "s"}.`);
                       setRawExtract(result.text);
                       setExtractedPages(result.pageTexts);
+                      setExtractedPageImages(result.pageImages ?? null);
                       // The parse flag must match how the text actually arrived,
                       // or the warnings lie about the source -- a text-layer
                       // read would carry an OCR penalty it did not earn.
@@ -505,6 +562,7 @@ export default function ExamLabPage() {
                       setReading(null);
                       setHowRead("Read from the text file directly.");
                       setRawExtract(null);
+                      setExtractedPageImages(null);
                       setText(await file.text());
                     }
                   } catch (err) {
@@ -519,6 +577,86 @@ export default function ExamLabPage() {
                 .txt or .pdf. A scanned PDF is read by OCR in this browser — expect tens of seconds per page, not
                 instantly.
               </span>
+              {scanPageCount !== null && (
+                <div
+                  role="group"
+                  aria-label="Choose scanned PDF pages"
+                  style={{
+                    marginTop: 10,
+                    padding: 12,
+                    border: "1px solid #e6c36a",
+                    borderRadius: 8,
+                    background: "#fff9e8",
+                  }}
+                >
+                  <strong style={{ display: "block", fontSize: 13 }}>This scan is too long to read all at once</strong>
+                  <p style={{ margin: "4px 0 8px", fontSize: 12 }}>
+                    Enter the PDF page numbers with the exam questions. Read up to 10 pages at a time; the book pages
+                    stay in their original positions.
+                  </p>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "end" }}>
+                    <label style={{ display: "grid", gap: 3, fontSize: 11 }}>
+                      First page
+                      <input
+                        aria-label="First PDF page"
+                        type="number"
+                        min={1}
+                        max={scanPageCount}
+                        value={scanPageStart}
+                        onChange={(event) => setScanPageStart(Number(event.target.value) || 1)}
+                        style={{
+                          width: 100,
+                          minHeight: 40,
+                          border: "1px solid #b9c0ca",
+                          borderRadius: 6,
+                          padding: "4px 8px",
+                        }}
+                      />
+                    </label>
+                    <label style={{ display: "grid", gap: 3, fontSize: 11 }}>
+                      Last page
+                      <input
+                        aria-label="Last PDF page"
+                        type="number"
+                        min={1}
+                        max={scanPageCount}
+                        value={scanPageEnd}
+                        onChange={(event) => setScanPageEnd(Number(event.target.value) || 1)}
+                        style={{
+                          width: 100,
+                          minHeight: 40,
+                          border: "1px solid #b9c0ca",
+                          borderRadius: 6,
+                          padding: "4px 8px",
+                        }}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      disabled={
+                        Boolean(reading) ||
+                        scanPageStart < 1 ||
+                        scanPageEnd < scanPageStart ||
+                        scanPageEnd > scanPageCount ||
+                        scanPageEnd - scanPageStart >= 10
+                      }
+                      onClick={() => void readSelectedScanPages()}
+                      style={{
+                        ...actionStyle,
+                        minHeight: 40,
+                        background: "#24384c",
+                        color: "white",
+                        borderColor: "#24384c",
+                      }}
+                    >
+                      Read selected pages
+                    </button>
+                  </div>
+                  <p style={{ margin: "6px 0 0", fontSize: 11, color: "#5b6472" }}>
+                    For example, choose pages 35 to 40 if the exam starts on PDF page 35.
+                  </p>
+                </div>
+              )}
             </div>
 
             {(reading || howRead || rawExtract) && (

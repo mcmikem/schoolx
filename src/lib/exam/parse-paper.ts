@@ -37,7 +37,7 @@ import {
  * the typesetter broke the text runs. Requiring same-line text would make
  * those questions invisible.
  */
-const QUESTION_START = /^\s*(?:question\s*)?(\d{1,2})\s*(?:\.(?!\d)|[)])/i;
+const QUESTION_START = /^\s*(?:(?:question|item)\s*)?(\d{1,2})\s*(?:\.(?!\d)|[):])/i;
 
 /** "(a) ...", "(i) ...", "A. ..." -- an option, not a new question. */
 const CHOICE_LINE = /^\s*(?:\(?([a-z]|[ivx]{1,4}|\d{1,2})\)?)\s*[.):]?\s+(\S.*)$/i;
@@ -47,8 +47,17 @@ const MARKS = /\(?\b(\d{1,2})\s*marks?\b\)?|\[(\d{1,2})\]/i;
 
 /** Lines that are page furniture rather than questions. */
 const PAGE_NOISE = /^(page\s+\d+\s*(of\s+\d+)?|\d{1,3})$/i;
+const SECTION_HEADING = /^\s*\d{1,2}\.\d{1,2}(?:\s+|\s*[:.)]\s*)[A-Z][^\n]{3,90}$/;
+const PAPER_SECTION_HEADING = /^\s*(?:section\s+[a-z]|part\s+(?:i{1,3}|iv|v|[a-z]))\s*\.?\s*$/i;
 
 const DIAGRAM_LINE = /\b(fig(?:ure)?\.?\s*[\d.]+|diagram|draw(ing)?\s+(the|below|above)|sketch)\b/i;
+
+function isLikelyFrontMatter(pageText: string): boolean {
+  if (/\b(?:table of contents|contents|preface|foreword|acknowledg(?:e)?ments)\b/i.test(pageText)) return true;
+  const dottedLeaders = pageText.match(/\.{4,}|…{2,}/g)?.length ?? 0;
+  const sectionEntries = pageText.match(/\b\d{1,2}\.\d{1,2}\s*[:.)]/g)?.length ?? 0;
+  return dottedLeaders >= 3 && sectionEntries >= 3;
+}
 
 export interface ParseOptions {
   /** True when the text came from OCR and should be trusted less. */
@@ -56,6 +65,8 @@ export interface ParseOptions {
   page?: number;
   /** Original pages, in order; when present, used to retain question locations. */
   pageTexts?: string[];
+  /** Rendered original pages from scanned PDFs, keyed by 1-based PDF page. */
+  pageImages?: Record<number, string>;
   title?: string | null;
   classLevel?: string | null;
   subject?: string | null;
@@ -86,6 +97,10 @@ export function normaliseOcr(text: string): string {
       .replace(/(\w)([A-Z])/g, "$1 $2")
       // The single most common OCR failure in numbered lists.
       .replace(/^(\s*)([Il|])([.)])/gm, (_m, lead: string, _glyph: string, delim: string) => `${lead}1${delim}`)
+      // Scans frequently turn a full stop after a question number into a comma.
+      .replace(/^(\s*)(\d{1,2})[,;](?=\s+\S)/gm, "$1$2.")
+      // OCR can collapse adjacent numbered questions onto one visual line.
+      .replace(/([^\n])\s+(\d{1,2})[.)]\s+(?=[A-Z])/g, "$1\n$2. ")
       .replace(/[ \t]+/g, " ")
       .replace(/\n{3,}/g, "\n\n")
       .trim()
@@ -176,8 +191,14 @@ function guessKind(stem: string, choices: Choice[], marks: number | null): Quest
 export function parsePaper(source: string, options: ParseOptions = {}): ParsedText {
   const warnings: string[] = [];
   const pageTexts = options.pageTexts?.length ? options.pageTexts : [source];
-  const text = options.ocr ? pageTexts.map(normaliseOcr).join("\n\n") : pageTexts.join("\n\n");
-  const lines = pageTexts.flatMap((pageText, index) =>
+  const filteredPages = pageTexts
+    .map((pageText, index) => ({ pageText, index }))
+    .filter(({ pageText }) => !isLikelyFrontMatter(pageText));
+  if (filteredPages.length < pageTexts.length) {
+    warnings.push("Likely contents or preface pages were skipped. Check the selected pages against the original PDF.");
+  }
+  const text = filteredPages.map(({ pageText }) => (options.ocr ? normaliseOcr(pageText) : pageText)).join("\n\n");
+  const lines = filteredPages.flatMap(({ pageText, index }) =>
     (options.ocr ? normaliseOcr(pageText) : pageText)
       .split("\n")
       .map((line) => ({ line, page: (options.page ?? 1) + index })),
@@ -206,6 +227,10 @@ export function parsePaper(source: string, options: ParseOptions = {}): ParsedTe
     const raw = entry.line;
     const line = raw.trimEnd();
     if (PAGE_NOISE.test(line.trim())) continue;
+    if (current && (SECTION_HEADING.test(line.trim()) || PAPER_SECTION_HEADING.test(line.trim()))) {
+      current = null;
+      continue;
+    }
 
     const startMatch = line.match(QUESTION_START);
     const number = startMatch ? Number(startMatch[1]) : null;
@@ -233,7 +258,12 @@ export function parsePaper(source: string, options: ParseOptions = {}): ParsedTe
   }
 
   const questions: ExamQuestion[] = blocks.map((block, index) =>
-    buildQuestion(block, index, blocks, { page, ocr: Boolean(options.ocr), warnings }),
+    buildQuestion(block, index, blocks, {
+      page,
+      ocr: Boolean(options.ocr),
+      pageImages: options.pageImages,
+      warnings,
+    }),
   );
 
   // Numbering that skips or repeats is a strong signal the OCR misread a digit.
@@ -276,7 +306,7 @@ function buildQuestion(
   block: { lines: string[]; linePages: number[]; pages: Set<number> },
   index: number,
   all: Array<{ lines: string[]; linePages: number[]; pages: Set<number> }>,
-  context: { page: number; ocr: boolean; warnings: string[] },
+  context: { page: number; ocr: boolean; pageImages?: Record<number, string>; warnings: string[] },
 ): ExamQuestion {
   const body = block.lines.join("\n");
 
@@ -334,10 +364,22 @@ function buildQuestion(
   // "(a)" "(b)" "i." "(ii)" "(" roman ")" ... only ever opens a new part when
   // we are inside a Task block. A mid-sentence "a)" elsewhere is a word, and
   // staying out of the task run spares the scenario text.
-  const SPAN_LABEL = /\(?\s*(a|b|c|d|i{1,3}|iv)\s*\)?\s*[.):]\s+/gi;
+  const SPAN_LABEL =
+    /(?:\(\s*(a|b|c|d|i{1,3}|iv)\s*\)|(?<!Input )(?<![A-Za-z])(a|b|c|d|i{1,3}|iv)[.):]|(?<!Input )(?<![A-Za-z])(a|b|c|d)(?=\s+(?:explain(?:ing)?|describe|name|calculate|determine|identif(?:y|ication)|state|give|suggest|propose|analyse|analyze|assess|evaluate|discuss|why|how|what)\b))(?:\s+|(?=[A-Z]))/gi;
   const captureSpan = (line: string) => {
     const matches = [...line.matchAll(SPAN_LABEL)];
     if (matches.length === 0) {
+      const misreadPart = line.match(
+        /^\s*\(\s*\d{1,2}\s*\)\s*((?:explain(?:ing)?|describe|name|calculate|determine|identif(?:y|ication)|state|give|suggest|propose|analyse|analyze|assess|evaluate|discuss|why|how|what)\b.*)$/i,
+      );
+      const emptyPart = line.match(/^\s*\(\s*\)\s*(\S.*)$/);
+      const previousLabel = subTasks[subTasks.length - 1]?.label;
+      if ((emptyPart || misreadPart) && previousLabel && /^[a-c]$/.test(previousLabel)) {
+        const label = String.fromCharCode(previousLabel.charCodeAt(0) + 1);
+        currentMajorLabel = label;
+        appendSubTask({ label, text: (emptyPart?.[1] ?? misreadPart?.[1] ?? "").trim() });
+        return;
+      }
       // A label-less line inside the run continues the part it follows.
       const anchor = currentSub ?? subTasks[subTasks.length - 1];
       if (anchor) anchor.text += ` ${line.trim()}`;
@@ -351,7 +393,7 @@ function buildQuestion(
       const from = (matches[i].index ?? 0) + matches[i][0].length;
       const to = i + 1 < matches.length ? (matches[i + 1].index ?? line.length) : line.length;
       const text = line.slice(from, to).trim();
-      const label = normalizePartLabel(matches[i][1]);
+      const label = normalizePartLabel(matches[i][1] ?? matches[i][2] ?? matches[i][3]);
       if (text) appendSubTask({ label, text });
     }
     currentSub = null;
@@ -367,7 +409,7 @@ function buildQuestion(
       if (tableIndex !== undefined) stemLines.push(`\u0001TABLE_${tableIndex}\u0001`);
       continue;
     }
-    const line = rawLine.trim();
+    const line = rawLine.replace(/\s*©\s*[^©\n]{0,60}?\bPage\s+\d+\s+of\s*\d+\s*$/i, "").trim();
     if (!line) continue;
 
     const taskHeader = line.match(TASK_HEADER);
@@ -401,9 +443,9 @@ function buildQuestion(
         label: `figure ${diagramCounter} on page ${originalPage}`,
         // No crop: the parser reads text, it does not cut pictures. A null here
         // is honest -- the renderer shows the gap and asks for the image.
-        imageDataUri: null,
+        imageDataUri: context.pageImages?.[originalPage] ?? null,
       });
-      continue;
+      if (/^\s*(?:fig(?:ure)?\.?\s*\d+|diagram)\s*[.:]?\s*$/i.test(line)) continue;
     }
 
     const choiceMatch = line.match(CHOICE_LINE);
@@ -427,8 +469,8 @@ function buildQuestion(
     const readsAsTaskPrompt =
       choiceMatch &&
       !isTaskPrompt &&
-      choiceMatch[2].length > 60 &&
-      /\b(explain|analyse|analyze|suggest|propose|justify|describe|discuss|design|relate|assess|evaluate)\b/i.test(
+      choiceMatch[2].length > 25 &&
+      /\b(explain(?:ing)?|analyse|analyze|suggest|propose|justify|describ(?:e|ing)|discuss|design|relate|assess|evaluate|identif(?:y|ication))\b/i.test(
         choiceMatch[2],
       );
     if (readsAsTaskPrompt) {
@@ -480,7 +522,7 @@ function buildQuestion(
   // would bury the real "check me" cases in noise.
   if (marks === null) confidence -= context.ocr ? 0.02 : 0.08;
   if (kind === "multiple_choice" && choices.length < 2) confidence -= 0.25;
-  if (diagrams.length > 0) confidence -= 0.1;
+  if (diagrams.some((diagram) => !diagram.imageDataUri)) confidence -= 0.1;
   if (hasRepeatedSubTaskLabels) confidence -= 0.18;
   if (text.length < 8) confidence -= 0.2;
   // A question whose body is mostly its own options has lost its stem.

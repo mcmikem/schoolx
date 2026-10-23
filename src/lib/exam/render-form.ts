@@ -41,7 +41,9 @@ export function renderPaperForm(paper: ExamPaper, options: RenderOptions = {}): 
   const review = needsReview(paper);
   const human = needsHuman(paper);
 
-  const banner = strictReconciliation && !marks.agrees ? reconciliationWarning(paper, marks) : "";
+  const hasMarksToReconcile = marks.stated !== null;
+  const banner =
+    strictReconciliation && hasMarksToReconcile && !marks.agrees ? reconciliationWarning(paper, marks) : "";
 
   return `<!doctype html>
 <html lang="en">
@@ -98,10 +100,15 @@ function renderQuestion(q: ExamQuestion, paper: ExamPaper): string {
   ${renderQuestionContent(q)}
 
   ${q.diagrams
+    .filter(
+      (diagram, index, diagrams) =>
+        !diagram.imageDataUri ||
+        diagrams.findIndex((candidate) => candidate.page === diagram.page && candidate.imageDataUri) === index,
+    )
     .map(
       (d) => `<div class="diagram">
       <span class="diagram__label">${escapeHtml(d.label)}</span>
-      ${d.imageDataUri ? `<img src="${d.imageDataUri}" alt="${escapeHtml(d.label)}">` : `<div class="diagram__missing">Image not captured — add it from the original paper.</div>`}
+      ${d.imageDataUri ? `<details class="diagram__source"><summary>View original scanned page ${escapeHtml(String(d.page))} (full page)</summary><img src="${d.imageDataUri}" alt="Original scanned PDF page ${escapeHtml(String(d.page))}"></details>` : `<div class="diagram__missing">Image not captured — add it from the original paper.</div>`}
     </div>`,
     )
     .join("")}
@@ -333,6 +340,8 @@ body { margin:0; background:#f6f7f9; color:var(--ink); font:16px/1.5 system-ui,-
 .diagram { margin:.5rem 0; }
 .diagram__label { font-size:.75rem; color:var(--muted); display:block; }
 .diagram img { max-width:100%; height:auto; border:1px solid var(--line); border-radius:.35rem; }
+.diagram__source summary { min-height:2.75rem; display:flex; align-items:center; cursor:pointer; color:var(--link); font-size:.875rem; }
+.diagram__source img { max-height:75vh; object-fit:contain; }
 .diagram__missing { border:1px dashed #c9ced6; border-radius:.35rem; padding:.75rem; font-size:.8125rem; color:var(--muted); }
 textarea, input[type=text] { width:100%; min-height:44px; padding:.6rem; font:inherit; border:1px solid var(--line); border-radius:.5rem; background:#fff; }
 textarea { min-height:5.5rem; resize:vertical; }

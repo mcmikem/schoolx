@@ -44,6 +44,12 @@ export interface ExtractionResult {
   /** "text layer" when read from the PDF itself; "ocr" when read from pixels. */
   method: "text layer" | "ocr";
   pages: number;
+  /** True when a large scan needs a teacher to select a smaller page range. */
+  needsPageSelection?: boolean;
+  /** Page range processed by OCR when a subset was requested. */
+  pagesRead?: { start: number; end: number };
+  /** Compressed source-page images for retaining scanned diagrams. */
+  pageImages?: Record<number, string>;
   /** Human-readable progress for the OCR path, which can take a while. */
   progress?: (message: string) => void;
 }
@@ -56,10 +62,17 @@ export interface ExtractionResult {
  * Below this the pages go to OCR.
  */
 const MIN_CHARS_PER_PAGE = 40;
+const MAX_AUTO_OCR_PAGES = 10;
+const MAX_OCR_RANGE_PAGES = 10;
+
+export interface PdfPageRange {
+  start: number;
+  end: number;
+}
 
 export async function extractTextFromPdf(
   data: ArrayBuffer,
-  options: Pick<ExtractionResult, "progress"> = {},
+  options: Pick<ExtractionResult, "progress"> & { pageRange?: PdfPageRange } = {},
 ): Promise<ExtractionResult> {
   const pdfjs = await import("pdfjs-dist");
   pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
@@ -67,10 +80,24 @@ export async function extractTextFromPdf(
   const doc = await pdfjs.getDocument({ data }).promise;
   const pages = doc.numPages;
 
-  // Text layer first: cheap, exact, and quick to reject.
-  const pageTexts: string[] = [];
+  const pageTexts = Array.from({ length: pages }, () => "");
+  const textPageImages: Record<number, string> = {};
   let textLayerChars = 0;
-  for (let i = 1; i <= pages; i++) {
+  const selectedStart = options.pageRange ? Math.max(1, Math.floor(options.pageRange.start)) : 1;
+  const selectedEnd = options.pageRange ? Math.min(pages, Math.floor(options.pageRange.end)) : pages;
+  if (selectedEnd < selectedStart) {
+    throw new Error("Choose an ending page that is the same as or after the starting page.");
+  }
+  if (options.pageRange && selectedEnd - selectedStart + 1 > MAX_OCR_RANGE_PAGES) {
+    throw new Error(`Read at most ${MAX_OCR_RANGE_PAGES} scanned pages at a time.`);
+  }
+
+  // A selected range should never inspect the rest of a large book. Check its
+  // own text layer first so digital pages stay exact without scanning 140 pages.
+  const probePages = pages > MAX_AUTO_OCR_PAGES ? Math.min(pages, 3) : pages;
+  const textStart = options.pageRange ? selectedStart : 1;
+  const textEnd = options.pageRange ? selectedEnd : pages;
+  for (let i = textStart; i <= textEnd; i++) {
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
     // Runs are rejoined into visual lines first. The naive one-newline-per-run
@@ -91,28 +118,80 @@ export async function extractTextFromPdf(
           : [],
       ),
     );
-    pageTexts.push(text);
+    pageTexts[i - 1] = text;
     textLayerChars += text.length;
-    page.cleanup();
+    if (
+      /\b(?:fig(?:ure)?\.?\s*\d*|diagram|circuit|shown below|shown above|support material|transformer|optical fibre)\b/i.test(
+        text,
+      )
+    ) {
+      textPageImages[i] = (await renderToCanvas(page)).toDataURL("image/jpeg", 0.72);
+    } else {
+      page.cleanup();
+    }
+    if (
+      !options.pageRange &&
+      i === probePages &&
+      pages > MAX_AUTO_OCR_PAGES &&
+      textLayerChars / probePages < MIN_CHARS_PER_PAGE
+    ) {
+      return {
+        text: "",
+        pageTexts: Array.from({ length: pages }, () => ""),
+        method: "ocr",
+        pages,
+        needsPageSelection: true,
+      };
+    }
   }
 
-  if (textLayerChars / pages >= MIN_CHARS_PER_PAGE) {
-    return { text: pageTexts.join("\n\n"), pageTexts, method: "text layer", pages };
+  const pagesToRead = textEnd - textStart + 1;
+  if (textLayerChars / pagesToRead >= MIN_CHARS_PER_PAGE) {
+    return {
+      text: pageTexts.filter(Boolean).join("\n\n"),
+      pageTexts,
+      method: "text layer",
+      pages,
+      ...(options.pageRange ? { pagesRead: { start: textStart, end: textEnd } } : {}),
+      ...(Object.keys(textPageImages).length > 0 ? { pageImages: textPageImages } : {}),
+    };
   }
+
+  if (pages > MAX_AUTO_OCR_PAGES && !options.pageRange) {
+    return {
+      text: "",
+      pageTexts: Array.from({ length: pages }, () => ""),
+      method: "ocr",
+      pages,
+      needsPageSelection: true,
+    };
+  }
+
+  const start = selectedStart;
+  const end = selectedEnd;
 
   // Not enough text: these are rendered pixels. Say so, then read them.
   options.progress?.(
     `This PDF has little or no embedded text (${textLayerChars} characters over ${pages} page${pages === 1 ? "" : "s"}), so it is being read as a scanned image.`,
   );
-  const ocrText: string[] = [];
-  for (let i = 1; i <= pages; i++) {
+  const ocrText = Array.from({ length: pages }, () => "");
+  const pageImages: Record<number, string> = {};
+  for (let i = start; i <= end; i++) {
     options.progress?.(`Reading page ${i} of ${pages}...`);
     const page = await doc.getPage(i);
     const canvas = await renderToCanvas(page);
-    ocrText.push(await recognise(canvas, options.progress));
+    pageImages[i] = canvas.toDataURL("image/jpeg", 0.72);
+    ocrText[i - 1] = await recognise(canvas, options.progress);
   }
 
-  return { text: ocrText.join("\n\n"), pageTexts: ocrText, method: "ocr", pages };
+  return {
+    text: ocrText.filter(Boolean).join("\n\n"),
+    pageTexts: ocrText,
+    method: "ocr",
+    pages,
+    pagesRead: { start, end },
+    pageImages,
+  };
 }
 
 async function renderToCanvas(page: PDFPageProxy): Promise<HTMLCanvasElement> {
