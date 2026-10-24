@@ -598,7 +598,14 @@ function extractTables(lines: string[]): {
       rows.push(cells);
       index++;
     }
-    if (rows.length >= 2 && rows.reduce((count, row) => count + row.length, 0) >= 6) {
+    // Two-column essay prose ("they conducted further\tresearch using
+    // textbooks") is arranged like a table only by the column gap between
+    // words; a data table never carries a full sentence inside one cell. Any
+    // cell long enough to hold a clause disqualifies the run, and the lines
+    // stay question text instead of a grid.
+    const words = (cell: string) => cell.split(/\s+/).filter(Boolean).length;
+    const carriesProse = rows.some((row) => row.some((cell) => words(cell) > 7));
+    if (!carriesProse && rows.length >= 2 && rows.reduce((count, row) => count + row.length, 0) >= 6) {
       for (let lineIndex = start; lineIndex < start + rows.length; lineIndex++) tableLineIndexes.add(lineIndex);
       tableStartIndexes.set(start, tables.length);
       const isNumeric = (value: string) => /^[+-]?(?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?%?$/.test(value);
