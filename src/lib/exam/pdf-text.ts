@@ -2,6 +2,7 @@
 
 import type { PDFPageProxy } from "pdfjs-dist";
 
+import type { DiagramCrop } from "./exam-model";
 import { rebuildLayout } from "./pdf-lines";
 
 /**
@@ -50,6 +51,8 @@ export interface ExtractionResult {
   pagesRead?: { start: number; end: number };
   /** Compressed source-page images for retaining scanned diagrams. */
   pageImages?: Record<number, string>;
+  /** Figure regions cut from the page images, ready for the parser. */
+  diagramCrops?: DiagramCrop[];
   /** Human-readable progress for the OCR path, which can take a while. */
   progress?: (message: string) => void;
 }
@@ -64,6 +67,138 @@ export interface ExtractionResult {
 const MIN_CHARS_PER_PAGE = 40;
 const MAX_AUTO_OCR_PAGES = 10;
 const MAX_OCR_RANGE_PAGES = 10;
+/** Rendering scale: 2 turns a 72 dpi PDF page into ~144 dpi pixels. */
+const RENDER_SCALE = 2;
+
+/** A page worth looking at for a figure, before it is rendered to pixels. */
+function needsDiagramPage(text: string): boolean {
+  return /\b(?:fig(?:ure)?\.?\s*\d|diagram|circuit|shown\s+(?:below|above)|apparatus)\b/i.test(text);
+}
+
+interface WordBox {
+  text: string;
+  /** Canvas pixels, top-left origin. */
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+interface FigureWord extends WordBox {
+  /** The printed figure number, when the caption carries one. */
+  number: number | null;
+}
+
+/**
+ * Cut figure regions out of a rendered page.
+ *
+ * Captions are the only reliable anchor text gives us: "Figure 4." sits under
+ * the drawing it names. The drawing is therefore the band above the caption,
+ * bounded at the top by the nearest prose line (labels around a figure are
+ * short, a paragraph is not) and split horizontally when two captions share a
+ * line, as a paper printing two diagrams side by side does.
+ *
+ * Nothing is invented: a page without a caption yields no crop and the caller
+ * keeps the full page as an honest fallback.
+ */
+function findFigureCrops(canvas: HTMLCanvasElement, words: WordBox[], page: number): DiagramCrop[] {
+  if (words.length === 0) return [];
+
+  const heights = words
+    .map((word) => word.y1 - word.y0)
+    .filter((height) => height > 0)
+    .sort((left, right) => left - right);
+  const medianHeight = heights[Math.floor(heights.length / 2)] || 12;
+  const tolerance = Math.max(4, medianHeight * 0.7);
+
+  const lines: WordBox[][] = [];
+  let current: WordBox[] = [];
+  let currentY = Number.NaN;
+  for (const word of [...words].sort((left, right) => left.y0 - right.y0 || left.x0 - right.x0)) {
+    const centre = (word.y0 + word.y1) / 2;
+    if (Number.isNaN(currentY) || Math.abs(centre - currentY) > tolerance) {
+      if (current.length > 0) lines.push(current);
+      current = [word];
+      currentY = centre;
+    } else {
+      current.push(word);
+    }
+  }
+  if (current.length > 0) lines.push(current);
+  for (const line of lines) line.sort((left, right) => left.x0 - right.x0);
+
+  const captions: FigureWord[] = [];
+  for (const line of lines) {
+    line.forEach((word, index) => {
+      const match = word.text.match(/^(?:fig(?:ure)?|diagram)[.,:]?\s*(\d{1,2})?[.,:]?$/i);
+      if (!match) return;
+      const next = line[index + 1];
+      const number = match[1]
+        ? Number(match[1])
+        : next && /^(\d{1,2})[.,:]?$/.test(next.text)
+          ? Number(next.text.replace(/\D/g, ""))
+          : null;
+      captions.push({ ...word, number });
+    });
+  }
+  if (captions.length === 0) return [];
+
+  const crops: DiagramCrop[] = [];
+  for (const caption of captions) {
+    const lineIndex = lines.findIndex((line) => line.some((word) => word.x0 === caption.x0 && word.y0 === caption.y0));
+    if (lineIndex < 0) continue;
+    const captionLine = lines[lineIndex];
+    const onSameLine = captions.filter((candidate) =>
+      captionLine.some((word) => word.x0 === candidate.x0 && word.y0 === candidate.y0),
+    );
+    const position = onSameLine.findIndex((candidate) => candidate.x0 === caption.x0);
+    const previous = position > 0 ? onSameLine[position - 1] : null;
+    const next = position >= 0 && position < onSameLine.length - 1 ? onSameLine[position + 1] : null;
+
+    const captionTop = Math.min(...captionLine.map((word) => word.y0));
+    const captionBottom = Math.max(...captionLine.map((word) => word.y1));
+    const left = previous ? (previous.x0 + caption.x0) / 2 : 0;
+    const right = next ? (caption.x0 + next.x0) / 2 : canvas.width;
+
+    // The nearest line above that reads as body text bounds the drawing. Short
+    // lines there are figure labels, not the paragraph the figure interrupts.
+    let top = Math.max(0, captionTop - canvas.height * 0.4);
+    for (let above = lineIndex - 1; above >= 0; above--) {
+      const line = lines[above];
+      const text = line.map((word) => word.text).join(" ");
+      const lineWidth = Math.max(...line.map((word) => word.x1)) - Math.min(...line.map((word) => word.x0));
+      const wordCount = line.length;
+      if (wordCount >= 5 || lineWidth > canvas.width * 0.45) {
+        top = Math.max(0, Math.max(...line.map((word) => word.y1)) + medianHeight * 0.4);
+        break;
+      }
+      if (/[.!?]$/.test(text) && wordCount >= 3) {
+        top = Math.max(0, Math.max(...line.map((word) => word.y1)) + medianHeight * 0.4);
+        break;
+      }
+    }
+    const bottom = Math.min(canvas.height, captionBottom + medianHeight * 0.6);
+
+    const width = right - left;
+    const height = bottom - top;
+    // A sliver is a caption misread, not a figure. Leave those to the page
+    // fallback rather than ship a strip of blank paper.
+    if (width < canvas.width * 0.2 || height < medianHeight * 3) continue;
+
+    const cropped = document.createElement("canvas");
+    cropped.width = Math.round(width);
+    cropped.height = Math.round(height);
+    const context = cropped.getContext("2d");
+    if (!context) continue;
+    context.drawImage(canvas, left, top, width, height, 0, 0, width, height);
+    crops.push({
+      page,
+      label: caption.number !== null ? `figure ${caption.number} on page ${page}` : `figure on page ${page}`,
+      imageDataUri: cropped.toDataURL("image/jpeg", 0.82),
+    });
+  }
+  return crops;
+}
 
 export interface PdfPageRange {
   start: number;
@@ -82,6 +217,7 @@ export async function extractTextFromPdf(
 
   const pageTexts = Array.from({ length: pages }, () => "");
   const textPageImages: Record<number, string> = {};
+  const diagramCrops: DiagramCrop[] = [];
   let textLayerChars = 0;
   const selectedStart = options.pageRange ? Math.max(1, Math.floor(options.pageRange.start)) : 1;
   const selectedEnd = options.pageRange ? Math.min(pages, Math.floor(options.pageRange.end)) : pages;
@@ -103,29 +239,39 @@ export async function extractTextFromPdf(
     // Runs are rejoined into visual lines first. The naive one-newline-per-run
     // join shreds anything laid out as a table, and this PDF's questions
     // routinely sit in cells: the paper walks out of extraction unreadable.
-    const text = rebuildLayout(
-      content.items.flatMap((item) =>
-        item && typeof item === "object" && "str" in item
-          ? [
-              {
-                str: item.str,
-                x: item.transform[4],
-                y: item.transform[5],
-                width: item.width,
-                height: item.height,
-              },
-            ]
-          : [],
-      ),
+    const positioned = content.items.flatMap((item) =>
+      item && typeof item === "object" && "str" in item
+        ? [
+            {
+              str: item.str,
+              x: item.transform[4],
+              y: item.transform[5],
+              width: item.width,
+              height: item.height,
+            },
+          ]
+        : [],
     );
+    const text = rebuildLayout(positioned);
     pageTexts[i - 1] = text;
     textLayerChars += text.length;
-    if (
-      /\b(?:fig(?:ure)?\.?\s*\d*|diagram|circuit|shown below|shown above|support material|transformer|optical fibre)\b/i.test(
-        text,
-      )
-    ) {
-      textPageImages[i] = (await renderToCanvas(page)).toDataURL("image/jpeg", 0.72);
+    if (needsDiagramPage(text)) {
+      const canvas = await renderToCanvas(page);
+      textPageImages[i] = canvas.toDataURL("image/jpeg", 0.72);
+      const viewport = page.getViewport({ scale: RENDER_SCALE });
+      const words = positioned
+        .filter((item) => item.str.trim().length > 0)
+        .map((item) => {
+          const [left, baseline] = viewport.convertToViewportPoint(item.x, item.y);
+          return {
+            text: item.str.trim(),
+            x0: left,
+            y0: baseline - item.height * viewport.scale,
+            x1: left + item.width * viewport.scale,
+            y1: baseline,
+          };
+        });
+      diagramCrops.push(...findFigureCrops(canvas, words, i));
     } else {
       page.cleanup();
     }
@@ -154,6 +300,7 @@ export async function extractTextFromPdf(
       pages,
       ...(options.pageRange ? { pagesRead: { start: textStart, end: textEnd } } : {}),
       ...(Object.keys(textPageImages).length > 0 ? { pageImages: textPageImages } : {}),
+      ...(diagramCrops.length > 0 ? { diagramCrops } : {}),
     };
   }
 
@@ -176,12 +323,15 @@ export async function extractTextFromPdf(
   );
   const ocrText = Array.from({ length: pages }, () => "");
   const pageImages: Record<number, string> = {};
+  const scanCrops: DiagramCrop[] = [];
   for (let i = start; i <= end; i++) {
     options.progress?.(`Reading page ${i} of ${pages}...`);
     const page = await doc.getPage(i);
     const canvas = await renderToCanvas(page);
     pageImages[i] = canvas.toDataURL("image/jpeg", 0.72);
-    ocrText[i - 1] = await recognise(canvas, options.progress);
+    const recognised = await recognise(canvas, options.progress);
+    ocrText[i - 1] = recognised.text;
+    scanCrops.push(...findFigureCrops(canvas, recognised.words, i));
   }
 
   return {
@@ -191,6 +341,7 @@ export async function extractTextFromPdf(
     pages,
     pagesRead: { start, end },
     pageImages,
+    ...(scanCrops.length > 0 ? { diagramCrops: scanCrops } : {}),
   };
 }
 
@@ -198,7 +349,7 @@ async function renderToCanvas(page: PDFPageProxy): Promise<HTMLCanvasElement> {
   // Scale 2 turns a 72 dpi PDF page into ~144 dpi pixels: enough for Tesseract
   // to pick up question numbers, at a size that keeps a 10-page paper under a
   // couple of minutes on a school laptop.
-  const viewport = page.getViewport({ scale: 2 });
+  const viewport = page.getViewport({ scale: RENDER_SCALE });
   const canvas = document.createElement("canvas");
   canvas.width = viewport.width;
   canvas.height = viewport.height;
@@ -211,11 +362,23 @@ async function renderToCanvas(page: PDFPageProxy): Promise<HTMLCanvasElement> {
 
 /** One shared Tesseract worker for the whole session; it is expensive to make. */
 let workerPromise: Promise<{
-  recognise: (image: HTMLCanvasElement) => Promise<{ data: { text: string } }>;
+  recognise: (image: HTMLCanvasElement) => Promise<{
+    data: {
+      text: string;
+      blocks?: Array<{
+        paragraphs?: Array<{
+          lines?: Array<{ words?: Array<{ text: string; bbox: { x0: number; y0: number; x1: number; y1: number } }> }>;
+        }>;
+      }> | null;
+    };
+  }>;
   terminate: () => Promise<unknown>;
 }> | null = null;
 
-async function recognise(canvas: HTMLCanvasElement, progress?: (message: string) => void) {
+async function recognise(
+  canvas: HTMLCanvasElement,
+  progress?: (message: string) => void,
+): Promise<{ text: string; words: WordBox[] }> {
   const tesseract = await import("tesseract.js");
   workerPromise ??= tesseract.createWorker("eng", 1, TESSERACT).then((worker) => ({
     recognise: (image: HTMLCanvasElement) => worker.recognize(image),
@@ -224,11 +387,27 @@ async function recognise(canvas: HTMLCanvasElement, progress?: (message: string)
   const worker = await workerPromise;
   try {
     const { data } = await worker.recognise(canvas);
-    return data.text.trim();
+    const words: WordBox[] =
+      data.blocks?.flatMap((block) =>
+        (block.paragraphs ?? []).flatMap((paragraph) =>
+          (paragraph.lines ?? []).flatMap((line) =>
+            (line.words ?? [])
+              .filter((word) => word.text.trim().length > 0)
+              .map((word) => ({
+                text: word.text.trim(),
+                x0: word.bbox.x0,
+                y0: word.bbox.y0,
+                x1: word.bbox.x1,
+                y1: word.bbox.y1,
+              })),
+          ),
+        ),
+      ) ?? [];
+    return { text: data.text.trim(), words };
   } catch (error) {
     progress?.(
       `A page failed to read (${error instanceof Error ? error.message : String(error)}). Its text will be missing.`,
     );
-    return "";
+    return { text: "", words: [] };
   }
 }
