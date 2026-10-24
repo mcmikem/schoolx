@@ -194,7 +194,22 @@ export default function ExamLabPage() {
             error: new Error("Uploading the PDF took too long. Check your connection and try again."),
           } as any,
         );
-        if (upload.error) throw upload.error;
+        if (upload.error) {
+          if (/bucket not found/i.test(upload.error.message)) {
+            const create = await supabase.storage.createBucket("exam-papers", {
+              public: false,
+              fileSizeLimit: 52428800,
+              allowedMimeTypes: ["application/pdf"],
+            });
+            if (create.error && !/already exists|duplicated/i.test(create.error.message)) throw create.error;
+            const retry = await supabase.storage
+              .from("exam-papers")
+              .upload(sourcePath, sourceFile, { contentType: "application/pdf", upsert: false });
+            if (retry.error) throw retry.error;
+          } else {
+            throw upload.error;
+          }
+        }
       }
       const paperModel = {
         ...paper,
