@@ -24,6 +24,7 @@ import { logger } from "@/lib/logger";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
+import { PaperMarkQueue } from "@/components/exams/PaperMarkQueue";
 import { Tabs } from "@/components/ui/Tabs";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { NoData } from "@/components/EmptyState";
@@ -249,6 +250,10 @@ export default function ExamsPage() {
               {canManageExams ? (
                 <Button onClick={() => setShowAddExam(true)} disabled={termLocked} variant="primary">
                   <MaterialIcon icon="add" className="text-lg" />
+                  <section className="mt-6">
+                    <h2 className="text-base font-semibold mb-3">Handed-in papers</h2>
+                    <PaperMarkQueue />
+                  </section>
                   Create Exam
                 </Button>
               ) : null}
