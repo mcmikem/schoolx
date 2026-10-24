@@ -13,6 +13,7 @@
 
 import {
   type Choice,
+  type DiagramCrop,
   type DiagramRef,
   type ExamContentBlock,
   type ExamPaper,
@@ -47,10 +48,37 @@ const MARKS = /\(?\b(\d{1,2})\s*marks?\b\)?|\[(\d{1,2})\]/i;
 
 /** Lines that are page furniture rather than questions. */
 const PAGE_NOISE = /^(page\s+\d+\s*(of\s+\d+)?|\d{1,3})$/i;
+// Footer furniture scanned with the body text: "© UMTA Joint Mocks 2025",
+// "Page 2 of 9", "END". OCR glues them onto the tail of the last line of a
+// page, so the strip runs on merged lines as well; a footer is only ever
+// trailing paper furniture, never part of the question being asked.
+const FOOTER_NOISE =
+  /[©\(cC]\s*(?:umta|joint mocks|examinations? council|uga?nda)[^.\n]*$|\bpage\s*\d+\s*(?:of|\/)\s*\d+.*$|^\s*end\s*$/i;
 const SECTION_HEADING = /^\s*\d{1,2}\.\d{1,2}(?:\s+|\s*[:.)]\s*)[A-Z][^\n]{3,90}$/;
 const PAPER_SECTION_HEADING = /^\s*(?:section\s+[a-z]|part\s+(?:i{1,3}|iv|v|[a-z]))\s*\.?\s*$/i;
 
-const DIAGRAM_LINE = /\b(fig(?:ure)?\.?\s*[\d.]+|diagram|draw(ing)?\s+(the|below|above)|sketch)\b/i;
+/**
+ * A caption we can name and pair with a crop: "Figure 4.", "Fig 2: ...", and
+ * the bare "Diagram" line some papers print under a drawing.
+ */
+const FIGURE_CAPTION = /^\s*(?:fig(?:ure)?\.?|diagram)\s*[.:]?\s*(\d{1,2})?\s*[.:]?\s*$/i;
+
+/**
+ * Prose that tells the reader to look at a picture. "The circuit is shown
+ * below" is a real diagram reference; "seen the circuit diagram in class" is
+ * not. Requiring a pointing word keeps the second from becoming a figure.
+ */
+const DIAGRAM_INSTRUCTION =
+  /\b(?:fig(?:ure)?|diagram|circuit|map|graph|sketch|apparatus|set-?up)\b[^.\n]{0,80}\b(?:below|above|following|shown)\b/i;
+
+function figureLabels(line: string, page: number): string[] {
+  const labels = new Set<string>();
+  for (const match of line.matchAll(/\bfig(?:ure)?\.?\s*(\d{1,2})\b/gi)) {
+    labels.add(`figure ${Number(match[1])} on page ${page}`);
+  }
+  if (labels.size === 0 && FIGURE_CAPTION.test(line)) labels.add(`figure on page ${page}`);
+  return [...labels];
+}
 
 function isLikelyFrontMatter(pageText: string): boolean {
   if (/\b(?:table of contents|contents|preface|foreword|acknowledg(?:e)?ments)\b/i.test(pageText)) return true;
@@ -67,6 +95,8 @@ export interface ParseOptions {
   pageTexts?: string[];
   /** Rendered original pages from scanned PDFs, keyed by 1-based PDF page. */
   pageImages?: Record<number, string>;
+  /** Figures already cut from their page during extraction. */
+  diagramCrops?: DiagramCrop[];
   title?: string | null;
   classLevel?: string | null;
   subject?: string | null;
@@ -224,9 +254,13 @@ export function parsePaper(source: string, options: ParseOptions = {}): ParsedTe
   let lastNumber: number | null = null;
 
   for (const entry of lines) {
-    const raw = entry.line;
-    const line = raw.trimEnd();
-    if (PAGE_NOISE.test(line.trim())) continue;
+    const raw = entry.line.trimEnd();
+    if (PAGE_NOISE.test(raw.trim())) continue;
+    // Footer furniture scanned with the body text. OCR glues "© UMTA Joint
+    // Mocks 2025 Page 2 of 9" onto the tail of the last line of a page, so the
+    // strip runs on merged lines too; a line that is all furniture vanishes.
+    const line = raw.replace(FOOTER_NOISE, "").trimEnd();
+    if (!line.trim()) continue;
     if (current && (SECTION_HEADING.test(line.trim()) || PAPER_SECTION_HEADING.test(line.trim()))) {
       current = null;
       continue;
@@ -262,6 +296,7 @@ export function parsePaper(source: string, options: ParseOptions = {}): ParsedTe
       page,
       ocr: Boolean(options.ocr),
       pageImages: options.pageImages,
+      diagramCrops: options.diagramCrops,
       warnings,
     }),
   );
@@ -306,14 +341,37 @@ function buildQuestion(
   block: { lines: string[]; linePages: number[]; pages: Set<number> },
   index: number,
   all: Array<{ lines: string[]; linePages: number[]; pages: Set<number> }>,
-  context: { page: number; ocr: boolean; pageImages?: Record<number, string>; warnings: string[] },
+  context: {
+    page: number;
+    ocr: boolean;
+    pageImages?: Record<number, string>;
+    diagramCrops?: DiagramCrop[];
+    warnings: string[];
+  },
 ): ExamQuestion {
   const body = block.lines.join("\n");
 
   const numberMatch = body.match(QUESTION_START);
   const number = numberMatch ? Number(numberMatch[1]) : null;
   const afterNumber = numberMatch ? body.slice(numberMatch[0].length) : body;
-  const { tables, tableLineIndexes, tableStartIndexes } = extractTables(afterNumber.split("\n"));
+  const bodyLines = afterNumber.split("\n");
+  const { tables, tableLineIndexes, tableStartIndexes } = extractTables(bodyLines);
+
+  // Captions are found before the reading loop so that prose pointing at a
+  // figure ("shown below") does not add a second copy of a picture whose
+  // caption is already in this question. A line may name more than one figure
+  // ("Figure 1 ... Figure 2 ..."), which is exactly how side-by-side diagrams
+  // are printed.
+  const labelsByLine = new Map<number, string[]>();
+  const figurePages = new Set<number>();
+  bodyLines.forEach((rawLine, index) => {
+    const pageNumber = block.linePages[index] ?? context.page;
+    const labels = figureLabels(rawLine, pageNumber);
+    if (labels.length === 0) return;
+    labelsByLine.set(index, labels);
+    figurePages.add(pageNumber);
+  });
+  const seenFigureLabels = new Set<string>();
 
   const marksMatch = afterNumber.match(MARKS);
   const marks = marksMatch ? Number(marksMatch[1] ?? marksMatch[2]) : null;
@@ -321,7 +379,6 @@ function buildQuestion(
   const choices: Choice[] = [];
   const stemLines: string[] = [];
   const diagrams: DiagramRef[] = [];
-  let diagramCounter = 0;
   // Essay questions print "Task:" before their sub-prompts, and those
   // sub-prompts are labelled (a)/(b)/(i) exactly like multiple-choice options.
   // After a Task header the labels are parts of one essay, not choices -- the
@@ -400,7 +457,7 @@ function buildQuestion(
   };
 
   let afterNumberIndex = 0;
-  for (const rawLine of afterNumber.split("\n")) {
+  for (const rawLine of bodyLines) {
     const originalPage = block.linePages[afterNumberIndex] ?? context.page;
     const lineIndex = afterNumberIndex;
     afterNumberIndex++;
@@ -436,17 +493,35 @@ function buildQuestion(
       continue;
     }
 
-    if (DIAGRAM_LINE.test(line)) {
-      diagramCounter++;
+    const lineLabels = labelsByLine.get(lineIndex) ?? [];
+    const instructionLabel =
+      diagrams.length === 0 &&
+      lineLabels.length === 0 &&
+      !figurePages.has(originalPage) &&
+      DIAGRAM_INSTRUCTION.test(line)
+        ? [`figure on page ${originalPage}`]
+        : [];
+    const diagramLabels = lineLabels.length > 0 ? lineLabels : instructionLabel;
+    for (const diagramLabel of diagramLabels) {
+      if (seenFigureLabels.has(diagramLabel)) continue;
+      seenFigureLabels.add(diagramLabel);
+      const crop = context.diagramCrops?.find(
+        (candidate) => candidate.page === originalPage && candidate.label === diagramLabel,
+      );
+      const pageImage = context.pageImages?.[originalPage] ?? null;
       diagrams.push({
         page: originalPage,
-        label: `figure ${diagramCounter} on page ${originalPage}`,
-        // No crop: the parser reads text, it does not cut pictures. A null here
-        // is honest -- the renderer shows the gap and asks for the image.
-        imageDataUri: context.pageImages?.[originalPage] ?? null,
+        label: diagramLabel,
+        // A crop is the figure itself; a page image is only a fallback for when
+        // extraction could not find the figure region. Saying which is which
+        // stops a full page from being mistaken for a cropped diagram.
+        imageDataUri: crop?.imageDataUri ?? pageImage,
+        imageKind: crop ? "crop" : pageImage ? "page" : undefined,
       });
-      if (/^\s*(?:fig(?:ure)?\.?\s*\d+|diagram)\s*[.:]?\s*$/i.test(line)) continue;
     }
+    // A line that is only a caption or a figure number is the picture's own
+    // label, not question prose.
+    if (diagramLabels.length > 0 && /^\s*(?:fig(?:ure)?\.?|diagram)\b/i.test(line)) continue;
 
     const choiceMatch = line.match(CHOICE_LINE);
     // Two things must hold before a line counts as an option.
@@ -502,7 +577,12 @@ function buildQuestion(
   }
   flushSub();
 
-  const rawStem = stemLines.join(" ").replace(MARKS, "").trim();
+  const rawStem = stemLines
+    .join(" ")
+    .replace(MARKS, "")
+    .replace(/\t+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
   const contentBlocks = buildContentBlocks(rawStem);
   const text = contentBlocks
     .filter((block) => block.type === "text")
@@ -602,13 +682,42 @@ function extractTables(lines: string[]): {
     // textbooks") is arranged like a table only by the column gap between
     // words; a data table never carries a full sentence inside one cell. Any
     // cell long enough to hold a clause disqualifies the run, and the lines
-    // stay question text instead of a grid.
-    const words = (cell: string) => cell.split(/\s+/).filter(Boolean).length;
-    const carriesProse = rows.some((row) => row.some((cell) => words(cell) > 7));
-    if (!carriesProse && rows.length >= 2 && rows.reduce((count, row) => count + row.length, 0) >= 6) {
+    // stay question text instead of a grid. Fragments can be shorter, so the
+    // real tells are sentence grammar and grid regularity: prose continues
+    // across the gap (lowercase connectives, commas before a clause) while a
+    // table has a numeric column or uniformly terse labels.
+    const words = (cell: string) => cell.split(/\s+/).filter(Boolean);
+    const CONNECTIVE =
+      /^(?:and|but|or|as|while|which|that|they|their|this|these|those|the|it|we|you|he|she|its|with|from|into|over|about)\b/i;
+    const FUNCTION_WORD =
+      /\b(?:and|but|or|the|of|to|as|while|which|that|their|they|this|these|those|about|with|from|into|over|for|in|on|at|by)\b/i;
+    const isProseCell = (cell: string) => {
+      const parts = words(cell);
+      if (parts.length === 0) return true;
+      if (parts.length > 5) return true;
+      if (/[.!?]\s+[A-Za-z]/.test(cell)) return true;
+      if (/[,;]\s+\S/.test(cell) && FUNCTION_WORD.test(cell)) return true;
+      if (parts.length >= 2 && CONNECTIVE.test(cell.trim())) return true;
+      return false;
+    };
+    const carriesProse = rows.some((row) => row.some(isProseCell));
+    const isNumeric = (value: string) => /^[+-]?(?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?%?$/.test(value);
+    const columns = rows[0]?.length ?? 0;
+    const hasNumericColumn = rows.some((row) => row.filter(isNumeric).length >= Math.max(1, Math.ceil(columns / 2)));
+    const uniformlyShort = rows.every((row) =>
+      row.every((cell) => {
+        const count = words(cell).length;
+        return count >= 1 && count <= 4;
+      }),
+    );
+    if (
+      !carriesProse &&
+      (hasNumericColumn || uniformlyShort) &&
+      rows.length >= 2 &&
+      rows.reduce((count, row) => count + row.length, 0) >= 6
+    ) {
       for (let lineIndex = start; lineIndex < start + rows.length; lineIndex++) tableLineIndexes.add(lineIndex);
       tableStartIndexes.set(start, tables.length);
-      const isNumeric = (value: string) => /^[+-]?(?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?%?$/.test(value);
       const headerRows =
         rows.length > 1 && rows[1].filter(isNumeric).length >= Math.ceil((rows[1].length - 1) / 2) ? 1 : 0;
       tables.push({ rows, headerRows });
