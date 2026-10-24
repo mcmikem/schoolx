@@ -8,6 +8,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui";
 import { parseApiResponse } from "@/lib/api-response";
+import { newOfflineId } from "@/lib/offline";
 
 interface MealRule {
   id: string;
@@ -27,7 +28,7 @@ const MEAL_LABELS: Record<string, string> = {
 
 export default function MealScanPage() {
   const toast = useToast();
-  const scannerIdRef = useRef(typeof crypto !== "undefined" ? crypto.randomUUID() : `meal-${Date.now()}`);
+  const scannerIdRef = useRef(newOfflineId());
   const [rules, setRules] = useState<MealRule[]>([]);
   const [savingRules, setSavingRules] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<"breakfast" | "lunch" | "supper">("lunch");

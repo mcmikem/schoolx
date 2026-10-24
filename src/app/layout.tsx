@@ -8,6 +8,7 @@ import { AppUpdatePrompt } from "@/components/AppUpdatePrompt";
 import DebugPing from "@/components/DebugPing";
 import DiagnosticsPanel from "@/components/DiagnosticsPanel";
 import { APP_NAME } from "@/lib/app-name";
+import { LEGACY_COMPAT_SCRIPT } from "@/lib/legacy-compat";
 import { logger } from "@/lib/logger";
 import DeferredChrome from "./deferred-chrome";
 import Providers from "./providers";
@@ -79,6 +80,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preload" href="/fonts/dm-sans-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <link rel="icon" href="/icons/icon-512x512.png" type="image/png" />
+        <Script
+          id="legacy-compat"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: LEGACY_COMPAT_SCRIPT }}
+        />
         <Script
           id="theme-init"
           strategy="beforeInteractive"

@@ -1,17 +1,30 @@
 "use client";
 
-import { useEffect } from "react";
 import * as Sentry from "@sentry/nextjs";
+import { useEffect, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { t } from "@/i18n";
-import { logger } from "@/lib/logger";
+import { ErrorDetails } from "@/components/ErrorDetails";
 import { APP_NAME } from "@/lib/app-name";
+import { recoverFromStaleBuild, retryStaleBuildOnce } from "@/lib/build-recovery";
+import { logger } from "@/lib/logger";
 
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  const [recovering, setRecovering] = useState(false);
+
   useEffect(() => {
     logger.error("Application error:", error);
     Sentry.captureException(error);
+    // A stale service worker can leave the document running the previous
+    // deploy's HTML against the new chunks. reset() cannot repair that, so
+    // clear the worker + caches and reload once.
+    void retryStaleBuildOnce(error);
   }, [error]);
+
+  const clearCacheAndReload = async () => {
+    setRecovering(true);
+    await recoverFromStaleBuild();
+  };
 
   return (
     <html lang="en">
@@ -42,13 +55,8 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
               <MaterialIcon icon="warning" size={32} className="h-8 text-red-600" />
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">{t("error.somethingWentWrong")}</h2>
-            <p className="text-gray-500 text-sm mb-6">{t("error.unexpectedError")}</p>
-            {error.digest && (
-              <p className="text-xs text-gray-400 mb-4">
-                {t("error.errorId")}: {error.digest}
-              </p>
-            )}
-            <div className="flex gap-3 justify-center">
+            <ErrorDetails error={error} source="global-error" className="mb-6" />
+            <div className="flex gap-3 justify-center flex-wrap">
               <button
                 onClick={reset}
                 onKeyDown={(e) => {
@@ -60,6 +68,14 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
                 className="px-4 py-2 bg-gray-900 text-white rounded-lg font-medium text-sm flex items-center gap-2 hover:bg-gray-800 transition-colors"
               >
                 <MaterialIcon icon="refresh" size={16} className="h-4" /> {t("error.tryAgain")}
+              </button>
+              <button
+                onClick={clearCacheAndReload}
+                disabled={recovering}
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg font-medium text-sm flex items-center gap-2 hover:bg-gray-50 transition-colors disabled:opacity-60"
+              >
+                <MaterialIcon icon="cleaning_services" size={16} className="h-4" />
+                {recovering ? "Clearing…" : "Clear cache & reload"}
               </button>
               <a
                 href="/dashboard"

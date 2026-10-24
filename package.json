@@ -51,7 +51,7 @@
     "scan:secrets:staged": "gitleaks git --staged --redact --no-banner",
     "smoke:prod": "node scripts/smoke-test.mjs",
     "start": "next start",
-    "test": "jest --runInBand",
+    "test": "jest --runInBand --forceExit",
     "test:coverage": "jest --coverage",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",

@@ -133,38 +133,31 @@ self.addEventListener('fetch', (event) => {
   if (isNavigationRequest(request)) {
     const isDashboardRoute = url.pathname.startsWith('/dashboard') || url.pathname.startsWith('/onboarding');
 
-    // Navigations stay network-first so a fresh deploy is picked up, but on a
-    // slow link the fetch can hang long past any server timeout — including the
-    // reload after tapping "Update now", which left the banner frozen on
-    // "Updating…". Race the network against a deadline and fall through to the
-    // same cache fallbacks below. The update flow precaches the app shell at
-    // install, so the fallback usually serves the NEW build, not the old one.
+    // Navigations stay network-first so a fresh deploy is picked up. A cached
+    // navigation is the PREVIOUS deploy's HTML, and its <script> URLs can name
+    // chunks the current deploy no longer serves. Serving that copy while the
+    // network is still answering is exactly what produced the field report of
+    // a landing page blinking for a second and then the error screen: the old
+    // HTML booted against the new module graph. So the cache is never raced
+    // against a connected network — it is used only when the device is offline
+    // or the fetch actually fails/times out.
     //
-    // When we already hold a copy of this page the deadline is much shorter:
-    // on a weak 2G/3G link a teacher would otherwise stare at a blank screen
-    // for 8s before the page they opened yesterday appears. The network fetch
-    // keeps running after the deadline and refreshes the cache for next time.
-    // Held deliberately tight. These deadlines are pure waiting: the cached copy
-    // is already in hand and the network fetch keeps running afterwards to
-    // refresh the cache, so every millisecond spent here is a millisecond of
-    // blank screen before content the user has seen before. An uncached route
-    // still gets longer, because that copy is all the user will ever get.
-    const NAVIGATION_TIMEOUT_MS = 3000;
-    const NAVIGATION_TIMEOUT_CACHED_MS = 1200;
+    // The deadline still exists for the reload after tapping "Update now",
+    // which otherwise hangs on a stalled fetch and leaves the banner frozen on
+    // "Updating…". It is generous enough that a slow-but-working link still
+    // gets the current HTML rather than yesterday's.
+    const NAVIGATION_TIMEOUT_MS = 4000;
 
     event.respondWith(
       (async () => {
-        const hasCachedCopy = Boolean(await caches.match(request));
-        // Sign-in pages never take the short cached-copy shortcut. A cached /login is
-        // the copy of the PREVIOUS deploy until the waiting worker is applied, and
-        // its JS is what talks to the server: serving it after 1.2s on a slow link
-        // is how a device keeps running an old sign-in flow. Offline still falls
-        // back to the cached copy, just not as a race against a slow network.
-        const isAuthRoute = /^\/(login|register|forgot-password)(\/|$)/.test(url.pathname);
-        const timeoutMs = hasCachedCopy && !isAuthRoute ? NAVIGATION_TIMEOUT_CACHED_MS : NAVIGATION_TIMEOUT_MS;
+        const cachedPage = await caches.match(request);
+
+        // Offline: no point waiting for a network that is not there.
+        if (self.navigator && self.navigator.onLine === false && cachedPage) return cachedPage;
+
         let navigationTimer;
         const navigationTimeout = new Promise((_, reject) => {
-          navigationTimer = setTimeout(() => reject(new Error('navigation timeout')), timeoutMs);
+          navigationTimer = setTimeout(() => reject(new Error('navigation timeout')), NAVIGATION_TIMEOUT_MS);
         });
 
         try {
@@ -179,7 +172,6 @@ self.addEventListener('fetch', (event) => {
             navigationTimeout,
           ]);
         } catch (err) {
-          const cachedPage = await caches.match(request);
           if (cachedPage) return cachedPage;
 
           // An uncached dashboard URL falls back to the dashboard app shell, never

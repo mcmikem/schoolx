@@ -1,11 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 
-export function useCounter(
-  end: number,
-  duration: number = 2000,
-  decimals: number = 0,
-) {
+export function useCounter(end: number, duration: number = 2000, decimals: number = 0) {
   const [count, setCount] = useState(0);
   const [started, setStarted] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -13,6 +9,12 @@ export function useCounter(
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    // Old Android WebViews (and some in-app browsers) have no
+    // IntersectionObserver. Show the final value instead of throwing.
+    if (typeof IntersectionObserver === "undefined") {
+      setStarted(true);
+      return;
+    }
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -40,7 +42,6 @@ export function useCounter(
     return () => cancelAnimationFrame(frame);
   }, [started, end, duration]);
 
-  const display =
-    decimals > 0 ? count.toFixed(decimals) : Math.round(count).toString();
+  const display = decimals > 0 ? count.toFixed(decimals) : Math.round(count).toString();
   return { display, ref };
 }

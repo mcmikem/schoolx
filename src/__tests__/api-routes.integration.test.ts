@@ -20,6 +20,7 @@ interface MockClientConfig {
     deleteUser?: { data: unknown; error: unknown };
     updateUserById?: { data: unknown; error: unknown };
     resetPasswordForEmail?: { data: unknown; error: unknown };
+    getUserById?: { data: unknown; error: unknown };
   };
 }
 
@@ -30,6 +31,7 @@ interface MockClient {
   update: jest.Mock;
   upsert: jest.Mock;
   eq: jest.Mock;
+  in: jest.Mock;
   gte: jest.Mock;
   order: jest.Mock;
   limit: jest.Mock;
@@ -42,6 +44,7 @@ interface MockClient {
       createUser: jest.Mock;
       deleteUser: jest.Mock;
       updateUserById: jest.Mock;
+      getUserById: jest.Mock;
     };
     resetPasswordForEmail: jest.Mock;
   };
@@ -65,6 +68,7 @@ function buildMockClient(config: MockClientConfig = {}): MockClient {
         createUser: jest.fn().mockResolvedValue(config.auth?.createUser ?? { data: null, error: null }),
         deleteUser: jest.fn().mockResolvedValue(config.auth?.deleteUser ?? { data: { user: null }, error: null }),
         updateUserById: jest.fn().mockResolvedValue(config.auth?.updateUserById ?? { data: null, error: null }),
+        getUserById: jest.fn().mockResolvedValue(config.auth?.getUserById ?? { data: { user: null }, error: null }),
       },
       resetPasswordForEmail: jest
         .fn()
@@ -90,6 +94,7 @@ function buildMockClient(config: MockClientConfig = {}): MockClient {
   builder.update = makeMethod("update");
   builder.upsert = makeMethod("upsert");
   builder.eq = makeMethod("eq");
+  builder.in = makeMethod("in");
   builder.gte = makeMethod("gte");
   builder.order = makeMethod("order");
   builder.limit = makeMethod("limit");
@@ -278,13 +283,44 @@ describe("forgot-password route", () => {
     expect(body.ok).toBe(true);
   });
 
-  test("sends reset email for phone-derived address", async () => {
+  test("uses the auth email from the user profile", async () => {
+    const client = useClient({
+      maybeSingle: {
+        users: {
+          data: { auth_id: "9f1c2d3e-0000-4000-8000-000000000001", email: "legacy@omuto.sms" },
+          error: null,
+        },
+      },
+    });
+    client.auth.resetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
+    const { POST } = await import("../app/api/forgot-password/route");
+    const res = await POST(post({ phone: "0700000000" }));
+    expect(res.status).toBe(200);
+    expect(client.auth.resetPasswordForEmail).toHaveBeenCalledWith("legacy@omuto.sms", expect.anything());
+  });
+
+  test("reads the identity from auth when the profile has no email", async () => {
+    const client = useClient({
+      maybeSingle: {
+        users: { data: { auth_id: "9f1c2d3e-0000-4000-8000-000000000002", email: null }, error: null },
+      },
+      auth: { getUserById: { data: { user: { email: "256777772222@omuto.org" } }, error: null } },
+    });
+    client.auth.resetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
+    const { POST } = await import("../app/api/forgot-password/route");
+    const res = await POST(post({ phone: "0777772222" }));
+    expect(res.status).toBe(200);
+    expect(client.auth.admin.getUserById).toHaveBeenCalledWith("9f1c2d3e-0000-4000-8000-000000000002");
+    expect(client.auth.resetPasswordForEmail).toHaveBeenCalledWith("256777772222@omuto.org", expect.anything());
+  });
+
+  test("falls back to the canonical 256… address when no profile exists", async () => {
     const client = useClient();
     client.auth.resetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
     const { POST } = await import("../app/api/forgot-password/route");
     const res = await POST(post({ phone: "0700000000" }));
     expect(res.status).toBe(200);
-    expect(client.auth.resetPasswordForEmail).toHaveBeenCalledWith("0700000000@omuto.org", expect.anything());
+    expect(client.auth.resetPasswordForEmail).toHaveBeenCalledWith("256700000000@omuto.org", expect.anything());
   });
 
   test("returns 200 even when rate limited (anti-enumeration)", async () => {

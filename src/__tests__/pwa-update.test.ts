@@ -44,11 +44,16 @@ describe("service worker navigation", () => {
 describe("service worker slow-link and offline behaviour", () => {
   const sw = read("public/sw.js");
 
-  it("uses a shorter navigation deadline when a cached copy exists", () => {
-    expect(sw).toContain("NAVIGATION_TIMEOUT_CACHED_MS");
-    expect(sw).toMatch(
-      /hasCachedCopy\s*&&\s*!isAuthRoute\s*\?\s*NAVIGATION_TIMEOUT_CACHED_MS\s*:\s*NAVIGATION_TIMEOUT_MS/,
-    );
+  it("never serves a cached navigation before the network on a connected device", () => {
+    // A cached page is the previous deploy's HTML. Racing it against a slow
+    // network is how a phone booted the old HTML against the new chunks and
+    // landed on the error screen. The cache is only for offline/failure.
+    expect(sw).not.toContain("NAVIGATION_TIMEOUT_CACHED_MS");
+    expect(sw).toContain("self.navigator.onLine");
+    expect(sw).toMatch(/if \(self\.navigator && self\.navigator\.onLine === false && cachedPage\) return cachedPage;/);
+    // The only cache read before the fetch is the offline shortcut above; the
+    // navigation timeout must reject into the fetch failure path.
+    expect(sw).toContain("navigation timeout");
   });
 
   it("falls back to the dashboard shell, never the public marketing page, for offline dashboard URLs", () => {
@@ -139,9 +144,23 @@ describe("service worker never serves a stale module graph", () => {
 });
 
 describe("service worker sign-in pages", () => {
-  it("never races the network against a short deadline for login, register or forgot-password", () => {
+  it("applies the same network-first deadline to every navigation, including sign-in", () => {
+    // Sign-in pages used to be the one exception to the short cached-copy
+    // shortcut. Rather than keep a per-route carve-out, no navigation races
+    // the cache at all now, so a cached /login can never serve old JS either.
     const sw = read("public/sw.js");
-    expect(sw).toContain("isAuthRoute");
-    expect(sw).toMatch(/hasCachedCopy\s*&&\s*!isAuthRoute\s*\?\s*NAVIGATION_TIMEOUT_CACHED_MS/);
+    expect(sw).not.toContain("isAuthRoute");
+    expect(sw).not.toContain("NAVIGATION_TIMEOUT_CACHED_MS");
+    expect(sw).toContain("NAVIGATION_TIMEOUT_MS");
+  });
+
+  it("never force-reloads a sign-in page after the user has started typing", () => {
+    // A worker that finishes installing while the teacher is typing used to
+    // reload the page, wipe the form and leave them on "Checking your
+    // session…". Only a pristine page may be updated automatically.
+    const providers = read("src/app/providers.tsx");
+    expect(providers).toContain("userInteracted");
+    expect(providers).toMatch(/shouldForceAuthRouteUpdate && !userInteracted/);
+    expect(providers).toMatch(/hasReloadedForUpdate \|\| userInteracted/);
   });
 });

@@ -1,11 +1,17 @@
 "use client";
-import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
-import { Button, Input } from "@/components/ui";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { RingSpinner } from "@/components/loaders";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { Button, Input } from "@/components/ui";
+import {
+  completeRecovery,
+  parseRecoveryParams,
+  RECOVERY_EXPIRED_MESSAGE,
+  recoveryLinkError,
+} from "@/lib/auth-recovery";
+import { supabase } from "@/lib/supabase";
 
 function MaterialIcon({ icon, className }: { icon: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className || ""}`}>{icon}</span>;
@@ -20,13 +26,14 @@ export default function ResetPasswordPage() {
   const [done, setDone] = useState(false);
   const [ready, setReady] = useState(false);
   const [expired, setExpired] = useState(false);
+  const [expiredMessage, setExpiredMessage] = useState(RECOVERY_EXPIRED_MESSAGE);
 
   useEffect(() => {
+    let cancelled = false;
     let expiredTimer: ReturnType<typeof setTimeout> | null = null;
-    let unsubscribed = false;
 
-    // Supabase sends the recovery token in the URL hash.
-    // onAuthStateChange fires PASSWORD_RECOVERY when the hash is present.
+    // Supabase consumes hash tokens itself while initialising and emits
+    // PASSWORD_RECOVERY — keep that path as it is the most reliable one.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
@@ -39,20 +46,66 @@ export default function ResetPasswordPage() {
       }
     });
 
-    // If the page is loaded without a recovery hash (direct navigation),
-    // mark as expired so the user gets a helpful message.
-    const hash = typeof window !== "undefined" ? window.location.hash : "";
-    if (!hash.includes("type=recovery") && !hash.includes("access_token")) {
-      // Give the listener a moment to fire before declaring expired
-      expiredTimer = setTimeout(() => {
-        if (!unsubscribed) {
+    const clearSensitiveUrl = () => {
+      try {
+        window.history.replaceState(null, "", window.location.pathname);
+      } catch {
+        // History rewriting is cosmetic; a sandboxed WebView can refuse it.
+      }
+    };
+
+    const settle = async () => {
+      try {
+        const linkError = recoveryLinkError(window.location.search, window.location.hash);
+        if (linkError) {
+          if (!cancelled) {
+            setExpiredMessage(linkError);
+            setExpired(true);
+          }
+          return;
+        }
+
+        // getSession() also drives supabase-js' own URL detection, which is how
+        // `?code=` and the hash tokens become a session.
+        const { data } = await supabase.auth.getSession();
+        if (cancelled) return;
+        if (data.session) {
+          clearSensitiveUrl();
+          setReady(true);
+          return;
+        }
+
+        const params = parseRecoveryParams(window.location.search, window.location.hash);
+        if (params.kind === "token_hash" || params.kind === "code") {
+          const result = await completeRecovery(supabase.auth, params);
+          if (cancelled) return;
+          if (result.ok) {
+            clearSensitiveUrl();
+            setReady(true);
+            return;
+          }
+          setExpiredMessage(result.message);
+          setExpired(true);
+          return;
+        }
+
+        // Direct navigation: give the listener a moment before declaring expired.
+        expiredTimer = setTimeout(() => {
+          if (!cancelled) setExpired(true);
+        }, 1200);
+      } catch {
+        // A malformed/aborted exchange must not leave the page on the spinner.
+        if (!cancelled) {
+          setExpiredMessage(RECOVERY_EXPIRED_MESSAGE);
           setExpired(true);
         }
-      }, 1200);
-    }
+      }
+    };
+
+    void settle();
 
     return () => {
-      unsubscribed = true;
+      cancelled = true;
       subscription.unsubscribe();
       if (expiredTimer) clearTimeout(expiredTimer);
     };
@@ -76,10 +129,30 @@ export default function ResetPasswordPage() {
     }
 
     setLoading(true);
+
+    // The link may have produced a session that has already lapsed (the tab sat
+    // open overnight, or the phone restored the page from cache). Check before
+    // asking GoTrue, so the user gets an actionable message instead of
+    // "Auth session missing!".
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) {
+      setLoading(false);
+      setExpiredMessage(RECOVERY_EXPIRED_MESSAGE);
+      setExpired(true);
+      return;
+    }
+
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
 
     if (error) {
+      if (/session/i.test(error.message || "")) {
+        setExpiredMessage(RECOVERY_EXPIRED_MESSAGE);
+        setExpired(true);
+        return;
+      }
       setPasswordError(error.message || "Failed to update password. Your link may have expired.");
       return;
     }
@@ -139,6 +212,7 @@ export default function ResetPasswordPage() {
                   <MaterialIcon icon="link_off" className="text-[36px] text-[var(--error,#dc2626)]" />
                 </div>
                 <h3 className="text-lg font-bold text-[var(--t1)]">Link expired or invalid</h3>
+                <p className="mt-2 text-sm text-[var(--t2)] leading-6">{expiredMessage}</p>
                 <p className="mt-2 text-sm text-[var(--t2)] leading-6">
                   Password reset links expire after 1 hour. Request a new one from the forgot-password page.
                 </p>

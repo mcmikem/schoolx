@@ -1,13 +1,23 @@
 "use client";
 
-import { useEffect } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { ErrorDetails } from "@/components/ErrorDetails";
+import { recoverFromStaleBuild, retryStaleBuildOnce } from "@/lib/build-recovery";
 import { logger } from "@/lib/logger";
 
 export default function DashboardError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  const [recovering, setRecovering] = useState(false);
+
   useEffect(() => {
     logger.error("[Dashboard Error]", error);
+    void retryStaleBuildOnce(error);
   }, [error]);
+
+  const clearCacheAndReload = async () => {
+    setRecovering(true);
+    await recoverFromStaleBuild();
+  };
 
   return (
     <div className="content">
@@ -17,10 +27,13 @@ export default function DashboardError({ error, reset }: { error: Error & { dige
             <span className="material-symbols-rounded text-red-500 text-2xl">warning</span>
           </div>
           <h2 className="text-lg font-bold text-[var(--t1)] mb-2">Page Error</h2>
-          <p className="text-sm text-[var(--t3)] mb-6">This page encountered an error. Your data is safe.</p>
-          <div className="flex gap-3 justify-center">
+          <ErrorDetails error={error} source="dashboard-error" className="mb-6" />
+          <div className="flex gap-3 justify-center flex-wrap">
             <button onClick={reset} className="btn btn-ghost text-sm">
               Retry
+            </button>
+            <button onClick={clearCacheAndReload} disabled={recovering} className="btn btn-ghost text-sm">
+              {recovering ? "Clearing…" : "Clear cache & reload"}
             </button>
             <Link href="/dashboard" className="btn btn-primary text-sm">
               Back to Dashboard

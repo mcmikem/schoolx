@@ -300,21 +300,23 @@ describe("dashboard paints without waiting on the network", () => {
   });
 });
 
-describe("navigation deadline leaves room for the page to load", () => {
+describe("navigation deadline never races a stale cached page", () => {
   const sw = readFileSync(join(__dirname, "..", "..", "public", "sw.js"), "utf8");
 
-  it("serves a cached navigation well inside the budget", () => {
-    // The deadline is pure waiting: the copy is already in hand and the network
-    // keeps running afterwards to refresh the cache. At 3000ms it consumed the
-    // entire budget before a single byte of JS was requested.
-    const cached = Number(sw.match(/NAVIGATION_TIMEOUT_CACHED_MS\s*=\s*(\d+)/)?.[1]);
-    expect(cached).toBeGreaterThan(0);
-    expect(cached).toBeLessThanOrEqual(1500);
+  it("uses one network-first deadline for cached and uncached navigations", () => {
+    // The old 1200ms "cached copy" shortcut handed the PREVIOUS deploy's HTML
+    // to a phone on a slow link; its chunks no longer existed and the app threw
+    // during boot (landing page for a moment, then the error screen). The
+    // cached copy is now only used when the device is offline or the fetch
+    // fails, so every navigation gets the same chance to arrive.
+    expect(sw).not.toContain("NAVIGATION_TIMEOUT_CACHED_MS");
+    const deadline = Number(sw.match(/NAVIGATION_TIMEOUT_MS\s*=\s*(\d+)/)?.[1]);
+    expect(deadline).toBeGreaterThanOrEqual(3500);
+    expect(deadline).toBeLessThanOrEqual(8000);
   });
 
-  it("still gives an uncached route a chance to arrive", () => {
-    const uncached = Number(sw.match(/NAVIGATION_TIMEOUT_MS\s*=\s*(\d+)/)?.[1]);
-    const cached = Number(sw.match(/NAVIGATION_TIMEOUT_CACHED_MS\s*=\s*(\d+)/)?.[1]);
-    expect(uncached).toBeGreaterThan(cached);
+  it("falls back to the cached copy only when offline or the fetch fails", () => {
+    expect(sw).toMatch(/if \(self\.navigator && self\.navigator\.onLine === false && cachedPage\) return cachedPage;/);
+    expect(sw).toMatch(/catch \(err\) \{\s*if \(cachedPage\) return cachedPage;/);
   });
 });

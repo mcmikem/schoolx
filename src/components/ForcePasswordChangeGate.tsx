@@ -11,6 +11,8 @@ import { supabase } from "@/lib/supabase";
 //   2. auth user_metadata.must_change_password — parent-portal provisioning,
 //      which ships a generated password over WhatsApp.
 const PASSWORD_RULES = "At least 8 characters, with one uppercase letter and one number.";
+const SESSION_EXPIRED_MESSAGE =
+  "Your sign-in has expired, so the new password cannot be saved. Sign in again and you will be asked to set it.";
 
 export default function ForcePasswordChangeGate() {
   const { user, loading, authInitialized, isDemo } = useAuth();
@@ -19,6 +21,7 @@ export default function ForcePasswordChangeGate() {
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionMissing, setSessionMissing] = useState(false);
 
   // must_change_password lives only in auth metadata, so read it from the
   // local session (no network round-trip) once the auth state settles.
@@ -32,7 +35,16 @@ export default function ForcePasswordChangeGate() {
       .getSession()
       .then(({ data }) => {
         if (cancelled) return;
-        setMetaFlag(data.session?.user?.user_metadata?.must_change_password === true);
+        if (!data.session) {
+          // The gate used to render from the cached profile even when the
+          // session behind it was gone; every submit then failed with
+          // "Auth session missing!". Offer sign-in instead of a dead form.
+          setSessionMissing(user.password_reset_required === true);
+          setMetaFlag(false);
+          return;
+        }
+        setSessionMissing(false);
+        setMetaFlag(data.session.user?.user_metadata?.must_change_password === true);
       })
       .catch(() => {
         // Keep whatever flag we already had; the DB flag still guards staff.
@@ -42,8 +54,40 @@ export default function ForcePasswordChangeGate() {
     };
   }, [authInitialized, loading, user, isDemo]);
 
-  const active = Boolean(user && !loading && (user.password_reset_required === true || metaFlag));
-  if (!active || !user) return null;
+  const active = Boolean(user && authInitialized && !loading && (user.password_reset_required === true || metaFlag));
+  if (!user) return null;
+
+  if (sessionMissing) {
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Sign in again"
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-white p-6 dark:bg-gray-950"
+      >
+        <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-xl dark:border-gray-800 dark:bg-gray-900">
+          <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">Sign in again</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{SESSION_EXPIRED_MESSAGE}</p>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await supabase?.auth.signOut();
+              } catch {
+                // A failed sign-out must not trap the user on this screen.
+              }
+              window.location.href = "/login/";
+            }}
+            className="mt-5 w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            Go to sign in
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!active) return null;
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -64,6 +108,18 @@ export default function ForcePasswordChangeGate() {
 
     setBusy(true);
     try {
+      // Confirm the session is still there before sending the update, so a
+      // stale tab reports something actionable instead of the SDK's
+      // "Auth session missing!".
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        setBusy(false);
+        setSessionMissing(true);
+        return;
+      }
+
       // Rewrite password + clear the metadata flag in one auth update. The
       // metadata keys are re-sent explicitly so a replace-semantics GoTrue
       // build cannot drop the role/phone the degraded-login path depends on.
@@ -94,7 +150,12 @@ export default function ForcePasswordChangeGate() {
       window.location.reload();
     } catch (err) {
       logger.error("[ForcePasswordChange] update failed:", err);
-      setError(err instanceof Error ? err.message : "Failed to update the password. Please try again.");
+      const message = err instanceof Error ? err.message : "";
+      if (/session/i.test(message)) {
+        setSessionMissing(true);
+      } else {
+        setError(message || "Failed to update the password. Please try again.");
+      }
       setBusy(false);
     }
   };

@@ -5,10 +5,13 @@
 //
 // To modify: Run full test suite (lint + typecheck + regression + e2e)
 // ============================================================================
-import { NextRequest, NextResponse } from "next/server";
+
 import { createClient } from "@supabase/supabase-js";
-import { logger } from "@/lib/logger";
+import { NextRequest, NextResponse } from "next/server";
 import { rateLimitAsync, supabaseClientOptions } from "@/lib/api-utils";
+import { buildPhoneLookupCandidates } from "@/lib/auth-phone";
+import { logger } from "@/lib/logger";
+import { normalizeAuthPhone } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,14 +42,44 @@ export async function POST(request: NextRequest) {
       }),
     );
 
-    // Look up the email derived from the phone number
-    const email = `${phone}@omuto.org`;
+    // Resolve the account's REAL auth email. Hardcoding `${phone}@omuto.org`
+    // only matched accounts created from the 256… format; legacy 0…@omuto.org
+    // and @omuto.sms accounts silently never received the mail. The profile
+    // holds the auth_id, and the admin API maps that to the login identity.
+    const candidates = buildPhoneLookupCandidates(phone);
+    const lookup = candidates.length > 0 ? candidates : [phone];
+    let email = "";
+    try {
+      const { data: profile } = await supabase
+        .from("users")
+        .select("auth_id, email")
+        .in("phone", lookup)
+        .limit(1)
+        .maybeSingle();
 
-    // Build redirect URL with fallback
+      // The auth identity is authoritative: users.email holds whatever the
+      // person typed at registration, which is not always the login identity.
+      if (profile?.auth_id) {
+        const { data } = await supabase.auth.admin.getUserById(profile.auth_id);
+        email = data?.user?.email ?? "";
+      }
+      if (!email && profile?.email) {
+        email = profile.email;
+      }
+    } catch (err) {
+      logger.warn("[ForgotPassword] profile lookup failed, falling back to derived email:", err);
+    }
+
+    // Fallback for an account with no profile row yet: the canonical
+    // registration identity is the 12-digit number.
+    if (!email) email = `${normalizeAuthPhone(phone) || phone}@omuto.org`;
+
+    // Build redirect URL with fallback. trailingSlash is on, so the canonical
+    // path is /reset-password/ and the query Supabase appends survives.
     const appUrl = process.env.NEXT_PUBLIC_APP_URL;
     const redirectUrl = appUrl
-      ? `${appUrl}/reset-password`
-      : `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : ""}/reset-password`;
+      ? `${appUrl.replace(/\/$/, "")}/reset-password/`
+      : `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : ""}/reset-password/`;
 
     // Trigger Supabase password reset email (sends to the auth email)
     const resetOpts: { redirectTo?: string } = {};

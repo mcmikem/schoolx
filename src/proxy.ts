@@ -122,6 +122,7 @@ const alwaysPublicPaths = [
   "/resources/brochure",
   "/api/contact",
   "/api/marketers",
+  "/api/client-error",
 ];
 
 const SETUP_PATHS = ["/setup", "/setup-admin"];

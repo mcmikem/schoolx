@@ -77,8 +77,21 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
       const hadControllerAtStart = !!navigator.serviceWorker.controller;
       let hasReloadedForUpdate = false;
 
+      // Applying an update reloads the document. That is fine on a sign-in
+      // page nobody has touched, but destructive once the user has started
+      // typing: the reload wipes the form and they are left on "Checking your
+      // session…" instead of signed in. Only force it before any interaction.
+      // After that the update banner lets them choose, and the network-first
+      // navigation guarantees the next load is the current build.
+      let userInteracted = false;
+      const markInteraction = () => {
+        userInteracted = true;
+      };
+      window.addEventListener("pointerdown", markInteraction, { capture: true, once: true });
+      window.addEventListener("keydown", markInteraction, { capture: true, once: true });
+
       const reloadForActivatedUpdate = () => {
-        if (!shouldForceAuthRouteUpdate || hasReloadedForUpdate) return;
+        if (!shouldForceAuthRouteUpdate || hasReloadedForUpdate || userInteracted) return;
         if (!hadControllerAtStart) return;
         hasReloadedForUpdate = true;
         window.location.reload();
@@ -104,7 +117,7 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
           await reg.update().catch((err) => logger.warn("[SW] Update failed", err));
 
           if (reg.waiting) {
-            if (shouldForceAuthRouteUpdate) {
+            if (shouldForceAuthRouteUpdate && !userInteracted) {
               reg.waiting.postMessage({ type: "APPLY_UPDATE" });
             } else {
               announceUpdate(reg);
@@ -116,7 +129,7 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
             if (!newWorker) return;
             newWorker.addEventListener("statechange", () => {
               if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-                if (shouldForceAuthRouteUpdate) {
+                if (shouldForceAuthRouteUpdate && !userInteracted) {
                   newWorker.postMessage({ type: "APPLY_UPDATE" });
                   return;
                 }
@@ -156,6 +169,8 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
 
       return () => {
         navigator.serviceWorker.removeEventListener("controllerchange", reloadForActivatedUpdate);
+        window.removeEventListener("pointerdown", markInteraction, { capture: true });
+        window.removeEventListener("keydown", markInteraction, { capture: true });
         document.removeEventListener("visibilitychange", handleVisibility);
         clearInterval(interval);
         clearTimeout(initialCheck);

@@ -8,12 +8,13 @@ import { Button } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import type { Html5Qrcode } from "html5-qrcode";
 import { parseApiResponse } from "@/lib/api-response";
+import { newOfflineId } from "@/lib/offline";
 
 type AttendanceAction = "check_in" | "check_out";
 
 export default function StaffAttendanceScanPage() {
   const toast = useToast();
-  const scannerIdRef = useRef(typeof crypto !== "undefined" ? crypto.randomUUID() : `staff-${Date.now()}`);
+  const scannerIdRef = useRef(newOfflineId());
   const [action, setAction] = useState<AttendanceAction>("check_in");
   const [scanValue, setScanValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
