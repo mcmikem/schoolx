@@ -124,6 +124,27 @@ export interface DiagramRef {
    * honest gap than a wrong picture.
    */
   imageDataUri: string | null;
+  /**
+   * What `imageDataUri` holds. "crop" is the figure itself; "page" is the
+   * whole scanned page kept as a fallback when the figure region could not be
+   * found. Absent when there is no image.
+   */
+  imageKind?: "crop" | "page";
+}
+
+/**
+ * A figure cut from its page, produced while the page is still pixels.
+ *
+ * Position is needed to cut out a diagram, and position only exists during
+ * extraction; by the time the parser sees text the picture is already a
+ * rectangle somewhere in a page image. Extraction therefore publishes these
+ * and the parser matches them to diagram references by page.
+ */
+export interface DiagramCrop {
+  page: number;
+  /** Same spelling as DiagramRef.label, used to pair the two. */
+  label: string;
+  imageDataUri: string;
 }
 
 export interface ExamPaper {
@@ -196,4 +217,44 @@ export function reconcile(paper: ExamPaper): {
     stated: paper.totalMarks,
     agrees: counted !== null && paper.totalMarks !== null ? counted === paper.totalMarks : false,
   };
+}
+
+export interface QuestionAudit {
+  question: ExamQuestion;
+  issues: string[];
+}
+
+/**
+ * Self-check for individual questions: is it readable as a question at all,
+ * is it complete, is it understandable on its own. Failing the audit sends the
+ * question to a human with the original page alongside the parsed text, which
+ * is the honest fallback -- the machine saying "look at me" for a specific,
+ * checkable reason rather than a blanket "confidence is high enough".
+ */
+export function auditQuestion(question: ExamQuestion): string[] {
+  const issues: string[] = [];
+  if (!question.text.trim() && (question.subTasks?.length ?? 0) === 0) {
+    issues.push("question text was not recognised");
+  } else if (question.text.length < 20) {
+    issues.push("question text is suspiciously short");
+  }
+  const lastText = [...question.text.split(/\s+/)].reverse()[0] ?? "";
+  if (lastText.match(/[,:a-z]$/) !== null) {
+    issues.push("question text seems to be cut off");
+  }
+  if (question.number === null) {
+    issues.push("question number was not recognised");
+  }
+  const tail = /\bfig(?:ure)?|diagram|circuit|map|graph\b[^.]*$/i.test(question.text);
+  if (tail) {
+    issues.push("question references a figure that was not attached");
+  }
+  return issues;
+}
+
+/** Audits every question and returns the one ordered like the paper. */
+export function auditPaper(paper: ExamPaper): QuestionAudit[] {
+  return paper.questions
+    .map((question) => ({ question, issues: auditQuestion(question) }))
+    .filter((audit) => audit.issues.length > 0);
 }

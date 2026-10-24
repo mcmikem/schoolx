@@ -14,13 +14,14 @@ import { useEffect, useMemo, useState } from "react";
 import PdfSourceViewer from "@/components/exam/PdfSourceViewer";
 import { useAcademic } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
-import type { ExamPaper } from "@/lib/exam/exam-model";
-import { needsHuman, needsReview, reconcile } from "@/lib/exam/exam-model";
+import type { DiagramCrop, ExamPaper } from "@/lib/exam/exam-model";
+import { auditPaper, needsHuman, needsReview, reconcile } from "@/lib/exam/exam-model";
 import { parsePaper } from "@/lib/exam/parse-paper";
 import { extractTextFromPdf } from "@/lib/exam/pdf-text";
 import { renderPaperForm } from "@/lib/exam/render-form";
 import { useClasses, useSubjects } from "@/lib/hooks";
 import { withTimeout } from "@/lib/hooks/utils";
+import { newOfflineId } from "@/lib/offline";
 import { supabase } from "@/lib/supabase";
 
 const SAMPLE = `MATHEMATICS END OF TERM TEST
@@ -61,6 +62,7 @@ export default function ExamLabPage() {
   const [text, setText] = useState(SAMPLE);
   const [extractedPages, setExtractedPages] = useState<string[] | null>(null);
   const [extractedPageImages, setExtractedPageImages] = useState<Record<number, string> | null>(null);
+  const [extractedDiagramCrops, setExtractedDiagramCrops] = useState<DiagramCrop[] | null>(null);
   // Default to a manual paste, which is what the sample below is. File reads
   // set this from how they actually extracted the text.
   const [ocr, setOcr] = useState(false);
@@ -112,12 +114,13 @@ export default function ExamLabPage() {
         ocr,
         pageTexts: extractedPages ?? undefined,
         pageImages: extractedPageImages ?? undefined,
+        diagramCrops: extractedDiagramCrops ?? undefined,
       });
     } catch (e) {
       // A parser that throws should say so here rather than blanking the page.
       return { paper: null, warnings: [`Parser threw: ${e instanceof Error ? e.message : String(e)}`] };
     }
-  }, [text, ocr, extractedPages, extractedPageImages]);
+  }, [text, ocr, extractedPages, extractedPageImages, extractedDiagramCrops]);
 
   const practiceTitle =
     title || paperOverride?.title || result.paper?.title || sourceFile?.name.replace(/\.pdf$/i, "") || "";
@@ -128,11 +131,14 @@ export default function ExamLabPage() {
   const marks = paper ? reconcile(paper) : null;
   const review = paper ? needsReview(paper) : [];
   const human = paper ? needsHuman(paper) : [];
+  const audited = paper ? auditPaper(paper) : [];
 
   const resumePaper = async (savedPaper: SavedPaper) => {
     if (sourceUrl?.startsWith("blob:")) URL.revokeObjectURL(sourceUrl);
     setSourcePdfData(null);
     setExtractedPageImages(null);
+
+    setExtractedDiagramCrops(null);
     setSelectedSavedId(savedPaper.id);
     setPaperOverride(savedPaper.paper_model);
     setSourceFile(null);
@@ -174,7 +180,7 @@ export default function ExamLabPage() {
     setSaveMessage(null);
     let objectPath: string | null = null;
     try {
-      const examId = selectedSavedId || crypto.randomUUID();
+      const examId = selectedSavedId || newOfflineId();
       const sourcePath = paper.assignment?.source_path ?? `${school.id}/${examId}/source.pdf`;
       objectPath = sourcePath;
       if (sourceFile) {
@@ -279,6 +285,8 @@ export default function ExamLabPage() {
       setRawExtract(result.text);
       setExtractedPages(result.pageTexts);
       setExtractedPageImages(result.pageImages ?? null);
+
+      setExtractedDiagramCrops(result.diagramCrops ?? null);
       setOcr(true);
       if (!result.text.trim()) {
         setError("No readable text was found on those pages. Try another page range or check the original PDF.");
@@ -512,6 +520,8 @@ export default function ExamLabPage() {
                   setPaperOverride(null);
                   setExtractedPages(null);
                   setExtractedPageImages(null);
+
+                  setExtractedDiagramCrops(null);
                   setScanPageCount(null);
                   setTeacherConfirmed(false);
                   setSourceFile(isPdf ? file : null);
@@ -533,6 +543,8 @@ export default function ExamLabPage() {
                         setText("");
                         setExtractedPages(null);
                         setExtractedPageImages(null);
+
+                        setExtractedDiagramCrops(null);
                         setRawExtract(null);
                         setOcr(true);
                         setScanPageCount(result.pages);
@@ -547,6 +559,8 @@ export default function ExamLabPage() {
                       setRawExtract(result.text);
                       setExtractedPages(result.pageTexts);
                       setExtractedPageImages(result.pageImages ?? null);
+
+                      setExtractedDiagramCrops(result.diagramCrops ?? null);
                       // The parse flag must match how the text actually arrived,
                       // or the warnings lie about the source -- a text-layer
                       // read would carry an OCR penalty it did not earn.
@@ -563,6 +577,8 @@ export default function ExamLabPage() {
                       setHowRead("Read from the text file directly.");
                       setRawExtract(null);
                       setExtractedPageImages(null);
+
+                      setExtractedDiagramCrops(null);
                       setText(await file.text());
                     }
                   } catch (err) {
@@ -718,9 +734,26 @@ export default function ExamLabPage() {
                     tone={review.length ? "warn" : "good"}
                   />
                   <Stat label="Need a teacher" value={`${human.length} of ${paper.questions.length}`} />
+                  <Stat
+                    label="Audit findings"
+                    value={String(audited.reduce((n, a) => n + a.issues.length, 0))}
+                    tone={audited.length ? "warn" : "good"}
+                  />
                 </>
               ) : (
                 <Stat label="Questions found" value="0" tone="warn" />
+              )}
+
+              {audited.length > 0 && (
+                <ul style={{ margin: "10px 0 0", paddingLeft: 18, fontSize: 12, color: "#8a5a00" }}>
+                  {audited.slice(0, 8).map((a) => (
+                    <li key={a.question.id}>
+                      Question {a.question.number ?? "?"}: {a.issues.join("; ")} — compare with the original page below
+                      the question.
+                    </li>
+                  ))}
+                  {audited.length > 8 && <li>… {audited.length - 8} more findings</li>}
+                </ul>
               )}
 
               {result.warnings.length > 0 && (
