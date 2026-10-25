@@ -6,9 +6,11 @@ import { logger } from "@/lib/logger";
 
 const DB_NAME = "omuto.org-db";
 // 10 -> 11: adds the academic_terms, homework and homework_submissions stores.
+// 11 -> 12: adds student_transfers and student_promotions, so graduation and
+// transfers can be queued offline.
 // Existing browsers only run onupgradeneeded when the version rises, so a
 // version bump is what actually creates them.
-const DB_VERSION = 11;
+const DB_VERSION = 12;
 
 /**
  * IndexedDB key configuration for each object store, exported so unit tests can
@@ -167,6 +169,7 @@ class OfflineDB {
       }, DB_OPEN_TIMEOUT_MS);
 
       let request: IDBOpenDBRequest;
+      let retriedWithoutVersion = false;
       try {
         request = indexedDB.open(DB_NAME, DB_VERSION);
       } catch (error) {
@@ -178,6 +181,20 @@ class OfflineDB {
       }
 
       request.onerror = () => {
+        // A tab left open across a deploy still asks for the schema version it
+        // shipped with, and IndexedDB refuses to open a lower version. Retry
+        // without a version so that tab keeps working on the stores it already
+        // knows until the user reloads.
+        if (!retriedWithoutVersion && request.error?.name === "VersionError") {
+          retriedWithoutVersion = true;
+          const retry = indexedDB.open(DB_NAME);
+          retry.onerror = request.onerror;
+          retry.onblocked = request.onblocked;
+          retry.onsuccess = request.onsuccess;
+          retry.onupgradeneeded = request.onupgradeneeded;
+          request = retry;
+          return;
+        }
         finish(() => {
           this.initPromise = null;
           reject(request.error ?? new Error("Offline database failed to open"));
@@ -262,6 +279,8 @@ class OfflineDB {
           "transport_students",
           "teacher_substitutions",
           "promotion_history",
+          "student_promotions",
+          "student_transfers",
           "audit_log",
           "report_cards",
           "dashboard_cache",

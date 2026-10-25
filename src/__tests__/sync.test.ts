@@ -26,6 +26,12 @@ describe("Sync API Validation", () => {
       }
     });
 
+    test("allows the term-end tables queued by offline conduct, graduation and transfers", () => {
+      expect(isValidSyncTable("behavior_logs")).toBe(true);
+      expect(isValidSyncTable("student_promotions")).toBe(true);
+      expect(isValidSyncTable("student_transfers")).toBe(true);
+    });
+
     test("rejects table names not in the allowlist", () => {
       expect(isValidSyncTable("students")).toBe(true);
       expect(isValidSyncTable("users")).toBe(false);

@@ -15,11 +15,13 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { offlineDB, useOnlineStatus } from "@/lib/offline";
 
 const FINAL_LEVELS = ["P.7", "S.4", "S.6"];
 
 export default function GraduationPage() {
   const { school, user, isDemo } = useAuth();
+  const isOnline = useOnlineStatus();
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
   const { students, loading: studentsLoading } = useStudents(school?.id, { limit: 1000 });
@@ -58,6 +60,27 @@ export default function GraduationPage() {
     if (!selectedIds.size || !school?.id) return;
     setProcessing(true);
     try {
+      if (!isOnline) {
+        // Graduation is term-end work often done in a hall with no signal.
+        // Each pupil gets the status change plus the promotion record, in that
+        // order, so the certificate list stays right even if sync stops halfway.
+        for (const studentId of selectedIds) {
+          await offlineDB.save("students", { id: studentId, status: "completed" });
+          await offlineDB.save("student_promotions", {
+            school_id: school.id,
+            student_id: studentId,
+            academic_year: academicYear,
+            promoted_by: user?.id ?? null,
+            promoted_at: new Date().toISOString(),
+            notes: "graduation",
+          });
+        }
+        toast.success(`${selectedIds.size} student(s) saved on this device. They will sync when you are back online.`);
+        setEligibleStudents((prev) => prev.filter((s) => !selectedIds.has(s.id)));
+        setSelectedIds(new Set());
+        return;
+      }
+
       let userId = "system";
       if (!isDemo) {
         const { data: authData } = await supabase.auth.getUser();

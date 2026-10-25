@@ -35,6 +35,9 @@ const DIRECT_SCHOOL_TABLES = new Set([
   "messages",
   "events",
   "timetable",
+  "behavior_logs",
+  "student_promotions",
+  "student_transfers",
 ]);
 const OWNED_RELATION_TABLES = new Set(["attendance", "grades", "fee_payments"]);
 // Offline queues for class-scoped roles may only carry their own teaching

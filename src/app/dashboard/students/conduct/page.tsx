@@ -11,6 +11,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { format } from "date-fns";
 import { getErrorMessage } from "@/lib/validation";
 import { logger } from "@/lib/logger";
+import { offlineDB, useOnlineStatus } from "@/lib/offline";
 
 interface BehaviorLog {
   id: string;
@@ -31,6 +32,7 @@ const CATEGORIES_NEUTRAL = ["Counselling", "Parent Meeting", "Warning"];
 
 export default function ConductManagementPage() {
   const { school, user } = useAuth();
+  const isOnline = useOnlineStatus();
   const toast = useToast();
   const { students } = useStudents(school?.id, { limit: 1000, fields: "slim" });
 
@@ -101,21 +103,47 @@ export default function ConductManagementPage() {
             ? -Math.abs(form.points)
             : 0;
 
-      const { error } = await withTimeout(
-        supabase.from("behavior_logs").insert({
-          school_id: school!.id,
-          student_id: form.studentId,
-          date: form.date,
-          incident_type: form.incidentType,
-          category: form.category.trim(),
-          description: form.description.trim(),
-          action_taken: form.actionTaken.trim() || null,
-          points: pts,
-          recorded_by: user?.id,
-        }),
-        15000,
-        timeoutFallback(),
-      );
+      const payload = {
+        school_id: school!.id,
+        student_id: form.studentId,
+        date: form.date,
+        incident_type: form.incidentType,
+        category: form.category.trim(),
+        description: form.description.trim(),
+        action_taken: form.actionTaken.trim() || null,
+        points: pts,
+        recorded_by: user?.id,
+      };
+
+      if (!isOnline) {
+        const saved = await offlineDB.save("behavior_logs", payload);
+        const student = students.find((s) => s.id === form.studentId);
+        const optimistic = {
+          ...(saved as unknown as BehaviorLog),
+          students: student
+            ? {
+                first_name: student.first_name,
+                last_name: student.last_name,
+                classes: student.classes as { name: string } | undefined,
+              }
+            : undefined,
+        } as BehaviorLog;
+        setLogs((prev) => [optimistic, ...prev]);
+        toast.success("Conduct record saved on this device. It will sync when you are back online.");
+        setShowModal(false);
+        setForm({
+          studentId: "",
+          incidentType: "positive",
+          category: "",
+          description: "",
+          actionTaken: "",
+          points: 5,
+          date: format(new Date(), "yyyy-MM-dd"),
+        });
+        return;
+      }
+
+      const { error } = await withTimeout(supabase.from("behavior_logs").insert(payload), 15000, timeoutFallback());
       if (error) throw error;
       toast.success("Conduct record logged");
       setShowModal(false);

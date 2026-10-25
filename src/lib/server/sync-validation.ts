@@ -14,6 +14,11 @@ export const SYNC_VALID_TABLES = [
   "events",
   "timetable",
   "canteen_sales",
+  // Term-end work that used to require signal: conduct notes, graduation and
+  // transfer records. All three are school rows with a student foreign key.
+  "behavior_logs",
+  "student_promotions",
+  "student_transfers",
   // Audit events recorded while the device was offline are replayed through
   // here. Without this entry they were rejected at the allowlist check, retried
   // to the attempt limit, and then dropped -- which is why the audit trail was

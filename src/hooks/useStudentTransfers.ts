@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { withTimeout, timeoutFallback, getLocalDateString } from "@/lib/hooks/utils";
 import { DEMO_CLASSES } from "@/lib/demo-data";
 import { logger } from "@/lib/logger";
+import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import type { StudentWithClass } from "@/lib/hooks/students";
 import type { CreateStudentInput } from "@/types";
 
@@ -46,6 +47,7 @@ export function useStudentTransfers(
   toast: { success: (msg: string) => void; error: (msg: string) => void },
   school?: { name?: string | null; district?: string | null; phone?: string | null; email?: string | null } | null,
 ) {
+  const isOnline = useOnlineStatus();
   const transferPrintRef = useRef<HTMLDivElement>(null);
   const [transferActiveTab, setTransferActiveTab] = useState<TransferTab>("in");
   const [showTransferInModal, setShowTransferInModal] = useState(false);
@@ -156,22 +158,21 @@ export function useStudentTransfers(
         transfer_reason: transferInForm.reason,
       });
       if (!isDemo) {
-        await withTimeout(
-          supabase.from("student_transfers").insert({
-            student_id:
-              typeof newStudentId === "object" && "id" in (newStudentId || {})
-                ? (newStudentId as any).id
-                : newStudentId,
-            school_id: schoolId,
-            transfer_type: "in",
-            previous_school: transferInForm.previous_school,
-            reason: transferInForm.reason,
-            transfer_date: getLocalDateString(),
-            status: "completed",
-          }),
-          15000,
-          timeoutFallback(),
-        );
+        const transferRow = {
+          student_id:
+            typeof newStudentId === "object" && "id" in (newStudentId || {}) ? (newStudentId as any).id : newStudentId,
+          school_id: schoolId,
+          transfer_type: "in",
+          previous_school: transferInForm.previous_school,
+          reason: transferInForm.reason,
+          transfer_date: getLocalDateString(),
+          status: "completed",
+        };
+        if (!isOnline) {
+          await offlineDB.save("student_transfers", transferRow);
+        } else {
+          await withTimeout(supabase.from("student_transfers").insert(transferRow), 15000, timeoutFallback());
+        }
       }
       toast.success("Transfer-in student added successfully");
       setShowTransferInModal(false);
@@ -212,19 +213,20 @@ export function useStudentTransfers(
         dropout_date: transferOutForm.transfer_date,
       });
       if (!isDemo) {
-        await withTimeout(
-          supabase.from("student_transfers").insert({
-            student_id: transferOutForm.student_id,
-            school_id: schoolId,
-            transfer_type: "out",
-            next_school: transferOutForm.transfer_to,
-            reason: transferOutForm.reason,
-            transfer_date: transferOutForm.transfer_date,
-            status: "completed",
-          }),
-          15000,
-          timeoutFallback(),
-        );
+        const transferRow = {
+          student_id: transferOutForm.student_id,
+          school_id: schoolId,
+          transfer_type: "out",
+          next_school: transferOutForm.transfer_to,
+          reason: transferOutForm.reason,
+          transfer_date: transferOutForm.transfer_date,
+          status: "completed",
+        };
+        if (!isOnline) {
+          await offlineDB.save("student_transfers", transferRow);
+        } else {
+          await withTimeout(supabase.from("student_transfers").insert(transferRow), 15000, timeoutFallback());
+        }
       }
       const record: TransferOutRecord = {
         id: transferOutForm.student_id,
@@ -250,7 +252,7 @@ export function useStudentTransfers(
         reason: "",
         transfer_date: getLocalDateString(),
       });
-      if (!isDemo) fetchTransferHistory();
+      if (!isDemo && isOnline) fetchTransferHistory();
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Transfer failed";
       toast.error(errorMessage);
