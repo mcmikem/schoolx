@@ -93,6 +93,11 @@ export function isCacheableApiRequest(url: string, method: string): boolean {
     // Never replay another origin's API (and never treat localhost URLs as
     // same-origin during SSR).
     if (origin && parsed.origin !== origin) return false;
+    // The profile endpoint is what lets a signed-in app boot while offline.
+    // It is bearer-authenticated, so it is scoped by the JWT subject just like
+    // the Supabase reads (and purged on sign-out). All other auth routes stay
+    // live: replaying a stale login/OTP answer would be wrong.
+    if (parsed.pathname === "/api/auth/me" || parsed.pathname === "/api/auth/me/") return true;
     const blocked = API_BLOCKED_PREFIXES.some(
       (prefix) => parsed.pathname === prefix.replace(/\/$/, "") || parsed.pathname.startsWith(prefix),
     );
@@ -412,7 +417,10 @@ export function createOfflineAwareApiFetch(
 
     if (!isCacheableApiRequest(url, method)) return baseFetch(input, init);
 
-    const userId = getOfflineCacheUser();
+    const headerSource = init?.headers ?? request?.headers;
+    // `/api/auth/me/` carries the token, so it can be scoped before the
+    // provider has told us who is signed in (the first request of a load).
+    const userId = userIdFromAuthorization(readHeader(headerSource, "authorization")) ?? getOfflineCacheUser();
     if (!userId) return baseFetch(input, init);
 
     const key = `${userId}::api::${url}`;

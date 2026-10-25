@@ -7,6 +7,7 @@ import { ToastProvider } from "@/components/Toast";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { setupErrorLogging } from "@/lib/error-logger";
 import { logger } from "@/lib/logger";
+import { offlineDB } from "@/lib/offline";
 import { clearOfflineQueryCache, installOfflineApiFetch, setOfflineCacheUser } from "@/lib/offline-query-cache";
 import { supabase } from "@/lib/supabase";
 import { ThemeProvider } from "@/lib/theme-context";
@@ -63,6 +64,9 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
       if (event === "SIGNED_OUT") {
         setOfflineCacheUser(null);
         void clearOfflineQueryCache();
+        // Cached rows are not scoped by user, and a shared staff phone changes
+        // hands. Pending writes stay queued for the account that made them.
+        void offlineDB.clearCachedData().catch((error) => logger.warn("[offline] could not clear cached rows", error));
       }
     });
     return () => data.subscription.unsubscribe();

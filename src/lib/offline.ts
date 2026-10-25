@@ -468,6 +468,29 @@ class OfflineDB {
     });
   }
 
+  /**
+   * Drop cached server rows for every table, keeping pending work.
+   *
+   * Sign-out on a shared staff phone must not leave one school's roster,
+   * fees and marks sitting in IndexedDB for the next teacher. Queued writes
+   * (and their payloads) stay in `sync_queue`: they are the user's unsent
+   * work and are only replayed under an authorised session.
+   */
+  async clearCachedData(): Promise<void> {
+    const db = await this.ensureDb();
+    const protectedStores = new Set(["sync_queue"]);
+    const names = Array.from(db.objectStoreNames).filter((name) => !protectedStores.has(name));
+    if (names.length === 0) return;
+
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction(names, "readwrite");
+      for (const name of names) transaction.objectStore(name).clear();
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+    });
+  }
+
   // Store data fetched from server into cache
   async cacheFromServer(table: string, data: Record<string, unknown>[]): Promise<void> {
     try {

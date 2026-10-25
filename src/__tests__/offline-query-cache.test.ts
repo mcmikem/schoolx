@@ -301,7 +301,8 @@ describe("offline api cache: eligibility", () => {
     expect(isCacheableApiRequest("/api/reports/?type=fees", "GET")).toBe(true);
     expect(isCacheableApiRequest("/api/attendance/report/?classId=c1", "GET")).toBe(true);
     expect(isCacheableApiRequest("/api/reports/", "POST")).toBe(false);
-    expect(isCacheableApiRequest("/api/auth/me/", "GET")).toBe(false);
+    expect(isCacheableApiRequest("/api/auth/me/", "GET")).toBe(true);
+    expect(isCacheableApiRequest("/api/auth/session/", "GET")).toBe(false);
     expect(isCacheableApiRequest("/api/demo-login/", "GET")).toBe(false);
     expect(isCacheableApiRequest("/api/payment/invoices/?limit=10", "GET")).toBe(false);
     expect(isCacheableApiRequest("https://other.example/api/reports/", "GET")).toBe(false);
@@ -392,8 +393,8 @@ describe("offline api cache: replay", () => {
   it("does not touch blocked routes even with a cache present", async () => {
     setOfflineCacheUser("user-a");
     const store = new MemoryStore();
-    store.records.set("user-a::api::/api/auth/me/", {
-      key: "user-a::api::/api/auth/me/",
+    store.records.set("user-a::api::/api/auth/session/", {
+      key: "user-a::api::/api/auth/session/",
       userId: "user-a",
       status: 200,
       statusText: "OK",
@@ -407,8 +408,32 @@ describe("offline api cache: replay", () => {
     });
     const fetchWithCache = createOfflineAwareApiFetch(base, store, buildResponse);
 
-    await expect(fetchWithCache("/api/auth/me/")).rejects.toBeInstanceOf(TypeError);
+    await expect(fetchWithCache("/api/auth/session/")).rejects.toBeInstanceOf(TypeError);
     expect(base).toHaveBeenCalledTimes(1);
+  });
+
+  it("caches the bearer-authenticated profile before the provider knows the user", async () => {
+    setOfflineCacheUser(null);
+    const store = new MemoryStore();
+    const base = jest.fn(async () =>
+      asResponse(new FakeResponse('{"user":{"id":"user-a"}}', { headers: [["content-type", "application/json"]] })),
+    );
+    const fetchWithCache = createOfflineAwareApiFetch(base, store, buildResponse);
+
+    await fetchWithCache("/api/auth/me/", { headers: { authorization: AUTH } });
+    await settle();
+    expect(store.records.has("user-a::api::/api/auth/me/")).toBe(true);
+
+    setOnline(false);
+    const offlineBase = jest.fn(async () => {
+      throw new TypeError("Failed to fetch");
+    });
+    const offlineFetch = createOfflineAwareApiFetch(offlineBase, store, buildResponse);
+    const replayed = (await offlineFetch("/api/auth/me/", {
+      headers: { authorization: AUTH },
+    })) as unknown as FakeResponse;
+    expect(offlineBase).not.toHaveBeenCalled();
+    expect(await replayed.json()).toEqual({ user: { id: "user-a" } });
   });
 
   it("does not replay stale data after the caller aborts", async () => {

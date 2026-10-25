@@ -58,7 +58,8 @@
     "test:e2e:roles:teacher-bursar": "PLAYWRIGHT_USE_EXISTING_SERVER=true playwright test tests/e2e/dashboard-authenticated.spec.ts -g \"bursar can open finance actions on fees page|teacher can open teacher dashboard and sub-pages\" --workers=1",
     "test:regression": "jest --runInBand --testPathPatterns=regression",
     "test:auth": "jest --runInBand --forceExit src/__tests__/lockdown.test.ts src/__tests__/auth-flows.test.ts src/__tests__/slow-network-auth.test.ts src/__tests__/auth-failure.test.ts src/__tests__/pwa-update.test.ts src/__tests__/regression.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:e2e:offline": "playwright test --config=playwright.offline.config.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.0",
