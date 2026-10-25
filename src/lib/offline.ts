@@ -31,9 +31,36 @@ export function newOfflineId(): string {
       return crypto.randomUUID();
     }
   } catch {
-    // fall through to the Math.random fallback below
+    // fall through to the hand-built UUID below
   }
-  return `id-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e9).toString(36)}`;
+  // Table ids are Postgres uuid columns. The old `id-<time>-<random>` fallback
+  // queued a row the sync endpoint could never insert ("invalid input syntax
+  // for type uuid"), so offline creates on pre-92 WebViews were lost silently.
+  const bytes = new Uint8Array(16);
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+      crypto.getRandomValues(bytes);
+    }
+  } catch {
+    // Math.random below is weaker, but still unique enough for a local row.
+  }
+  let generated = false;
+  for (let i = 0; i < bytes.length; i++) {
+    if (bytes[i] !== 0) {
+      generated = true;
+      break;
+    }
+  }
+  if (!generated) {
+    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+  }
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => {
+    const part = byte.toString(16);
+    return part.length === 1 ? `0${part}` : part;
+  }).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 export function storeOptions(storeName: string): { keyPath: string; autoIncrement?: boolean } {

@@ -53,13 +53,14 @@ describe("newOfflineId", () => {
     for (const id of ids) expect(id.length).toBeGreaterThan(0);
   });
 
-  it("falls back when crypto.randomUUID is missing", () => {
+  it("falls back to a UUID even when crypto.randomUUID is missing", () => {
     const realCrypto = (globalThis as any).crypto;
     Object.defineProperty(globalThis, "crypto", { value: {}, configurable: true });
     try {
       const id = newOfflineId();
-      expect(typeof id).toBe("string");
-      expect(id.length).toBeGreaterThan(0);
+      // Offline-created rows are replayed into Postgres uuid columns, so a
+      // human-readable "id-..." would be rejected by the sync endpoint.
+      expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     } finally {
       Object.defineProperty(globalThis, "crypto", { value: realCrypto, configurable: true });
     }

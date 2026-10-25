@@ -7,7 +7,7 @@ import { DEMO_CLASSES, DEMO_STUDENTS, DemoStudent } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { formatStudentNumber, highestStudentNumberSuffix } from "@/lib/import/students";
 import { logger } from "@/lib/logger";
-import { offlineDB } from "@/lib/offline";
+import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { getFeatureLimit, getPlanUsageWarning, normalizePlanType, PlanType } from "@/lib/payments/subscription-client";
 import { supabase } from "@/lib/supabase";
 import {
@@ -643,6 +643,7 @@ export function useStudents(schoolId?: string, options?: StudentQueryOptions): U
   // past a 100-student plan without ever raising. The ref moves with the loop.
   const studentCountRef = useRef(totalCount);
   const { isDemo, school } = useAuth();
+  const isOnline = useOnlineStatus();
   const hasInitialized = useRef(false);
   const lastResolvedStudentsRef = useRef<StudentWithClass[]>([]);
   const prevIsDemo = useRef(isDemo);
@@ -920,6 +921,35 @@ export function useStudents(schoolId?: string, options?: StudentQueryOptions): U
       throw new Error("School context is missing. Please reload and try again.");
     }
 
+    if (!isOnline) {
+      // A register still has to work in a classroom with no bars. The row is
+      // written to IndexedDB and queued; the sync route inserts it with this
+      // same id once signal returns. The number is generated locally in a
+      // range the online sequence never reaches, so two phones do not hand out
+      // the same SM/<year>/<n>.
+      const typedNumber = (normalizedStudent.student_number as string) || "";
+      if (typedNumber && students.some((s) => s.student_number === typedNumber)) {
+        throw new Error("Student number already exists for this school");
+      }
+      const offlineNumber =
+        typedNumber ||
+        `SM/${new Date().getFullYear()}/${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 90 + 10)}`;
+      const saved = await offlineDB.save("students", {
+        ...normalizedStudent,
+        school_id: querySchoolId,
+        student_number: offlineNumber,
+        status: "active",
+        admission_date: getLocalDateString(),
+        created_at: new Date().toISOString(),
+      });
+      const createdStudent = saved as unknown as StudentWithClass;
+      setStudents((prev) => [createdStudent, ...prev]);
+      setTotalCount((prev) => prev + 1);
+      studentCountRef.current += 1;
+      invalidateCachePattern(`students:${schoolId}:`);
+      return createdStudent;
+    }
+
     try {
       // A number we just allocated from the seeded sequence does not need a
       // second database round trip to prove it is free: it came from the table
@@ -1117,6 +1147,29 @@ export function useStudents(schoolId?: string, options?: StudentQueryOptions): U
       setStudents((prev) => prev.map((s) => (s.id === id ? updatedStudent : s)));
       return updatedStudent;
     }
+    if (!isOnline) {
+      if (normalizedUpdates.student_number) {
+        const clash = students.some((s) => s.id !== id && s.student_number === normalizedUpdates.student_number);
+        if (clash) throw new Error("Student number already exists for this school");
+      }
+      const existing = students.find((s) => s.id === id) as (StudentWithClass & { houses?: unknown }) | undefined;
+      // `classes`/`houses` are joins, not columns: queueing them would make the
+      // replay UPDATE fail on the server.
+      const { classes, houses, ...localRow } = (existing ?? { id }) as StudentWithClass & { houses?: unknown };
+      const saved = await offlineDB.save("students", {
+        ...localRow,
+        ...normalizedUpdates,
+        id,
+      });
+      const updatedStudent = {
+        ...(saved as unknown as StudentWithClass),
+        ...(classes ? { classes } : {}),
+        ...(houses ? { houses } : {}),
+      } as StudentWithClass;
+      setStudents((prev) => prev.map((s) => (s.id === id ? updatedStudent : s)));
+      invalidateCachePattern(`students:${schoolId}:`);
+      return updatedStudent;
+    }
     try {
       await assertUniqueStudentNumber(normalizedUpdates.student_number as string | undefined, id);
       const firstUpdate = await withTimeout(
@@ -1215,6 +1268,14 @@ export function useStudents(schoolId?: string, options?: StudentQueryOptions): U
       setStudents((prev) => prev.filter((s) => s.id !== id));
       setTotalCount((prev) => prev - 1);
       studentCountRef.current = Math.max(0, studentCountRef.current - 1);
+      return;
+    }
+    if (!isOnline) {
+      await offlineDB.delete("students", id);
+      setStudents((prev) => prev.filter((s) => s.id !== id));
+      setTotalCount((prev) => prev - 1);
+      studentCountRef.current = Math.max(0, studentCountRef.current - 1);
+      invalidateCachePattern(`students:${schoolId}:`);
       return;
     }
     try {
