@@ -102,13 +102,19 @@ function renderQuestion(q: ExamQuestion, paper: ExamPaper): string {
   ${q.diagrams
     .filter(
       (diagram, index, diagrams) =>
-        !diagram.imageDataUri ||
-        diagrams.findIndex((candidate) => candidate.page === diagram.page && candidate.imageDataUri) === index,
+        diagram.imageKind !== "page" ||
+        diagrams.findIndex((candidate) => candidate.page === diagram.page && candidate.imageKind === "page") === index,
     )
     .map(
       (d) => `<div class="diagram">
       <span class="diagram__label">${escapeHtml(d.label)}</span>
-      ${d.imageDataUri ? `<details class="diagram__source"><summary>View original scanned page ${escapeHtml(String(d.page))} (full page)</summary><img src="${d.imageDataUri}" alt="Original scanned PDF page ${escapeHtml(String(d.page))}"></details>` : `<div class="diagram__missing">Image not captured — add it from the original paper.</div>`}
+      ${
+        d.imageDataUri
+          ? d.imageKind === "page"
+            ? `<details class="diagram__source"><summary>View original scanned page ${escapeHtml(String(d.page))} (full page)</summary><img src="${d.imageDataUri}" alt="Original scanned PDF page ${escapeHtml(String(d.page))}"></details>`
+            : `<img class="diagram__crop" src="${d.imageDataUri}" alt="Figure cut from page ${escapeHtml(String(d.page))}">`
+          : `<div class="diagram__missing">Image not captured — add it from the original paper.</div>`
+      }
     </div>`,
     )
     .join("")}

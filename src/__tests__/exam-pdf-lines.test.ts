@@ -102,3 +102,97 @@ describe("the parsed result of a shredded page", () => {
     expect(form.indexOf('<table class="q__table"')).toBeLessThan(form.indexOf("Reference: Original biology report"));
   });
 });
+
+describe("scan skew and prose misread as a table", () => {
+  it("deskews a tilted scan before grouping words into lines", () => {
+    // A one-degree tilt is enough for a word at the right margin to sit a line
+    // above its neighbours. Grouping on raw y then interleaves two sentences,
+    // which used to turn every paragraph into a ragged pseudo-table.
+    const slope = Math.tan((1 * Math.PI) / 180);
+    const line = (text: string, y: number, x: number) =>
+      text.split(" ").map((word, index) => ({
+        str: word,
+        x: x + index * 45,
+        y: y - (x + index * 45) * slope,
+        width: 38,
+        height: 10,
+      }));
+    const items = [
+      ...line("During the UPDF pass-out ceremony the army band performed", 700, 40),
+      ...line("using a variety of musical instruments in the parade", 686, 40),
+    ];
+
+    const text = rebuildLayout(items);
+    expect(text).toContain("During the UPDF pass-out ceremony the army band performed");
+    expect(text).toContain("using a variety of musical instruments in the parade");
+    expect(text).not.toMatch(/ceremony\s+using/);
+  });
+
+  it("keeps columned prose as text when the run has no grid", () => {
+    const { paper } = parsePaper(
+      [
+        "1. A space science lesson sparked a discussion.",
+        "and they became eager to learn\tmore. As",
+        "they conducted further\tresearch using textbooks",
+        "and the internet,\tthey came across images.",
+      ].join("\n"),
+    );
+    const question = paper.questions[0];
+    expect(question.tables).toBeUndefined();
+    expect(question.text).toContain("and they became eager to learn more");
+  });
+
+  it("pairs each figure reference with its own crop", () => {
+    const { paper } = parsePaper("1. Compare figure 1 and figure 2 below.", {
+      pageImages: { 1: "data:image/jpeg;base64,page" },
+      diagramCrops: [
+        { page: 1, label: "figure 1 on page 1", imageDataUri: "data:image/jpeg;base64,crop1" },
+        { page: 1, label: "figure 2 on page 1", imageDataUri: "data:image/jpeg;base64,crop2" },
+      ],
+    });
+    expect(paper.questions[0].diagrams.map((diagram) => diagram.label)).toEqual([
+      "figure 1 on page 1",
+      "figure 2 on page 1",
+    ]);
+    expect(paper.questions[0].diagrams.map((diagram) => diagram.imageKind)).toEqual(["crop", "crop"]);
+    expect(paper.questions[0].diagrams.map((diagram) => diagram.imageDataUri)).toEqual([
+      "data:image/jpeg;base64,crop1",
+      "data:image/jpeg;base64,crop2",
+    ]);
+  });
+});
+
+describe("figure cropping", () => {
+  const word = (text: string, x: number, y: number, width = 40, height = 10) => ({
+    text,
+    x0: x,
+    y0: y,
+    x1: x + width,
+    y1: y + height,
+  });
+
+  it("keeps a diagram's own table inside the crop and stops at the paragraph", () => {
+    const { findFigureCropRegions } = require("@/lib/exam/pdf-text") as typeof import("@/lib/exam/pdf-text");
+    const words = [
+      word("used", 40, 100),
+      word("is", 100, 100),
+      word("shown", 140, 100),
+      word("below.", 220, 100),
+      word("Primary", 300, 180),
+      word("Secondary", 600, 180),
+      word("Number", 300, 220),
+      word("turns", 380, 220),
+      word("=", 440, 220),
+      word("2000", 470, 220),
+      word("Figure", 500, 300),
+      word("3.", 570, 300),
+    ];
+
+    const [region] = findFigureCropRegions(words, 1000, 1000, 7);
+    expect(region.label).toBe("figure 3 on page 7");
+    // The transformer rows sit between the prose and the caption.
+    expect(region.top).toBeGreaterThanOrEqual(110);
+    expect(region.top).toBeLessThanOrEqual(180);
+    expect(region.top + region.height).toBeGreaterThan(310);
+  });
+});

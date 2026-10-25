@@ -96,3 +96,8 @@ stitch_ugandan_schools_ui_redesign/
 
 # agent skill dependency repo (heavy, vendored-only)
 .agents/skills/video-shotcraft/
+
+# Local exam sample papers + user bug notes (referenced by e2e specs, skipped when absent)
+report cards samples/
+bugs and errors/
+schoolx/supabase/promo.mp4

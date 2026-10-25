@@ -75,7 +75,7 @@ function needsDiagramPage(text: string): boolean {
   return /\b(?:fig(?:ure)?\.?\s*\d|diagram|circuit|shown\s+(?:below|above)|apparatus)\b/i.test(text);
 }
 
-interface WordBox {
+export interface WordBox {
   text: string;
   /** Canvas pixels, top-left origin. */
   x0: number;
@@ -101,7 +101,21 @@ interface FigureWord extends WordBox {
  * Nothing is invented: a page without a caption yields no crop and the caller
  * keeps the full page as an honest fallback.
  */
-function findFigureCrops(canvas: HTMLCanvasElement, words: WordBox[], page: number): DiagramCrop[] {
+export interface FigureCropRegion {
+  page: number;
+  label: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+export function findFigureCropRegions(
+  words: WordBox[],
+  pageWidth: number,
+  pageHeight: number,
+  page: number,
+): FigureCropRegion[] {
   if (words.length === 0) return [];
 
   const heights = words
@@ -132,6 +146,9 @@ function findFigureCrops(canvas: HTMLCanvasElement, words: WordBox[], page: numb
     line.forEach((word, index) => {
       const match = word.text.match(/^(?:fig(?:ure)?|diagram)[.,:]?\s*(\d{1,2})?[.,:]?$/i);
       if (!match) return;
+      // "diagram" mid-sentence is prose ("the circuit diagram in class"), not
+      // a caption. A bare "Diagram" label owns its line.
+      if (!/^fig/i.test(word.text) && line.length > 2) return;
       const next = line[index + 1];
       const number = match[1]
         ? Number(match[1])
@@ -143,7 +160,7 @@ function findFigureCrops(canvas: HTMLCanvasElement, words: WordBox[], page: numb
   }
   if (captions.length === 0) return [];
 
-  const crops: DiagramCrop[] = [];
+  const regions: FigureCropRegion[] = [];
   for (const caption of captions) {
     const lineIndex = lines.findIndex((line) => line.some((word) => word.x0 === caption.x0 && word.y0 === caption.y0));
     if (lineIndex < 0) continue;
@@ -158,46 +175,71 @@ function findFigureCrops(canvas: HTMLCanvasElement, words: WordBox[], page: numb
     const captionTop = Math.min(...captionLine.map((word) => word.y0));
     const captionBottom = Math.max(...captionLine.map((word) => word.y1));
     const left = previous ? (previous.x0 + caption.x0) / 2 : 0;
-    const right = next ? (caption.x0 + next.x0) / 2 : canvas.width;
+    const right = next ? (caption.x0 + next.x0) / 2 : pageWidth;
 
-    // The nearest line above that reads as body text bounds the drawing. Short
-    // lines there are figure labels, not the paragraph the figure interrupts.
-    let top = Math.max(0, captionTop - canvas.height * 0.4);
-    for (let above = lineIndex - 1; above >= 0; above--) {
-      const line = lines[above];
+    // The nearest paragraph above bounds the drawing. A paragraph ends in
+    // punctuation; the short labels and aligned rows that belong to the figure
+    // do not. Prefer that end so a table printed as part of the diagram (a
+    // transformer's turns, say) is kept inside the crop instead of being taken
+    // for body text and cut off.
+    const isBodyEnd = (line: WordBox[]) => {
       const text = line.map((word) => word.text).join(" ");
+      if (/^(?:figure|fig\.?|diagram)\b/i.test(text)) return false;
+      return /[.!?]$/.test(text) && line.length >= 3;
+    };
+    const isBodyLine = (line: WordBox[]) => {
       const lineWidth = Math.max(...line.map((word) => word.x1)) - Math.min(...line.map((word) => word.x0));
-      const wordCount = line.length;
-      if (wordCount >= 5 || lineWidth > canvas.width * 0.45) {
-        top = Math.max(0, Math.max(...line.map((word) => word.y1)) + medianHeight * 0.4);
-        break;
-      }
-      if (/[.!?]$/.test(text) && wordCount >= 3) {
-        top = Math.max(0, Math.max(...line.map((word) => word.y1)) + medianHeight * 0.4);
+      return line.length >= 5 || lineWidth > pageWidth * 0.45;
+    };
+    let top = Math.max(0, captionTop - pageHeight * 0.4);
+    let bodyLineIndex = -1;
+    for (let above = lineIndex - 1; above >= 0; above--) {
+      if (isBodyEnd(lines[above])) {
+        bodyLineIndex = above;
         break;
       }
     }
-    const bottom = Math.min(canvas.height, captionBottom + medianHeight * 0.6);
+    if (bodyLineIndex < 0) {
+      for (let above = lineIndex - 1; above >= 0; above--) {
+        if (isBodyLine(lines[above])) {
+          bodyLineIndex = above;
+          break;
+        }
+      }
+    }
+    if (bodyLineIndex >= 0) {
+      top = Math.max(0, Math.max(...lines[bodyLineIndex].map((word) => word.y1)) + medianHeight * 0.4);
+    }
+    const bottom = Math.min(pageHeight, captionBottom + medianHeight * 0.6);
 
     const width = right - left;
     const height = bottom - top;
     // A sliver is a caption misread, not a figure. Leave those to the page
     // fallback rather than ship a strip of blank paper.
-    if (width < canvas.width * 0.2 || height < medianHeight * 3) continue;
+    if (width < pageWidth * 0.2 || height < medianHeight * 3) continue;
 
-    const cropped = document.createElement("canvas");
-    cropped.width = Math.round(width);
-    cropped.height = Math.round(height);
-    const context = cropped.getContext("2d");
-    if (!context) continue;
-    context.drawImage(canvas, left, top, width, height, 0, 0, width, height);
-    crops.push({
+    regions.push({
       page,
       label: caption.number !== null ? `figure ${caption.number} on page ${page}` : `figure on page ${page}`,
-      imageDataUri: cropped.toDataURL("image/jpeg", 0.82),
+      left,
+      top,
+      width,
+      height,
     });
   }
-  return crops;
+  return regions;
+}
+
+function findFigureCrops(canvas: HTMLCanvasElement, words: WordBox[], page: number): DiagramCrop[] {
+  return findFigureCropRegions(words, canvas.width, canvas.height, page).flatMap((region) => {
+    const cropped = document.createElement("canvas");
+    cropped.width = Math.round(region.width);
+    cropped.height = Math.round(region.height);
+    const context = cropped.getContext("2d");
+    if (!context) return [];
+    context.drawImage(canvas, region.left, region.top, region.width, region.height, 0, 0, region.width, region.height);
+    return [{ page, label: region.label, imageDataUri: cropped.toDataURL("image/jpeg", 0.82) }];
+  });
 }
 
 export interface PdfPageRange {
