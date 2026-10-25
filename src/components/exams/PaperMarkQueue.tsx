@@ -7,16 +7,20 @@ import { logger } from "@/lib/logger";
 import { withTimeout } from "@/lib/hooks/utils";
 import { useToast } from "@/components/Toast";
 import { Button } from "@/components/ui/index";
+import { syncMarkedPaperToExamScores, type PaperExamSummary } from "@/lib/exam/score-sync";
 
 interface Submission {
   id: string;
+  exam_id: string;
+  student_id: string;
   student_name: string | null;
   exam_name: string | null;
+  exam: PaperExamSummary | null;
   answers: Record<string, string>;
 }
 
-export function PaperMarkQueue() {
-  const { school, user } = useAuth();
+export function PaperMarkQueue({ onCountChange }: { onCountChange?: (count: number) => void }) {
+  const { school, user, isDemo } = useAuth();
   const toast = useToast();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,18 +29,31 @@ export function PaperMarkQueue() {
   const load = useCallback(async () => {
     if (!school?.id) return;
     setLoading(true);
-    const result = await withTimeout(
-      (async () =>
+    const [result, counted] = await Promise.all([
+      withTimeout(
+        (async () =>
+          supabase
+            .from("exam_paper_submissions")
+            .select(
+              "id,exam_id,student_id,answers,marks_awarded,feedback,exams(id,name,exam_type,class_id,subject_id,term,academic_year,max_score),students(first_name,last_name)",
+            )
+            .eq("school_id", school.id)
+            .is("marks_awarded", null)
+            .order("submitted_at", { ascending: false })
+            .limit(50))(),
+        12000,
+        { data: null, error: new Error("Loading waited too long — try again.") } as any,
+      ),
+      withTimeout(
         supabase
           .from("exam_paper_submissions")
-          .select("id,exam_id,student_id,answers,marks_awarded,feedback,exams(name),students(first_name,last_name)")
+          .select("id", { count: "exact", head: true })
           .eq("school_id", school.id)
-          .is("marks_awarded", null)
-          .order("submitted_at", { ascending: false })
-          .limit(50))(),
-      12000,
-      { data: null, error: new Error("Loading waited too long — try again.") } as any,
-    );
+          .is("marks_awarded", null),
+        12000,
+        { count: null, error: null } as any,
+      ).catch(() => ({ count: null, error: null })),
+    ]);
     if (result.error) {
       logger.log("paper mark queue load failed", { error: result.error.message });
       toast.showToast("Could not load the marking list. Try again.");
@@ -44,24 +61,41 @@ export function PaperMarkQueue() {
     } else {
       setSubmissions(
         (result.data as unknown as Submission[]).map((row) => {
-          const exam = (row as Record<string, any>).exams as { name?: string } | null;
+          const exam = (row as Record<string, any>).exams as (PaperExamSummary & { name?: string }) | null;
           const student = (row as Record<string, any>).students as { first_name?: string; last_name?: string } | null;
           return {
             ...row,
+            exam: exam
+              ? {
+                  id: exam.id,
+                  exam_type: exam.exam_type,
+                  class_id: exam.class_id ?? null,
+                  subject_id: exam.subject_id ?? null,
+                  term: exam.term ?? null,
+                  academic_year: exam.academic_year ?? null,
+                  max_score: exam.max_score ?? null,
+                }
+              : null,
             exam_name: exam?.name ?? null,
             student_name: student ? [student.first_name, student.last_name].filter(Boolean).join(" ") : null,
           };
         }),
       );
     }
+    onCountChange?.(counted?.count ?? 0);
     setLoading(false);
-  }, [school?.id, toast]);
+  }, [school?.id, toast, onCountChange]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
   const mark = async (row: Submission, marks: number, feedback: string) => {
+    const maxScore = row.exam?.max_score ?? 100;
+    if (!Number.isFinite(marks) || marks < 0 || marks > maxScore) {
+      toast.showToast(`Marks must be between 0 and ${maxScore}.`);
+      return;
+    }
     setSavingId(row.id);
     const result = await withTimeout(
       supabase
@@ -79,10 +113,29 @@ export function PaperMarkQueue() {
     if (result.error) {
       toast.showToast("Could not save the mark. Your entry is still here.");
       logger.log("paper mark save failed", { error: result.error?.message });
-    } else {
-      toast.showToast("Mark saved.");
-      await load();
+      setSavingId(null);
+      return;
     }
+
+    // The paper is marked; now make the mark count. Demo sessions have no
+    // writeable grades, so the record stays in the queue's own toast.
+    if (!isDemo && row.exam) {
+      const synced = await syncMarkedPaperToExamScores(supabase, {
+        studentId: row.student_id,
+        exam: row.exam,
+        marks,
+        recordedBy: user?.id ?? null,
+      });
+      if (!synced.ok) {
+        logger.log("marked paper score sync failed", { error: synced.error });
+        toast.showToast("Mark saved, but the exam score could not be updated.");
+        setSavingId(null);
+        await load();
+        return;
+      }
+    }
+    toast.showToast("Mark saved.");
+    await load();
     setSavingId(null);
   };
 

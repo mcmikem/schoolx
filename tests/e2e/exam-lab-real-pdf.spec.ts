@@ -52,7 +52,11 @@ test("Exam Lab reads and parses the supplied Biology PDF", async ({ page }) => {
     fields.map((field) => (field as HTMLTextAreaElement).name),
   );
   expect(new Set(repeatedPartNames).size).toBe(repeatedPartNames.length);
-  await expect(parsedForm.getByText(/marks do not add up/i)).toBeVisible();
+  // This paper prints no total anywhere in its text layer, so there is
+  // nothing to reconcile against: the form must not invent a "marks do not
+  // add up" alarm or a total row it never read from the paper.
+  await expect(parsedForm.getByText(/marks do not add up/i)).toHaveCount(0);
+  await expect(parsedForm.getByText("Total marks", { exact: true })).toHaveCount(0);
   console.log(`Real Biology PDF: ${questionCount} parsed questions`);
   console.log(`Real Biology PDF preview: ${(await parsedForm.locator("body").innerText()).slice(0, 1200)}`);
 });

@@ -62,6 +62,8 @@ export default function ExamsPage() {
   const [examToDelete, setExamToDelete] = useState<string | null>(null);
   const [customExamWeights, setCustomExamWeights] = useState<ExamConfig[]>([]);
   const [loadingWeights, setLoadingWeights] = useState(true);
+  const [pendingMarks, setPendingMarks] = useState(0);
+  const handleMarkCountChange = useCallback((count: number) => setPendingMarks(count), []);
   const [newExam, setNewExam] = useState({
     name: "",
     exam_type: "eot",
@@ -247,19 +249,27 @@ export default function ExamsPage() {
                   <MaterialIcon icon="lock" className="text-sm" /> Term Locked
                 </span>
               )}
+              {pendingMarks > 0 ? (
+                <span className="px-3 py-1 bg-amber-soft text-amber rounded-full text-xs font-bold uppercase flex items-center gap-1">
+                  <MaterialIcon icon="assignment_turned_in" className="text-sm" /> {pendingMarks} to mark
+                </span>
+              ) : null}
               {canManageExams ? (
                 <Button onClick={() => setShowAddExam(true)} disabled={termLocked} variant="primary">
                   <MaterialIcon icon="add" className="text-lg" />
-                  <section className="mt-6">
-                    <h2 className="text-base font-semibold mb-3">Handed-in papers</h2>
-                    <PaperMarkQueue />
-                  </section>
                   Create Exam
                 </Button>
               ) : null}
             </div>
           }
         />
+
+        {canManageExams ? (
+          <section className="mt-6">
+            <h2 className="text-base font-semibold mb-3">Handed-in papers</h2>
+            <PaperMarkQueue onCountChange={handleMarkCountChange} />
+          </section>
+        ) : null}
 
         <Card className="mb-5 p-4">
           <div className="flex items-start gap-4">
