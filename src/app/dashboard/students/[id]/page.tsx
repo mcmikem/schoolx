@@ -9,6 +9,7 @@ import { useStudent, useClasses } from "@/lib/hooks";
 import { SendSMSModal } from "@/components/SendSMSModal";
 import { useToast } from "@/components/Toast";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { canAccess, type UserRole } from "@/lib/roles";
@@ -474,6 +475,7 @@ export default function StudentProfilePage() {
   const toast = useToast();
   const router = useRouter();
   const { student, loading: studentLoading, error, refetch } = useStudent(studentId);
+  const isOnline = useOnlineStatus();
   const { classes } = useClasses(school?.id);
   const studentProfile = useMemo(
     () =>
@@ -612,6 +614,12 @@ export default function StudentProfilePage() {
   const handleSetPrimaryGuardian = async (guardian: any) => {
     const name = guardian.users?.full_name || guardianForm.name;
     const phone = guardian.users?.phone || guardianForm.phone;
+    if (!isOnline) {
+      await offlineDB.save("students", { id: studentId, parent_name: name, parent_phone: phone });
+      refetch();
+      toast.success("Primary guardian updated on this device. It will sync when you are back online.");
+      return;
+    }
     await withTimeout(
       supabase.from("students").update({ parent_name: name, parent_phone: phone }).eq("id", studentId),
       15000,
@@ -649,6 +657,11 @@ export default function StudentProfilePage() {
   const handleProfileUpdate = useCallback(
     async (id: string, data: any) => {
       const normalized = normalizeStudentInput(data);
+      if (!isOnline) {
+        await offlineDB.save("students", { ...normalized, id });
+        refetch();
+        return;
+      }
       const { error } = await withTimeout(supabase.from("students").update(normalized).eq("id", id), 15000, {
         data: null,
         error: { message: "Save timed out", name: "TimeoutError" },
@@ -656,7 +669,7 @@ export default function StudentProfilePage() {
       if (error) throw error;
       refetch();
     },
-    [refetch],
+    [isOnline, refetch],
   );
 
   if (studentLoading)

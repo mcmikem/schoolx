@@ -333,6 +333,14 @@ async function fetchStudentsWithFallback(options: {
 async function fetchStudentByIdWithFallback(studentId: string, schoolId?: string) {
   const selectAttempts = buildStudentSelectAttempts("fetch");
 
+  // A profile opened with no signal reads the row this device already has,
+  // including edits queued from this page. Without this the detail screen only
+  // knew the last server response and showed yesterday's name after a save.
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    const local = await offlineDB.get("students", studentId).catch(() => null);
+    if (local) return local as unknown as StudentWithClass;
+  }
+
   let lastError: unknown = null;
 
   for (const attempt of selectAttempts) {
