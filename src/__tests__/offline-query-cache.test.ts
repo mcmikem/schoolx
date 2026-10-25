@@ -2,11 +2,15 @@ import { describe, expect, it, jest } from "@jest/globals";
 import {
   type CachedQueryResponse,
   type QueryCacheStore,
+  createOfflineAwareApiFetch,
   createOfflineAwareFetch,
+  installOfflineApiFetch,
+  isCacheableApiRequest,
   isCacheableRequest,
   queryCacheKey,
   readHeader,
   recordToResponse,
+  setOfflineCacheUser,
   userIdFromAuthorization,
 } from "@/lib/offline-query-cache";
 
@@ -90,6 +94,7 @@ async function settle() {
 
 afterEach(() => {
   setOnline(true);
+  setOfflineCacheUser(null);
 });
 
 describe("offline query cache: eligibility", () => {
@@ -288,5 +293,157 @@ describe("offline query cache: replay", () => {
     await expect(
       fetchWithCache(URL_STUDENTS, { headers: { authorization: AUTH }, signal: controller.signal }),
     ).rejects.toBe(abortError);
+  });
+});
+
+describe("offline api cache: eligibility", () => {
+  it("caches same-origin JSON GETs and leaves session/payment routes alone", () => {
+    expect(isCacheableApiRequest("/api/reports/?type=fees", "GET")).toBe(true);
+    expect(isCacheableApiRequest("/api/attendance/report/?classId=c1", "GET")).toBe(true);
+    expect(isCacheableApiRequest("/api/reports/", "POST")).toBe(false);
+    expect(isCacheableApiRequest("/api/auth/me/", "GET")).toBe(false);
+    expect(isCacheableApiRequest("/api/demo-login/", "GET")).toBe(false);
+    expect(isCacheableApiRequest("/api/payment/invoices/?limit=10", "GET")).toBe(false);
+    expect(isCacheableApiRequest("https://other.example/api/reports/", "GET")).toBe(false);
+    expect(isCacheableApiRequest("https://proj.supabase.co/rest/v1/students", "GET")).toBe(false);
+  });
+});
+
+describe("offline api cache: replay", () => {
+  const URL_REPORT = "/api/reports/?type=attendance";
+
+  it("stores a signed-in user's JSON read and replays it offline", async () => {
+    setOfflineCacheUser("user-a");
+    const store = new MemoryStore();
+    const online = jest.fn(async () =>
+      asResponse(
+        new FakeResponse('{"rows":[{"id":1}]}', {
+          headers: [
+            ["content-type", "application/json"],
+            ["content-encoding", "gzip"],
+          ],
+        }),
+      ),
+    );
+    const fetchWithCache = createOfflineAwareApiFetch(online, store, buildResponse);
+
+    const live = (await fetchWithCache(URL_REPORT)) as unknown as FakeResponse;
+    expect(await live.json()).toEqual({ rows: [{ id: 1 }] });
+    await settle();
+
+    const cached = store.records.get("user-a::api::/api/reports/?type=attendance");
+    expect(cached).toBeDefined();
+    expect(cached?.headers.map(([name]) => name)).not.toContain("content-encoding");
+
+    setOnline(false);
+    const base = jest.fn(async () => {
+      throw new TypeError("Failed to fetch");
+    });
+    const offlineFetch = createOfflineAwareApiFetch(base, store, buildResponse);
+    const replayed = (await offlineFetch(URL_REPORT)) as unknown as FakeResponse;
+    expect(base).not.toHaveBeenCalled();
+    expect(await replayed.json()).toEqual({ rows: [{ id: 1 }] });
+  });
+
+  it("never serves one user's API response to another", async () => {
+    setOfflineCacheUser("user-a");
+    const store = new MemoryStore();
+    const base = jest.fn(async () =>
+      asResponse(new FakeResponse('{"rows":[]}', { headers: [["content-type", "application/json"]] })),
+    );
+    const fetchWithCache = createOfflineAwareApiFetch(base, store, buildResponse);
+    await fetchWithCache(URL_REPORT);
+    await settle();
+
+    setOnline(false);
+    setOfflineCacheUser("user-b");
+    const otherBase = jest.fn(async () => {
+      throw new TypeError("Failed to fetch");
+    });
+    const otherFetch = createOfflineAwareApiFetch(otherBase, store, buildResponse);
+    await expect(otherFetch(URL_REPORT)).rejects.toBeInstanceOf(TypeError);
+    expect(otherBase).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not cache non-JSON downloads or no-store responses", async () => {
+    setOfflineCacheUser("user-a");
+    const store = new MemoryStore();
+    const pdf = jest.fn(async () =>
+      asResponse(new FakeResponse("%PDF-1.4", { headers: [["content-type", "application/pdf"]] })),
+    );
+    const noStore = jest.fn(async () =>
+      asResponse(
+        new FakeResponse('{"ok":true}', {
+          headers: [
+            ["content-type", "application/json"],
+            ["cache-control", "no-store"],
+          ],
+        }),
+      ),
+    );
+
+    await createOfflineAwareApiFetch(pdf, store, buildResponse)("/api/reports/export/");
+    await createOfflineAwareApiFetch(noStore, store, buildResponse)("/api/reports/live/");
+    await settle();
+
+    expect(store.records.size).toBe(0);
+  });
+
+  it("does not touch blocked routes even with a cache present", async () => {
+    setOfflineCacheUser("user-a");
+    const store = new MemoryStore();
+    store.records.set("user-a::api::/api/auth/me/", {
+      key: "user-a::api::/api/auth/me/",
+      userId: "user-a",
+      status: 200,
+      statusText: "OK",
+      headers: [],
+      body: '{"id":"user-a"}',
+      savedAt: Date.now(),
+    });
+    setOnline(false);
+    const base = jest.fn(async () => {
+      throw new TypeError("Failed to fetch");
+    });
+    const fetchWithCache = createOfflineAwareApiFetch(base, store, buildResponse);
+
+    await expect(fetchWithCache("/api/auth/me/")).rejects.toBeInstanceOf(TypeError);
+    expect(base).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not replay stale data after the caller aborts", async () => {
+    setOfflineCacheUser("user-a");
+    const store = new MemoryStore();
+    const key = "user-a::api::/api/reports/";
+    store.records.set(key, {
+      key,
+      userId: "user-a",
+      status: 200,
+      statusText: "OK",
+      headers: [],
+      body: "[]",
+      savedAt: Date.now(),
+    });
+
+    const abortError = Object.assign(new Error("aborted"), { name: "AbortError" });
+    const base = jest.fn(async () => {
+      throw abortError;
+    });
+    const controller = new AbortController();
+    controller.abort();
+    const fetchWithCache = createOfflineAwareApiFetch(base, store, buildResponse);
+
+    await expect(fetchWithCache("/api/reports/", { signal: controller.signal })).rejects.toBe(abortError);
+  });
+});
+
+describe("offline api cache: install", () => {
+  it("wraps and restores window.fetch", () => {
+    setOfflineCacheUser("user-a");
+    const original = window.fetch;
+    const cleanup = installOfflineApiFetch();
+    expect(window.fetch).not.toBe(original);
+    cleanup();
+    expect(window.fetch).toBe(original);
   });
 });

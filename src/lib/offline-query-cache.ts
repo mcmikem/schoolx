@@ -48,6 +48,60 @@ const OPEN_TIMEOUT_MS = 3000;
 // header would make the browser try to decompress it a second time.
 const STRIPPED_HEADERS = new Set(["content-encoding", "content-length", "transfer-encoding", "connection"]);
 
+// Server routes whose answers are either session state (a cached "signed in"
+// would outlive a revoked session) or a job that only makes sense live. Reads
+// of school data are fine; these are not.
+const API_BLOCKED_PREFIXES = [
+  "/api/auth/",
+  "/api/demo-login/",
+  "/api/csrf",
+  "/api/health",
+  "/api/forgot-password",
+  "/api/register",
+  "/api/payment/",
+  "/api/modules/",
+  "/api/sms/",
+  "/api/ai/",
+  "/api/client-error/",
+  "/api/bug-report/",
+  "/api/privacy/",
+  "/api/parse-import/",
+  "/api/import",
+];
+
+let activeUserId: string | null = null;
+
+/**
+ * The Supabase REST cache reads the caller from the request's JWT. `/api/`
+ * routes authenticate with a cookie instead, so a provider has to say who is
+ * signed in before those responses can be scoped safely.
+ */
+export function setOfflineCacheUser(userId: string | null | undefined): void {
+  activeUserId = userId && userId.length > 0 ? userId : null;
+}
+
+export function getOfflineCacheUser(): string | null {
+  return activeUserId;
+}
+
+export function isCacheableApiRequest(url: string, method: string): boolean {
+  if (method.toUpperCase() !== "GET") return false;
+  try {
+    const origin = typeof location !== "undefined" ? location.origin : null;
+    const parsed = new URL(url, origin ?? "https://app.local");
+    if (!parsed.pathname.startsWith("/api/")) return false;
+    // Never replay another origin's API (and never treat localhost URLs as
+    // same-origin during SSR).
+    if (origin && parsed.origin !== origin) return false;
+    const blocked = API_BLOCKED_PREFIXES.some(
+      (prefix) => parsed.pathname === prefix.replace(/\/$/, "") || parsed.pathname.startsWith(prefix),
+    );
+    return !blocked;
+  } catch {
+    return false;
+  }
+}
+
 export function isCacheableRequest(url: string, method: string, destination?: string): boolean {
   if (method.toUpperCase() !== "GET") return false;
   if (destination === "document" || destination === "image" || destination === "script") return false;
@@ -305,6 +359,102 @@ export function createOfflineAwareFetch(
       const cached = await store.get(key);
       if (cached) return buildResponse(cached);
       throw error;
+    }
+  };
+}
+
+async function persistApiResponse(
+  store: QueryCacheStore,
+  key: string,
+  userId: string,
+  response: Response,
+): Promise<void> {
+  try {
+    const contentType = response.headers.get("content-type") ?? "";
+    // Binary downloads (PDFs, exports) go straight to the user; only JSON is a
+    // screen worth replaying.
+    if (!contentType.includes("application/json")) return;
+    const cacheControl = response.headers.get("cache-control") ?? "";
+    if (/no-store/i.test(cacheControl)) return;
+    const headers = Array.from(response.headers.entries()).filter(
+      ([name]) => !STRIPPED_HEADERS.has(name.toLowerCase()),
+    );
+    const body = await response.text();
+    if (body.length > MAX_BODY_BYTES) return;
+    await store.put({
+      key,
+      userId,
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+      body,
+      savedAt: Date.now(),
+    });
+  } catch {
+    // Quota, private mode, a streamed body: the live response is still returned.
+  }
+}
+
+/**
+ * Same-origin `/api/` GETs, for pages backed by a server route rather than a
+ * direct PostgREST query (reports, attendance history, parent notices). Only
+ * the signed-in user's own responses are stored, and only JSON.
+ */
+export function createOfflineAwareApiFetch(
+  baseFetch: FetchLike,
+  store: QueryCacheStore = idbStore,
+  buildResponse: ResponseBuilder = recordToResponse,
+) {
+  return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const request = typeof Request !== "undefined" && input instanceof Request ? input : null;
+    const url = request ? request.url : input instanceof URL ? input.href : String(input);
+    const method = init?.method ?? request?.method ?? "GET";
+
+    if (!isCacheableApiRequest(url, method)) return baseFetch(input, init);
+
+    const userId = getOfflineCacheUser();
+    if (!userId) return baseFetch(input, init);
+
+    const key = `${userId}::api::${url}`;
+    const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+
+    if (offline) {
+      const cached = await store.get(key);
+      if (cached) return buildResponse(cached);
+      return baseFetch(input, init);
+    }
+
+    try {
+      const response = await baseFetch(input, init);
+      if (response.ok) void persistApiResponse(store, key, userId, response.clone());
+      return response;
+    } catch (error) {
+      if (init?.signal?.aborted) throw error;
+      const cached = await store.get(key);
+      if (cached) return buildResponse(cached);
+      throw error;
+    }
+  };
+}
+
+let apiFetchInstalled = false;
+
+/** Install the API cache over the browser's fetch. Idempotent; returns a cleanup. */
+export function installOfflineApiFetch(): () => void {
+  if (typeof window === "undefined" || typeof window.fetch !== "function" || apiFetchInstalled) {
+    return () => {};
+  }
+  const original = window.fetch;
+  // Bind only for calls; the cleanup must put back the exact function it found
+  // (tests and other wrappers compare identity).
+  const bound = original.bind(window);
+  const wrapped = createOfflineAwareApiFetch((input, init) => bound(input, init));
+  window.fetch = wrapped as typeof window.fetch;
+  apiFetchInstalled = true;
+  return () => {
+    if (window.fetch === wrapped) {
+      window.fetch = original;
+      apiFetchInstalled = false;
     }
   };
 }

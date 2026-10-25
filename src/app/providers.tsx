@@ -7,7 +7,7 @@ import { ToastProvider } from "@/components/Toast";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { setupErrorLogging } from "@/lib/error-logger";
 import { logger } from "@/lib/logger";
-import { clearOfflineQueryCache } from "@/lib/offline-query-cache";
+import { clearOfflineQueryCache, installOfflineApiFetch, setOfflineCacheUser } from "@/lib/offline-query-cache";
 import { supabase } from "@/lib/supabase";
 import { ThemeProvider } from "@/lib/theme-context";
 
@@ -60,7 +60,10 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
     // stay on disk until someone removes them. A shared staff phone changes
     // hands between sessions, so sign-out has to wipe it.
     const { data } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT") void clearOfflineQueryCache();
+      if (event === "SIGNED_OUT") {
+        setOfflineCacheUser(null);
+        void clearOfflineQueryCache();
+      }
     });
     return () => data.subscription.unsubscribe();
   }, []);
@@ -243,6 +246,18 @@ function MobileKeyboardHandler() {
   return null;
 }
 
+function OfflineCacheScope() {
+  const { user } = useAuth();
+
+  useEffect(() => {
+    setOfflineCacheUser(user?.id);
+  }, [user?.id]);
+
+  useEffect(() => installOfflineApiFetch(), []);
+
+  return null;
+}
+
 function LoadingChecker({ children }: { children: ReactNode }) {
   const { authInitialized, user } = useAuth();
   const [showStuckLoading, setShowStuckLoading] = useState(false);
@@ -282,6 +297,7 @@ export default function Providers({ children }: { children: ReactNode }) {
             <AuthProvider>
               <LoadingChecker>
                 <MobileKeyboardHandler />
+                <OfflineCacheScope />
                 <FaviconUpdater />
                 <BrandProvider>{children}</BrandProvider>
               </LoadingChecker>
