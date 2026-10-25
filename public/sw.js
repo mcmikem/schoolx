@@ -5,6 +5,9 @@ const CACHE_VERSION = 'skoolmate-v15';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
+// RSC payloads get their own store: a payload and the HTML for the same URL
+// must never overwrite each other.
+const RSC_CACHE = `${CACHE_VERSION}-rsc`;
 const OFFLINE_FALLBACK = '/offline.html';
 
 const PAGES_TO_CACHE = [
@@ -33,6 +36,43 @@ const APP_SHELL_ROUTES = [
 
 function isNavigationRequest(request) {
   return request.mode === 'navigate' || (request.destination === 'document');
+}
+
+// Client-side App Router navigations fetch an RSC payload. Next adds a fresh
+// `_rsc` cache-busting value to every one of those URLs, so keying the cache by
+// the full URL meant an offline navigation could never hit the copy saved by
+// the previous (online) visit or by <Link> prefetching -- every dashboard page
+// appeared to be unusable offline even after it had been opened. Normalise the
+// key by dropping `_rsc` and keep prefetch payloads separate: a prefetch can be
+// a partial tree, while a real navigation needs the full one.
+function rscCacheKey(request) {
+  if (request.method !== 'GET') return null;
+  const url = new URL(request.url);
+  const isRsc = request.headers.get('RSC') === '1' || url.searchParams.has('_rsc');
+  if (!isRsc) return null;
+  url.searchParams.delete('_rsc');
+  const prefetch = request.headers.get('Next-Router-Prefetch') === '1' || request.headers.get('next-router-prefetch') === '1';
+  return { key: url.toString() + (prefetch ? '#prefetch' : ''), fallbackKey: prefetch ? null : url.toString() + '#prefetch' };
+}
+
+// For a detail URL that was never opened (a pupil, an invoice), the nearest
+// cached list page is far more useful offline than the marketing site or a
+// generic error. Walk up the path until one of the parent pages is cached.
+const APP_SECTIONS = ['/dashboard', '/parent-portal', '/student-portal', '/super-admin', '/onboarding'];
+async function matchNearestSectionPage(pathname) {
+  if (!APP_SECTIONS.some((section) => pathname === section || pathname.startsWith(section + '/'))) return null;
+  const pageCache = await caches.open(PAGE_CACHE);
+  let candidate = pathname.replace(/\/$/, '');
+  while (candidate.length > 0) {
+    const cached = await pageCache.match(candidate + '/');
+    if (cached) return cached;
+    // Never climb out of the app section into a public marketing page.
+    if (APP_SECTIONS.includes(candidate)) return null;
+    const slash = candidate.lastIndexOf('/');
+    if (slash <= 0) break;
+    candidate = candidate.slice(0, slash);
+  }
+  return null;
 }
 
 self.addEventListener('install', (event) => {
@@ -130,6 +170,34 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  const rsc = rscCacheKey(request);
+  if (rsc) {
+    event.respondWith(
+      (async () => {
+        try {
+          const response = await fetch(request);
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(RSC_CACHE).then((cache) => cache.put(rsc.key, clone));
+          }
+          return response;
+        } catch {
+          const rscCache = await caches.open(RSC_CACHE);
+          const cached = await rscCache.match(rsc.key);
+          if (cached) return cached;
+          if (rsc.fallbackKey) {
+            const prefetched = await rscCache.match(rsc.fallbackKey);
+            if (prefetched) return prefetched;
+          }
+          // A failed RSC fetch makes the App Router fall back to a normal
+          // navigation, which the handler below serves from PAGE_CACHE.
+          return new Response('', { status: 504, statusText: 'Offline' });
+        }
+      })()
+    );
+    return;
+  }
+
   if (isNavigationRequest(request)) {
     const isDashboardRoute = url.pathname.startsWith('/dashboard') || url.pathname.startsWith('/onboarding');
 
@@ -150,7 +218,8 @@ self.addEventListener('fetch', (event) => {
 
     event.respondWith(
       (async () => {
-        const cachedPage = await caches.match(request);
+        const pageCache = await caches.open(PAGE_CACHE);
+        const cachedPage = await pageCache.match(request);
 
         // Offline: no point waiting for a network that is not there.
         if (self.navigator && self.navigator.onLine === false && cachedPage) return cachedPage;
@@ -174,12 +243,19 @@ self.addEventListener('fetch', (event) => {
         } catch (err) {
           if (cachedPage) return cachedPage;
 
-          // An uncached dashboard URL falls back to the dashboard app shell, never
-          // to "/" — that is the public marketing page, which made an offline
-          // teacher land on the sales site instead of the app.
+          // An uncached dashboard URL falls back to its nearest cached list
+          // page (a pupil detail opens the student list), and only then to the
+          // dashboard app shell -- never to "/", the public marketing page,
+          // which made an offline teacher land on the sales site instead of
+          // the app.
           if (isDashboardRoute) {
-            const dashboardShell = await caches.match('/dashboard/');
+            const nearest = await matchNearestSectionPage(url.pathname);
+            if (nearest) return nearest;
+            const dashboardShell = await pageCache.match('/dashboard/');
             if (dashboardShell) return dashboardShell;
+          } else {
+            const nearest = await matchNearestSectionPage(url.pathname);
+            if (nearest) return nearest;
           }
 
           const offlinePage = await caches.match(OFFLINE_FALLBACK);

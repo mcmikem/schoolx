@@ -7,6 +7,8 @@ import { ToastProvider } from "@/components/Toast";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { setupErrorLogging } from "@/lib/error-logger";
 import { logger } from "@/lib/logger";
+import { clearOfflineQueryCache } from "@/lib/offline-query-cache";
+import { supabase } from "@/lib/supabase";
 import { ThemeProvider } from "@/lib/theme-context";
 
 const ForcePasswordChangeGate = dynamic(() => import("@/components/ForcePasswordChangeGate"), { ssr: false });
@@ -53,6 +55,16 @@ function FaviconUpdater() {
 }
 
 function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    // The offline read cache is scoped by user id, but the rows themselves
+    // stay on disk until someone removes them. A shared staff phone changes
+    // hands between sessions, so sign-out has to wipe it.
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") void clearOfflineQueryCache();
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
   useEffect(() => {
     setupErrorLogging();
     // Keep the PWA worker out of local development. Next.js HMR owns reloads

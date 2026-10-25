@@ -1,6 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { createBrowserClient } from "@supabase/ssr";
 import { logger } from "@/lib/logger";
+import { offlineAwareFetch } from "@/lib/offline-query-cache";
 import { supabaseClientOptions } from "@/lib/supabase-client";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -235,6 +236,9 @@ const realClient = hasUsableSupabaseConfig
           cookieOptions: {
             maxAge: SESSION_COOKIE_LIFETIME,
           },
+          // Last-known-good reads when the network is gone. Scoped per user and
+          // cleared on sign-out (see providers.tsx).
+          global: { fetch: offlineAwareFetch },
         },
         // Backstop so direct component queries (bypassing the withTimeout
         // hooks) abort instead of spinning forever on poor networks. All

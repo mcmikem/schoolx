@@ -41,7 +41,12 @@ function abortReason(message: string): Error {
   return error;
 }
 
-export function createFetchWithTimeout(defaultTimeout = SUPABASE_DEFAULT_TIMEOUT_MS) {
+type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+
+export function createFetchWithTimeout(
+  defaultTimeout = SUPABASE_DEFAULT_TIMEOUT_MS,
+  baseFetch: FetchLike = (input, init) => fetch(input, init),
+) {
   return (input: RequestInfo | URL, init?: RequestInit) => {
     const controller = new AbortController();
     const callerSignal = init?.signal;
@@ -62,7 +67,7 @@ export function createFetchWithTimeout(defaultTimeout = SUPABASE_DEFAULT_TIMEOUT
       controller.abort(abortReason(`Supabase request timed out after ${budget}ms.`));
     }, budget);
 
-    return fetch(input, { ...init, signal: controller.signal }).finally(() => {
+    return baseFetch(input, { ...init, signal: controller.signal }).finally(() => {
       clearTimeout(timeoutId);
       // Otherwise a long-lived caller signal accumulates one listener per call.
       callerSignal?.removeEventListener("abort", onCallerAbort);
@@ -78,11 +83,19 @@ export function supabaseClientOptions<T extends object = object>(
   timeoutMs = SUPABASE_DEFAULT_TIMEOUT_MS,
 ): T & { global: { fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> } } {
   const existingGlobal = (options as { global?: Record<string, unknown> } | undefined)?.global;
+  // Compose instead of replacing: the browser client installs an offline cache
+  // in `global.fetch`, and the timeout must still wrap it. Replacing dropped
+  // the cache entirely, so every page went back to network-only reads.
+  const existingFetch = existingGlobal?.fetch;
+  const fetchImpl =
+    typeof existingFetch === "function"
+      ? (existingFetch as FetchLike)
+      : (input: RequestInfo | URL, init?: RequestInit) => fetch(input, init);
   return {
     ...options,
     global: {
       ...(existingGlobal ?? {}),
-      fetch: createFetchWithTimeout(timeoutMs),
+      fetch: createFetchWithTimeout(timeoutMs, fetchImpl),
     },
   } as T & { global: { fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> } };
 }

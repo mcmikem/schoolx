@@ -57,8 +57,27 @@ describe("service worker slow-link and offline behaviour", () => {
   });
 
   it("falls back to the dashboard shell, never the public marketing page, for offline dashboard URLs", () => {
-    expect(sw).toContain("caches.match('/dashboard/')");
+    expect(sw).toContain("pageCache.match('/dashboard/')");
     expect(sw).not.toMatch(/dashboardCached\s*=\s*await caches\.match\('\/'\)/);
+  });
+
+  it("normalises App Router RSC cache keys so visited pages open offline", () => {
+    // Every client-side navigation carries a fresh `_rsc` value. Keying the
+    // cache by the full URL meant none of those payloads were ever reusable
+    // offline, so dashboard pages looked broken after signal was lost.
+    expect(sw).toContain("rscCacheKey");
+    expect(sw).toContain("url.searchParams.delete('_rsc')");
+    expect(sw).toContain("#prefetch");
+    expect(sw).toContain("status: 504");
+  });
+
+  it("falls back to the nearest cached section page for unvisited detail URLs", () => {
+    expect(sw).toContain("matchNearestSectionPage");
+    expect(sw).toContain("APP_SECTIONS");
+    expect(sw).toContain("pageCache.match(candidate + '/')");
+    // RSC payloads must not overwrite the HTML for the same URL.
+    expect(sw).toContain("RSC_CACHE");
+    expect(sw).toContain("cache.put(rsc.key, clone)");
   });
 
   it("serves self-hosted fonts cache-first", () => {
