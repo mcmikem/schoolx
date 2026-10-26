@@ -9,6 +9,7 @@ export interface UpNextTask {
   priority: string;
   href: string;
   cta: string;
+  secondary?: { label: string; onClick: () => void };
 }
 
 /** Donezo "Reminders" pattern: the single most important next action + CTA. */
@@ -33,14 +34,25 @@ const UpNextCard = memo(function UpNextCard({ task }: { task: UpNextTask | null 
               {task.priority === "urgent" ? "Needs action today." : "Worth a look when you have a moment."}
             </p>
           </div>
-          <Link
-            href={task.href}
-            className="btn-pill btn-primary w-full sm:w-auto sm:min-w-[150px]"
-            aria-label={`${task.cta}: ${task.label}`}
-          >
-            <MaterialIcon icon={task.icon} style={{ fontSize: 16 }} />
-            {task.cta}
-          </Link>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            {task.secondary && (
+              <button
+                type="button"
+                onClick={task.secondary.onClick}
+                className="btn-pill border border-[var(--border)] font-semibold text-[var(--t2)] hover:bg-[var(--surface-container-low)]"
+              >
+                {task.secondary.label}
+              </button>
+            )}
+            <Link
+              href={task.href}
+              className="btn-pill btn-primary w-full sm:w-auto sm:min-w-[150px]"
+              aria-label={`${task.cta}: ${task.label}`}
+            >
+              <MaterialIcon icon={task.icon} style={{ fontSize: 16 }} />
+              {task.cta}
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="flex items-center gap-3 py-1">

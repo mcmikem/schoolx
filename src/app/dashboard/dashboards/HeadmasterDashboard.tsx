@@ -2,7 +2,7 @@
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import OwlMascot from "@/components/brand/OwlMascot";
 import ActionPanel from "@/components/dashboard/ActionPanel";
 import StatCard from "@/components/dashboard/StatCard";
@@ -16,6 +16,8 @@ import { useAuth } from "@/lib/auth-context";
 import { useDashboardStats } from "@/lib/hooks/analytics";
 import { useAllStudents, useClasses } from "@/lib/hooks/students";
 import { useDashboardExtraData } from "@/lib/hooks/useDashboardExtraData";
+import { useStaff } from "@/lib/hooks/staff";
+import NotifyTeachersModal from "@/components/dashboard/NotifyTeachersModal";
 import { formatNumber, greetingFor, todayLabelFor } from "@/lib/utils";
 
 const SetupChecklist = dynamic(() => import("@/components/onboarding/SetupChecklist"), {
@@ -36,6 +38,16 @@ function HeadmasterDashboardContent() {
   const { stats, loading: statsLoading } = useDashboardStats(school?.id, { term: currentTerm, academicYear });
   const { students, ready: rosterReady } = useAllStudents(school?.id);
   const { classes = [] } = useClasses(school?.id);
+  // Staff contacts are only loaded once the headmaster opens the reminder
+  // modal, so the dashboard does not pull a users scan on every load.
+  const [nudgeOpen, setNudgeOpen] = useState(false);
+  const [nudgeLoaded, setNudgeLoaded] = useState(false);
+  const { staff = [], loading: staffLoading } = useStaff(nudgeLoaded ? school?.id : undefined);
+  const openNudge = () => {
+    setNudgeOpen(true);
+    setNudgeLoaded(true);
+  };
+  const remindTeachers = { label: "Remind teachers", onClick: openNudge };
 
   const {
     pendingExpenses,
@@ -122,6 +134,7 @@ function HeadmasterDashboardContent() {
         priority: "urgent" as const,
         href: "/dashboard/attendance",
         cta: "Take now",
+        secondary: remindTeachers,
       });
     }
     const unassignedClassCount = classes.filter((c) => !c.class_teacher_id).length;
@@ -153,6 +166,7 @@ function HeadmasterDashboardContent() {
         priority: "attention" as const,
         href: "/dashboard/attendance",
         cta: "View",
+        secondary: remindTeachers,
       });
     }
     if (dropoutRiskCount > 0) {
@@ -338,66 +352,76 @@ function HeadmasterDashboardContent() {
               </div>
             </div>
           </div>
-            <div className="stat-grid !mb-0 md:!grid-cols-3 lg:!grid-cols-3">
-              <StatCard
-                label="Students"
-                value={statsLoading ? "—" : formatNumber(stats.totalStudents)}
-                subValue={`${formatNumber(boysCount)}B · ${formatNumber(girlsCount)}G`}
-                icon="group"
-                accentColor="navy"
-                loading={statsLoading}
-                href="/dashboard/students"
-                hrefLabel="Open students"
-              />
-              <StatCard
-                label="Attendance today"
-                value={
-                  statsLoading || stats.presentToday < 0
-                    ? "—"
-                    : stats.presentToday > 0
-                      ? `${attendanceRate}%`
-                      : "Not recorded"
-                }
-                subValue={
-                  statsLoading || stats.presentToday < 0
-                    ? "Updating…"
-                    : stats.presentToday > 0
-                      ? `${stats.presentToday} present`
-                      : "Not taken yet"
-                }
-                icon="how_to_reg"
-                accentColor={
-                  statsLoading || stats.presentToday < 0
-                    ? "amber"
-                    : stats.presentToday > 0
-                      ? attendanceRate >= 80
-                        ? "green"
-                        : "amber"
-                      : "red"
-                }
-                loading={statsLoading}
-                href="/dashboard/attendance"
-                hrefLabel="Open attendance"
-              />
-              <StatCard
-                label="Fees collected"
-                value={statsLoading ? "—" : totalExpected > 0 ? `UGX ${compactFeesCollected}` : "Not set"}
-                subValue={
-                  statsLoading
-                    ? undefined
-                    : totalExpected > 0
-                      ? `${collectionRate}% of expected${overdueFeeCount > 0 ? ` · ${overdueFeeCount} overdue` : ""}`
-                      : "No fees set"
-                }
-                icon="payments"
-                accentColor={totalExpected > 0 ? (collectionRate >= 70 ? "green" : "amber") : "red"}
-                loading={statsLoading}
-                href="/dashboard/fees"
-                hrefLabel="Open fees"
-              />
-            </div>
+          <div className="stat-grid !mb-0 md:!grid-cols-3 lg:!grid-cols-3">
+            <StatCard
+              label="Students"
+              value={statsLoading ? "—" : formatNumber(stats.totalStudents)}
+              subValue={`${formatNumber(boysCount)}B · ${formatNumber(girlsCount)}G`}
+              icon="group"
+              accentColor="navy"
+              loading={statsLoading}
+              href="/dashboard/students"
+              hrefLabel="Open students"
+            />
+            <StatCard
+              label="Attendance today"
+              value={
+                statsLoading || stats.presentToday < 0
+                  ? "—"
+                  : stats.presentToday > 0
+                    ? `${attendanceRate}%`
+                    : "Not recorded"
+              }
+              subValue={
+                statsLoading || stats.presentToday < 0
+                  ? "Updating…"
+                  : stats.presentToday > 0
+                    ? `${stats.presentToday} present`
+                    : "Not taken yet"
+              }
+              icon="how_to_reg"
+              accentColor={
+                statsLoading || stats.presentToday < 0
+                  ? "amber"
+                  : stats.presentToday > 0
+                    ? attendanceRate >= 80
+                      ? "green"
+                      : "amber"
+                    : "red"
+              }
+              loading={statsLoading}
+              href="/dashboard/attendance"
+              hrefLabel="Open attendance"
+            />
+            <StatCard
+              label="Fees collected"
+              value={statsLoading ? "—" : totalExpected > 0 ? `UGX ${compactFeesCollected}` : "Not set"}
+              subValue={
+                statsLoading
+                  ? undefined
+                  : totalExpected > 0
+                    ? `${collectionRate}% of expected${overdueFeeCount > 0 ? ` · ${overdueFeeCount} overdue` : ""}`
+                    : "No fees set"
+              }
+              icon="payments"
+              accentColor={totalExpected > 0 ? (collectionRate >= 70 ? "green" : "amber") : "red"}
+              loading={statsLoading}
+              href="/dashboard/fees"
+              hrefLabel="Open fees"
+            />
+          </div>
 
           <SetupChecklist autoHide />
+
+          <NotifyTeachersModal
+            open={nudgeOpen}
+            onClose={() => setNudgeOpen(false)}
+            classes={classes}
+            staff={staff}
+            kind="attendance"
+            schoolName={school?.name}
+            staffLoading={staffLoading}
+          />
 
           <div className="mb-5">
             <ActionPanel

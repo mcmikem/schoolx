@@ -9,6 +9,9 @@ interface Task {
   priority: "urgent" | "attention" | "normal";
   href: string;
   cta: string;
+  /** Problem-motivating action that does not navigate: e.g. WhatsApp the
+   *  class teachers instead of just sending the headmaster to a screen. */
+  secondary?: { label: string; onClick: () => void };
 }
 
 export default function TaskManager({
@@ -56,6 +59,15 @@ export default function TaskManager({
             <div className="min-w-0 flex-1">
               <p className="line-clamp-2 text-[13px] font-bold leading-snug text-[var(--t1)]">{task.label}</p>
             </div>
+            {task.secondary && (
+              <button
+                type="button"
+                onClick={task.secondary.onClick}
+                className="shrink-0 rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--t2)] transition-all hover:bg-[var(--surface-container-low)]"
+              >
+                {task.secondary.label}
+              </button>
+            )}
             <Link
               href={task.href}
               className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold text-white transition-all hover:opacity-90 sm:px-3.5 sm:py-2 ${
