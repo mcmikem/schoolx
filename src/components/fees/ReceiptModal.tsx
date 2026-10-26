@@ -101,6 +101,11 @@ export default function ReceiptModal({
           <span className="receipt-label text-[12px] text-[#666]">Receipt no.</span>
           <span className="receipt-value font-mono text-[13px] font-bold">{receiptNumber || "—"}</span>
         </div>
+        {!receiptNumber && (
+          <p className="mt-1 text-right text-[10px] text-[#999]">
+            Number issued when the payment syncs
+          </p>
+        )}
         {paymentDate && (
           <div className="receipt-row flex items-baseline justify-between gap-3 py-1.5">
             <span className="receipt-label text-[12px] text-[#666]">Date</span>

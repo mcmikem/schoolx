@@ -158,4 +158,23 @@ describe("the receipt", () => {
 
     expect(screen.getByText(/Balance outstanding/i)).toBeInTheDocument();
   });
+
+  it("explains a missing receipt number instead of leaving a bare dash", () => {
+    // Offline payments bank on the phone and get their number when the queue
+    // replays; the slip must say so, not look broken.
+    render(
+      <ReceiptModal
+        isOpen
+        student={student}
+        schoolName="St. Mary's Primary School"
+        onClose={jest.fn()}
+        onPrint={jest.fn()}
+        paymentAmount={50000}
+        receiptNumber={null}
+      />,
+    );
+
+    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.getByText(/number issued when the payment syncs/i)).toBeInTheDocument();
+  });
 });

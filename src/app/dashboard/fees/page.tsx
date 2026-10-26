@@ -47,6 +47,7 @@ import { useUrlSyncedFilters } from "@/lib/hooks/useUrlSyncedFilters";
 import { getLocalDateString, timeoutFallback, withTimeout } from "@/lib/hooks/utils";
 import { lazyWithIdlePrefetch } from "@/lib/lazy-prefetch";
 import { logger } from "@/lib/logger";
+import { useOnlineStatus } from "@/lib/offline";
 import { useOfflineFees, useOfflineStudents } from "@/lib/offline-hooks";
 import { calculateStudentFeePosition, feeAppliesToStudent } from "@/lib/operations";
 import { computeArrearsSplit } from "@/lib/arrears";
@@ -289,6 +290,7 @@ export default function FinanceHubPage() {
     }
   };
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const isOnline = useOnlineStatus();
 
   /**
    * Open the payment form with a reference already filled in.
@@ -302,11 +304,15 @@ export default function FinanceHubPage() {
    * the reference is the idempotency key, so a retry after a timeout must reuse
    * the same value or the duplicate guard cannot see it and the payment is
    * recorded twice.
+   *
+   * `studentId` is the deep link in: the bursar taps the money button next to a
+   * pupil and the form opens with that pupil already picked, instead of an
+   * empty picker one tap away from paying the wrong child.
    */
-  const openPaymentModal = () => {
+  const openPaymentModal = (studentId?: string) => {
     setNewPayment((prev) => ({
       ...prev,
-      student_id: "",
+      student_id: studentId || "",
       amount_paid: "",
       payment_date: getLocalDateString(),
       payment_reference: prev.payment_reference.trim() || generatePaymentReference(school?.school_code),
@@ -317,6 +323,18 @@ export default function FinanceHubPage() {
     }));
     setShowPaymentModal(true);
   };
+
+  // ?pay=<student id> deep link: a reminder or dashboard row that ends with
+  // "the money talk" links straight to the form with the pupil already
+  // picked. Cleared from the URL so a refresh starts clean.
+  const payDeeplink = urlFilters.get("pay");
+  useEffect(() => {
+    if (!payDeeplink || students.length === 0) return;
+    const match = students.find((s) => s.id === payDeeplink);
+    urlFilters.clear(["pay"]);
+    if (!match) return;
+    openPaymentModal(match.id);
+  }, [payDeeplink, students, urlFilters, openPaymentModal]);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [recordedPaymentDate, setRecordedPaymentDate] = useState("");
   const [recordedPaymentAmount, setRecordedPaymentAmount] = useState<number | undefined>();
@@ -1047,6 +1065,7 @@ export default function FinanceHubPage() {
     }
     try {
       setSaving(true);
+      const offlinePayment = !isDemo && !isOnline;
       let reference = newPayment.payment_reference.trim();
       if (newPayment.payment_method === PAYMENT_METHODS.MOBILE_MONEY) {
         reference = `${newPayment.momo_provider.toUpperCase()}-${transactionId}`;
@@ -1071,7 +1090,16 @@ export default function FinanceHubPage() {
       // having been written.
       let receiptNumberForRecord: string | null = null;
 
-      if (!isDemo && school?.id && paymentResult?.id) {
+      if (offlinePayment) {
+        // Offline: the payment is saved on this phone and queued for sync, but
+        // the receipt number is minted by the school's server-side counter.
+        // Every call below is a network round-trip that the page cannot make
+        // from a field with no signal -- and when they failed, the catch
+        // reported a payment the phone had already banked as "failed", which
+        // called a retry and a duplicate. So the slip hands over without a
+        // number; the receipt book catches up when the queue replays.
+        receiptNumberForRecord = null;
+      } else if (!isDemo && school?.id && paymentResult?.id) {
         // Retry-after-timeout returns the EXISTING payment row (idempotent),
         // so first check whether it already has a receipt — minting a second
         // number for one payment breaks the receipt book.
@@ -1152,8 +1180,12 @@ export default function FinanceHubPage() {
         // one.
         setShowReceiptPrompt(true);
       }
-      toast.success("Payment recorded successfully");
-      if (!isDemo) void refetchPayments();
+      toast.success(
+        offlinePayment
+          ? "Payment saved on this phone. It syncs when the network returns"
+          : "Payment recorded successfully",
+      );
+      if (!isDemo && !offlinePayment) void refetchPayments();
       setShowPaymentModal(false);
       setNewPayment({
         student_id: "",
@@ -1907,7 +1939,7 @@ export default function FinanceHubPage() {
           variant="premium"
           actions={
             <div className="flex items-center gap-2 justify-start lg:justify-end">
-              <Button variant="primary" size="sm" onClick={openPaymentModal}>
+              <Button variant="primary" size="sm" onClick={() => openPaymentModal()}>
                 <MaterialIcon icon="payments" />
                 Add Payment
               </Button>
@@ -2304,6 +2336,7 @@ export default function FinanceHubPage() {
                     balances={filteredBalances}
                     recordedByName={recordedByName}
                     onViewReceipt={handleViewReceipt}
+                    onRecordPayment={(student) => openPaymentModal(student.id)}
                   />
                 </>
               ))}
@@ -2315,7 +2348,7 @@ export default function FinanceHubPage() {
                   students={students}
                   formatCurrency={formatCurrency}
                   onDeletePayment={handleDeletePayment}
-                  onRecordPayment={openPaymentModal}
+                  onRecordPayment={() => openPaymentModal()}
                 />
                 <div className="flex justify-between items-center mt-4">
                   <div className="text-sm text-[var(--t3)]">

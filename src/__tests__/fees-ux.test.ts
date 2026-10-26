@@ -106,4 +106,21 @@ describe("fees tracker redesign", () => {
     expect(page).toContain('aria-label="More fee actions"');
     expect(page).toContain('role="menuitem"');
   });
+
+  it("deep-links the payment form to the pupil the bursar is already looking at", () => {
+    // The money button sat on every row, but it opened an empty form: the
+    // bursar had to find the same child twice.
+    const page = read("src/app/dashboard/fees/page.tsx");
+    expect(page).toContain("?pay=<student id>");
+    expect(page).toContain("onRecordPayment={(student) => openPaymentModal(student.id)}");
+  });
+
+  it("banks an offline payment without reporting the server failed", () => {
+    // The payment was saved and queued, then the receipt-counter calls threw,
+    // and the catch told the bursar "Failed to record payment" -- inviting the
+    // retry that would have paid the same money twice.
+    const page = read("src/app/dashboard/fees/page.tsx");
+    expect(page).toContain("const offlinePayment = !isDemo && !isOnline;");
+    expect(page).toContain("Payment saved on this phone. It syncs when the network returns");
+  });
 });
