@@ -11,6 +11,7 @@ import { offlineDB } from "@/lib/offline";
 import { clearOfflineQueryCache, installOfflineApiFetch, setOfflineCacheUser } from "@/lib/offline-query-cache";
 import { supabase } from "@/lib/supabase";
 import { ThemeProvider } from "@/lib/theme-context";
+import CommCenter from "@/components/owly/CommCenter";
 
 const ForcePasswordChangeGate = dynamic(() => import("@/components/ForcePasswordChangeGate"), { ssr: false });
 const StuckLoadingOverlay = dynamic(
@@ -303,6 +304,7 @@ export default function Providers({ children }: { children: ReactNode }) {
                 <MobileKeyboardHandler />
                 <OfflineCacheScope />
                 <FaviconUpdater />
+                <CommCenter />
                 <BrandProvider>{children}</BrandProvider>
               </LoadingChecker>
             </AuthProvider>

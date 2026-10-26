@@ -205,6 +205,12 @@ export default function OwlAssistant() {
   const [fabHint, setFabHint] = useState(false);
   const hintInitFor = useRef<string | null>(null);
   const lastScrollY = useRef(0);
+  // Status communications that arrived while the chat is closed sit here as a
+  // badge on the owl and are delivered as messages when it opens.
+  type CommBadge = { title: string; detail?: string; severity: "info" | "success" | "warning" | "error" };
+  const [commBadge, setCommBadge] = useState<CommBadge | null>(null);
+  const openRef = useRef(false);
+  openRef.current = open;
   const owly = useOwlySignals({
     page: pathname ?? undefined,
     role: user?.role ?? undefined,
@@ -313,6 +319,26 @@ export default function OwlAssistant() {
     setFabHint(readUserScoped<boolean>(FAB_HINT_FLAG, userId) !== true);
   }, [userId]);
 
+  // Opening the assistant delivers any status message that queued as a badge.
+  useEffect(() => {
+    if (!open || !commBadge) return;
+    const { title, detail } = commBadge;
+    setCommBadge(null);
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        text: detail
+          ? `${title}
+
+${detail}`
+          : title,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      },
+    ]);
+    if (messagesEndRef.current) messagesEndRef.current.scrollIntoView?.({ behavior: "smooth" });
+  }, [open, commBadge]);
+
   useEffect(() => {
     if (!open && !suggestionOpen) return;
     const onKey = (event: KeyboardEvent) => {
@@ -354,6 +380,27 @@ export default function OwlAssistant() {
         setFabHint(false);
         setOpen(true);
         setMessages((prev) => [...prev, { role: "assistant", text: guideToMessage(guide), time: time() }]);
+        return;
+      }
+      if (request.kind === "notify") {
+        const badge = { title: request.title, detail: request.detail, severity: request.severity };
+        if (openRef.current) {
+          // The user is already in the chat: speak now, no badge manoeuvre.
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              text: request.detail
+                ? `${request.title}
+
+${request.detail}`
+                : request.title,
+              time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            },
+          ]);
+          return;
+        }
+        setCommBadge(badge);
         return;
       }
       if (request.kind === "error") {
@@ -662,6 +709,27 @@ export default function OwlAssistant() {
                 aria-hidden
               >
                 <MaterialIcon icon="help" size={14} />
+              </span>
+            )}
+            {commBadge && !open && (
+              <span
+                className={`absolute -bottom-1 -right-1 flex items-center gap-1 rounded-full border-2 border-white px-1.5 py-0.5 text-[9px] font-bold text-white shadow-lg ${
+                  commBadge.severity === "error"
+                    ? "bg-[var(--red)]"
+                    : commBadge.severity === "warning"
+                      ? "bg-[var(--amber)]"
+                      : "bg-[var(--green)]"
+                }`}
+                aria-hidden={false}
+                role="status"
+              >
+                {commBadge.severity === "success" ? (
+                  <MaterialIcon icon="cloud_done" size={12} />
+                ) : commBadge.severity === "error" ? (
+                  <MaterialIcon icon="sync_problem" size={12} />
+                ) : (
+                  <MaterialIcon icon="cloud" size={12} />
+                )}
               </span>
             )}
           </div>

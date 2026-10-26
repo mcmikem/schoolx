@@ -17,7 +17,17 @@ export type OwlyRequest =
   | { kind: "guide"; guideId: string }
   | { kind: "error"; message: string; page?: string }
   | { kind: "ask"; question: string }
-  | { kind: "tour" };
+  | { kind: "tour" }
+  /** App statuses routed through Owly (offline / back online / slow signal /
+   *  sync outcomes). When the assistant is closed these surface as a badge on
+   *  the owl and are delivered as chat messages on open; they keep pages clean
+   *  instead of stacking toasts over content. */
+  | {
+      kind: "notify";
+      title: string;
+      detail?: string;
+      severity: "info" | "success" | "warning" | "error";
+    };
 
 type Listener = (request: OwlyRequest) => void;
 

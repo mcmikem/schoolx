@@ -230,7 +230,9 @@ export default function SetupChecklist({ onComplete, showAll = false, autoHide =
     return Number.isNaN(ms) ? 0 : ms / 86400000;
   })();
 
-  if (loading) return <div className="p-4 text-center text-slate-500">Loading checklist...</div>;
+  // Dashboards must not flash a placeholder that vanishes a second later:
+  // when guidance will auto-hide, render nothing until loading resolves.
+  if (loading) return autoHide ? null : <div className="p-4 text-center text-slate-500">Loading checklist...</div>;
 
   if (autoHide && (progress === 100 || schoolAgeDays > NEW_SCHOOL_DAYS)) return null;
 
