@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useClasses } from "@/lib/hooks";
 import { isHeadOffice } from "@/lib/head-office";
 import { DEMO_STAFF } from "@/lib/demo-data";
@@ -31,6 +32,7 @@ export default function SubstitutionsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [busyOverride, setBusyOverride] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [availability, setAvailability] = useState<{
     status: "loading" | "free" | "busy" | "idle";
@@ -232,17 +234,17 @@ export default function SubstitutionsPage() {
     }
   }, [school?.id, fetchTeachers, fetchSubstitutions]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!school?.id) return;
     if (form.absent_teacher_id === form.substitute_teacher_id) {
       toast.error("Absent and substitute teacher cannot be the same");
       return;
     }
 
-    if (availability.status === "busy") {
-      const proceed = confirm(`Warning: ${availability.message}. Do you still want to log this substitution?`);
-      if (!proceed) return;
+    if (availability.status === "busy" && !busyOverride) {
+      setBusyOverride(true);
+      return;
     }
 
     setSaving(true);
@@ -688,6 +690,18 @@ export default function SubstitutionsPage() {
           </div>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={busyOverride}
+        onClose={() => setBusyOverride(false)}
+        onConfirm={() => {
+          setBusyOverride(false);
+          void handleSubmit();
+        }}
+        title="Teacher is already busy"
+        message={`${availability.message}. Log this substitution anyway?`}
+        confirmLabel="Log anyway"
+        variant="warning"
+      />
     </PageErrorBoundary>
   );
 }

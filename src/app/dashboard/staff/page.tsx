@@ -1485,6 +1485,7 @@ function DirectoryTab({
             icon="family_restroom"
             title="No parent accounts"
             description="Parent logins are created from a student's profile — open the student and add a parent from there."
+            owlyQuestion="How do I add staff and parent accounts?"
           />
         );
       }

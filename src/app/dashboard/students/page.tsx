@@ -18,6 +18,7 @@ import { useToast } from "@/components/Toast";
 import { Button } from "@/components/ui/index";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { StaleDataNotice } from "@/components/dashboard/StaleDataNotice";
 import { TabPanel } from "@/components/ui/Tabs";
 import { useStudentDropouts } from "@/hooks/useStudentDropouts";
 import { useStudentPromotion } from "@/hooks/useStudentPromotion";
@@ -744,6 +745,10 @@ export default function StudentHubPage() {
         </PageHeader>
 
         <OwlyTrigger guideId="students" label="How do I manage students?" className="mb-4" />
+
+        <div className="mb-3">
+          <StaleDataNotice tables="students" />
+        </div>
 
         <StudentWorkspaceShell
           totalStudents={totalCount}

@@ -280,6 +280,7 @@ export default function AttendanceHistoryPage() {
             icon="history"
             title="No attendance records found"
             description="Try adjusting your date range or class filter"
+            owlyQuestion="How do I take attendance?"
           />
         ) : (
           <Card>

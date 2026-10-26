@@ -269,6 +269,7 @@ export default function BehaviorPage() {
             title="No behavior logs"
             description="Add your first behavior log to get started"
             action={{ label: "Add Log", onClick: () => openModal() }}
+            owlyQuestion="How do conduct notes work?"
           />
         ) : (
           <Card>

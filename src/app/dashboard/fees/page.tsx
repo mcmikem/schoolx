@@ -19,6 +19,7 @@ import { useToast } from "@/components/Toast";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { Button } from "@/components/ui/index";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { StaleDataNotice } from "@/components/dashboard/StaleDataNotice";
 import { useAcademic } from "@/lib/academic-context";
 import { APP_NAME } from "@/lib/app-name";
 import { useAuth } from "@/lib/auth-context";
@@ -2028,6 +2029,10 @@ export default function FinanceHubPage() {
         </section>
 
         <OwlyTrigger guideId="fees" label="How do I manage fees?" className="mb-4" />
+
+        <div className="mb-3">
+          <StaleDataNotice tables={["students", "fee_payments", "fee_structure"]} />
+        </div>
 
         {/*
           One tab row. Balances, Payments and Fee Structure used to be a second

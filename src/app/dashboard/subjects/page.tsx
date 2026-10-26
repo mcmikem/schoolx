@@ -422,6 +422,7 @@ export default function SubjectsPage() {
                     : "Add your first subject or seed from the Uganda curriculum"
                 }
                 action={{ label: "Add Subject", onClick: openAdd }}
+                owlyQuestion="How do I set up subjects?"
               />
             ) : (
               <table className="w-full text-sm">

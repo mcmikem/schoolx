@@ -14,6 +14,7 @@ import { useToast } from "@/components/Toast";
 import { Button } from "@/components/ui/index";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { StaleDataNotice } from "@/components/dashboard/StaleDataNotice";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
 import { useAuth } from "@/lib/auth-context";
@@ -1220,6 +1221,10 @@ export default function AttendancePage() {
               </div>
             }
           />
+
+          <div className="mb-2">
+            <StaleDataNotice tables="students" />
+          </div>
 
           {/* For a headmaster this is the page: who has marked. It sits above
               the register, not under it -- the register is the teacher's

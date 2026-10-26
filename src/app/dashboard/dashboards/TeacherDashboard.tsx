@@ -185,12 +185,15 @@ export function TeacherDashboardContent() {
   const tasks = useMemo(() => {
     const items = [];
     if (attendancePending) {
+      // Deep-link to the first register still missing: one tap lands on the
+      // exact class rows, not the attendance centre's generic landing state.
+      const pendingClass = myClasses.find((cls) => !markedClassIds || !markedClassIds.has(cls.id));
       items.push({
         id: "attendance",
-        label: "Take attendance for today",
+        label: pendingClass ? `Take attendance for ${pendingClass.name}` : "Take attendance for today",
         icon: "how_to_reg",
         priority: "urgent" as const,
-        href: "/dashboard/attendance",
+        href: pendingClass ? `/dashboard/attendance?class=${pendingClass.id}` : "/dashboard/attendance",
         cta: "Take now",
       });
     }
@@ -217,7 +220,7 @@ export function TeacherDashboardContent() {
       });
     }
     return items;
-  }, [attendancePending, classesWithNoStudents, needsSetup, user?.role]);
+  }, [attendancePending, classesWithNoStudents, needsSetup, user?.role, myClasses, markedClassIds]);
 
   if ((!school?.id || dataLoading) && !loadingTimedOut) {
     return (

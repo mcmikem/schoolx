@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { logger } from "./logger";
 import { offlineDB, SYNC_QUEUE_EVENT } from "./offline";
+import { askOwly } from "@/lib/owly-bus";
+import { failedSyncComm } from "@/lib/owly-comm";
 
 interface SyncStatus {
   isOnline: boolean;
@@ -80,6 +82,13 @@ async function syncNow() {
       lastSynced: result.failed === 0 ? new Date() : state.lastSynced,
       syncErrors: result.errors,
     });
+    // Failures are the moment a user wonders "did my work get through?".
+    // Announce it via Owly (badge while the chat is closed), keep the numbers
+    // in state for Sync Center, and leave toasts to callers that already
+    // surface this interactively.
+    if (result.failed > 0) {
+      askOwly({ kind: "notify", ...failedSyncComm(result.failed) });
+    }
     return result;
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Sync failed";

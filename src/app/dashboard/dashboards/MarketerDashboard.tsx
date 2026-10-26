@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { APP_NAME } from "@/lib/app-name";
 import { useAuth } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
+import { useToast } from "@/components/Toast";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { greetingFor } from "@/lib/utils";
 import { formatCurrency } from "@/lib/currency";
 
@@ -1089,6 +1091,9 @@ function RegisterTab({
 // ─── Leads Tab ────────────────────────────────────────────────────────────────
 
 function LeadsTab({ onConvertToSchool }: { onConvertToSchool?: (lead: LeadRow) => void }) {
+  const toast = useToast();
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [leads, setLeads] = useState<LeadRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -1166,13 +1171,16 @@ function LeadsTab({ onConvertToSchool }: { onConvertToSchool?: (lead: LeadRow) =
   };
 
   const deleteLead = async (id: string) => {
-    if (!confirm("Delete this lead?")) return;
+    setDeleting(true);
     try {
       await fetch(`/api/marketers/leads/${id}/`, { method: "DELETE" });
+      setConfirmDelete(null);
       fetchLeads();
     } catch (err) {
       logger.error("[MarketerDashboard] Delete lead network error:", err);
       setError("Failed to delete");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -1367,7 +1375,7 @@ function LeadsTab({ onConvertToSchool }: { onConvertToSchool?: (lead: LeadRow) =
                           </button>
                         )}
                         <button
-                          onClick={() => deleteLead(l.id)}
+                          onClick={() => setConfirmDelete(l.id)}
                           className="text-[var(--t4)] hover:text-red-500 transition-colors p-1"
                         >
                           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
@@ -1383,6 +1391,16 @@ function LeadsTab({ onConvertToSchool }: { onConvertToSchool?: (lead: LeadRow) =
           </table>
         </div>
       </div>
+      <ConfirmDialog
+        isOpen={confirmDelete !== null}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() => confirmDelete && deleteLead(confirmDelete)}
+        title="Delete this lead?"
+        message="You can't undo this. The lead and its referral code disappear from the list."
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleting}
+      />
     </div>
   );
 }
@@ -1531,6 +1549,7 @@ function ResourcesTab() {
 // ─── Referrals Tab ────────────────────────────────────────────────────────────
 
 function ReferralsTab() {
+  const toast = useToast();
   const [referrals, setReferrals] = useState<ReferralRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [label, setLabel] = useState("");
@@ -1578,22 +1597,17 @@ function ReferralsTab() {
     const url = `${baseUrl}/register?ref=${code}`;
     navigator.clipboard
       .writeText(url)
-      .then(() => {
-        alert("Referral link copied to clipboard!");
-      })
+      .then(() => toast.success("Referral link copied"))
       .catch(() => {
-        // Fallback
+        // Fallback for older browsers without the clipboard API.
         const input = document.createElement("input");
         input.value = url;
         document.body.appendChild(input);
         input.select();
         const ok = document.execCommand("copy");
         document.body.removeChild(input);
-        if (ok) {
-          alert("Referral link copied!");
-        } else {
-          alert("Could not copy the link automatically. Please copy it manually: " + url);
-        }
+        if (ok) toast.success("Referral link copied");
+        else toast.error("Copy failed. Long-press the link to copy it manually.");
       });
   };
 

@@ -10,6 +10,7 @@ import { Badge, Button, DataTable, StatStrip, type DataColumn } from "@/componen
 import { ConflictResolver } from "@/components/ui/ConflictResolver";
 import { EmptyState } from "@/components/EmptyState";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { OwlyHelpLink } from "@/components/owly/OwlyHelpLink";
 import { logger } from "@/lib/logger";
 
 interface PendingItem {
@@ -49,6 +50,36 @@ function formatTime(timestamp: number): string {
 function shortId(item: PendingItem): string {
   const id = item.data.id;
   return typeof id === "string" && id ? id.slice(0, 8) : "—";
+}
+
+const TABLE_WORDS: Record<string, string> = {
+  attendance: "Attendance register",
+  students: "Student records",
+  grades: "Marks",
+  fee_payments: "Fee payments",
+  fee_structure: "Fee structure",
+  fee_adjustments: "Fee adjustments",
+  behavior_logs: "Conduct notes",
+  student_transfers: "Student transfers",
+  student_promotions: "Graduation records",
+  homework: "Class tests",
+  events: "Calendar events",
+  canteen_sales: "Canteen sales",
+  messages: "Messages",
+};
+
+const ACTION_WORDS: Record<string, string> = {
+  create: "Added",
+  update: "Changed",
+  delete: "Removed",
+};
+
+function whatIsIt(table: string): string {
+  return TABLE_WORDS[table] || table.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+}
+
+function humanAction(action: string): string {
+  return ACTION_WORDS[action] || action;
 }
 
 export default function SyncCenterPage() {
@@ -178,15 +209,15 @@ export default function SyncCenterPage() {
   const pendingColumns: DataColumn<PendingItem>[] = [
     {
       key: "table",
-      header: "Table",
+      header: "What it is",
       sortValue: (item) => item.table,
-      render: (item) => <span className="font-medium">{item.table.replaceAll("_", " ")}</span>,
+      render: (item) => <span className="font-medium">{whatIsIt(item.table)}</span>,
     },
     {
       key: "action",
       header: "Action",
       sortValue: (item) => item.action,
-      render: (item) => <Badge variant={actionVariant(item.action)}>{item.action}</Badge>,
+      render: (item) => <Badge variant={actionVariant(item.action)}>{humanAction(item.action)}</Badge>,
     },
     {
       key: "id",
@@ -315,7 +346,8 @@ export default function SyncCenterPage() {
             <div>
               <h2 className="text-sm font-semibold text-[var(--t1)]">Conflicts to resolve</h2>
               <p className="text-xs text-[var(--t3)]">
-                Your edit was kept on this device. Choose a version to finish syncing.
+                Your edit was kept on this device. Choose a version to finish syncing.{" "}
+                <OwlyHelpLink question="What does a sync conflict mean?" />
               </p>
             </div>
             {conflicts.map((item) => {
@@ -323,7 +355,7 @@ export default function SyncCenterPage() {
               return (
                 <ConflictResolver
                   key={item.id}
-                  title={`${item.table.replaceAll("_", " ")} · ${shortId(item)}`}
+                  title={`${whatIsIt(item.table)} · ${shortId(item)}`}
                   subtitle={formatTime(item.timestamp)}
                   reason={item.reason}
                   local={item.data}
@@ -365,7 +397,10 @@ export default function SyncCenterPage() {
               getRowId={(item) => String(item.id)}
               initialSort={{ key: "time", dir: "asc" }}
               footer={
-                <span className="text-xs text-[var(--t3)]">Retry after fixing the reason, or discard the change.</span>
+                <span className="text-xs text-[var(--t3)]">
+                  Retry after fixing the reason, or discard the change.{" "}
+                  <OwlyHelpLink label="Ask Owly for help" question="Why would a synced change fail?" />
+                </span>
               }
             />
           </section>

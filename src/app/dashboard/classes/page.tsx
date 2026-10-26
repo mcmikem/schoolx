@@ -484,6 +484,7 @@ export default function ClassesPage() {
                       : "Your administrator hasn't assigned you to a class or subject yet."
                 }
                 action={canManage ? { label: "Add Class", onClick: openAdd } : undefined}
+                owlyQuestion="How do I create classes?"
               />
             ) : (
               <table className="w-full text-sm">
