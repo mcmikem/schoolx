@@ -892,13 +892,17 @@ class OfflineDB {
         }
         return { status: "synced" };
       } else if (item.action === "update") {
-        const { id, ...updateData } = item.data as Record<string, unknown> & {
-          id: string;
-        };
+        const { id, ...updateData } = this.stripSyncKeys(item.data as Record<string, unknown>) as Record<
+          string,
+          unknown
+        > & { id: string };
         const { error } = await supabase.from(item.table).update(updateData).eq("id", id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from(item.table).insert(item.data);
+        // Most tables have no updated_at column, so a raw insert failed with
+        // PGRST204 and the row never reached the server. Strip the local-only
+        // keys the same way the attendance/grades upserts do.
+        const { error } = await supabase.from(item.table).insert(this.stripSyncKeys(item.data));
         if (error) throw error;
       }
       return { status: "synced" };

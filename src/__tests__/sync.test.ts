@@ -30,6 +30,7 @@ describe("Sync API Validation", () => {
       expect(isValidSyncTable("behavior_logs")).toBe(true);
       expect(isValidSyncTable("student_promotions")).toBe(true);
       expect(isValidSyncTable("student_transfers")).toBe(true);
+      expect(isValidSyncTable("homework")).toBe(true);
     });
 
     test("rejects table names not in the allowlist", () => {

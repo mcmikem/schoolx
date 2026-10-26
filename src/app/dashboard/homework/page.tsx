@@ -18,6 +18,7 @@ import { logger } from "@/lib/logger";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { getErrorMessage } from "@/lib/validation";
+import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 import { duplicateHomeworkDraft, parseHomeworkDueDate, type Homework, type HomeworkDraft } from "@/lib/homework";
@@ -25,6 +26,7 @@ import { duplicateHomeworkDraft, parseHomeworkDueDate, type Homework, type Homew
 export default function HomeworkPage() {
   const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
+  const isOnline = useOnlineStatus();
   const toast = useToast();
   const { classes } = useClasses(school?.id);
   const { subjects } = useSubjects(school?.id);
@@ -127,6 +129,26 @@ export default function HomeworkPage() {
         setLoading(false);
         return;
       }
+      if (!isOnline) {
+        // The last class-test list fetched on this phone. Without this branch
+        // the page spent ten seconds on a doomed request and then showed the
+        // "check your connection" error even though the rows were on disk.
+        const cached = await offlineDB.getAllFromCache("homework", { school_id: school.id });
+        const rows = (cached as unknown as Homework[]).filter(
+          (hw) =>
+            (!academicYear ||
+              !("academic_year" in hw) ||
+              (hw as { academic_year?: string }).academic_year === academicYear) &&
+            (!("term" in hw) || (hw as { term?: number }).term === currentTerm) &&
+            (!selectedClass || hw.class_id === selectedClass),
+        );
+        setHomework(rows);
+        if (rows.length === 0) {
+          setHomeworkError("No class tests saved on this device yet. They will appear once you are back online.");
+        }
+        return;
+      }
+
       let query = supabase
         .from("homework")
         .select("*, subjects(name, code), classes(name)")
@@ -147,6 +169,7 @@ export default function HomeworkPage() {
       const { data, error } = result;
       if (error) throw error;
       setHomework(data || []);
+      void offlineDB.cacheFromServer("homework", (data || []) as Record<string, unknown>[]).catch(() => {});
     } catch (err) {
       logger.error("Error:", err);
       setHomeworkError("Could not load class tests. Check your connection and try again.");
@@ -169,23 +192,40 @@ export default function HomeworkPage() {
       return;
     }
 
+    const payload = {
+      school_id: school.id,
+      title: newHomework.title.trim(),
+      description: newHomework.description.trim(),
+      subject_id: newHomework.subject_id,
+      class_id: newHomework.class_id,
+      due_date: newHomework.due_date,
+      marks: newHomework.marks,
+      created_by: user.id,
+      academic_year: academicYear,
+      term: currentTerm,
+    };
+
     try {
-      const res = await withTimeout(
-        supabase.from("homework").insert({
-          school_id: school.id,
-          title: newHomework.title.trim(),
-          description: newHomework.description.trim(),
-          subject_id: newHomework.subject_id,
-          class_id: newHomework.class_id,
-          due_date: newHomework.due_date,
-          marks: newHomework.marks,
-          created_by: user.id,
-          academic_year: academicYear,
-          term: currentTerm,
-        }),
-        15000,
-        timeoutFallback(),
-      );
+      if (!isOnline) {
+        const saved = (await offlineDB.save("homework", payload)) as unknown as Homework;
+        const classRow = classes.find((c) => c.id === payload.class_id);
+        const subjectRow = subjects.find((s) => s.id === payload.subject_id);
+        setHomework((prev) => [
+          {
+            ...saved,
+            subjects: subjectRow ? { name: subjectRow.name, code: subjectRow.code ?? "" } : undefined,
+            classes: classRow ? { name: classRow.name } : undefined,
+          },
+          ...prev,
+        ]);
+        toast.success("Class test saved on this device. It will sync when you are back online.");
+        closeModal();
+        homeworkDraft.clearSaved();
+        setNewHomework({ title: "", description: "", subject_id: "", class_id: "", due_date: "", marks: 10 });
+        return;
+      }
+
+      const res = await withTimeout(supabase.from("homework").insert(payload), 15000, timeoutFallback());
       const error = res?.error;
 
       if (error) throw error;
@@ -210,6 +250,12 @@ export default function HomeworkPage() {
     setPendingAction(() => async () => {
       setDeletingId(id);
       try {
+        if (!isOnline) {
+          await offlineDB.delete("homework", id);
+          setHomework((prev) => prev.filter((hw) => hw.id !== id));
+          toast.success("Class test removed on this device. It will sync when you are back online.");
+          return;
+        }
         const { error } = await supabase.from("homework").delete().eq("id", id);
         if (error) throw error;
         setHomework((prev) => prev.filter((hw) => hw.id !== id));

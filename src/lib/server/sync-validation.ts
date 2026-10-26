@@ -13,6 +13,7 @@ export const SYNC_VALID_TABLES = [
   "messages",
   "events",
   "timetable",
+  "homework",
   "canteen_sales",
   // Term-end work that used to require signal: conduct notes, graduation and
   // transfer records. All three are school rows with a student foreign key.

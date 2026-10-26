@@ -339,7 +339,11 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
   // One sync state for the whole app. This used to keep its own copy of
   // `navigator.onLine` while the sidebar and a floating overlay kept two more,
   // and they disagreed about whether the work had been saved.
-  const { isOnline, pendingCount, isSyncing, syncNow } = useSyncStatus();
+  const { isOnline, pendingCount, isSyncing, lastSynced, syncNow } = useSyncStatus();
+  // Cached screens are last-known-good, so while offline the chip says how old
+  // that is: "Offline · 14:32" is the moment the data was last fetched.
+  const offlineAsOf =
+    isOnline || !lastSynced ? null : lastSynced.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const { isOpen, open: openSidebar, close: closeSidebar } = useSidebar();
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const notifPanelRef = useRef<HTMLDivElement | null>(null);
@@ -495,7 +499,9 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
                   : `${pendingCount} changes saved on this device — tap for details`
                 : isOnline
                   ? "Connected & Synchronized"
-                  : "Offline — changes are saved on this device"
+                  : offlineAsOf
+                    ? `Offline — showing data as of ${offlineAsOf}. Changes are saved on this device.`
+                    : "Offline — changes are saved on this device"
           }
           aria-label={
             isSyncing
@@ -506,7 +512,9 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
                   : `Offline. ${pendingCount} changes saved on this device. Tap for details.`
                 : isOnline
                   ? "Connected"
-                  : "Offline"
+                  : offlineAsOf
+                    ? `Offline, data as of ${offlineAsOf}`
+                    : "Offline"
           }
         >
           <span
@@ -521,7 +529,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
             </>
           ) : (
             <span className="hidden xl:inline text-xs text-[var(--t3)] font-medium">
-              {isOnline ? (isSyncing ? "Syncing" : "Online") : "Offline"}
+              {isOnline ? (isSyncing ? "Syncing" : "Online") : offlineAsOf ? `Offline · ${offlineAsOf}` : "Offline"}
             </span>
           )}
         </button>

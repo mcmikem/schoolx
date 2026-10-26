@@ -13,6 +13,7 @@ import TermTimeline from "@/components/dashboard/TermTimeline";
 import { getErrorMessage } from "@/lib/validation";
 import { logger } from "@/lib/logger";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { offlineDB, useOnlineStatus } from "@/lib/offline";
 
 interface SchoolEvent {
   id: string;
@@ -160,6 +161,7 @@ function EventCard({ evt, onDelete }: { evt: SchoolEvent; onDelete: () => void }
 
 export default function CalendarPage() {
   const { school } = useAuth();
+  const isOnline = useOnlineStatus();
   const toast = useToast();
 
   const today = new Date();
@@ -378,20 +380,33 @@ export default function CalendarPage() {
       return;
     }
 
+    const payload = {
+      school_id: school.id,
+      title: newEvent.title.trim(),
+      description: newEvent.description.trim() || null,
+      event_type: newEvent.event_type,
+      audience: newEvent.audience,
+      start_date: newEvent.start_date,
+      end_date: newEvent.end_date || null,
+    };
+
     try {
-      const res = await withTimeout(
-        supabase.from("events").insert({
-          school_id: school.id,
-          title: newEvent.title.trim(),
-          description: newEvent.description.trim() || null,
-          event_type: newEvent.event_type,
-          audience: newEvent.audience,
-          start_date: newEvent.start_date,
-          end_date: newEvent.end_date || null,
-        }),
-        15000,
-        timeoutFallback(),
-      );
+      if (!isOnline) {
+        await offlineDB.save("events", payload);
+        setShowModal(false);
+        setNewEvent({
+          title: "",
+          description: "",
+          event_type: "event",
+          audience: "school" as "personal" | "school" | "parents",
+          start_date: "",
+          end_date: "",
+        });
+        toast.success("Event saved on this device. It will sync when you are back online.");
+        refetchEvents();
+        return;
+      }
+      const res = await withTimeout(supabase.from("events").insert(payload), 15000, timeoutFallback());
       if (res?.error) throw res.error;
       setShowModal(false);
       setNewEvent({
@@ -415,6 +430,12 @@ export default function CalendarPage() {
     const id = pendingDeleteId;
     setPendingDeleteId(null);
     try {
+      if (!isOnline) {
+        await offlineDB.delete("events", id);
+        toast.success("Event removed on this device. It will sync when you are back online.");
+        refetchEvents();
+        return;
+      }
       const { error } = await supabase.from("events").delete().eq("id", id);
       if (error) throw error;
       toast.success("Event deleted");

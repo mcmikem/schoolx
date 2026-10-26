@@ -35,6 +35,7 @@ const DIRECT_SCHOOL_TABLES = new Set([
   "messages",
   "events",
   "timetable",
+  "homework",
   "behavior_logs",
   "student_promotions",
   "student_transfers",
