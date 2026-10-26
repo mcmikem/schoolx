@@ -125,7 +125,7 @@ describe("DiagnosticsPanel", () => {
     mockUseAuth.mockReturnValue(authValue(makeUser("headmaster")) as ReturnType<typeof useAuth>);
     render(<DiagnosticsPanel />);
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(screen.queryByText("Diagnostics")).toBeNull();
+    expect(screen.queryByText("Phone health")).toBeNull();
   });
 
   it("stays hidden for non-administrators even with ?debug=1", async () => {
@@ -133,7 +133,7 @@ describe("DiagnosticsPanel", () => {
     mockUseAuth.mockReturnValue(authValue(makeUser("teacher")) as ReturnType<typeof useAuth>);
     render(<DiagnosticsPanel />);
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(screen.queryByText("Diagnostics")).toBeNull();
+    expect(screen.queryByText("Phone health")).toBeNull();
   });
 
   it("shows clock skew and the build to a headmaster", async () => {
@@ -142,7 +142,7 @@ describe("DiagnosticsPanel", () => {
       authValue(makeUser("headmaster", ["headmaster", "teacher"])) as ReturnType<typeof useAuth>,
     );
     render(<DiagnosticsPanel />);
-    expect(await screen.findByText("Diagnostics")).toBeTruthy();
+    expect(await screen.findByText("Phone health")).toBeTruthy();
     expect(await screen.findByText("60 min ahead")).toBeTruthy();
     expect(await screen.findByText("skoolmate-abc123")).toBeTruthy();
     await waitFor(() => expect(mockGetServiceWorkerSnapshot).toHaveBeenCalled());
@@ -152,6 +152,6 @@ describe("DiagnosticsPanel", () => {
     window.history.replaceState({}, "", "/dashboard/?debug=1");
     mockUseAuth.mockReturnValue(authValue(makeUser("school_admin")) as ReturnType<typeof useAuth>);
     render(<DiagnosticsPanel />);
-    expect(await screen.findByText("Diagnostics")).toBeTruthy();
+    expect(await screen.findByText("Phone health")).toBeTruthy();
   });
 });

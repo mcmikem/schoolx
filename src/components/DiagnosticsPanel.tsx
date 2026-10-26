@@ -211,7 +211,7 @@ function DiagnosticsPanelBody() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Open diagnostics"
+        aria-label="Open phone health"
         className="fixed bottom-4 right-4 z-[9990] flex h-11 w-11 items-center justify-center rounded-full bg-[var(--navy)] text-[var(--on-primary)] shadow-lg"
       >
         <MaterialIcon icon="bug_report" style={{ fontSize: 20 }} />
@@ -235,7 +235,7 @@ function DiagnosticsPanelBody() {
         <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2">
           <div className="flex items-center gap-2">
             <MaterialIcon icon="bug_report" style={{ fontSize: 16 }} />
-            <span className="text-[12px] font-bold">Diagnostics</span>
+            <span className="text-[12px] font-bold">Phone health</span>
             {skewWarning && (
               <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">clock</span>
             )}
@@ -245,7 +245,7 @@ function DiagnosticsPanelBody() {
               type="button"
               onClick={() => void refresh()}
               disabled={busy}
-              aria-label="Refresh diagnostics"
+              aria-label="Refresh phone health"
               className="rounded-lg p-1.5 text-[var(--t2)] hover:bg-[var(--bg)] disabled:opacity-50"
             >
               <MaterialIcon icon={busy ? "progress_activity" : "refresh"} style={{ fontSize: 16 }} />
@@ -264,63 +264,65 @@ function DiagnosticsPanelBody() {
         <div className="max-h-[60vh] overflow-y-auto px-3 py-2">
           {error && <div className="mb-2 rounded-lg bg-red-50 px-2 py-1 text-[11px] text-red-700">{error}</div>}
 
-          <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--t3)] pt-1">Clock</div>
-          <Row label="Skew" value={formatClockSkew(skewMs)} warning={skewWarning} />
-          <Row label="Latency" value={snapshot?.server ? `${snapshot.server.latencyMs} ms` : "unknown"} />
-          <Row label="Timezone" value={env?.timezone || "unknown"} />
+          <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--t3)] pt-1">Clock check</div>
+          <Row label="Phone date vs server" value={formatClockSkew(skewMs)} warning={skewWarning} />
+          <Row label="Server response time" value={snapshot?.server ? `${snapshot.server.latencyMs} ms` : "unknown"} />
+          <Row label="Time zone" value={env?.timezone || "unknown"} />
 
-          <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--t3)] pt-2">Build</div>
-          <Row label="SW version" value={snapshot?.serviceWorker?.activeVersion ?? "unknown"} />
-          <Row label="SW control" value={snapshot?.serviceWorker?.controlled ? "active" : "not controlling"} />
-          <Row label="Caches" value={snapshot?.serviceWorker?.caches.join(", ") || "none"} />
-
-          <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--t3)] pt-2">Connection</div>
-          <Row label="Network" value={sync.isOnline ? "online" : "offline"} warning={!sync.isOnline} />
+          <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--t3)] pt-2">App version</div>
+          <Row label="App version" value={snapshot?.serviceWorker?.activeVersion ?? "unknown"} />
           <Row
-            label="Type"
+            label="Offline app active"
+            value={snapshot?.serviceWorker?.controlled ? "yes" : "no"}
+            warning={!snapshot?.serviceWorker?.controlled}
+          />
+          <Row label="Saved copies" value={snapshot?.serviceWorker?.caches.join(", ") || "none"} />
+
+          <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--t3)] pt-2">Internet</div>
+          <Row label="Internet" value={sync.isOnline ? "connected" : "offline"} warning={!sync.isOnline} />
+          <Row
+            label="Signal strength"
             value={
               env?.connection.effectiveType
                 ? `${env.connection.effectiveType}${env.connection.rttMs !== null ? ` / ${env.connection.rttMs} ms` : ""}`
                 : "unknown"
             }
           />
-          <Row label="Pending sync" value={`${sync.pendingCount}`} warning={sync.pendingCount > 0} />
-          <Row label="Last sync" value={sync.lastSynced ? sync.lastSynced.toLocaleTimeString() : "never"} />
+          <Row label="Changes waiting to sync" value={`${sync.pendingCount}`} warning={sync.pendingCount > 0} />
+          <Row label="Last server sync" value={sync.lastSynced ? sync.lastSynced.toLocaleTimeString() : "never"} />
           {sync.syncErrors.length > 0 && (
-            <Row label="Sync errors" value={sync.syncErrors.slice(0, 2).join("; ")} warning />
+            <Row label="Sync problems" value={sync.syncErrors.slice(0, 2).join("; ")} warning />
           )}
 
-          <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--t3)] pt-2">Session</div>
+          <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--t3)] pt-2">Sign-in</div>
           <Row
-            label="Expires"
+            label="Session ends"
             value={sessionExpiry}
             warning={session?.expiresAt ? session.expiresAt * 1000 < Date.now() : false}
           />
-          <Row label="Storage" value={session?.storage ?? "none"} />
-          <Row label="Auth ready" value={authInitialized ? "yes" : "no"} warning={!authInitialized} />
-          <Row label="Profile" value={profileDegraded ? "degraded" : "ok"} warning={profileDegraded} />
-          <Row label="Demo" value={isDemo ? "yes" : "no"} />
-          <Row label="Roles" value={roles.join(", ") || "none"} />
+          <Row label="Kept in" value="this phone" />
+          <Row label="Sign-in checked" value={authInitialized ? "yes" : "no"} warning={!authInitialized} />
+          <Row label="Your profile" value={profileDegraded ? "part loaded" : "full"} warning={profileDegraded} />
+          <Row label="Demo school" value={isDemo ? "yes" : "no"} />
+          <Row label="Jobs" value={roles.join(", ") || "none"} />
 
-          <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--t3)] pt-2">Device</div>
+          <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--t3)] pt-2">Phone</div>
           <Row
-            label="Storage"
+            label="Data on phone"
             value={
               snapshot?.storage.usageMb !== null && snapshot?.storage.usageMb !== undefined
                 ? `${snapshot.storage.usageMb} / ${snapshot.storage.quotaMb ?? "?"} MB`
                 : "unknown"
             }
           />
-          <Row label="Memory" value={env?.deviceMemoryGb ? `${env.deviceMemoryGb} GB` : "unknown"} />
-          <Row label="Cores" value={env?.hardwareConcurrency ? `${env.hardwareConcurrency}` : "unknown"} />
+          <Row label="Phone memory" value={env?.deviceMemoryGb ? `${env.deviceMemoryGb} GB` : "unknown"} />
+          <Row label="Processors" value={env?.hardwareConcurrency ? `${env.hardwareConcurrency}` : "unknown"} />
           <Row label="Viewport" value={`${env?.viewport ?? "?"} @${env?.pixelRatio ?? 1}x`} />
           <Row label="Mode" value={env?.displayMode ?? "unknown"} />
 
           {snapshot && snapshot.errors.length > 0 && (
             <>
-              <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--t3)] pt-2">
-                Recent API errors
-              </div>
+              <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--t3)] pt-2">Recent problems</div>
               {snapshot.errors.slice(0, 5).map((entry) => (
                 <Row
                   key={`${entry.at}-${entry.method}-${entry.url}-${entry.status}`}
@@ -340,7 +342,7 @@ function DiagnosticsPanelBody() {
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[var(--navy)] px-3 py-2 text-[11px] font-bold text-[var(--on-primary)]"
           >
             <MaterialIcon icon={copied ? "check" : "content_copy"} style={{ fontSize: 14 }} />
-            {copied ? "Copied" : "Copy report"}
+            {copied ? "Copied" : "Copy for support"}
           </button>
           <span className="text-[10px] text-[var(--t3)]">
             {snapshot?.capturedAt ? new Date(snapshot.capturedAt).toLocaleTimeString() : "not loaded"}
