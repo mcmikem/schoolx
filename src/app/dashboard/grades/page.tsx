@@ -919,6 +919,34 @@ export default function GradesPage() {
     [debouncedAutoSave],
   );
 
+  /**
+   * Spreadsheet-style completion: Enter drops to the next pupil in the same
+   * column, arrows walk the sheet, every hop lands with the current value
+   * selected so a teacher typing 70s straight down simply keeps pressing keys.
+   * Scope is the enclosing table (or card grid), so desktop grid and mobile
+   * cards share one behaviour without fighting over page-level focus.
+   */
+  const handleGridNav = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    const el = e.currentTarget;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      el.blur();
+    }
+    const dir = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
+    if (!dir) return;
+    e.preventDefault();
+    const scope = el.closest("[data-grade-scope]") ?? el.closest("table");
+    if (!scope) return;
+    const inputs = Array.from(scope.querySelectorAll<HTMLInputElement>("input[data-grade-cell]"));
+    const current = inputs.indexOf(el);
+    if (current === -1) return;
+    const next = inputs[current + dir];
+    if (next) {
+      next.focus();
+      next.select();
+    }
+  }, []);
+
   const handleQuickFill = useCallback(
     (type: string, value: number) => {
       if (caLocked && type.startsWith("ca")) {
@@ -2358,11 +2386,8 @@ export default function GradesPage() {
                                             (caLocked && type.startsWith("ca")) ||
                                             (termLocked && ["exam", "bot", "mid_term", "eot"].includes(type))
                                           }
-                                          onKeyDown={(e) => {
-                                            if (e.key === "Enter") {
-                                              e.currentTarget.blur();
-                                            }
-                                          }}
+                                          onKeyDown={handleGridNav}
+                                          data-grade-cell
                                         />
                                         {getSaveStatusForInput(student.id, type) === "saved" && (
                                           <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
@@ -2431,7 +2456,7 @@ export default function GradesPage() {
                   )}
                 </div>
                 {/* Mobile: grade cards (<md) — same students + handlers as the desktop table above */}
-                <div className="md:hidden space-y-3">
+                <div className="md:hidden space-y-3" data-grade-scope>
                   {studentsLoading ? (
                     <Card>
                       <CardBody>
@@ -2514,6 +2539,8 @@ export default function GradesPage() {
                                     <div className="relative">
                                       <input
                                         id={`grade-card-${student.id}-${type}`}
+                                        onKeyDown={handleGridNav}
+                                        data-grade-cell
                                         className={`w-full min-h-[44px] block text-center text-base font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-surface-container-low text-[var(--on-surface)] ${getInputBorderClass(student.id, type)}`}
                                         type="number"
                                         inputMode="numeric"

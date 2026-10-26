@@ -58,6 +58,15 @@ export function backOnlineComm(pendingCount: number): OwlyComm {
     : { severity: "success", title: "Back online" };
 }
 
+export function refreshFailedComm(): OwlyComm {
+  return {
+    severity: "warning",
+    title: "Some dashboard data couldn't refresh",
+    detail:
+      "Showing the most recent available data. This usually means slow internet or a slow school server — it will retry automatically.",
+  };
+}
+
 export function syncedComm(count: number): OwlyComm {
   return {
     severity: "success",

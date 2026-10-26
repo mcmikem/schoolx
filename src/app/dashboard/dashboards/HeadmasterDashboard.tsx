@@ -2,7 +2,7 @@
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import OwlMascot from "@/components/brand/OwlMascot";
 import ActionPanel from "@/components/dashboard/ActionPanel";
 import StatCard from "@/components/dashboard/StatCard";
@@ -18,6 +18,8 @@ import { useAllStudents, useClasses } from "@/lib/hooks/students";
 import { useDashboardExtraData } from "@/lib/hooks/useDashboardExtraData";
 import { useStaff } from "@/lib/hooks/staff";
 import NotifyTeachersModal from "@/components/dashboard/NotifyTeachersModal";
+import { askOwly } from "@/lib/owly-bus";
+import { refreshFailedComm } from "@/lib/owly-comm";
 import { formatNumber, greetingFor, todayLabelFor } from "@/lib/utils";
 
 const SetupChecklist = dynamic(() => import("@/components/onboarding/SetupChecklist"), {
@@ -60,6 +62,23 @@ function HeadmasterDashboardContent() {
     timedOut,
   } = useDashboardExtraData(school?.id, rosterReady ? students : null, [], currentTerm, academicYear);
 
+  // One announcement per episode: a retry that keeps timing out must not stack
+  // copies of the same chat message.
+  const [refreshFailedDelivered, setRefreshFailedDelivered] = useState(false);
+  const announcedRefreshFailure = useRef(false);
+  useEffect(() => {
+    if (!timedOut) {
+      announcedRefreshFailure.current = false;
+      if (refreshFailedDelivered) setRefreshFailedDelivered(false);
+      return;
+    }
+    if (announcedRefreshFailure.current) return;
+    announcedRefreshFailure.current = true;
+    const comm = refreshFailedComm();
+    const delivered = askOwly({ kind: "notify", ...comm });
+    // No assistant mounted (does not use the owl): keep the strip on the page.
+    setRefreshFailedDelivered(delivered);
+  }, [timedOut, refreshFailedDelivered]);
   const currentDate = useMemo(() => new Date(), []);
   const greeting = greetingFor(currentDate);
 
@@ -259,7 +278,9 @@ function HeadmasterDashboardContent() {
   return (
     <div className="content !gap-4 overflow-x-hidden">
       {isDataLoading && <TopLoadingBar />}
-      {timedOut ? (
+      {timedOut && !refreshFailedDelivered ? (
+        // Transient status belongs in Owly. This banner is only the fallback
+        // for mounts with no assistant listening; the message is identical.
         <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 mb-4 flex items-start gap-2">
           <span className="material-symbols-outlined text-amber-600 mt-0.5" aria-hidden>
             wifi_off

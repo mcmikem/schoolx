@@ -2010,6 +2010,13 @@ export default function AttendancePage() {
                       {lateCount > 0 ? ` · ${lateCount} late` : ""}
                       {excusedCount > 0 ? ` · ${excusedCount} excused` : ""}
                     </span>
+                    <span className="text-[11px] font-semibold opacity-90">
+                      {!isOnline
+                        ? "Offline · saves on this phone, syncs when signal returns"
+                        : unmarkedCount > 0
+                          ? `${unmarkedCount} not yet marked — these save as Present`
+                          : "Whole class marked"}
+                    </span>
                   </span>
                 </Button>
               </div>

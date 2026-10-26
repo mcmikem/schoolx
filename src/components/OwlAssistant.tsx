@@ -724,11 +724,13 @@ ${request.detail}`
                 role="status"
               >
                 {commBadge.severity === "success" ? (
-                  <MaterialIcon icon="cloud_done" size={12} />
+                  <MaterialIcon icon="check_circle" size={12} />
                 ) : commBadge.severity === "error" ? (
-                  <MaterialIcon icon="sync_problem" size={12} />
+                  <MaterialIcon icon="error" size={12} />
+                ) : commBadge.severity === "warning" ? (
+                  <MaterialIcon icon="cloud_off" size={12} />
                 ) : (
-                  <MaterialIcon icon="cloud" size={12} />
+                  <MaterialIcon icon="cloud_upload" size={12} />
                 )}
               </span>
             )}
