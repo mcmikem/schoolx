@@ -17,6 +17,7 @@ import { canSendSms } from "@/lib/sms-permissions";
 import { Modal } from "@/components/ui/Modal";
 import OnboardingTips from "@/components/OnboardingTips";
 import PersonInitials from "@/components/ui/PersonInitials";
+import NotifyParentsModal, { type NotifyParentEntry } from "@/components/students/NotifyParentsModal";
 import SearchField from "@/components/ui/SearchField";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/lib/auth-context";
@@ -231,6 +232,7 @@ export default function StudentRegistryPanel({
   // reliably -- admission_date cannot tell a new pupil from an old one (see
   // supabase/migrations/20261127000000_student_new_admission.sql).
   const [showBulkOptIn, setShowBulkOptIn] = useState(false);
+  const [showNotifyParents, setShowNotifyParents] = useState(false);
   const [bulkMeals, setBulkMeals] = useState<"" | "yes" | "no" | "skip">("skip");
   const [bulkNewAdmission, setBulkNewAdmission] = useState<"" | "yes" | "no" | "skip">("skip");
   const [bulkSaving, setBulkSaving] = useState(false);
@@ -346,6 +348,20 @@ export default function StudentRegistryPanel({
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }, [paginatedStudents, selectedIds]);
+
+  const notifyEntries = useMemo<NotifyParentEntry[]>(
+    () =>
+      paginatedStudents
+        .filter((s) => selectedIds.has(s.id))
+        .map((s) => ({
+          id: s.id,
+          studentName: `${s.first_name} ${s.last_name}`,
+          parentName: s.parent_name,
+          phone: s.parent_phone,
+          className: s.classes?.stream ? `${s.classes.name} ${s.classes.stream}` : s.classes?.name || null,
+        })),
+    [paginatedStudents, selectedIds],
+  );
 
   const filtersActive =
     searchTerm.trim() !== "" ||
@@ -913,6 +929,14 @@ export default function StudentRegistryPanel({
                 Meals &amp; registration
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => setShowNotifyParents(true)}
+              className="btn btn-primary btn-sm"
+            >
+              <MaterialIcon style={{ fontSize: 16 }}>chat</MaterialIcon>
+              WhatsApp parents
+            </button>
             {canExport && (
               <button type="button" onClick={exportSelectedCsv} className="btn btn-primary btn-sm">
                 <MaterialIcon style={{ fontSize: 16 }}>download</MaterialIcon>
@@ -1411,6 +1435,12 @@ export default function StudentRegistryPanel({
           </div>
         )}
       </div>
+
+      <NotifyParentsModal
+        open={showNotifyParents}
+        onClose={() => setShowNotifyParents(false)}
+        entries={notifyEntries}
+      />
 
       <Modal
         isOpen={showBulkOptIn}
