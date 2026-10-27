@@ -84,6 +84,7 @@ const alwaysPublicPaths = [
   "/login",
   "/register",
   "/demo-login",
+  "/demo-student",
   // Static runtime assets (pdf.js / Tesseract workers, wasm, trained data).
   // Content-free binaries with no data in them; gates here would just break
   // loading them from inside an authenticated page.
@@ -260,6 +261,20 @@ export async function proxy(request: NextRequest) {
 
   if (PUBLIC_FILE_PATTERN.test(pathname)) {
     return NextResponse.next({ request });
+  }
+
+  // The PWA's start_url. Cold-opening the installed app used to land on
+  // /login/ every single time and then "log itself in" — the login page
+  // flashed while the client restored the session, and each resume looked
+  // like a fresh sign-in. /start/ resolves the destination once, server-side
+  // and cookie-first (no auth round-trip), so a signed-in phone goes straight
+  // to the dashboard document and a signed-out one goes to /login.
+  // Offline the service worker maps /start/ to the cached dashboard shell.
+  if (normalizedPath === "/start") {
+    const signedIn = hasAuthSessionCookie(request) || hasValidDemoSession(request);
+    const response = NextResponse.redirect(new URL(signedIn ? "/dashboard/" : "/login/", request.url));
+    applySecurityHeaders(response);
+    return response;
   }
 
   const isPublicPath = pathname === "/" || alwaysPublicPaths.some((path) => matchesPathPrefix(pathname, path));

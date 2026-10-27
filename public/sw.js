@@ -292,6 +292,15 @@ self.addEventListener('fetch', (event) => {
             }
           }
 
+          // The PWA start_url resolves server-side when there is a network;
+          // offline, resolve it from the cache instead: the dashboard shell
+          // for a signed-in school device, the login doc otherwise.
+          if (url.pathname === '/start/' || url.pathname === '/start') {
+            const fallbackShell =
+              (await pageCache.match('/dashboard/')) || (await pageCache.match('/login/'));
+            if (fallbackShell) return fallbackShell;
+          }
+
           const offlinePage = await caches.match(OFFLINE_FALLBACK);
           if (offlinePage) return offlinePage;
 
