@@ -57,6 +57,19 @@ function FaviconUpdater() {
 }
 
 function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
+  // The shell routes behind the offline app are warmed by the service worker
+  // at install — but an install that ran while nobody was signed in caches
+  // nothing (every dashboard document redirects to /login, and the guard
+  // correctly skips redirects). Her PAGE cache then held only the login page,
+  // and offline the app fell over to the fallback screen. Warming on sign-in
+  // (and whenever the device finds data again) re-fills those routes with the
+  // current session. Idempotent: every attempt is a guarded fetch.
+  const postWarmShell = () => {
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+    const controller = navigator.serviceWorker.controller;
+    if (controller) controller.postMessage({ type: "WARM_SHELL" });
+  };
+
   useEffect(() => {
     // The offline read cache is scoped by user id, but the rows themselves
     // stay on disk until someone removes them. A shared staff phone changes
@@ -68,6 +81,9 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
         // Cached rows are not scoped by user, and a shared staff phone changes
         // hands. Pending writes stay queued for the account that made them.
         void offlineDB.clearCachedData().catch((error) => logger.warn("[offline] could not clear cached rows", error));
+      }
+      if (event === "SIGNED_IN") {
+        postWarmShell();
       }
     });
     return () => data.subscription.unsubscribe();
@@ -120,6 +136,8 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
       navigator.serviceWorker.addEventListener("controllerchange", reloadForActivatedUpdate);
 
       let registration: ServiceWorkerRegistration | null = null;
+      // Set inside the SW registration promise, referenced by the cleanup.
+      const onlineHandlerRef: { current: (() => void) | null } = { current: null };
 
       // Announce a pending update to the UI. Fired both when a worker finishes
       // installing and when one is already waiting at load, so a prompt is never
@@ -135,6 +153,17 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
           registration = reg;
           logger.log("Service Worker registered:", reg.scope);
           await reg.update().catch((err) => logger.warn("[SW] Update failed", err));
+
+          // The worker may still have been warming during a logged-out
+          // install: once it is active, try again from the signed-in side.
+          // And on a connection returning, refill anything that failed before.
+          const warmShellNow = () => {
+            (reg.active || navigator.serviceWorker.controller)?.postMessage({ type: "WARM_SHELL" });
+          };
+          warmShellNow();
+          const handleOnline = () => warmShellNow();
+          onlineHandlerRef.current = handleOnline;
+          window.addEventListener("online", handleOnline);
 
           if (reg.waiting) {
             if (shouldForceAuthRouteUpdate && !userInteracted) {
@@ -192,6 +221,7 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
         window.removeEventListener("pointerdown", markInteraction, { capture: true });
         window.removeEventListener("keydown", markInteraction, { capture: true });
         document.removeEventListener("visibilitychange", handleVisibility);
+        if (onlineHandlerRef.current) window.removeEventListener("online", onlineHandlerRef.current);
         clearInterval(interval);
         clearTimeout(initialCheck);
       };

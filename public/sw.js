@@ -1,7 +1,7 @@
 // Bumped by hand only as an emergency: prebuild stamps this with the build id
 // on every real deploy. Raised here so installs already holding a stale runtime
 // chunk purge their caches the moment this worker activates.
-const CACHE_VERSION = 'skoolmate-v15';
+const CACHE_VERSION = 'skoolmate-v16';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -75,6 +75,37 @@ async function matchNearestSectionPage(pathname) {
   return null;
 }
 
+/**
+ * Fill the offline app-shell routes.
+ *
+ * This is not an install-only job any more. Install running while the account
+ * was logged out meant every shell fetch hit the login redirect and was
+ * skipped -- the guard is there so a logged-out install never caches the
+ * redirect AS IF it were the app. The result was a school whose PAGE cache
+ * held nothing but the login page: offline, every link fell through to the
+ * fallback screen even though she had been using the app all day, because the
+ * document for /dashboard/ simply was never stored.
+ *
+ * So the same warm-up runs again on activate, and on demand from the app
+ * (WARM_SHELL) whenever the tab is known to be logged in and online. Idempotent:
+ * every attempt is a guarded, non-redirecting GET of the current document.
+ */
+async function warmAppShell() {
+  const pageCache = await caches.open(PAGE_CACHE);
+  await Promise.all(
+    APP_SHELL_ROUTES.map((url) =>
+      fetch(url, { credentials: 'same-origin' })
+        .then((res) => {
+          if (res.ok && !res.redirected) {
+            return cache.put(url, res);
+          }
+          return undefined;
+        })
+        .catch(() => undefined)
+    )
+  );
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     Promise.all([
@@ -82,20 +113,7 @@ self.addEventListener('install', (event) => {
         // Use individual adds so one failing URL doesn't abort the whole install
         return Promise.allSettled(PAGES_TO_CACHE.map((url) => cache.add(url)));
       }),
-      caches.open(PAGE_CACHE).then((cache) =>
-        Promise.all(
-          APP_SHELL_ROUTES.map((url) =>
-            fetch(url, { credentials: 'same-origin' })
-              .then((res) => {
-                if (res.ok && !res.redirected) {
-                  return cache.put(url, res);
-                }
-                return undefined;
-              })
-              .catch(() => undefined)
-          )
-        )
-      ),
+      warmAppShell(),
       // Deliberately no skipWaiting() here. A new worker waits so the app can
       // detect it and offer "Update now". Skipping would activate it silently,
       // leaving the page on the previous build with no way to prompt.
@@ -113,6 +131,7 @@ self.addEventListener('activate', (event) => {
             .map((name) => caches.delete(name))
         );
       }),
+      warmAppShell(),
       self.clients.claim(),
     ])
   );
@@ -258,6 +277,21 @@ self.addEventListener('fetch', (event) => {
             if (nearest) return nearest;
           }
 
+          // Last stop before the fallback screen: ANY cached app-shell
+          // document. The exact keys can all be absent (a shell warmed during
+          // a logged-out window is the known case), while a page the teacher
+          // hard-loaded this week sits in the same store. Landing her there
+          // keeps the app alive; the fallback screen is for nothing cached.
+          const sectionDocs = await pageCache.keys();
+          for (const doc of sectionDocs) {
+            if (url.origin !== new URL(doc.url).origin) continue;
+            const path = new URL(doc.url).pathname;
+            if (APP_SECTIONS.some((section) => path.startsWith(section + '/') || path === section || path === section + '/')) {
+              const cachedDoc = await pageCache.match(doc);
+              if (cachedDoc) return cachedDoc;
+            }
+          }
+
           const offlinePage = await caches.match(OFFLINE_FALLBACK);
           if (offlinePage) return offlinePage;
 
@@ -390,6 +424,10 @@ self.addEventListener('message', (event) => {
   // Sent by the "Update now" control to activate the waiting worker.
   if (event.data && (event.data.type === 'SKIP_WAITING' || event.data.type === 'APPLY_UPDATE')) {
     self.skipWaiting();
+  }
+
+  if (event.data && event.data.type === 'WARM_SHELL') {
+    event.waitUntil(warmAppShell());
   }
 
   if (event.data && event.data.type === 'CACHE_DATA') {

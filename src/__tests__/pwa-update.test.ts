@@ -87,6 +87,24 @@ describe("service worker slow-link and offline behaviour", () => {
   it("skips background image revalidation when Save-Data is on", () => {
     expect(sw).toContain("saveData");
   });
+
+  it("re-warms the app shell, not only during install", () => {
+    // An install that runs while nobody is signed in caches nothing: every
+    // dashboard document redirects to /login and the guard skips redirects.
+    // The shell warm-up must also run on activate, on demand (WARM_SHELL),
+    // so a school that installed logged out still gets offline pages.
+    expect(sw).toContain("function warmAppShell");
+    expect(sw).toContain("warmAppShell(),");
+    expect(sw).toContain("WARM_SHELL");
+  });
+
+  it("keeps the app alive with any cached section document before the fallback screen", () => {
+    // The exact shell keys can all be missing while a page the teacher
+    // hard-loaded this week sits in the same store; landing on it beats the
+    // "You're offline" screen.
+    expect(sw).toContain("pageCache.keys()");
+    expect(sw).toContain("APP_SECTIONS.some");
+  });
 });
 
 describe("heavy dashboard widgets stay out of the first-load bundle", () => {
