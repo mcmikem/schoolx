@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { memo, useEffect, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import { isDemoSchool } from "@/lib/demo-utils";
 import { timeoutFallback, withTimeout } from "@/lib/hooks/utils";
 import { supabase } from "@/lib/supabase";
 
@@ -49,7 +50,7 @@ const TeamPreview = memo(function TeamPreview({ schoolId }: { schoolId?: string 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!schoolId) {
+    if (!schoolId || isDemoSchool(schoolId)) {
       setLoading(false);
       return;
     }
@@ -86,7 +87,7 @@ const TeamPreview = memo(function TeamPreview({ schoolId }: { schoolId?: string 
   }, [schoolId]);
 
   return (
-    <div className="card">
+    <section className="border-t border-[var(--border)] pt-5">
       <div className="panel-head !mb-1">
         <h2 className="panel-title">Team activity</h2>
         <Link href="/dashboard/staff-activity" className="card-action-pill" aria-label="Open staff activity">
@@ -108,9 +109,7 @@ const TeamPreview = memo(function TeamPreview({ schoolId }: { schoolId?: string 
           ))}
         </div>
       ) : members.length === 0 ? (
-        <p className="py-3 text-[13px] text-[var(--t3)]">
-          No staff activity yet. Actions like attendance and fee payments will show up here.
-        </p>
+        <p className="py-3 text-[13px] text-[var(--t3)]">No staff activity yet.</p>
       ) : (
         <div role="list" className="divide-y divide-[var(--bg)]">
           {members.map((m) => {
@@ -138,7 +137,7 @@ const TeamPreview = memo(function TeamPreview({ schoolId }: { schoolId?: string 
           })}
         </div>
       )}
-    </div>
+    </section>
   );
 });
 

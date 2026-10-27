@@ -1,15 +1,13 @@
 "use client";
 import dynamic from "next/dynamic";
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import OwlMascot from "@/components/brand/OwlMascot";
-import ActionPanel from "@/components/dashboard/ActionPanel";
-import StatCard from "@/components/dashboard/StatCard";
 import UpNextCard from "@/components/dashboard/UpNextCard";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaterialIcon from "@/components/MaterialIcon";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
 import { useAcademic } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
@@ -109,36 +107,13 @@ function HeadmasterDashboardContent() {
 
   const quickActions = useMemo(
     () => [
-      {
-        label: "Add student",
-        href: "/dashboard/students?action=add",
-        icon: "person_add",
-      },
-      {
-        label: "Students",
-        href: "/dashboard/students",
-        icon: "group",
-      },
-      {
-        label: "Attendance",
-        href: "/dashboard/attendance",
-        icon: "how_to_reg",
-      },
-      {
-        label: "Fees",
-        href: "/dashboard/fees",
-        icon: "payments",
-      },
-      {
-        label: "Messages",
-        href: "/dashboard/messages",
-        icon: "sms",
-      },
-      {
-        label: "Defaulters",
-        href: "/dashboard/fees?status=unpaid",
-        icon: "print",
-      },
+      { label: "Students", href: "/dashboard/students", icon: "group" },
+      { label: "Attendance", href: "/dashboard/attendance", icon: "how_to_reg" },
+      { label: "Fees", href: "/dashboard/fees", icon: "payments" },
+      { label: "Grades", href: "/dashboard/grades", icon: "school" },
+      { label: "Report cards", href: "/dashboard/report-cards", icon: "description" },
+      { label: "Timetable", href: "/dashboard/timetable", icon: "calendar_month" },
+      { label: "Messages", href: "/dashboard/messages", icon: "sms" },
     ],
     [],
   );
@@ -276,7 +251,7 @@ function HeadmasterDashboardContent() {
   const isFirstRun = school?.id && !isDataLoading && rosterReady && students.length === 0;
 
   return (
-    <div className="content !gap-4 overflow-x-hidden">
+    <div className="content !gap-6 overflow-x-hidden">
       {isDataLoading && <TopLoadingBar />}
       {timedOut && !refreshFailedDelivered ? (
         // Transient status belongs in Owly. This banner is only the fallback
@@ -322,115 +297,89 @@ function HeadmasterDashboardContent() {
         </div>
       ) : (
         <>
-          {/* Keep the identity header compact so today's work stays above the fold. */}
-          <div className="card relative overflow-hidden !p-4 sm:!p-5 mb-4">
-            {school?.logo_url && (
-              <Image
-                src={school.logo_url}
-                alt=""
-                aria-hidden="true"
-                width={224}
-                height={224}
-                className="pointer-events-none absolute -right-10 -bottom-12 h-56 w-56 object-contain opacity-[0.07] select-none"
-                unoptimized
-              />
-            )}
-            <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center">
-              {school?.logo_url ? (
-                <Image
-                  src={school.logo_url}
-                  alt={school?.name || "School"}
-                  width={60}
-                  height={60}
-                  className="h-[60px] w-[60px] rounded-[18px] object-cover ring-1 ring-[var(--border)] shadow-[var(--sh1)] flex-shrink-0"
-                  unoptimized
-                />
-              ) : (
-                <div
-                  className="flex h-[60px] w-[60px] flex-shrink-0 items-center justify-center rounded-[18px] bg-[var(--primary)] text-[23px] font-bold text-[var(--on-primary)] shadow-[var(--sh1)]"
-                  style={{ fontFamily: "'Sora', sans-serif" }}
-                  aria-hidden="true"
-                >
-                  {(school?.name || "S").charAt(0)}
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <h1
-                  className="text-[23px] sm:text-[28px] font-bold text-[var(--t1)] tracking-tight leading-tight break-words"
-                  style={{ fontFamily: "'Sora', sans-serif" }}
-                >
-                  {greeting}, {user?.full_name?.split(" ")[0] || "there"}
-                </h1>
-                <p className="text-[13px] text-[var(--t3)] mt-2 leading-relaxed break-words">
-                  {school?.name} · {todayLabel} · Term {currentTerm}, {academicYear}
+          <PageHeader
+            title={`${greeting}, ${user?.full_name?.split(" ")[0] || "there"}`}
+            subtitle={[school?.name, todayLabel, `Term ${currentTerm}, ${academicYear}`].filter(Boolean).join(" · ")}
+            actions={
+              <Link href="/dashboard/students?action=add" className="btn-pill btn-primary">
+                <MaterialIcon icon="add" style={{ fontSize: 16 }} />
+                Add student
+              </Link>
+            }
+          />
+
+          <section aria-label="School at a glance" className="border-y border-[var(--border)] py-4">
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-[var(--border)]">
+              <Link
+                href="/dashboard/students"
+                data-testid="stat-Students"
+                aria-label="Open students"
+                className="group min-w-0 sm:pr-5"
+              >
+                <p className="text-[11px] font-medium text-[var(--t3)] sm:text-xs">Students</p>
+                <p className="mt-1 break-words text-base font-bold tracking-tight text-[var(--t1)] tabular-nums sm:text-2xl">
+                  {statsLoading ? "—" : formatNumber(stats.totalStudents)}
                 </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2.5 flex-shrink-0">
-                <Link href="/dashboard/students?action=add" className="btn-pill btn-primary">
-                  <MaterialIcon icon="add" style={{ fontSize: 16 }} />
-                  Add student
-                </Link>
-              </div>
+                <p className="mt-0.5 text-[11px] text-[var(--t3)] sm:text-xs">
+                  {formatNumber(boysCount)}B · {formatNumber(girlsCount)}G
+                </p>
+              </Link>
+              <Link
+                href="/dashboard/attendance"
+                data-testid="stat-Attendance today"
+                aria-label="Open attendance"
+                className="group min-w-0 pl-3 sm:px-5"
+              >
+                <p className="text-[11px] font-medium text-[var(--t3)] sm:text-xs">Attendance today</p>
+                <p className="mt-1 break-words text-base font-bold tracking-tight text-[var(--t1)] tabular-nums sm:text-2xl">
+                  {statsLoading || stats.presentToday < 0
+                    ? "—"
+                    : stats.presentToday > 0
+                      ? `${attendanceRate}%`
+                      : "Not recorded"}
+                </p>
+                <p className="mt-0.5 text-[11px] text-[var(--t3)] sm:text-xs">
+                  {statsLoading || stats.presentToday < 0
+                    ? "Updating…"
+                    : stats.presentToday > 0
+                      ? `${stats.presentToday} present`
+                      : "Not taken yet"}
+                </p>
+              </Link>
+              <Link
+                href="/dashboard/fees"
+                data-testid="stat-Fees collected"
+                aria-label="Open fees"
+                className="group min-w-0 pl-3 sm:px-5 sm:last:pr-0"
+              >
+                <p className="text-[11px] font-medium text-[var(--t3)] sm:text-xs">Fees collected</p>
+                <p className="mt-1 break-words text-base font-bold tracking-tight text-[var(--t1)] tabular-nums sm:text-2xl">
+                  {statsLoading ? (
+                    "—"
+                  ) : totalExpected > 0 ? (
+                    <>
+                      <span className="text-[11px] font-medium text-[var(--t3)] sm:text-xl">UGX</span>{" "}
+                      {compactFeesCollected}
+                    </>
+                  ) : (
+                    "Not set"
+                  )}
+                </p>
+                <p className="mt-0.5 text-[11px] text-[var(--t3)] sm:text-xs">
+                  {statsLoading ? (
+                    "Updating…"
+                  ) : totalExpected > 0 ? (
+                    <>
+                      {collectionRate}%<span className="hidden sm:inline"> of expected</span>
+                      {overdueFeeCount > 0 ? ` · ${overdueFeeCount} overdue` : ""}
+                    </>
+                  ) : (
+                    "No fees set"
+                  )}
+                </p>
+              </Link>
             </div>
-          </div>
-          <div className="stat-grid !mb-0 md:!grid-cols-3 lg:!grid-cols-3">
-            <StatCard
-              label="Students"
-              value={statsLoading ? "—" : formatNumber(stats.totalStudents)}
-              subValue={`${formatNumber(boysCount)}B · ${formatNumber(girlsCount)}G`}
-              icon="group"
-              accentColor="navy"
-              loading={statsLoading}
-              href="/dashboard/students"
-              hrefLabel="Open students"
-            />
-            <StatCard
-              label="Attendance today"
-              value={
-                statsLoading || stats.presentToday < 0
-                  ? "—"
-                  : stats.presentToday > 0
-                    ? `${attendanceRate}%`
-                    : "Not recorded"
-              }
-              subValue={
-                statsLoading || stats.presentToday < 0
-                  ? "Updating…"
-                  : stats.presentToday > 0
-                    ? `${stats.presentToday} present`
-                    : "Not taken yet"
-              }
-              icon="how_to_reg"
-              accentColor={
-                statsLoading || stats.presentToday < 0
-                  ? "amber"
-                  : stats.presentToday > 0
-                    ? attendanceRate >= 80
-                      ? "green"
-                      : "amber"
-                    : "red"
-              }
-              loading={statsLoading}
-              href="/dashboard/attendance"
-              hrefLabel="Open attendance"
-            />
-            <StatCard
-              label="Fees collected"
-              value={statsLoading ? "—" : totalExpected > 0 ? `UGX ${compactFeesCollected}` : "Not set"}
-              subValue={
-                statsLoading
-                  ? undefined
-                  : totalExpected > 0
-                    ? `${collectionRate}% of expected${overdueFeeCount > 0 ? ` · ${overdueFeeCount} overdue` : ""}`
-                    : "No fees set"
-              }
-              icon="payments"
-              accentColor={totalExpected > 0 ? (collectionRate >= 70 ? "green" : "amber") : "red"}
-              loading={statsLoading}
-              href="/dashboard/fees"
-              hrefLabel="Open fees"
-            />
-          </div>
+          </section>
 
           <SetupChecklist autoHide />
 
@@ -444,19 +393,28 @@ function HeadmasterDashboardContent() {
             staffLoading={staffLoading}
           />
 
-          <div className="mb-5">
-            <ActionPanel
-              title="Common actions"
-              label="Headmaster common actions"
-              description="Manage your school’s people, learning, and finances."
-              actions={quickActions}
-            />
-          </div>
+          <nav aria-label="Headmaster common actions" className="min-w-0">
+            <div className="grid grid-cols-2 gap-x-5 sm:grid-cols-4 xl:grid-cols-7">
+              {quickActions.map((action) => (
+                <Link
+                  key={action.href}
+                  href={action.href}
+                  className="group flex min-h-12 min-w-0 items-center gap-2 border-b border-[var(--border)] py-2 text-[13px] font-semibold text-[var(--t1)] transition-colors hover:text-[var(--primary)]"
+                >
+                  <MaterialIcon
+                    icon={action.icon}
+                    className="text-lg text-[var(--t3)] transition-colors group-hover:text-[var(--primary)]"
+                  />
+                  <span className="truncate">{action.label}</span>
+                </Link>
+              ))}
+            </div>
+          </nav>
 
           {/* ── Two-Column Layout ── */}
-          <div className="grid grid-cols-1 items-start xl:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 items-start xl:grid-cols-3 gap-6">
             {/* ── Left Column: Metrics + Task Manager ── */}
-            <div className="xl:col-span-2 space-y-5">
+            <div className="xl:col-span-2 space-y-6">
               <UpNextCard task={primaryTask} />
 
               {tasks.length > 1 && (
@@ -465,10 +423,12 @@ function HeadmasterDashboardContent() {
                   badge={tasks.length}
                   storageKey={`hm-tasks-${school?.id}`}
                   defaultOpen
+                  variant="flat"
                 >
                   <TaskManager
                     tasks={tasks.filter((t) => t !== primaryTask)}
                     emptyMessage="All caught up! No pending tasks."
+                    variant="list"
                   />
                 </CollapsibleSection>
               )}
@@ -477,7 +437,7 @@ function HeadmasterDashboardContent() {
             </div>
 
             {/* ── Right Column: Calendar + Quick Actions ── */}
-            <div className="space-y-5">
+            <div className="space-y-6">
               <SchoolCalendar schoolId={school?.id} userId={user?.id} />
             </div>
           </div>

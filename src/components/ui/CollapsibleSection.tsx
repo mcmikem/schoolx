@@ -11,6 +11,7 @@ interface CollapsibleSectionProps {
   badge?: string | number | null;
   className?: string;
   headerClassName?: string;
+  variant?: "card" | "flat";
 }
 
 export default function CollapsibleSection({
@@ -21,6 +22,7 @@ export default function CollapsibleSection({
   badge,
   className = "",
   headerClassName = "",
+  variant = "card",
 }: CollapsibleSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -48,10 +50,13 @@ export default function CollapsibleSection({
 
   const sectionId = `collapsible-${title.replace(/\s+/g, "-").toLowerCase()}`;
 
+  const shell =
+    variant === "flat"
+      ? "border-t border-[var(--border)] pt-5"
+      : "rounded-[var(--r)] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--sh1)]";
+
   return (
-    <div
-      className={`rounded-[var(--r)] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--sh1)] ${className}`}
-    >
+    <div className={`${shell} ${className}`}>
       <button
         onClick={toggle}
         className={`flex w-full items-center justify-between gap-2 text-left focus:outline-none focus:ring-2 focus:ring-primary-500 rounded ${headerClassName}`}

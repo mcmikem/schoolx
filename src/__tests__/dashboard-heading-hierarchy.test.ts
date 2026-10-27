@@ -28,7 +28,7 @@ const CASES: Array<{ role: string; file: string; h1: H1Source }> = [
   {
     role: "headmaster / school_admin / admin / board",
     file: "src/app/dashboard/dashboards/HeadmasterDashboard.tsx",
-    h1: "own",
+    h1: "pageheader",
   },
   { role: "dean_of_studies", file: "src/app/dashboard/dashboards/DeanDashboard.tsx", h1: "hero" },
   { role: "bursar", file: "src/app/dashboard/dashboards/BursarDashboard.tsx", h1: "pageheader" },

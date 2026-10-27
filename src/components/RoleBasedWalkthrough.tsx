@@ -39,9 +39,9 @@ export default function RoleBasedWalkthrough() {
   return (
     <section
       aria-label="Learn to use SkoolMate"
-      className="mx-4 mt-3 flex min-w-0 items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2.5 sm:mt-4 sm:mx-6 sm:flex-row sm:items-center sm:justify-between sm:p-4"
+      className="mx-4 mt-3 flex min-w-0 flex-wrap items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2.5 sm:mt-4 sm:mx-6 sm:flex-row sm:items-center sm:justify-between sm:p-4"
     >
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-[150px] flex-1 items-center gap-3">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 sm:h-11 sm:w-11">
           <OwlMascot size={28} animated />
         </span>

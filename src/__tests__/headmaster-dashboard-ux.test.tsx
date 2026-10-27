@@ -102,6 +102,6 @@ describe("Headmaster dashboard metrics", () => {
     expect(feeCard).toHaveTextContent(/3 overdue/);
 
     const commonActions = screen.getByRole("navigation", { name: /headmaster common actions/i });
-    expect(within(commonActions).getByRole("link", { name: /add student/i })).toBeInTheDocument();
+    expect(within(commonActions).getByRole("link", { name: /students/i })).toBeInTheDocument();
   });
 });

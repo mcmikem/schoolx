@@ -17,9 +17,11 @@ interface Task {
 export default function TaskManager({
   tasks,
   emptyMessage = "All clear! No pending tasks.",
+  variant = "cards",
 }: {
   tasks: Task[];
   emptyMessage?: string;
+  variant?: "cards" | "list";
 }) {
   if (tasks.length === 0) {
     return (
@@ -27,6 +29,45 @@ export default function TaskManager({
         <span className="material-symbols-outlined text-2xl text-[var(--green)]">check_circle</span>
         <p className="mt-1 text-xs font-semibold text-[var(--t3)]">{emptyMessage}</p>
       </div>
+    );
+  }
+
+  if (variant === "list") {
+    return (
+      <ul className="divide-y divide-[var(--border)]">
+        {tasks.map((task) => {
+          const colors = {
+            urgent: "bg-[var(--red-soft)] text-[var(--red-ink)]",
+            attention: "bg-[var(--amber-soft)] text-[var(--amber-ink)]",
+            normal: "bg-[var(--primary-50)] text-[var(--primary)]",
+          }[task.priority];
+
+          return (
+            <li key={task.id} className="flex items-start gap-3 py-3 sm:items-center">
+              <span
+                className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full sm:mt-0 ${colors}`}
+              >
+                <MaterialIcon icon={task.icon} className="text-base" />
+              </span>
+              <p className="min-w-0 flex-1 text-[13px] font-semibold leading-snug text-[var(--t1)]">{task.label}</p>
+              <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
+                {task.secondary && (
+                  <button
+                    type="button"
+                    onClick={task.secondary.onClick}
+                    className="text-xs font-semibold text-[var(--t3)] transition-colors hover:text-[var(--t1)]"
+                  >
+                    {task.secondary.label}
+                  </button>
+                )}
+                <Link href={task.href} className="text-xs font-bold text-[var(--primary)] hover:underline">
+                  {task.cta}
+                </Link>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     );
   }
 

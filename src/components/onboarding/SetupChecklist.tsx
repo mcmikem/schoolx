@@ -241,14 +241,14 @@ export default function SetupChecklist({ onComplete, showAll = false, autoHide =
   // attendance, what was collected today all fell below the fold for anyone
   // opening the app to do their job rather than to configure it.
   const summary = (
-    <div className="flex items-center justify-between gap-4">
-      <div className="min-w-0">
+    <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="min-w-[160px] flex-1">
         <h3 className="text-base font-semibold text-[var(--on-surface)]">School Setup Checklist</h3>
         <p className="text-[13px] text-[var(--t3)]">
           {completedCount} of {items.length} completed
         </p>
       </div>
-      <div className="flex items-center gap-3 flex-shrink-0">
+      <div className="ml-auto flex items-center gap-3 flex-shrink-0">
         <div className="text-xl font-bold text-[var(--primary)]">{progress}%</div>
         <Button variant="secondary" onClick={() => setExpanded(true)} aria-expanded={false}>
           Set up
