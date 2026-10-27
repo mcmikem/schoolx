@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useState, useEffect } from "react";
+import { safeLocalStorage, safeSessionStorage } from "@/lib/safe-storage";
 import { APP_NAME } from "@/lib/app-name";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -17,7 +18,7 @@ export const PWAInstallPrompt = memo(function PWAInstallPrompt() {
       window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
     if (isInstalled) return;
 
-    const dismissed = localStorage.getItem("pwa-install-dismissed");
+    const dismissed = safeLocalStorage.getItem("pwa-install-dismissed");
     if (dismissed) {
       const dismissedAt = parseInt(dismissed, 10);
       const daysSince = (Date.now() - dismissedAt) / (1000 * 60 * 60 * 24);
@@ -46,7 +47,7 @@ export const PWAInstallPrompt = memo(function PWAInstallPrompt() {
 
   const handleDismiss = () => {
     setShowBanner(false);
-    localStorage.setItem("pwa-install-dismissed", Date.now().toString());
+    safeLocalStorage.setItem("pwa-install-dismissed", Date.now().toString());
   };
 
   if (!showBanner) return null;

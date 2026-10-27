@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { safeLocalStorage, safeSessionStorage } from "@/lib/safe-storage";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -26,7 +27,7 @@ interface GlobalSearchProps {
 
 function getRecentSearches(): string[] {
   try {
-    const raw = localStorage.getItem(RECENT_SEARCHES_KEY);
+    const raw = safeLocalStorage.getItem(RECENT_SEARCHES_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -38,7 +39,7 @@ function saveRecentSearch(query: string) {
     const existing = getRecentSearches();
     const filtered = existing.filter((s) => s !== query);
     const updated = [query, ...filtered].slice(0, MAX_RECENT_SEARCHES);
-    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+    safeLocalStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
   } catch {
     // ignore
   }
@@ -46,7 +47,7 @@ function saveRecentSearch(query: string) {
 
 function clearRecentSearches() {
   try {
-    localStorage.removeItem(RECENT_SEARCHES_KEY);
+    safeLocalStorage.removeItem(RECENT_SEARCHES_KEY);
   } catch {
     // ignore
   }

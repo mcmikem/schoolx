@@ -1,5 +1,6 @@
 "use client";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
+import { safeLocalStorage, safeSessionStorage } from "./safe-storage";
 import { useAuth } from "./auth-context";
 import { logger } from "./logger";
 import { loadSchoolSettings, saveSchoolSetting } from "./school-settings";
@@ -10,11 +11,11 @@ import { getLocalDateString } from "@/lib/hooks/utils";
 const getDefaultAcademicYear = () => new Date().getFullYear().toString();
 const getStoredAcademicYear = () => {
   if (typeof window === "undefined") return getDefaultAcademicYear();
-  return localStorage.getItem("academic_year") || getDefaultAcademicYear();
+  return safeLocalStorage.getItem("academic_year") || getDefaultAcademicYear();
 };
 const getStoredCurrentTerm = (): 1 | 2 | 3 => {
   if (typeof window === "undefined") return 1;
-  const raw = localStorage.getItem("current_term");
+  const raw = safeLocalStorage.getItem("current_term");
   return raw === "2" || raw === "3" ? (Number(raw) as 1 | 2 | 3) : 1;
 };
 
@@ -78,7 +79,7 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
       // Still resolve term by date — just skip DB sync
       const demoTerm = resolveTermByDate();
       setCurrentTermState(demoTerm);
-      localStorage.setItem("current_term", demoTerm.toString());
+      safeLocalStorage.setItem("current_term", demoTerm.toString());
       setAcademicYearState(getStoredAcademicYear());
       setLockedTerms([]);
       setLoading(false);
@@ -120,9 +121,9 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
 
       // Always persist the resolved term
       setCurrentTermState(activeTerm);
-      localStorage.setItem("current_term", activeTerm.toString());
+      safeLocalStorage.setItem("current_term", activeTerm.toString());
       setAcademicYearState(activeYear);
-      localStorage.setItem("academic_year", activeYear);
+      safeLocalStorage.setItem("academic_year", activeYear);
 
       // Sync to DB, but only when the resolved term actually differs from what is
       // already stored. This effect runs on every page load, so writing
@@ -173,7 +174,7 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
   // Save to DB when changed locally
   const setAcademicYear = async (year: string) => {
     setAcademicYearState(year);
-    localStorage.setItem("academic_year", year);
+    safeLocalStorage.setItem("academic_year", year);
     if (school?.id && !isDemo) {
       try {
         await saveSchoolSetting(school.id, "academic_year", year);
@@ -185,7 +186,7 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
 
   const setCurrentTerm = async (term: 1 | 2 | 3) => {
     setCurrentTermState(term);
-    localStorage.setItem("current_term", term.toString());
+    safeLocalStorage.setItem("current_term", term.toString());
     if (school?.id && !isDemo) {
       try {
         await saveSchoolSetting(school.id, "current_term", term.toString());

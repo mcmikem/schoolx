@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { safeLocalStorage, isLocalStorageAvailable } from "@/lib/safe-storage";
 import { useEffect, useRef, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { VideoLessonButton } from "@/components/onboarding/VideoLesson";
@@ -153,18 +154,18 @@ function GuideSession({ schoolId, userId, track }: { schoolId: string; userId: s
   const moveFocus = useRef(false);
 
   useEffect(() => {
-    try {
-      setProgress(readLearningProgress(localStorage.getItem(storageKey), lessons));
-    } catch {
+    if (!isLocalStorageAvailable()) {
       setStorageUnavailable(true);
     }
+    setProgress(readLearningProgress(safeLocalStorage.getItem(storageKey), lessons));
     setReady(true);
   }, [storageKey]);
 
   useEffect(() => {
     if (!ready) return;
     try {
-      localStorage.setItem(storageKey, JSON.stringify(progress));
+      safeLocalStorage.setItem(storageKey, JSON.stringify(progress));
+      if (!isLocalStorageAvailable()) setStorageUnavailable(true);
     } catch {
       setStorageUnavailable(true);
     }

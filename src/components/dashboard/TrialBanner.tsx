@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { safeLocalStorage, safeSessionStorage } from "@/lib/safe-storage";
 import { useAuth } from "@/lib/auth-context";
 import MaterialIcon from "@/components/MaterialIcon";
 import { canOpenSettingsPage } from "@/lib/role-tab-access";
@@ -17,7 +18,7 @@ export default function TrialBanner() {
       setDaysLeft(days);
     }
 
-    const stored = localStorage.getItem("trial-banner-dismissed");
+    const stored = safeLocalStorage.getItem("trial-banner-dismissed");
     if (stored) {
       const dismissedAt = parseInt(stored);
       if (Date.now() - dismissedAt < 24 * 60 * 60 * 1000) {
@@ -28,7 +29,7 @@ export default function TrialBanner() {
 
   const handleDismiss = () => {
     setDismissed(true);
-    localStorage.setItem("trial-banner-dismissed", Date.now().toString());
+    safeLocalStorage.setItem("trial-banner-dismissed", Date.now().toString());
   };
 
   // Tester schools are comped through the current and next academic term —

@@ -1,5 +1,6 @@
 "use client";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { safeLocalStorage, safeSessionStorage } from "@/lib/safe-storage";
 import MaterialIcon from "@/components/MaterialIcon";
 
 interface CollapsibleSectionProps {
@@ -26,7 +27,7 @@ export default function CollapsibleSection({
   useEffect(() => {
     if (!storageKey || typeof window === "undefined") return;
     try {
-      const stored = localStorage.getItem(storageKey);
+      const stored = safeLocalStorage.getItem(storageKey);
       if (stored !== null) {
         setIsOpen(stored === "true");
       }
@@ -38,7 +39,7 @@ export default function CollapsibleSection({
       const next = !prev;
       if (storageKey && typeof window !== "undefined") {
         try {
-          localStorage.setItem(storageKey, String(next));
+          safeLocalStorage.setItem(storageKey, String(next));
         } catch {}
       }
       return next;

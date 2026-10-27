@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
+import { safeLocalStorage, safeSessionStorage } from "@/lib/safe-storage";
 import { useAuth } from "@/lib/auth-context";
 import { useClasses } from "@/lib/hooks";
 import { buildRosterKeys, loadExistingStudents, type RosterKeys } from "@/lib/import/existing-roster";
@@ -150,7 +151,7 @@ export default function BulkImport({ onComplete, createStudent, houses = [] }: B
       return;
     }
 
-    if (typeof window !== "undefined" && localStorage.getItem("skoolmate_demo_v1") !== null) {
+    if (typeof window !== "undefined" && safeLocalStorage.getItem("skoolmate_demo_v1") !== null) {
       await new Promise((r) => setTimeout(r, 1500));
       setResult({ success: validStudents.length, failed: 0, skipped: 0, errors: [] });
       setStep("complete");

@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import { safeLocalStorage, safeSessionStorage } from "@/lib/safe-storage";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { OwlLoader } from "@/components/loaders";
@@ -94,7 +95,7 @@ export default function SuperAdminPage() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("platform_settings");
+      const saved = safeLocalStorage.getItem("platform_settings");
       if (saved) setSettings((prev) => ({ ...prev, ...JSON.parse(saved) }));
     } catch (error) {
       logger.error("Failed to load platform settings from localStorage:", error);
@@ -242,7 +243,7 @@ export default function SuperAdminPage() {
   const saveSettings = async () => {
     setSettingsSaving(true);
     try {
-      localStorage.setItem("platform_settings", JSON.stringify(settings));
+      safeLocalStorage.setItem("platform_settings", JSON.stringify(settings));
       toast.success("Platform settings saved");
     } catch (err) {
       logger.warn("Failed to save platform settings:", err);

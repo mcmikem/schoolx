@@ -1,3 +1,5 @@
+import { safeLocalStorage } from "./safe-storage";
+
 // Luganda translations for key UI elements
 
 export type Language = 'en' | 'lg'
@@ -135,12 +137,12 @@ let currentLanguage: Language = 'en'
 
 export function setLanguage(lang: Language) {
   currentLanguage = lang
-  localStorage.setItem('language', lang)
+  safeLocalStorage.setItem('language', lang)
 }
 
 export function getLanguage(): Language {
   if (typeof window !== 'undefined') {
-    const saved = localStorage.getItem('language') as Language
+    const saved = safeLocalStorage.getItem('language') as Language
     if (saved && (saved === 'en' || saved === 'lg')) {
       currentLanguage = saved
     }

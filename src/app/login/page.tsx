@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { safeLocalStorage, safeSessionStorage } from "@/lib/safe-storage";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -72,7 +73,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const saved = localStorage.getItem("remember_session");
+    const saved = safeLocalStorage.getItem("remember_session");
     setRememberSession(saved !== "false");
   }, []);
 
@@ -279,7 +280,7 @@ export default function LoginPage() {
     }
 
     if (typeof window !== "undefined") {
-      localStorage.setItem("remember_session", rememberSession ? "true" : "false");
+      safeLocalStorage.setItem("remember_session", rememberSession ? "true" : "false");
     }
 
     const normalized = raw.includes("@") ? raw.toLowerCase() : normalizeAuthPhone(raw);

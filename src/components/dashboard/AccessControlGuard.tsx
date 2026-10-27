@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
+import { safeSessionStorage } from "../../lib/safe-storage";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -242,9 +243,9 @@ export function useAccessControl() {
       const baseAllowed = isRouteAllowed(role, pathname);
       const allowed = role ? resolveRouteAccess(role, pathname, baseAllowed, overrides) : baseAllowed;
       if (user.role && !allowed) {
-        const lastDenied = sessionStorage.getItem("lastDeniedPath");
+        const lastDenied = safeSessionStorage.getItem("lastDeniedPath");
         if (lastDenied !== pathname) {
-          sessionStorage.setItem("lastDeniedPath", pathname);
+          safeSessionStorage.setItem("lastDeniedPath", pathname);
           const userRoleLabel = getRoleLabel(user.role as UserRole);
           const pageName = routeKey.split("/").pop()?.replace(/-/g, " ") || "this page";
           const capitalizedPage = pageName.charAt(0).toUpperCase() + pageName.slice(1);
@@ -261,15 +262,15 @@ export function useAccessControl() {
 
     const moduleKey = getRequiredModuleForPath(pathname);
     if (moduleKey && !isModuleInFeatureStage(featureStage, moduleKey)) {
-      const lastDenied = sessionStorage.getItem("lastDeniedPath");
+      const lastDenied = safeSessionStorage.getItem("lastDeniedPath");
       if (lastDenied !== pathname) {
-        sessionStorage.setItem("lastDeniedPath", pathname);
+        safeSessionStorage.setItem("lastDeniedPath", pathname);
         toast?.error("Upgrade your package to access this module");
       }
       router.replace(`/dashboard/no-access?reason=feature&from=${encodeURIComponent(pathname)}&module=${moduleKey}`);
       return;
     }
-    sessionStorage.removeItem("lastDeniedPath");
+    safeSessionStorage.removeItem("lastDeniedPath");
   }, [user, pathname, toast, featureStage, router, overrides]);
 }
 

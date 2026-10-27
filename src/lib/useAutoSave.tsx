@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { safeLocalStorage, safeSessionStorage } from "./safe-storage";
 import { logger } from "./logger";
 
 interface UseAutoSaveOptions {
@@ -28,7 +29,7 @@ export function useAutoSave<T extends Record<string, any>>(initialData: T, optio
   // Load saved data on mount
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(storageKey);
+      const saved = safeLocalStorage.getItem(storageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
         setData(parsed);
@@ -64,7 +65,7 @@ export function useAutoSave<T extends Record<string, any>>(initialData: T, optio
           data,
           savedAt: new Date().toISOString(),
         };
-        localStorage.setItem(storageKey, JSON.stringify(toSave));
+        safeLocalStorage.setItem(storageKey, JSON.stringify(toSave));
         setLastSaved(new Date());
         setIsDirty(false);
       } catch (e) {
@@ -78,7 +79,7 @@ export function useAutoSave<T extends Record<string, any>>(initialData: T, optio
   // Clear saved data
   const clearSaved = useCallback(() => {
     try {
-      localStorage.removeItem(storageKey);
+      safeLocalStorage.removeItem(storageKey);
       setLastSaved(null);
     } catch (e) {
       logger.error("Failed to clear auto-save:", e);
