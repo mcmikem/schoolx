@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 import { seedDemoSession } from "./helpers/demo";
 
 const routes = [
-  ["/dashboard/", "Fees overview"],
+  ["/dashboard/", /^Good (Morning|Afternoon|Evening),/],
   ["/dashboard/fees/", "Fees Tracker"],
   ["/dashboard/fee-structure/", "Fee Structure"],
   ["/dashboard/fee-ledger/", "Payment Ledger"],

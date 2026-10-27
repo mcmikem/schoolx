@@ -54,10 +54,7 @@ export default function BursarReceiptPanel({
   }, [payments, students, query, period]);
 
   return (
-    <section
-      aria-labelledby="bursar-receipts-title"
-      className="min-w-0 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5"
-    >
+    <section aria-labelledby="bursar-receipts-title" className="min-w-0 border-t border-[var(--border)] pt-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="bursar-receipts-title" className="text-base font-bold text-[var(--t1)]">
           Recent receipts
@@ -93,10 +90,6 @@ export default function BursarReceiptPanel({
         onChange={setQuery}
         placeholder="Student, class or reference…"
       />
-      <p className="mt-2 text-xs text-[var(--t3)]">
-        Search covers loaded receipts only. Open the ledger for more records.
-      </p>
-
       {error ? (
         <div role="alert" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
           <p>Receipts could not be loaded. Try again before relying on today&apos;s figures.</p>

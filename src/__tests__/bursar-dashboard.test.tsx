@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import BursarDashboard from "@/app/dashboard/dashboards/BursarDashboard";
 import { useFeePayments, useFeeStructure, useFeeSummary, useStudents } from "@/lib/hooks";
 
@@ -40,10 +40,10 @@ describe("bursar dashboard data states", () => {
       refetch: jest.fn(),
     });
     render(<BursarDashboard />);
-    const daily = screen.getByRole("region", { name: "Daily collections" });
+    const daily = screen.getByRole("region", { name: "Collections" });
     expect(daily).toHaveTextContent("Receipts could not be loaded");
     expect(daily).not.toHaveTextContent("UGX 0");
-    expect(screen.getByText("Weekly activity is unavailable. Retry loading receipts above.")).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: /collections, total/i })).not.toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Fee summary" })).not.toHaveTextContent("UGX 0");
   });
 
@@ -82,14 +82,40 @@ describe("bursar dashboard data states", () => {
     expect(screen.getByRole("progressbar")).not.toHaveAttribute("aria-valuenow");
   });
 
+  it("answers today, this week and this month from the same receipts", () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(2026, 9, 15, 12));
+    try {
+      (useFeePayments as jest.Mock).mockReturnValue({
+        payments: [
+          { student_id: "s1", amount_paid: 100000, payment_method: "cash", payment_date: "2026-10-15" },
+          { student_id: "s2", amount_paid: 50000, payment_method: "mobile_money", payment_date: "2026-10-13" },
+          { student_id: "s3", amount_paid: 30000, payment_method: "bank", payment_date: "2026-10-08" },
+          { student_id: "s4", amount_paid: 20000, payment_method: "cash", payment_date: "2026-09-30" },
+        ],
+        loading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+      render(<BursarDashboard />);
+      const daily = screen.getByRole("region", { name: "Collections" });
+      expect(daily).toHaveTextContent("UGX 150,000");
+      fireEvent.click(within(daily).getByRole("button", { name: "This month" }));
+      expect(daily).toHaveTextContent("UGX 180,000");
+      fireEvent.click(within(daily).getByRole("button", { name: "Today" }));
+      expect(daily).toHaveTextContent("UGX 100,000");
+      expect(daily).toHaveTextContent("Cash");
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it("does not claim fees are missing when the fee request failed", () => {
     (useFeeStructure as jest.Mock).mockReturnValue({ feeStructure: [], loading: false, error: "Timed out" });
     render(<BursarDashboard />);
     expect(screen.queryByRole("region", { name: "Fee setup needed" })).not.toBeInTheDocument();
     expect(
-      screen.getByText(
-        "Some finance records could not be loaded. Summary values remain unknown until the data is available.",
-      ),
+      screen.getByText("Some finance records could not be loaded, so these totals are unknown."),
     ).toBeInTheDocument();
   });
 
@@ -101,7 +127,7 @@ describe("bursar dashboard data states", () => {
       render(<BursarDashboard />);
       act(() => jest.advanceTimersByTime(3000));
       const summary = screen.getByRole("region", { name: "Fee summary" });
-      expect(within(summary).getAllByText("Loading summary…")).toHaveLength(4);
+      expect(within(summary).getByText("Loading summary…")).toBeInTheDocument();
       expect(summary).not.toHaveTextContent("UGX 0");
     } finally {
       jest.useRealTimers();

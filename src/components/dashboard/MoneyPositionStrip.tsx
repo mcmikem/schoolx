@@ -23,7 +23,7 @@ export default function MoneyPositionStrip() {
   const { position, loading } = useMoney(school?.id);
 
   return (
-    <section aria-label="money position" className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+    <section aria-label="money position" className="min-w-0 border-t border-[var(--border)] pt-5">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-bold text-[var(--t1)]">Money in and out</h2>
         <Link
@@ -35,7 +35,7 @@ export default function MoneyPositionStrip() {
         </Link>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4 sm:divide-x sm:divide-[var(--border)]">
         <Figure
           label="Money in"
           value={position.moneyIn}
@@ -81,8 +81,8 @@ function Figure({
   loading: boolean;
 }) {
   return (
-    <div className="min-w-0">
-      <p className="truncate text-xs font-bold uppercase tracking-wide text-[var(--t3)]">{label}</p>
+    <div className="min-w-0 sm:pr-5 sm:last:pr-0">
+      <p className="truncate text-xs font-medium text-[var(--t3)]">{label}</p>
       {loading ? (
         <div className="mt-1.5 h-5 w-20 animate-pulse rounded bg-[var(--surface-container-high)]" />
       ) : (

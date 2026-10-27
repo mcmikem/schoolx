@@ -22,10 +22,11 @@ test("bursar finance desk fits narrow phones and desktop with visible daily work
   for (const width of [320, 390, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     await page.goto("/dashboard/");
-    await expect(page.getByRole("heading", { name: "Fees overview", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^Good (Morning|Afternoon|Evening),/ })).toBeVisible();
     await expect(page.locator("main h1")).toHaveCount(1);
-    await expect(page.getByRole("region", { name: "Daily collections" })).toBeVisible();
-    const daily = page.getByRole("region", { name: "Daily collections" });
+    await expect(page.getByRole("region", { name: "Collections" })).toBeVisible();
+    const daily = page.getByRole("region", { name: "Collections" });
+    await daily.getByRole("button", { name: "Today" }).click();
     const cashBounds = await daily.getByText("Cash", { exact: true }).boundingBox();
     const bankBounds = await daily.getByText("Bank", { exact: true }).boundingBox();
     expect(Math.abs(cashBounds!.y - bankBounds!.y)).toBeLessThan(2);
@@ -40,7 +41,7 @@ test("bursar finance desk fits narrow phones and desktop with visible daily work
     await expect(calendarToggle).toHaveAttribute("aria-expanded", "false");
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
     await page.screenshot({ path: join(output, `bursar-${width}.png`), fullPage: true, animations: "disabled" });
-    await page.getByRole("region", { name: "Daily collections" }).scrollIntoViewIfNeeded();
+    await page.getByRole("region", { name: "Collections" }).scrollIntoViewIfNeeded();
     if (width === 1440) await page.screenshot({ path: join(output, "bursar-desktop-preview.png"), animations: "disabled" });
   }
   expect(errors).toEqual([]);
@@ -81,13 +82,13 @@ test("bursar dashboard survives refresh and returning from the fees page", async
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/dashboard/");
-  await expect(page.getByRole("heading", { name: "Fees overview", exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("heading", { name: /^Good (Morning|Afternoon|Evening),/ })).toBeVisible({ timeout: 15_000 });
   await page.reload();
   await expect(page.getByRole("navigation", { name: "Bursar quick actions" })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("navigation", { name: "Bursar quick actions" }).getByRole("link", { name: "Fee balances" }).click();
   await expect(page.getByRole("heading", { name: "Fees Tracker", exact: true })).toBeVisible();
   await page.goBack();
-  await expect(page.getByRole("heading", { name: "Fees overview", exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("heading", { name: /^Good (Morning|Afternoon|Evening),/ })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText("Something went wrong", { exact: true })).toHaveCount(0);
   expect(errors).toEqual([]);
 });
