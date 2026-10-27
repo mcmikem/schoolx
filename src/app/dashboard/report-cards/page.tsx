@@ -104,6 +104,9 @@ export default function ReportCardsPage() {
   // it back.
   const [savedRemarks, setSavedRemarks] = useState<Record<string, { classTeacher: string; hm: string }>>({});
   const [remarksLoaded, setRemarksLoaded] = useState(false);
+  // Cards already on file for this class and term (rows in report_cards).
+  // Powers the readiness strip; null means "not measured yet".
+  const [savedCardCount, setSavedCardCount] = useState<number | null>(null);
   const remarkLoadToken = useRef(0);
   // Behaviour / co-curricular ratings, 1-5. The report printed four empty
   // boxes for every pupil in every school because nothing could be written
@@ -157,6 +160,26 @@ export default function ReportCardsPage() {
   const selectedClassName = selectedClassObj
     ? `${selectedClassObj.name}${selectedClassObj.stream ? ` ${selectedClassObj.stream}` : ""}`
     : "";
+
+  // What stands between this class and cards going home. One strip, not a
+  // scavenger scroll: the headmaster shouldn't have to find the two pupils
+  // with missing marks by paging through every card. Counts read the saved
+  // rows first (the truth without a network) and the on-screen generation.
+  const readiness = useMemo(() => {
+    const roster = filteredStudents.length;
+    const teacherOutstanding = filteredStudents.filter((s) => !savedRemarks[s.id]?.classTeacher?.trim()).length;
+    const hmOutstanding = filteredStudents.filter((s) => !savedRemarks[s.id]?.hm?.trim()).length;
+    const incomplete = reports.filter((r) => r.isComplete === false).length;
+    const missingMarksCount = reports.filter((r) => r.subjects.some((s) => s.isMissing)).length;
+    return {
+      roster,
+      onFile: savedCardCount ?? (generated && reports.length > 0 ? reports.length : null),
+      teacherOutstanding,
+      hmOutstanding,
+      incomplete,
+      missingMarksCount,
+    };
+  }, [filteredStudents, savedRemarks, reports, savedCardCount, generated]);
 
   // Fee clearance per pupil, from the same engine the bursar's screen uses
   // (class/boarding/meal applicability, adjustments and opening balance). This
@@ -936,10 +959,13 @@ export default function ReportCardsPage() {
     const requestToken = ++remarkLoadToken.current;
     setRemarksLoaded(false);
     setSavedRemarks({});
+    setSavedCardCount(null);
     if (!school?.id || !selectedClass) {
+      setRemarksLoaded(true);
       return;
     }
     if (isDemo) {
+      setSavedCardCount(0);
       setRemarksLoaded(true);
       return;
     }
@@ -961,14 +987,16 @@ export default function ReportCardsPage() {
         setRemarksLoaded(true);
         return;
       }
+      const rows = data || [];
       const loaded: Record<string, { classTeacher: string; hm: string }> = {};
-      for (const row of data || []) {
+      for (const row of rows) {
         const classTeacher = row.class_teacher_remark || "";
         const hm = row.head_teacher_remark || "";
         if (!classTeacher && !hm && !row.remark_updated_at) continue;
         loaded[row.student_id] = { classTeacher, hm };
       }
       setSavedRemarks(loaded);
+      setSavedCardCount(rows.length);
       // Anything already saved wins over the freshly generated text.
       if (Object.keys(loaded).length > 0) {
         setComments((prev) => {
@@ -983,6 +1011,43 @@ export default function ReportCardsPage() {
         });
       }
     } catch (err) {
+      if (requestToken !== remarkLoadToken.current) {
+        logger.error("Failed to load saved remarks:", err);
+        return;
+      }
+      // Offline (or the fetch timed out): the on-device cache holds the rows
+      // queued by earlier generations. Reading them keeps the readiness
+      // numbers on screen instead of showing blanks that say "you have no
+      // cards" when the truth is "you have no network".
+      try {
+        const { offlineDB } = await import("@/lib/offline");
+        const cached = await offlineDB.getAll("report_cards", {
+          class_id: selectedClass,
+          academic_year: academicYear,
+          term: currentTerm,
+        });
+        const rows = cached || [];
+        const loaded: Record<string, { classTeacher: string; hm: string }> = {};
+        for (const row of rows) {
+          const classTeacher = (row.class_teacher_remark as string) || "";
+          const hm = (row.head_teacher_remark as string) || "";
+          if (!classTeacher && !hm) continue;
+          loaded[String(row.student_id)] = { classTeacher, hm };
+        }
+        setSavedRemarks(loaded);
+        setSavedCardCount(rows.length);
+        if (Object.keys(loaded).length > 0) {
+          setComments((prev) => {
+            const next = { ...prev };
+            for (const [studentId, remark] of Object.entries(loaded)) {
+              next[studentId] = { classTeacher: remark.classTeacher, hm: remark.hm };
+            }
+            return next;
+          });
+        }
+      } catch (cacheErr) {
+        logger.warn("Saved remarks cache fallback failed:", cacheErr);
+      }
       if (requestToken === remarkLoadToken.current) logger.error("Failed to load saved remarks:", err);
     } finally {
       if (requestToken === remarkLoadToken.current) setRemarksLoaded(true);
@@ -1754,6 +1819,113 @@ export default function ReportCardsPage() {
               device — you can print them now. Reconnect and re-generate to save official copies.
             </div>
           </div>
+        )}
+
+        {selectedClass && (
+          <Card className="mb-5">
+            <CardBody>
+              <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
+                <h2 className="text-sm font-bold text-[var(--t1)]">
+                  Ready to go home?
+                </h2>
+                <span className="text-xs text-[var(--t3)]">
+                  {selectedClassName} · Term {currentTerm}, {academicYear}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                <div className="flex items-start gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+                  <MaterialIcon
+                    icon={readiness.onFile && readiness.onFile > 0 ? "description" : "warning"}
+                    className={
+                      readiness.onFile && readiness.onFile > 0 ? "text-emerald-600" : "text-amber-600"
+                    }
+                    style={{ fontSize: 20 }}
+                  />
+                  <div>
+                    <p className="font-bold text-[var(--t1)]">
+                      {readiness.onFile == null
+                        ? "Cards on file: measuring…"
+                        : readiness.onFile === 0
+                          ? "No cards on file yet"
+                          : `${readiness.onFile} of ${readiness.roster} cards saved`}
+                    </p>
+                    <p className="text-xs text-[var(--t3)]">
+                      {readiness.onFile == null
+                        ? "Offline — numbers come from the device cache"
+                        : readiness.onFile === 0
+                          ? "Press Generate Now to make them"
+                          : "Official copies for this term"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+                  <MaterialIcon
+                    icon={generated && readiness.missingMarksCount === 0 ? "check_circle" : "error"}
+                    className={
+                      generated && readiness.missingMarksCount === 0
+                        ? "text-emerald-600"
+                        : readiness.missingMarksCount > 0
+                          ? "text-amber-600"
+                          : "text-[var(--t3)]"
+                    }
+                    style={{ fontSize: 20 }}
+                  />
+                  <div>
+                    <p className="font-bold text-[var(--t1)]">
+                      {generated
+                        ? readiness.missingMarksCount === 0
+                          ? "All marks in"
+                          : `${readiness.missingMarksCount} pupil${readiness.missingMarksCount === 1 ? "" : "s"} missing marks`
+                        : "Marks: shown after a generate"}
+                    </p>
+                    <p className="text-xs text-[var(--t3)]">
+                      {readiness.missingMarksCount > 0
+                        ? "Those blank slots print with a dash"
+                        : "Everything the teachers recorded is on the cards"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+                  <MaterialIcon
+                    icon={readiness.teacherOutstanding === 0 ? "check_circle" : "edit_note"}
+                    className={readiness.teacherOutstanding === 0 ? "text-emerald-600" : "text-amber-600"}
+                    style={{ fontSize: 20 }}
+                  />
+                  <div>
+                    <p className="font-bold text-[var(--t1)]">
+                      {readiness.teacherOutstanding === 0
+                        ? "Class-teacher remarks done"
+                        : `${readiness.teacherOutstanding} class-teacher remark${readiness.teacherOutstanding === 1 ? "" : "s"} waiting`}
+                    </p>
+                    <p className="text-xs text-[var(--t3)]">
+                      {readiness.teacherOutstanding === 0
+                        ? "Every pupil has one"
+                        : "Generate drafts one per pupil — you review and it saves"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+                  <MaterialIcon
+                    icon={readiness.hmOutstanding === 0 ? "task_alt" : "history_edu"}
+                    className={readiness.hmOutstanding === 0 ? "text-emerald-600" : "text-amber-600"}
+                    style={{ fontSize: 20 }}
+                  />
+                  <div>
+                    <p className="font-bold text-[var(--t1)]">
+                      {readiness.hmOutstanding === 0
+                        ? "Head-teacher remarks done"
+                        : `${readiness.hmOutstanding} HM remark${readiness.hmOutstanding === 1 ? "" : "s"} waiting`}
+                    </p>
+                    <p className="text-xs text-[var(--t3)]">
+                      {readiness.hmOutstanding === 0
+                        ? "Nothing further needed from you"
+                        : "“Draft all HM remarks” starts every card on screen"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
         )}
 
         {generatingAll && (
