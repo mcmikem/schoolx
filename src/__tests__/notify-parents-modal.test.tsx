@@ -68,4 +68,20 @@ describe("NotifyParentsModal", () => {
     expect(screen.getByText("No phone numbers saved for these pupils yet")).toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
+
+  it("sends the composer's message instead of the built-in reminder", () => {
+    render(
+      <NotifyParentsModal
+        {...base}
+        open
+        onClose={jest.fn()}
+        entries={[{ id: "s1", studentName: "Alex Mugisha", phone: "+256701555222" }]}
+        message="Sports day moved to Friday. Please pack a change of clothes."
+      />,
+    );
+    const link = screen.getByRole("link", { name: /WhatsApp/ });
+    const href = link.getAttribute("href") || "";
+    expect(href).toContain(encodeURIComponent("Sports day moved to Friday. Please pack a change of clothes."));
+    expect(href).not.toContain(encodeURIComponent("a reminder about"));
+  });
 });

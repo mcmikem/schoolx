@@ -14,7 +14,12 @@ export interface BulkRecipientStudent {
   id: string;
   parent_phone: string;
   class_id: string;
-  classes?: { name: string };
+  classes?: { name: string; stream?: string | null };
+  /** Optional centring: callers that hold the pupil's names can pass them for
+   *  the WhatsApp composer rows; recipient filtering itself never needs them. */
+  first_name?: string;
+  last_name?: string;
+  parent_name?: string | null;
 }
 
 interface AudienceOptions {

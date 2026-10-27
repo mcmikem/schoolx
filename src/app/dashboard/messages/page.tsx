@@ -13,6 +13,7 @@ import type { FinancialAdjustmentType } from "@/lib/operations";
 import { withTimeout } from "@/lib/hooks/utils";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import NotifyParentsModal, { type NotifyParentEntry } from "@/components/students/NotifyParentsModal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button, Badge } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
@@ -28,7 +29,7 @@ import MessageHistory from "@/components/messages/MessageHistory";
 import MessageRecipients from "@/components/messages/MessageRecipients";
 import MessageAutomation from "@/components/messages/MessageAutomation";
 import MessageTemplates from "@/components/messages/MessageTemplates";
-import { isWhatsAppConfigured, sendWhatsAppTextMessage } from "@/lib/whatsapp";
+import { isWhatsAppConfigured } from "@/lib/whatsapp";
 import { createRecord, updateRecord, deleteRecord, upsertRecord, CrudWriteError } from "@/lib/crud-service";
 import { IMAGE_CACHE_CONTROL } from "@/lib/student-photos";
 import { filterBulkRecipients } from "@/lib/bulk-recipients";
@@ -344,17 +345,41 @@ export default function CommunicationHubPage() {
   const noticeValidationError =
     !newNotice.title.trim() || !newNotice.content.trim() ? "Add both title and content to post this notice." : "";
 
-  const deliverMessage = async (phones: string[], body: string) => {
+  // The WhatsApp Cloud API token never reaches the browser (only NEXT_PUBLIC_
+  // vars do), so a browser call to sendWhatsAppTextMessage could only ever
+  // answer "not configured" — and that dead end sat behind the channel that
+  // "Auto" prefers. WhatsApp sends now go through the share-link composer:
+  // wa.me rows with the text typed, one press per parent, no API needed. The
+  // SMS channel keeps its server route.
+  const [manualWhatsApp, setManualWhatsApp] = useState<{
+    entries: NotifyParentEntry[];
+    title?: string;
+    message: string;
+  } | null>(null);
+
+  const deliverMessage = async (
+    phones: string[],
+    body: string,
+    entries?: NotifyParentEntry[],
+  ): Promise<{
+    success: boolean;
+    totalSent: number;
+    totalFailed: number;
+    via: "whatsapp" | "whatsapp-manual" | "sms";
+    result?: unknown;
+  }> => {
     const preferWhatsApp = deliveryChannel === "whatsapp" || (deliveryChannel === "auto" && isWhatsAppConfigured());
 
-    if (preferWhatsApp) {
-      const results = await Promise.all(phones.map((recipientPhone) => sendWhatsAppTextMessage(recipientPhone, body)));
-      const totalSent = results.filter((result) => result.success).length;
+    // Explicitly WhatsApp OR auto-with-WhatsApp-configured: serve the share
+    // link rows rather than pretending a browser-side Cloud API call can run.
+    // `entries` guards the notice flow, which mixes staff phones in and has
+    // no per-row pupil context — that one stays on the server SMS route.
+    if (preferWhatsApp && entries) {
       return {
-        success: totalSent > 0,
-        totalSent,
-        totalFailed: results.length - totalSent,
-        via: "whatsapp" as const,
+        success: true,
+        totalSent: 0,
+        totalFailed: 0,
+        via: "whatsapp-manual",
       };
     }
 
@@ -557,6 +582,26 @@ export default function CommunicationHubPage() {
     setSending(true);
     try {
       let phones: string[] = [];
+      let entries: NotifyParentEntry[] = [];
+      // joined classes may arrive as one object or an array depending on the
+      // query renderer, so accept both.
+      const mapRow = (s: {
+        id: string;
+        first_name?: string | null;
+        last_name?: string | null;
+        parent_name?: string | null;
+        parent_phone: string | null;
+        classes?: { name?: string | null; stream?: string | null } | { name?: string | null; stream?: string | null }[] | null;
+      }): NotifyParentEntry => {
+        const joined = Array.isArray(s.classes) ? s.classes?.[0] : s.classes;
+        return {
+          id: s.id,
+          studentName: `${s.first_name || ""} ${s.last_name || ""}`.trim(),
+          parentName: s.parent_name ?? null,
+          phone: s.parent_phone,
+          className: joined?.stream ? `${joined.name || ""} ${joined.stream}`.trim() : joined?.name || null,
+        };
+      };
       if (isDemo) {
         if (messageType === "individual") {
           if (!phone.trim()) {
@@ -564,18 +609,19 @@ export default function CommunicationHubPage() {
             return;
           }
           phones = [phone];
+          entries = [{ id: "typed", studentName: phone.trim(), phone: phone.trim() }];
         } else if (messageType === "class") {
           if (!selectedClass) {
             toast.error("Select a class");
             return;
           }
-          phones = DEMO_STUDENTS.filter((s) => s.class_id === selectedClass && s.status === "active")
-            .map((s) => s.parent_phone)
-            .filter(Boolean);
+          const rows = DEMO_STUDENTS.filter((s) => s.class_id === selectedClass && s.status === "active");
+          phones = rows.map((s) => s.parent_phone).filter(Boolean);
+          entries = rows.map(mapRow);
         } else {
-          phones = DEMO_STUDENTS.filter((s) => s.school_id === school?.id && s.status === "active")
-            .map((s) => s.parent_phone)
-            .filter(Boolean);
+          const rows = DEMO_STUDENTS.filter((s) => s.school_id === school?.id && s.status === "active");
+          phones = rows.map((s) => s.parent_phone).filter(Boolean);
+          entries = rows.map(mapRow);
         }
       } else if (messageType === "individual") {
         if (!phone.trim()) {
@@ -583,24 +629,31 @@ export default function CommunicationHubPage() {
           return;
         }
         phones = [phone];
+        entries = [{ id: "typed", studentName: phone.trim(), phone: phone.trim() }];
       } else if (messageType === "class") {
         if (!selectedClass) {
           toast.error("Select a class");
           return;
         }
-        const { data: students } = await supabase
+        const { data: rows } = await supabase
           .from("students")
-          .select("parent_phone")
+          .select("id, first_name, last_name, parent_name, parent_phone, classes(name, stream)")
           .eq("class_id", selectedClass)
-          .eq("status", "active");
-        phones = students?.map((s) => s.parent_phone).filter(Boolean) || [];
+          .eq("status", "active")
+          .not("parent_phone", "is", null)
+          .limit(200);
+        phones = rows?.map((s) => s.parent_phone).filter(Boolean) || [];
+        entries = (rows || []).map(mapRow);
       } else {
-        const { data: students } = await supabase
+        const { data: rows } = await supabase
           .from("students")
-          .select("parent_phone")
+          .select("id, first_name, last_name, parent_name, parent_phone, classes(name, stream)")
           .eq("school_id", user.school_id)
-          .eq("status", "active");
-        phones = students?.map((s) => s.parent_phone).filter(Boolean) || [];
+          .eq("status", "active")
+          .not("parent_phone", "is", null)
+          .limit(2000);
+        phones = rows?.map((s) => s.parent_phone).filter(Boolean) || [];
+        entries = (rows || []).map(mapRow);
       }
       if (phones.length === 0) {
         toast.error("No recipients found");
@@ -623,8 +676,30 @@ export default function CommunicationHubPage() {
         setSelectedClass("");
         return;
       }
-      const delivery = await deliverMessage(phones, message);
-      if (delivery.success) {
+      const delivery = await deliverMessage(phones, message, entries);
+      if (delivery.via === "whatsapp-manual") {
+        setManualWhatsApp({
+          entries,
+          title: `WhatsApp ${entries.length} parent${entries.length === 1 ? "" : "s"}`,
+          message: message.trim(),
+        });
+        await createRecord(
+          () =>
+            supabase.from("messages").insert({
+              school_id: user.school_id,
+              recipient_type: messageType,
+              recipient_id: messageType === "class" ? selectedClass : null,
+              phone: messageType === "individual" ? phone : null,
+              message: message.trim(),
+              status: "sent",
+              sent_by: user.id,
+              sent_at: new Date().toISOString(),
+              recipient_count: entries.filter((e) => e.phone).length,
+            }),
+          { timeoutMs: 15000, timeoutMessage: "Message logging timed out" },
+        );
+        fetchMessagesData();
+      } else if (delivery.success) {
         await createRecord(
           () =>
             supabase.from("messages").insert({
@@ -646,7 +721,7 @@ export default function CommunicationHubPage() {
         setPhone("");
         fetchMessagesData();
       } else {
-        toast.error(delivery.result?.message || "Failed to send");
+        toast.error((delivery.result as { message?: string } | undefined)?.message || "Failed to send");
       }
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to send"));
@@ -834,9 +909,26 @@ export default function CommunicationHubPage() {
         selectedIds: selectedStudents,
         debtorIds,
       });
-      const phones = Array.from(new Set(filtered.map((s) => s.parent_phone).filter(Boolean)));
-      const delivery = await deliverMessage(phones, bulkMessage.trim());
-      if (delivery.success) {
+      // Dedupe by phone but keep a row per parent so the share-link composer
+      // still names each child the message concerns.
+      const dedupedByPhone = Array.from(new Map(filtered.filter((s) => s.parent_phone).map((s) => [s.parent_phone, s])).values());
+      const phones = dedupedByPhone.map((s) => s.parent_phone);
+      const bulkEntries: NotifyParentEntry[] = dedupedByPhone.map((s) => ({
+        id: s.id,
+        studentName: `${s.first_name ?? ""} ${s.last_name ?? ""}`.trim(),
+        parentName: s.parent_name ?? null,
+        phone: s.parent_phone,
+        className: s.classes?.name || null,
+      }));
+      const delivery = await deliverMessage(phones, bulkMessage.trim(), bulkEntries);
+      if (delivery.via === "whatsapp-manual") {
+        setManualWhatsApp({
+          entries: bulkEntries,
+          title: `WhatsApp ${bulkEntries.length} parents`,
+          message: bulkMessage.trim(),
+        });
+        setShowConfirm(false);
+      } else if (delivery.success) {
         await createRecord(
           () =>
             supabase.from("messages").insert({
@@ -856,7 +948,7 @@ export default function CommunicationHubPage() {
         setSelectedTemplateId("");
         setShowConfirm(false);
       } else {
-        toast.error(delivery.result?.message || "Failed to send message");
+        toast.error((delivery.result as { message?: string } | undefined)?.message || "Failed to send message");
       }
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to send SMS"));
@@ -1500,6 +1592,14 @@ export default function CommunicationHubPage() {
           title="Confirm Deletion"
           message="Are you sure you want to delete this item?"
           variant="danger"
+        />
+
+        <NotifyParentsModal
+          open={!!manualWhatsApp}
+          onClose={() => setManualWhatsApp(null)}
+          entries={manualWhatsApp?.entries || []}
+          message={manualWhatsApp?.message}
+          title={manualWhatsApp?.title}
         />
       </div>
     </PageErrorBoundary>

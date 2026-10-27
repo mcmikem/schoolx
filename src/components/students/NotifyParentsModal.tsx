@@ -18,30 +18,39 @@ export interface NotifyParentEntry {
  * headmaster presses send per parent (WhatsApp has no batch-send, and quiet
  * hours belong to the school). Parents without a saved number say so instead
  * of hiding; the row is still there so the gap is visible and fixable.
+ *
+ * `message` (optional) supplies the text to send. Leave it undefined for the
+ * built-in reminder, or pass the composer's message to reuse the same rows
+ * for ad-hoc class communication.
  */
 export default function NotifyParentsModal({
   open,
   onClose,
   entries,
   schoolName,
+  message,
+  title,
 }: {
   open: boolean;
   onClose: () => void;
   entries: NotifyParentEntry[];
   schoolName?: string;
+  message?: string;
+  title?: string;
 }) {
   const today = useMemo(() => new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long" }), []);
 
   const rows = useMemo(() => {
     return entries.map((entry) => {
-      const message =
-        `Hello${entry.parentName ? ` ${entry.parentName.split(" ")[0]}` : ""}! ` +
-        `${schoolName || "Our school"}: a reminder about ${entry.studentName}` +
-        `${entry.className ? ` (${entry.className})` : ""} on ${today}. ` +
-        `Kindly check the SkoolMate updates or reply here if there is anything to discuss. Thank you!`;
-      return { ...entry, href: entry.phone ? whatsappHref(entry.phone, message) : null };
+      const text =
+        message ??
+        (`Hello${entry.parentName ? ` ${entry.parentName.split(" ")[0]}` : ""}! ` +
+          `${schoolName || "Our school"}: a reminder about ${entry.studentName}` +
+          `${entry.className ? ` (${entry.className})` : ""} on ${today}. ` +
+          `Kindly check the SkoolMate updates or reply here if there is anything to discuss. Thank you!`);
+      return { ...entry, href: entry.phone ? whatsappHref(entry.phone, text) : null };
     });
-  }, [entries, schoolName, today]);
+  }, [entries, message, schoolName, today]);
 
   if (!open) return null;
   const reachable = rows.filter((r) => r.href).length;
@@ -51,14 +60,16 @@ export default function NotifyParentsModal({
       className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
-      aria-label="Remind parents"
+      aria-label={title || "Remind parents"}
     >
       <div className="max-h-[85vh] w-full max-w-md overflow-hidden rounded-t-2xl border border-[var(--border)] bg-[var(--bg)] shadow-xl sm:rounded-2xl">
         <div className="flex items-start justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface)] p-4">
           <div>
-            <h2 className="text-sm font-bold text-[var(--t1)]">Message {entries.length} parent{entries.length === 1 ? "" : "s"}</h2>
+            <h2 className="text-sm font-bold text-[var(--t1)]">
+              {title || `Message ${entries.length} parent${entries.length === 1 ? "" : "s"}`}
+            </h2>
             <p className="mt-0.5 text-xs text-[var(--t3)]">
-              Opens WhatsApp with the reminder typed — you press send for each parent.
+              Opens WhatsApp with the message typed — you press send for each parent.
             </p>
           </div>
           <button
@@ -80,9 +91,11 @@ export default function NotifyParentsModal({
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-bold text-[var(--t1)]">{row.studentName}</p>
-                  <p className="truncate text-xs text-[var(--t3)]">
-                    {row.parentName?.trim() || (row.className || "") || "Parent contact unknown"}
-                  </p>
+                  {row.parentName?.trim() ? (
+                    <p className="truncate text-xs text-[var(--t3)]">{row.parentName}</p>
+                  ) : row.className ? (
+                    <p className="truncate text-xs text-[var(--t3)]">{row.className}</p>
+                  ) : null}
                 </div>
                 {row.href ? (
                   <a
