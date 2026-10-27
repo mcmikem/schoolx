@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { safeLocalStorage, safeSessionStorage } from "@/lib/safe-storage";
 import PdfSourceViewer from "@/components/exam/PdfSourceViewer";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Card } from "@/components/ui/Card";
@@ -33,6 +34,9 @@ interface Submission {
 
 const draftKey = (studentId: string, examId: string) => `skoolmate-exam-draft-${studentId}-${examId}`;
 
+/** A real paper, parsed in the exam lab, kept as a static demo fixture. */
+const DEMO_PAPER_URL = "/demo/umta-uce-physics-2025.json";
+
 export default function StudentPractice({
   schoolId,
   classId,
@@ -63,7 +67,21 @@ export default function StudentPractice({
   const [message, setMessage] = useState<string | null>(null);
 
   const loadPapers = useCallback(async () => {
-    if (!schoolId || !classId || isDemo) {
+    if (isDemo) {
+      setLoading(true);
+      try {
+        const response = await fetch(DEMO_PAPER_URL);
+        if (!response.ok) throw new Error(`Demo paper request failed (${response.status})`);
+        const demoPaper = (await response.json()) as PracticeExam;
+        setPapers([demoPaper]);
+      } catch {
+        setMessage("Could not load the demo practice paper.");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    if (!schoolId || !classId) {
       setLoading(false);
       return;
     }
@@ -126,7 +144,7 @@ export default function StudentPractice({
     setDraftStatus("saving");
     const timer = window.setTimeout(() => {
       try {
-        localStorage.setItem(draftKey(studentId, selected.id), JSON.stringify(answers));
+        safeLocalStorage.setItem(draftKey(studentId, selected.id), JSON.stringify(answers));
         setDraftStatus("saved");
       } catch {
         setDraftStatus("error");
@@ -138,7 +156,7 @@ export default function StudentPractice({
   const flushDraft = useCallback(() => {
     if (!selected || submissions[selected.id]) return;
     try {
-      localStorage.setItem(draftKey(studentId, selected.id), JSON.stringify(answers));
+      safeLocalStorage.setItem(draftKey(studentId, selected.id), JSON.stringify(answers));
       setDraftStatus("saved");
     } catch {
       setDraftStatus("error");
@@ -154,7 +172,7 @@ export default function StudentPractice({
     const submission = submissions[paper.id];
     let localDraft: Record<string, string> = {};
     try {
-      localDraft = JSON.parse(localStorage.getItem(draftKey(studentId, paper.id)) || "{}");
+      localDraft = JSON.parse(safeLocalStorage.getItem(draftKey(studentId, paper.id)) || "{}");
     } catch {
       localDraft = {};
     }
@@ -182,6 +200,16 @@ export default function StudentPractice({
   const submit = async () => {
     if (!selected || !schoolId) return;
     flushDraft();
+    if (isDemo) {
+      safeLocalStorage.removeItem(draftKey(studentId, selected.id));
+      setSubmissions((current) => ({
+        ...current,
+        [selected.id]: { answers, marks_awarded: null, feedback: null, submitted_at: new Date().toISOString() },
+      }));
+      setMessage("Handed in (demo). A real school account sends this to the teacher.");
+      setConfirmHandIn(false);
+      return;
+    }
     if (!navigator.onLine) {
       setMessage("No internet yet. Your answers are saved on this phone. Hand in when you are connected.");
       setConfirmHandIn(false);
@@ -208,7 +236,7 @@ export default function StudentPractice({
           : "Could not hand in yet. Your answers are saved on this phone; please try again when connected.",
       );
     } else {
-      localStorage.removeItem(draftKey(studentId, selected.id));
+      safeLocalStorage.removeItem(draftKey(studentId, selected.id));
       setSubmissions((current) => ({
         ...current,
         [selected.id]: { answers, marks_awarded: null, feedback: null, submitted_at: new Date().toISOString() },
@@ -437,6 +465,7 @@ export default function StudentPractice({
               sourceError={sourceError}
               showOriginal={showOriginal}
               sourcePage={sourcePage}
+              isDemo={isDemo}
               onAnswer={(key, value) => setAnswers((current) => ({ ...current, [key]: value }))}
               onOpenSource={openOriginal}
               onCloseSource={() => setShowOriginal(false)}
@@ -570,6 +599,7 @@ function QuestionScreen({
   sourceError,
   showOriginal,
   sourcePage,
+  isDemo,
   onAnswer,
   onOpenSource,
   onCloseSource,
@@ -583,6 +613,7 @@ function QuestionScreen({
   sourceError: boolean;
   showOriginal: boolean;
   sourcePage: number;
+  isDemo: boolean;
   onAnswer: (key: string, value: string) => void;
   onOpenSource: (page: number) => void;
   onCloseSource: () => void;
@@ -670,7 +701,7 @@ function QuestionScreen({
         </>
       )}
 
-      {(needsOriginal || sourceUrl) && (
+      {(sourceUrl || (needsOriginal && !isDemo)) && (
         <section className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3">
           <div className="flex items-start gap-3">
             <MaterialIcon className="mt-0.5 text-blue-800">picture_as_pdf</MaterialIcon>

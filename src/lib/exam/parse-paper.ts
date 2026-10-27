@@ -80,6 +80,42 @@ function figureLabels(line: string, page: number): string[] {
   return [...labels];
 }
 
+/**
+ * Text printed inside a diagram arrives as a run of very short lines just
+ * before its caption ("lamp", "Air", "Glass"). The crop already carries those
+ * labels, so keeping them turns the question stem into a word salad. Only a
+ * run of at least three such fragments is removed: a lone short line before a
+ * figure is more likely a real instruction than a diagram label.
+ */
+function figureLabelDebris(bodyLines: string[], labelsByLine: Map<number, string[]>): Set<number> {
+  const debris = new Set<number>();
+  for (const captionIndex of labelsByLine.keys()) {
+    const run: number[] = [];
+    for (let index = captionIndex - 1; index >= 0; index--) {
+      const line = bodyLines[index].trim();
+      if (!line) continue;
+      if (!isDiagramLabelFragment(line)) break;
+      run.push(index);
+    }
+    if (run.length >= 3) for (const index of run) debris.add(index);
+  }
+  return debris;
+}
+
+function isDiagramLabelFragment(line: string): boolean {
+  if (/\b(?:task|figure|diagram)\b/i.test(line)) return false;
+  if (/^\s*(?:\(?[a-d]\)|[ivx]+[.)])\s/i.test(line)) return false;
+  if (
+    /\b(?:calculate|explain|describe|state|give|draw|label|name|what|why|how|which|define|determine|show|find|write|list)\b/i.test(
+      line,
+    )
+  ) {
+    return false;
+  }
+  const words = line.split(/\s+/).filter(Boolean);
+  return words.length > 0 && words.length <= 3;
+}
+
 function isLikelyFrontMatter(pageText: string): boolean {
   if (/\b(?:table of contents|contents|preface|foreword|acknowledg(?:e)?ments)\b/i.test(pageText)) return true;
   const dottedLeaders = pageText.match(/\.{4,}|…{2,}/g)?.length ?? 0;
@@ -372,6 +408,7 @@ function buildQuestion(
     figurePages.add(pageNumber);
   });
   const seenFigureLabels = new Set<string>();
+  const figureDebris = figureLabelDebris(bodyLines, labelsByLine);
 
   const marksMatch = afterNumber.match(MARKS);
   const marks = marksMatch ? Number(marksMatch[1] ?? marksMatch[2]) : null;
@@ -468,6 +505,7 @@ function buildQuestion(
     }
     const line = rawLine.replace(/\s*©\s*[^©\n]{0,60}?\bPage\s+\d+\s+of\s*\d+\s*$/i, "").trim();
     if (!line) continue;
+    if (figureDebris.has(lineIndex)) continue;
 
     const taskHeader = line.match(TASK_HEADER);
     if (taskHeader) {
@@ -520,8 +558,9 @@ function buildQuestion(
       });
     }
     // A line that is only a caption or a figure number is the picture's own
-    // label, not question prose.
-    if (diagramLabels.length > 0 && /^\s*(?:fig(?:ure)?\.?|diagram)\b/i.test(line)) continue;
+    // label, not question prose. Papers print "Figure2." without a space as
+    // often as "Figure 2.", so the number is matched without a word boundary.
+    if (diagramLabels.length > 0 && /^\s*(?:fig(?:ure)?|diagram)\s*\d{0,2}\b/i.test(line)) continue;
 
     const choiceMatch = line.match(CHOICE_LINE);
     // Two things must hold before a line counts as an option.

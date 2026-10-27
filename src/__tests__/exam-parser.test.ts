@@ -222,6 +222,59 @@ describe("parsePaper on OCR output", () => {
   });
 });
 
+describe("figure label debris", () => {
+  it("drops the short labels printed inside a diagram but keeps the data under it", () => {
+    const { paper } = parsePaper(`
+1. A pupil looks at the apparatus shown below.
+Support Material.
+lamp normal
+doctor
+-
+Air
+Glass
+Beam of light
+Figure 1. Endoscopic treatment
+Refractive index of the glass material is 1.47.
+Height of the medical records is 2 cm.
+Task:
+(a) Explain why the lamp is placed there.
+(b) State one use of the glass tube.
+`);
+
+    const question = paper.questions[0];
+    expect(question.text).not.toMatch(/Support Material|lamp normal|Beam of light/);
+    expect(question.text).not.toContain("Figure 1. Endoscopic treatment");
+    expect(question.text).toContain("Refractive index of the glass material is 1.47.");
+    expect(question.text).toContain("Height of the medical records is 2 cm.");
+    expect(question.diagrams[0].label).toBe("figure 1 on page 1");
+  });
+
+  it("drops a caption printed without a space after the figure number", () => {
+    const { paper } = parsePaper(`
+1. The apparatus is shown below.
+Figure2. Optical fibre.
+Refractive index of the glass is 1.47.
+(a) State what happens to the light.
+`);
+
+    const question = paper.questions[0];
+    expect(question.text).not.toContain("Optical fibre");
+    expect(question.text).toContain("Refractive index of the glass is 1.47.");
+    expect(question.diagrams[0].label).toBe("figure 2 on page 1");
+  });
+
+  it("keeps a lone short line before a figure, which is usually an instruction", () => {
+    const { paper } = parsePaper(`
+1. Use the diagram below.
+Use g = 10.
+Figure 1. A falling stone.
+(a) Calculate the time taken.
+`);
+
+    expect(paper.questions[0].text).toContain("Use g = 10.");
+  });
+});
+
 describe("parsePaper when it cannot read the paper at all", () => {
   it("says so instead of returning nothing quietly", () => {
     const { paper, warnings } = parsePaper("~~~ unreadable ~~~ %%%", { ocr: true });
