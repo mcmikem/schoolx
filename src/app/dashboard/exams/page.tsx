@@ -12,22 +12,19 @@ import {
   SECONDARY_EXAM_TYPES,
   PRIMARY_EXAM_TYPES,
   calculateWeightedGrade,
-  getExamTypeLabel,
   getExamColor,
   ExamConfig,
 } from "@/lib/exams";
-import { getUNEBGrade, getUNEBDivision, mapExamScoreToGrade } from "@/lib/grading";
+import { getUNEBGrade, mapExamScoreToGrade } from "@/lib/grading";
 import { supabase } from "@/lib/supabase";
 import { loadSchoolSetting } from "@/lib/school-settings";
 import MaterialIcon from "@/components/MaterialIcon";
 import { logger } from "@/lib/logger";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { PaperMarkQueue } from "@/components/exams/PaperMarkQueue";
 import { Tabs } from "@/components/ui/Tabs";
 import { TableSkeleton } from "@/components/ui/Skeleton";
-import { NoData } from "@/components/EmptyState";
 
 export default function ExamsPage() {
   const { school, user, isDemo } = useAuth();
@@ -56,7 +53,6 @@ export default function ExamsPage() {
   const [selectedExamType, setSelectedExamType] = useState("eot");
   const [showAddExam, setShowAddExam] = useState(false);
   const [examTypeTab, setExamTypeTab] = useState("secondary");
-  const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showWeights, setShowWeights] = useState(false);
   const [examToDelete, setExamToDelete] = useState<string | null>(null);
@@ -236,6 +232,15 @@ export default function ExamsPage() {
     return total;
   };
 
+  const scoredTotals = filteredStudents.map((s) => getStudentTotal(s.id)).filter((t) => t > 0);
+  const classAverage = scoredTotals.length
+    ? `${(scoredTotals.reduce((a, b) => a + b, 0) / scoredTotals.length).toFixed(1)}%`
+    : "—";
+  const passRate = scoredTotals.length
+    ? `${Math.round((scoredTotals.filter((t) => t >= 50).length / scoredTotals.length) * 100)}%`
+    : "—";
+  const highestScore = scoredTotals.length ? `${Math.max(...scoredTotals).toFixed(0)}%` : "—";
+
   return (
     <PageErrorBoundary>
       <div className="content">
@@ -265,166 +270,49 @@ export default function ExamsPage() {
         />
 
         {canManageExams ? (
-          <section className="mt-6">
+          <section>
             <h2 className="text-base font-semibold mb-3">Handed-in papers</h2>
             <PaperMarkQueue onCountChange={handleMarkCountChange} />
           </section>
         ) : null}
 
-        <Card className="mb-5 p-4">
-          <div className="flex items-start gap-4">
-            <div className="bg-amber-soft text-amber p-3 rounded-2xl flex-shrink-0 animate-pulse">
-              <MaterialIcon className="text-2xl">auto_awesome</MaterialIcon>
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-black text-[var(--primary-900)] uppercase tracking-widest">
-                  Grading Assistant
-                </h3>
-                <div className="flex gap-2">
-                  {isDemo && selectedClass && selectedSubject && (
-                    <button
-                      onClick={() => {
-                        filteredStudents.forEach((s) => {
-                          handleSaveScore(s.id, Math.floor(Math.random() * 40) + 60);
-                        });
-                        toast.success("Marks autofilled for demo");
-                      }}
-                      className="px-3 py-1 bg-blue-soft text-blue-800 rounded-lg text-xs font-black uppercase border border-blue-200 hover:bg-blue-100 transition-all"
-                    >
-                      Autofill Marks
-                    </button>
-                  )}
-                  {selectedClass && selectedSubject && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        router.push(`/dashboard/comments?class=${selectedClass}&subject=${selectedSubject}`)
-                      }
-                      className="px-3 py-1 bg-emerald-soft text-emerald-800 rounded-lg text-xs font-black uppercase border border-emerald-200 hover:bg-emerald-100 transition-all"
-                    >
-                      Auto-Comment All
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {!selectedClass || !selectedSubject ? (
-                <p className="text-xs text-[var(--t3)] font-medium">
-                  Select a class and subject to activate the AI Insights engine.
-                </p>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/50">
-                    <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-1">Class Average</p>
-                    <p className="text-lg font-black text-slate-800">
-                      {(() => {
-                        const scores = filteredStudents.map((s) => getStudentTotal(s.id)).filter((t) => t > 0);
-                        if (scores.length === 0) return "--";
-                        return (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1);
-                      })()}%
-                    </p>
-                  </div>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/50">
-                    <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-1">Performance</p>
-                    <p className="text-lg font-black text-emerald-600">Steady</p>
-                  </div>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/50">
-                    <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-1">Pass Rate</p>
-                    <p className="text-lg font-black text-slate-800">
-                      {(() => {
-                        const totals = filteredStudents.map((s) => getStudentTotal(s.id)).filter((t) => t > 0);
-                        if (totals.length === 0) return "0%";
-                        const passed = totals.filter((t) => t >= 50).length;
-                        return `${Math.round((passed / totals.length) * 100)}%`;
-                      })()}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/50">
-                    <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-1">Highest Score</p>
-                    <p className="text-lg font-black text-blue-600">
-                      {(() => {
-                        const totals = filteredStudents.map((s) => getStudentTotal(s.id)).filter((t) => t > 0);
-                        return totals.length > 0 ? `${Math.max(...totals).toFixed(0)}%` : "--";
-                      })()}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </Card>
-
-        <Card className="mb-5 p-4">
-          <div className="flex items-start gap-3">
-            <div className="bg-blue-soft text-blue p-2 rounded-lg flex-shrink-0">
-              <MaterialIcon className="text-xl">help_outline</MaterialIcon>
-            </div>
-            <div className="flex-1">
-              <div className="text-sm font-semibold text-[var(--t1)] mb-2">How to Enter Scores</div>
-              <div className="text-xs text-[var(--t3)] space-y-1">
-                <p>
-                  • Enter the <span className="font-semibold">actual score</span> (e.g., 85, not 85%)
-                </p>
-                <p>
-                  • Each exam type has different <span className="font-semibold">weight</span> - they combine to make
-                  the Total
-                </p>
-                <p>
-                  • <span className="font-semibold">Pass mark is 50%</span> - scores below 50 show in red
-                </p>
-                <p>
-                  • The <span className="font-semibold">Grade</span> is auto-calculated (A, B, C, D, F9)
-                </p>
-                <p>• Scores are saved automatically as you type</p>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        <div className="mb-6">
-          <Tabs
-            tabs={[
-              { id: "secondary", label: "Secondary", count: 4 },
-              { id: "primary", label: "Primary", count: 3 },
-            ]}
-            activeTab={examTypeTab}
-            onChange={setExamTypeTab}
-          />
-        </div>
-
-        <Card className="mb-5 p-4">
-          <button
-            onClick={() => setShowWeights(!showWeights)}
-            className="flex items-center gap-2 w-full bg-transparent border-none cursor-pointer text-left"
-          >
-            <div className="text-xs font-semibold text-[var(--t2)]">Grade Weighting</div>
-            <MaterialIcon
-              className={`text-lg text-[var(--t3)] transition-transform ${showWeights ? "rotate-180" : ""}`}
+        <section aria-label="Enter scores" className="border-t border-[var(--border)] pt-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-base font-bold text-[var(--t1)]">Enter scores</h2>
+            <button
+              type="button"
+              onClick={() => setShowWeights(!showWeights)}
+              aria-expanded={showWeights}
+              className="flex items-center gap-1 text-xs font-semibold text-[var(--t3)] transition-colors hover:text-[var(--t1)]"
             >
-              expand_more
-            </MaterialIcon>
-          </button>
+              Grade weighting
+              <MaterialIcon className={`text-base transition-transform ${showWeights ? "rotate-180" : ""}`}>
+                expand_more
+              </MaterialIcon>
+            </button>
+          </div>
           {showWeights && (
-            <div className="flex flex-wrap gap-3 mt-3">
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5">
               {examConfigs.map((config: ExamConfig) => (
-                <div
-                  key={config.id}
-                  className="flex items-center gap-2 px-3 py-2 bg-[var(--surface-container)] rounded-lg"
-                >
-                  <div className="w-2.5 h-2.5 rounded-sm" style={{ background: getExamColor(config.type) }} />
-                  <span className="text-xs font-semibold text-[var(--t1)]">{config.shortName}</span>
-                  <span className="text-xs text-[var(--t3)]">
-                    {config.name} ({config.weight}%)
-                  </span>
-                </div>
+                <span key={config.id} className="flex items-center gap-1.5 text-xs text-[var(--t3)]">
+                  <span className="h-2 w-2 rounded-sm" style={{ background: getExamColor(config.type) }} />
+                  <span className="font-semibold text-[var(--t1)]">{config.shortName}</span>
+                  {config.name} ({config.weight}%)
+                </span>
               ))}
             </div>
           )}
-        </Card>
-
-        <Card className="mb-5 overflow-hidden">
-          <div className="p-3.5 border-b border-[var(--border)]">
+          <div className="mt-4">
+            <Tabs
+              tabs={[
+                { id: "secondary", label: "Secondary", count: 4 },
+                { id: "primary", label: "Primary", count: 3 },
+              ]}
+              activeTab={examTypeTab}
+              onChange={setExamTypeTab}
+            />
+          </div>
+          <div className="mt-4 border-y border-[var(--border)] py-3">
             <div className="flex gap-3 flex-wrap items-end">
               <div className="min-w-[150px] flex-1">
                 <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1 block">Class</label>
@@ -439,7 +327,7 @@ export default function ExamsPage() {
                       setSelectedClass(e.target.value);
                       setSelectedSubject("");
                     }}
-                    className="input h-9 text-sm"
+                    className="input !h-10 !py-0 text-sm"
                   >
                     <option value="">Select class</option>
                     {classes.map((c) => (
@@ -462,7 +350,7 @@ export default function ExamsPage() {
                   <select
                     value={selectedSubject}
                     onChange={(e) => setSelectedSubject(e.target.value)}
-                    className="input h-9 text-sm"
+                    className="input !h-10 !py-0 text-sm"
                     disabled={!selectedClass}
                   >
                     <option value="">Select subject</option>
@@ -481,7 +369,7 @@ export default function ExamsPage() {
                 <select
                   value={selectedExamType}
                   onChange={(e) => setSelectedExamType(e.target.value)}
-                  className="input h-9 text-sm"
+                  className="input !h-10 !py-0 text-sm"
                 >
                   {examConfigs.map((config: ExamConfig) => (
                     <option key={config.id} value={config.type}>
@@ -498,11 +386,53 @@ export default function ExamsPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search student by name or number..."
-                  className="input h-9 text-sm"
+                  className="input !h-10 !py-0 text-sm"
                 />
               </div>
             )}
           </div>
+
+          {selectedClass && selectedSubject && (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] py-3">
+              <dl className="grid w-full grid-cols-3 gap-5 sm:w-auto sm:grid-cols-3 sm:gap-10">
+                <div className="min-w-0">
+                  <dt className="text-[11px] font-medium text-[var(--t3)]">Class average</dt>
+                  <dd className="text-lg font-bold tabular-nums text-[var(--t1)]">{classAverage}</dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="text-[11px] font-medium text-[var(--t3)]">Pass rate</dt>
+                  <dd className="text-lg font-bold tabular-nums text-[var(--t1)]">{passRate}</dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="text-[11px] font-medium text-[var(--t3)]">Highest</dt>
+                  <dd className="text-lg font-bold tabular-nums text-[var(--t1)]">{highestScore}</dd>
+                </div>
+              </dl>
+              <div className="flex w-full items-center justify-end gap-4 sm:w-auto">
+                {isDemo && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      filteredStudents.forEach((s) => {
+                        handleSaveScore(s.id, Math.floor(Math.random() * 40) + 60);
+                      });
+                      toast.success("Marks autofilled for demo");
+                    }}
+                    className="text-xs font-semibold text-[var(--primary)] hover:underline"
+                  >
+                    Autofill marks
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => router.push(`/dashboard/comments?class=${selectedClass}&subject=${selectedSubject}`)}
+                  className="text-xs font-semibold text-[var(--primary)] hover:underline"
+                >
+                  Auto-comment all
+                </button>
+              </div>
+            </div>
+          )}
 
           {selectedClass && selectedSubject ? (
             scoresLoading ? (
@@ -628,63 +558,31 @@ export default function ExamsPage() {
               </div>
             )
           ) : (
-            <div className="p-12 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--surface-container)] flex items-center justify-center">
-                <MaterialIcon className="text-3xl text-[var(--t3)]">assignment</MaterialIcon>
-              </div>
-              <div className="text-lg font-semibold text-[var(--t1)] mb-2">Enter Exam Scores</div>
-              <div className="text-sm text-[var(--t3)] mb-6 max-w-md mx-auto">
-                Follow these steps to record student scores:
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center items-center text-sm">
-                <div
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-                    selectedClass ? "bg-green-soft text-green" : "bg-[var(--surface-container)] text-[var(--t3)]"
-                  }`}
-                >
-                  <span className="w-6 h-6 rounded-full bg-current/10 flex items-center justify-center text-xs font-bold">
-                    1
-                  </span>
-                  Select Class
-                </div>
-                <MaterialIcon className="text-[var(--t3)]">arrow_forward</MaterialIcon>
-                <div
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-                    selectedSubject ? "bg-green-soft text-green" : "bg-[var(--surface-container)] text-[var(--t3)]"
-                  }`}
-                >
-                  <span className="w-6 h-6 rounded-full bg-current/10 flex items-center justify-center text-xs font-bold">
-                    2
-                  </span>
-                  Select Subject
-                </div>
-                <MaterialIcon className="text-[var(--t3)]">arrow_forward</MaterialIcon>
-                <div className="flex items-center gap-2 px-4 py-2 bg-[var(--surface-container)] text-[var(--t3)] rounded-lg">
-                  <span className="w-6 h-6 rounded-full bg-current/10 flex items-center justify-center text-xs font-bold">
-                    3
-                  </span>
-                  Enter Scores
-                </div>
-              </div>
-            </div>
+            <p className="py-8 text-center text-sm text-[var(--t3)]">
+              Choose a class and subject to start entering scores.
+            </p>
           )}
-        </Card>
+        </section>
 
-        <Card className="p-4">
-          <div className="flex items-center justify-between pb-4 border-none">
-            <div>
-              <div className="font-semibold text-[var(--on-surface)]">Exam Schedule</div>
-              <div className="text-sm text-[var(--t3)]">Created exams</div>
-            </div>
+        <section aria-label="Exam schedule" className="border-t border-[var(--border)] pt-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-base font-bold text-[var(--t1)]">Exam schedule</h2>
+            <span className="text-xs text-[var(--t3)]">
+              {exams.length > 0
+                ? `${exams.length} ${exams.length === 1 ? "exam" : "exams"} this term`
+                : "Created exams"}
+            </span>
           </div>
           {examsLoading ? (
-            <TableSkeleton rows={3} />
+            <div className="mt-2">
+              <TableSkeleton rows={3} />
+            </div>
           ) : exams.length === 0 ? (
-            <NoData title="No exams created yet" />
+            <p className="py-6 text-sm text-[var(--t3)]">No exams yet. Create one to record scores against it.</p>
           ) : (
-            <div className="flex flex-col gap-2">
+            <ul className="mt-2 divide-y divide-[var(--border)]">
               {exams.map((exam) => (
-                <div key={exam.id} className="flex items-center gap-3 p-3 bg-[var(--surface-container)] rounded-lg">
+                <li key={exam.id} className="flex items-center gap-3 py-3">
                   <div className="w-2 h-2 rounded-full" style={{ background: getExamColor(exam.exam_type) }} />
                   <div className="flex-1">
                     <div className="font-semibold text-sm">{exam.name}</div>
@@ -699,11 +597,11 @@ export default function ExamsPage() {
                   >
                     <MaterialIcon className="text-base text-error">delete</MaterialIcon>
                   </button>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-        </Card>
+        </section>
 
         {showAddExam && (
           <div className="modal-overlay" onClick={() => setShowAddExam(false)}>

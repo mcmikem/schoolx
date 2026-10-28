@@ -28,6 +28,14 @@ export function PaperMarkQueue({ onCountChange }: { onCountChange?: (count: numb
 
   const load = useCallback(async () => {
     if (!school?.id) return;
+    // Demo schools have no submissions table; querying it only produced
+    // timeout toasts on every dashboard/exams visit.
+    if (isDemo) {
+      setSubmissions([]);
+      onCountChange?.(0);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const [result, counted] = await Promise.all([
       withTimeout(
@@ -84,7 +92,7 @@ export function PaperMarkQueue({ onCountChange }: { onCountChange?: (count: numb
     }
     onCountChange?.(counted?.count ?? 0);
     setLoading(false);
-  }, [school?.id, toast, onCountChange]);
+  }, [school?.id, isDemo, toast, onCountChange]);
 
   useEffect(() => {
     void load();
@@ -140,11 +148,11 @@ export function PaperMarkQueue({ onCountChange }: { onCountChange?: (count: numb
   };
 
   if (loading) {
-    return <p className="text-sm text-neutral-600">Loading handed-in papers…</p>;
+    return <p className="text-sm text-[var(--t3)]">Loading handed-in papers…</p>;
   }
 
   if (submissions.length === 0) {
-    return <p className="text-sm text-neutral-600">Nothing waiting to be marked.</p>;
+    return <p className="text-sm text-[var(--t3)]">Nothing waiting to be marked.</p>;
   }
 
   return (
@@ -175,7 +183,7 @@ function PaperMarkQueueItem({
   const entries = Object.entries(row.answers ?? {}).slice(0, 12);
 
   return (
-    <div className="rounded-xl border p-4 bg-white">
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <p className="font-semibold">{row.student_name ?? "Unknown pupil"}</p>
