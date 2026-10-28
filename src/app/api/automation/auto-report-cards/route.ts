@@ -10,6 +10,16 @@ import { getUNEBGrade } from "@/lib/grading";
 import { logger } from "@/lib/logger";
 import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
 import { loadFeeClearanceMap } from "@/lib/server/fee-clearance";
+import {
+  REPORT_ROWS_KEY,
+  TERM_GRADE_BASIS_KEY,
+  groupSubjectDetails,
+  parseReportRows,
+  parseTermGradeBasis,
+  resolveReportRows,
+} from "@/lib/report-rows";
+import { classicReportSubject } from "@/lib/report-summary";
+import type { UgandaGradeRow } from "@/lib/uganda-report";
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,6 +37,45 @@ export async function POST(request: NextRequest) {
 
     const currentYear = academicYear || new Date().getFullYear().toString();
     const currentTerm = term || 1;
+
+    // Schools that configured report-card lines (subjects taught separately
+    // but graded as one) or a term grade basis get cards built by the same
+    // engine the dashboard uses. Without either setting the fixed CA/exam
+    // recipe below runs untouched.
+    const settingsRows = await supabase
+      .from("school_settings")
+      .select("key, value")
+      .eq("school_id", school.schoolId);
+    const settingsMap = Object.fromEntries(
+      ((settingsRows.data as { key: string; value: string }[]) ?? []).map((r) => [r.key, r.value ?? ""]),
+    );
+    const gradeBasis = parseTermGradeBasis(settingsMap[TERM_GRADE_BASIS_KEY]);
+    const reportRowsConfig = parseReportRows(settingsMap[REPORT_ROWS_KEY]);
+    const useReportConfig = Boolean(gradeBasis || reportRowsConfig);
+    const assessmentTypes = Array.from(
+      new Set([
+        "ca1",
+        "ca2",
+        "ca3",
+        "ca4",
+        "project",
+        "exam",
+        ...(useReportConfig
+          ? [
+              ...(gradeBasis?.types ?? []),
+              "bot",
+              "mid_term",
+              "eot",
+              // Alternate spellings the basis engine folds into mid_term / its
+              // own holiday-package slot; fetching them costs nothing when absent.
+              "mock",
+              "mock_exam",
+              "holiday_package",
+              "hpg",
+            ]
+          : []),
+      ]),
+    );
 
     // Get students in selected classes
     const { data: students, error: studentsError } = await supabase
@@ -80,13 +129,14 @@ export async function POST(request: NextRequest) {
           subject_id,
           assessment_type,
           score,
+          max_score,
           subjects (name)
         `,
           )
           .in("student_id", studentIds)
           .eq("academic_year", currentYear)
           .eq("term", currentTerm)
-          .in("assessment_type", ["ca1", "ca2", "ca3", "ca4", "project", "exam"]),
+          .in("assessment_type", assessmentTypes),
         supabase
           .from("attendance")
           .select("student_id, status, date")
@@ -157,53 +207,98 @@ export async function POST(request: NextRequest) {
         const subjectResults: any[] = [];
         const subjectScores: number[] = [];
 
-        // Group grade rows per subject (grades are stored one row per assessment_type)
-        const subjectGroups = new Map<string, any[]>();
-        for (const grade of grades as any[]) {
-          if (!subjectGroups.has(grade.subject_id)) {
-            subjectGroups.set(grade.subject_id, []);
+        if (useReportConfig) {
+          // Configured schools: same engine as the dashboard — grades rows →
+          // subject result (basis-weighted) → grouped report lines.
+          const bySubject = new Map<string, { name: string; rows: UgandaGradeRow[] }>();
+          for (const g of grades as any[]) {
+            if (!bySubject.has(g.subject_id)) {
+              bySubject.set(g.subject_id, { name: g.subjects?.name || "Unknown", rows: [] });
+            }
+            bySubject.get(g.subject_id)!.rows.push({
+              assessment_type: g.assessment_type,
+              score: g.score == null ? Number.NaN : Number(g.score),
+              max_score: g.max_score ?? null,
+            });
           }
-          subjectGroups.get(grade.subject_id)!.push(grade);
-        }
 
-        for (const [subjectId, rows] of subjectGroups) {
-          const valueFor = (type: string) => Number(rows.find((r: any) => r.assessment_type === type)?.score ?? 0);
-
-          const ca1 = valueFor("ca1");
-          const ca2 = valueFor("ca2");
-          const ca3 = valueFor("ca3");
-          const ca4 = valueFor("ca4");
-          const project = valueFor("project");
-          const exam = valueFor("exam");
-
-          const totalCA = (ca1 + ca2 + ca3 + ca4 + project) / 5;
-          const finalScore = Math.round(totalCA * 0.25 + exam * 0.75);
-          const grade = getUNEBGrade(finalScore);
-          const gradeLabel = getGradeLabel(finalScore);
-
-          const comment = generateAutoComment(
-            finalScore,
-            rows[0]?.subjects?.name || "Subject",
-            `${student.first_name} ${student.last_name}`,
-          );
-
-          subjectResults.push({
-            subjectId,
-            subjectName: rows[0]?.subjects?.name || "Unknown",
-            ca1,
-            ca2,
-            ca3,
-            ca4,
-            project,
-            exam,
-            totalCA,
-            finalScore,
-            grade,
-            gradeLabel,
-            comment,
+          const details = Array.from(bySubject.entries()).map(([subjectId, data]) => {
+            const result = classicReportSubject(data.rows, gradeBasis);
+            return {
+              subjectId,
+              name: data.name,
+              ...result,
+              comment: generateAutoComment(
+                result.score,
+                data.name,
+                `${student.first_name} ${student.last_name}`,
+              ),
+            };
           });
+          const grouped = groupSubjectDetails(details, resolveReportRows(reportRowsConfig, studentClass.level));
 
-          subjectScores.push(finalScore);
+          for (const d of grouped) {
+            const { uganda: _uganda, isMissing: _isMissing, ...rest } = d as any;
+            void _uganda;
+            void _isMissing;
+            const entry = {
+              ...rest,
+              subjectName: d.name,
+              finalScore: d.score,
+              gradeLabel: getGradeLabel(d.score),
+            };
+            subjectResults.push(entry);
+            subjectScores.push(d.score);
+          }
+        } else {
+          // Group grade rows per subject (grades are stored one row per assessment_type)
+          const subjectGroups = new Map<string, any[]>();
+          for (const grade of grades as any[]) {
+            if (!subjectGroups.has(grade.subject_id)) {
+              subjectGroups.set(grade.subject_id, []);
+            }
+            subjectGroups.get(grade.subject_id)!.push(grade);
+          }
+
+          for (const [subjectId, rows] of subjectGroups) {
+            const valueFor = (type: string) => Number(rows.find((r: any) => r.assessment_type === type)?.score ?? 0);
+
+            const ca1 = valueFor("ca1");
+            const ca2 = valueFor("ca2");
+            const ca3 = valueFor("ca3");
+            const ca4 = valueFor("ca4");
+            const project = valueFor("project");
+            const exam = valueFor("exam");
+
+            const totalCA = (ca1 + ca2 + ca3 + ca4 + project) / 5;
+            const finalScore = Math.round(totalCA * 0.25 + exam * 0.75);
+            const grade = getUNEBGrade(finalScore);
+            const gradeLabel = getGradeLabel(finalScore);
+
+            const comment = generateAutoComment(
+              finalScore,
+              rows[0]?.subjects?.name || "Subject",
+              `${student.first_name} ${student.last_name}`,
+            );
+
+            subjectResults.push({
+              subjectId,
+              subjectName: rows[0]?.subjects?.name || "Unknown",
+              ca1,
+              ca2,
+              ca3,
+              ca4,
+              project,
+              exam,
+              totalCA,
+              finalScore,
+              grade,
+              gradeLabel,
+              comment,
+            });
+
+            subjectScores.push(finalScore);
+          }
         }
 
         // Compute aggregate/division based on school level
