@@ -5,6 +5,7 @@ import ExpiredNotice from "@/components/dashboard/ExpiredNotice";
 import MobileBottomNav from "@/components/dashboard/MobileBottomNav";
 import SidebarShell from "@/components/dashboard/SidebarShell";
 import TopBar from "@/components/dashboard/TopBar";
+import { OfflineModeBanner } from "@/components/OfflineModeBanner";
 import TrialBanner from "@/components/dashboard/TrialBanner";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
@@ -477,6 +478,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
         <main id="main-content" className="main-content mobile-container flex-1 flex flex-col min-h-screen">
           <TopBar pageTitle={pageTitle} onSignOut={handleSignOut} />
+          <OfflineModeBanner />
           {breadcrumbItems.length > 1 && (
             <div className="dashboard-breadcrumbs px-4 sm:px-6 py-2 border-b border-[var(--border)] bg-[var(--surface)]">
               <Breadcrumbs items={breadcrumbItems} />

@@ -2,6 +2,7 @@
 import Link from "next/link";
 import React from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import { OfflineErrorFallback } from "@/components/OfflineErrorFallback";
 import { logger } from "@/lib/logger";
 
 interface ErrorBoundaryProps {
@@ -39,6 +40,10 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;
+      }
+
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        return <OfflineErrorFallback onRetry={this.handleReset} />;
       }
 
       return (

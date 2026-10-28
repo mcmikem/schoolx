@@ -9,6 +9,7 @@ import { setupErrorLogging } from "@/lib/error-logger";
 import { logger } from "@/lib/logger";
 import { offlineDB } from "@/lib/offline";
 import { clearOfflineQueryCache, installOfflineApiFetch, setOfflineCacheUser } from "@/lib/offline-query-cache";
+import { OfflineRouteWarmer } from "@/lib/offline-route-warmer";
 import { supabase } from "@/lib/supabase";
 import { ThemeProvider } from "@/lib/theme-context";
 import CommCenter from "@/components/owly/CommCenter";
@@ -290,6 +291,27 @@ function OfflineCacheScope() {
 
   useEffect(() => installOfflineApiFetch(), []);
 
+  useEffect(() => {
+    // Best-effort: browsers may evict IndexedDB and Cache Storage under
+    // pressure, which is exactly the offline copy a rural school depends on.
+    // Ask once at load and again on the first real interaction (some browsers
+    // only grant it after engagement).
+    let asked = false;
+    const ask = () => {
+      if (asked) return;
+      asked = true;
+      if (typeof navigator === "undefined" || typeof navigator.storage?.persist !== "function") return;
+      void navigator.storage.persist().catch(() => {});
+    };
+    ask();
+    window.addEventListener("pointerdown", ask, { once: true, capture: true });
+    window.addEventListener("keydown", ask, { once: true, capture: true });
+    return () => {
+      window.removeEventListener("pointerdown", ask, { capture: true });
+      window.removeEventListener("keydown", ask, { capture: true });
+    };
+  }, []);
+
   return null;
 }
 
@@ -333,6 +355,7 @@ export default function Providers({ children }: { children: ReactNode }) {
               <LoadingChecker>
                 <MobileKeyboardHandler />
                 <OfflineCacheScope />
+                <OfflineRouteWarmer />
                 <FaviconUpdater />
                 <CommCenter />
                 <BrandProvider>{children}</BrandProvider>

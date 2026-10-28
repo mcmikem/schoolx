@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SidebarShell from "@/components/dashboard/SidebarShell";
 import TopBar from "@/components/dashboard/TopBar";
+import { OfflineModeBanner } from "@/components/OfflineModeBanner";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
@@ -39,6 +40,7 @@ function ParentPortalShellContent({ children, pageTitle }: { children: React.Rea
         className="main-content mobile-container ml-[var(--sidebar-width)] flex-1 flex flex-col min-h-screen w-[calc(100%-var(--sidebar-width))] overflow-hidden"
       >
         <TopBar pageTitle={pageTitle} onSignOut={handleSignOut} />
+        <OfflineModeBanner />
         <div className="parent-portal-shell flex-1 flex flex-col relative overflow-hidden">
           <div className="parent-portal-atmosphere" aria-hidden="true" />
           <div className="content-layer flex-1 flex flex-col">{children}</div>

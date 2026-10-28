@@ -10,6 +10,7 @@ import { useToast } from "@/components/Toast";
 import { Button, Input } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { DEMO_MODE_ENABLED } from "@/lib/auth-context-types";
+import { useOnlineStatus } from "@/lib/offline";
 import { saveDemoStorage } from "@/lib/auth-demo";
 import { classifyAuthFailure, countsAsCredentialGuess, loginFailureMessage } from "@/lib/auth-failure";
 import { supabase } from "@/lib/supabase";
@@ -39,6 +40,7 @@ export default function LoginPage() {
   const toast = useToast();
   const router = useRouter();
   const { signIn, user, authInitialized } = useAuth();
+  const isOnline = useOnlineStatus();
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -391,6 +393,19 @@ export default function LoginPage() {
               Back to home
             </Link>
           </div>
+
+          {!isOnline && (
+            <div
+              role="status"
+              className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900"
+            >
+              <p className="font-semibold">You are offline.</p>
+              <p className="mt-1">
+                Signing in needs an internet connection. If you have signed in on this device before, close this page
+                and reopen SkoolMate from your home screen — your saved session will open the dashboard.
+              </p>
+            </div>
+          )}
 
           {DEMO_MODE_ENABLED && (
             <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">

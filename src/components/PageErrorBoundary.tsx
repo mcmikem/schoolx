@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/nextjs";
 import React, { Component, ReactNode } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { ErrorDetails } from "@/components/ErrorDetails";
+import { OfflineErrorFallback } from "@/components/OfflineErrorFallback";
 import { recoverFromStaleBuild, retryStaleBuildOnce } from "@/lib/build-recovery";
 import { logger } from "@/lib/logger";
 
@@ -48,6 +49,10 @@ export class PageErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;
+      }
+
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        return <OfflineErrorFallback onRetry={this.handleReset} />;
       }
 
       return (

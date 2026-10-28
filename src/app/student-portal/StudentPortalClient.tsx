@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import { OfflineModeBanner } from "@/components/OfflineModeBanner";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { useAuth } from "@/lib/auth-context";
@@ -231,6 +232,7 @@ export default function StudentPortalClient({ initial }: { initial: PortalInitia
           <MaterialIcon>logout</MaterialIcon>
         </button>
       </header>
+      <OfflineModeBanner />
 
       <main className="p-4 sm:p-6 max-w-4xl mx-auto space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

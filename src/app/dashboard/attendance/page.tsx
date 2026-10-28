@@ -1,6 +1,7 @@
 "use client";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { AttendanceMarkCard } from "@/components/attendance/AttendanceMarkCard";
 import { RollCallPhoto } from "@/components/attendance/RollCallPhoto";
 import { ABSENT_SWIPE, PRESENT_SWIPE, SwipeRow } from "@/components/attendance/SwipeRow";
@@ -34,6 +35,7 @@ import type { Student } from "@/types";
 
 const STATUS_CYCLE = ["present", "absent", "late", "excused"] as const;
 type AttendanceStatus = (typeof STATUS_CYCLE)[number];
+const ATTENDANCE_VIRTUALIZATION_THRESHOLD = 40;
 
 /**
  * The three marks offered on the card, with the colours that say "this one is
@@ -538,6 +540,39 @@ export default function AttendancePage() {
   const isReviewing = filterStatus !== "all" || searchQuery.trim() !== "";
   const visibleStudents =
     isReviewing || showMarked ? filteredStudents : filteredStudents.filter((s) => !collapsedIds.has(s.id));
+
+  const attendanceListRef = useRef<HTMLDivElement>(null);
+  const [attendanceListOffset, setAttendanceListOffset] = useState(0);
+  const shouldVirtualizeAttendance = visibleStudents.length > ATTENDANCE_VIRTUALIZATION_THRESHOLD;
+
+  useEffect(() => {
+    if (!shouldVirtualizeAttendance) return;
+    const updateListOffset = () => {
+      const bounds = attendanceListRef.current?.getBoundingClientRect();
+      if (bounds) setAttendanceListOffset(bounds.top + window.scrollY);
+    };
+    updateListOffset();
+    window.addEventListener("resize", updateListOffset);
+    return () => window.removeEventListener("resize", updateListOffset);
+  }, [shouldVirtualizeAttendance, visibleStudents.length]);
+
+  const attendanceVirtualizer = useWindowVirtualizer<HTMLDivElement>({
+    count: shouldVirtualizeAttendance ? visibleStudents.length : 0,
+    estimateSize: () => (typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches ? 66 : 170),
+    getItemKey: (index) => visibleStudents[index]?.id ?? index,
+    gap: 10,
+    overscan: 6,
+    scrollMargin: attendanceListOffset,
+    enabled: shouldVirtualizeAttendance,
+  });
+
+  const attendanceRows = shouldVirtualizeAttendance
+    ? attendanceVirtualizer.getVirtualItems().map((virtualItem) => ({
+        student: visibleStudents[virtualItem.index],
+        index: virtualItem.index,
+        virtualItem,
+      }))
+    : visibleStudents.map((student, index) => ({ student, index, virtualItem: null }));
 
   // A new class or date means a new register — drop the previous save summary
   // and tuck state so the teacher always lands back on the marking list, never
@@ -1838,8 +1873,13 @@ export default function AttendancePage() {
                 </button>
               </div>
 
-              <div className="space-y-2.5">
-                {visibleStudents.map((student, index) => {
+              <div
+                ref={attendanceListRef}
+                className={shouldVirtualizeAttendance ? "relative" : "space-y-2.5"}
+                style={shouldVirtualizeAttendance ? { height: attendanceVirtualizer.getTotalSize() } : undefined}
+                data-attendance-virtualized={shouldVirtualizeAttendance ? "true" : undefined}
+              >
+                {attendanceRows.map(({ student, index, virtualItem }) => {
                   const studentStatus = attendance[student.id] as AttendanceStatus | undefined;
                   const rowShell = `${flashId === student.id ? "ring-2 ring-primary" : ""} ${
                     !peekDone && index === 0 ? "animate-[swipe-peek_1.4s_ease-in-out_0.8s]" : ""
@@ -1852,7 +1892,23 @@ export default function AttendancePage() {
                   // all on screen at once -- giving them the card would throw
                   // away the density that makes the wide screen worth having.
                   return (
-                    <div key={student.id} className={index === 0 ? rowShell : undefined}>
+                    <div
+                      key={student.id}
+                      ref={virtualItem ? attendanceVirtualizer.measureElement : undefined}
+                      data-index={virtualItem?.index}
+                      className={index === 0 ? rowShell : undefined}
+                      style={
+                        virtualItem
+                          ? {
+                              position: "absolute",
+                              top: 0,
+                              left: 0,
+                              width: "100%",
+                              transform: `translateY(${virtualItem.start - attendanceListOffset}px)`,
+                            }
+                          : undefined
+                      }
+                    >
                       {/* Phone */}
                       <div className="lg:hidden">
                         <AttendanceMarkCard

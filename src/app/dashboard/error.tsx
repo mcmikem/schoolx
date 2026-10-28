@@ -3,11 +3,14 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ErrorDetails } from "@/components/ErrorDetails";
+import { OfflineErrorFallback } from "@/components/OfflineErrorFallback";
+import { useOnlineStatus } from "@/lib/offline";
 import { recoverFromStaleBuild, retryStaleBuildOnce } from "@/lib/build-recovery";
 import { logger } from "@/lib/logger";
 
 export default function DashboardError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   const [recovering, setRecovering] = useState(false);
+  const isOnline = useOnlineStatus();
 
   useEffect(() => {
     logger.error("[Dashboard Error]", error);
@@ -18,6 +21,14 @@ export default function DashboardError({ error, reset }: { error: Error & { dige
     setRecovering(true);
     await recoverFromStaleBuild();
   };
+
+  if (!isOnline) {
+    return (
+      <div className="content">
+        <OfflineErrorFallback onRetry={reset} />
+      </div>
+    );
+  }
 
   return (
     <div className="content">

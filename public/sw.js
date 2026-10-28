@@ -10,6 +10,52 @@ const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 const RSC_CACHE = `${CACHE_VERSION}-rsc`;
 const OFFLINE_FALLBACK = '/offline.html';
 
+/**
+ * When a page was never downloaded, the nearest saved page is served so the
+ * user keeps the app chrome. That substitution must not be silent: inject the
+ * requested path into the document so the app can say "this page was not saved
+ * offline" and offer the saved pages instead. Without this, a teacher could
+ * believe they were looking at the page they tapped.
+ */
+async function markOfflineFallback(response, requestedPath) {
+  try {
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('text/html')) return response;
+    const html = await response.text();
+    const payload = JSON.stringify(requestedPath).replace(/</g, '\\u003c');
+    const script = `<script>window.__SKOOLMATE_OFFLINE_FALLBACK__=${payload};</script>`;
+    const injected = html.includes('</body>') ? html.replace('</body>', script + '</body>') : html + script;
+    const headers = new Headers(response.headers);
+    // The body changed, so the original length/encoding no longer describe it.
+    headers.delete('content-length');
+    headers.delete('content-encoding');
+    return new Response(injected, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  } catch {
+    return response;
+  }
+}
+
+async function warmRoute(route) {
+  if (typeof route !== 'string' || !route.startsWith('/')) return false;
+  try {
+    const pageCache = await caches.open(PAGE_CACHE);
+    const response = await fetch(route, { credentials: 'same-origin' });
+    if (response.ok && !response.redirected) {
+      await pageCache.put(route, response);
+      return true;
+    }
+    return false;
+  } catch {
+    // Offline, a redirect, or a route the current role cannot open. The
+    // client will retry on the next online warm-up.
+    return false;
+  }
+}
+
 const PAGES_TO_CACHE = [
   '/login/',
   '/register/',
@@ -269,12 +315,12 @@ self.addEventListener('fetch', (event) => {
           // the app.
           if (isDashboardRoute) {
             const nearest = await matchNearestSectionPage(url.pathname);
-            if (nearest) return nearest;
+            if (nearest) return markOfflineFallback(nearest, url.pathname);
             const dashboardShell = await pageCache.match('/dashboard/');
-            if (dashboardShell) return dashboardShell;
+            if (dashboardShell) return markOfflineFallback(dashboardShell, url.pathname);
           } else {
             const nearest = await matchNearestSectionPage(url.pathname);
-            if (nearest) return nearest;
+            if (nearest) return markOfflineFallback(nearest, url.pathname);
           }
 
           // Last stop before the fallback screen: ANY cached app-shell
@@ -288,7 +334,7 @@ self.addEventListener('fetch', (event) => {
             const path = new URL(doc.url).pathname;
             if (APP_SECTIONS.some((section) => path.startsWith(section + '/') || path === section || path === section + '/')) {
               const cachedDoc = await pageCache.match(doc);
-              if (cachedDoc) return cachedDoc;
+              if (cachedDoc) return markOfflineFallback(cachedDoc, url.pathname);
             }
           }
 
@@ -298,7 +344,7 @@ self.addEventListener('fetch', (event) => {
           if (url.pathname === '/start/' || url.pathname === '/start') {
             const fallbackShell =
               (await pageCache.match('/dashboard/')) || (await pageCache.match('/login/'));
-            if (fallbackShell) return fallbackShell;
+            if (fallbackShell) return markOfflineFallback(fallbackShell, url.pathname);
           }
 
           const offlinePage = await caches.match(OFFLINE_FALLBACK);
@@ -437,6 +483,16 @@ self.addEventListener('message', (event) => {
 
   if (event.data && event.data.type === 'WARM_SHELL') {
     event.waitUntil(warmAppShell());
+  }
+
+  if (event.data && event.data.type === 'WARM_ROUTE') {
+    const route = event.data.url;
+    const responsePort = event.ports && event.ports[0];
+    event.waitUntil(
+      warmRoute(route).then((cached) => {
+        if (responsePort) responsePort.postMessage({ type: 'WARM_ROUTE_RESULT', route, cached });
+      })
+    );
   }
 
   if (event.data && event.data.type === 'CACHE_DATA') {

@@ -41,8 +41,12 @@ export interface QueryCacheStore {
 const DB_NAME = "skoolmate-query-cache";
 const DB_VERSION = 1;
 const STORE = "responses";
-const MAX_RECORDS = 300;
-const MAX_BODY_BYTES = 512 * 1024;
+// A school day touches more than 300 distinct queries (each list, filter,
+// detail and dashboard card has its own URL). 300 evicted the oldest screens
+// before the day was over, so returning to them offline showed nothing. The
+// budget is still bounded so a shared phone cannot fill its storage.
+const MAX_RECORDS = 1_200;
+const MAX_BODY_BYTES = 1024 * 1024;
 const OPEN_TIMEOUT_MS = 3000;
 // The body is replayed as decoded text, so keeping the original encoding
 // header would make the browser try to decompress it a second time.
