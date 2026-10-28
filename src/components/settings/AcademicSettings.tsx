@@ -289,6 +289,7 @@ export default function AcademicSettings() {
 const BASIS_OPTIONS: Array<{ id: TermGradeBasis["types"][number]; label: string; hint: string }> = [
   { id: "bot", label: "Beginning of Term (BOT)", hint: "The opening test of the term" },
   { id: "mid_term", label: "Mid of Term (MOT)", hint: "The mid-term examination" },
+  { id: "holiday_package", label: "Holiday package (HPG)", hint: "A holiday package scored by the school" },
   { id: "eot", label: "End of Term (EOT)", hint: "The end-of-term examination" },
   { id: "ca", label: "Continuous assessment", hint: "CA1-CA4, projects and class tests" },
 ];
@@ -328,7 +329,10 @@ function TermGradeBasisCard() {
     setBasis((prev) => ({ ...prev, weights: { ...prev.weights, [id]: Math.max(0, Math.min(100, weight)) } }));
   };
 
-  const totalWeight = basis.types.reduce((sum, t) => sum + (Number(basis.weights?.[t]) > 0 ? Number(basis.weights?.[t]) : 0), 0);
+  const totalWeight = basis.types.reduce(
+    (sum, t) => sum + (Number(basis.weights?.[t]) > 0 ? Number(basis.weights?.[t]) : 0),
+    0,
+  );
   const weighted = basis.types.some((t) => Number(basis.weights?.[t]) > 0);
 
   const save = async () => {
@@ -359,8 +363,9 @@ function TermGradeBasisCard() {
         What the term grade is made of
       </h2>
       <p className="text-sm text-on-surface-variant mb-4">
-        Some schools grade on the end-of-term exam only, some combine BOT, MOT and EOT. Tick what counts and set each
-        weight. A pupil who missed one exam is not penalised — the others carry the grade on their own weights.
+        Select the assessments this school uses in its report average. For example, a secondary school can combine a
+        holiday package with its mid-term mock. Leave weights blank for a simple average, or enter weights that total
+        100% for a school-specific weighted average.
       </p>
       <div className="space-y-2">
         {BASIS_OPTIONS.map((option) => {
@@ -453,10 +458,7 @@ function ReportRowsCard() {
   const updateRows = (next: RowDraft[]) => setRowsByLevel((prev) => ({ ...prev, [levelKey]: next }));
 
   const addRow = () =>
-    updateRows([
-      ...rows,
-      { id: `row-${Date.now()}-${rows.length}`, label: "", subjectIds: [], mode: "mean" },
-    ]);
+    updateRows([...rows, { id: `row-${Date.now()}-${rows.length}`, label: "", subjectIds: [], mode: "mean" }]);
 
   const removeRow = (id: string) => updateRows(rows.filter((r) => r.id !== id));
 
@@ -518,20 +520,15 @@ function ReportRowsCard() {
         Report card lines
       </h2>
       <p className="text-sm text-on-surface-variant mb-4">
-        Some subjects are taught separately but reported as one grade — lower-primary science and social studies, or
-        SST with Religious Education. Combine them here and the report card prints one line per group. Subjects you
-        leave out of a group keep their own line.
+        Some subjects are taught separately but reported as one grade — lower-primary science and social studies, or SST
+        with Religious Education. Combine them here and the report card prints one line per group. Subjects you leave
+        out of a group keep their own line.
       </p>
       <div className="flex items-center gap-3 mb-4">
         <label className="text-sm font-medium text-[var(--t1)]" htmlFor="rows-level">
           Setting for
         </label>
-        <select
-          id="rows-level"
-          value={levelKey}
-          onChange={(e) => setLevelKey(e.target.value)}
-          className="input flex-1"
-        >
+        <select id="rows-level" value={levelKey} onChange={(e) => setLevelKey(e.target.value)} className="input flex-1">
           <option value={DEFAULT_LEVEL_KEY}>All classes (default)</option>
           {levels.map((level) => (
             <option key={level} value={level}>

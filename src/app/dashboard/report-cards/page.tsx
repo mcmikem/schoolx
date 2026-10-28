@@ -28,7 +28,7 @@ import {
 } from "@/lib/cbc-report";
 import { DEMO_GRADES, DEMO_SUBJECTS } from "@/lib/demo-data";
 import { computeFeeClearance, type FeeClearance } from "@/lib/fee-clearance";
-import { type ReportLayoutId, resolveUseBot, SETTING_KEYS } from "@/lib/grading-tracks";
+import { type ReportLayoutId, detectLevelFromClass, resolveUseBot, SETTING_KEYS } from "@/lib/grading-tracks";
 import { useClasses, useFeeAdjustments, useFeePayments, useFeeStructure, useStudents, useSubjects } from "@/lib/hooks";
 import { isTimeoutResult, timeoutFallback, withTimeout } from "@/lib/hooks/utils";
 import { logger } from "@/lib/logger";
@@ -71,10 +71,13 @@ interface StudentReport {
     gradeColor: string;
     competencyLevel?: string;
     competencyNotes?: string;
+    teacherRemark?: string;
     isMissing?: boolean;
     /** MID/END/AVG/AGG breakdown for the Uganda print layout (additive). */
     uganda?: UgandaSubjectResult;
   }[];
+  assessmentModel?: "secondary_progressive";
+  secondaryPoints?: number | null;
   totalMarks: number;
   maxMarks: number;
   average: number;
@@ -87,6 +90,110 @@ interface StudentReport {
   recordedSubjects?: number;
   aggregate?: number | null;
 }
+
+function buildSecondaryProgressMarkup(
+  report: StudentReport,
+  options: {
+    schoolName: string;
+    schoolColor: string;
+    logoUrl: string;
+    photoUrl: string;
+    motto: string;
+    address: string;
+    phone: string;
+    email: string;
+    term: number;
+    year: string;
+    classSize: number;
+    classRemark: string;
+    headRemark: string;
+  },
+): string {
+  const esc = (value: unknown) =>
+    String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  const rows = report.subjects
+    .map((subject) => {
+      const values = subject.uganda?.assessmentBreakdown || [];
+      const valueFor = (type: string) => values.find((value) => value.type === type)?.score;
+      const hpg = valueFor("holiday_package");
+      const midterm = valueFor("mid_term");
+      const final = valueFor("final_average");
+      return `<tr>
+        <td>${esc(subject.name)}</td><td class="numeric">${hpg == null ? "—" : hpg}</td>
+        <td class="numeric">${midterm == null ? "—" : midterm}</td>
+        <td class="numeric emphasis">${final == null ? "—" : final}</td>
+        <td class="numeric emphasis">${esc(subject.grade || "—")}</td>
+        <td>${esc(subject.uganda?.gradeDescriptor || "—")}</td>
+        <td>${esc(subject.teacherRemark || "")}</td>
+      </tr>`;
+    })
+    .join("");
+  const date = new Date().toLocaleDateString("en-GB");
+  return `<article class="secondary-progress-report" style="--school-color:${esc(options.schoolColor)}">
+    <header class="report-header">
+      ${options.logoUrl ? `<img class="school-logo" src="${esc(options.logoUrl)}" alt="${esc(options.schoolName)} logo">` : ""}
+      ${options.photoUrl ? `<img class="student-photo" src="${esc(options.photoUrl)}" alt="${esc(report.name)}">` : ""}
+      <div class="school-name">${esc(options.schoolName)}</div>
+      ${options.motto ? `<div class="motto">“${esc(options.motto)}”</div>` : ""}
+      ${options.address ? `<div class="school-details">${esc(options.address)}</div>` : ""}
+      <div class="school-details">${options.phone ? `Tel: ${esc(options.phone)}` : ""}${options.phone && options.email ? " · " : ""}${options.email ? esc(options.email) : ""}</div>
+      <h1>TERM ${options.term} PROGRESSIVE REPORT</h1>
+      <div class="school-details">${options.year} · ${date}</div>
+    </header>
+    <section class="student-details">
+      <div><small>Student name</small><strong>${esc(report.name)}</strong></div>
+      <div><small>Learner ID</small><strong>${esc(report.studentNumber)}</strong></div>
+      <div><small>Class</small><strong>${esc(report.className)}</strong></div>
+      <div><small>Gender</small><strong>${report.gender === "M" ? "Male" : report.gender === "F" ? "Female" : esc(report.gender)}</strong></div>
+      <div><small>Term</small><strong>${options.term} · ${esc(options.year)}</strong></div>
+      <div><small>Class position</small><strong>${report.position || "—"} of ${options.classSize}</strong></div>
+    </section>
+    <table class="grades-table"><thead><tr>
+      <th>Subject</th><th>HPG (%)</th><th>Midterm / Mock (%)</th><th>Final (%)</th><th>Grade</th><th>Grade descriptor</th><th>TR</th>
+    </tr></thead><tbody>${rows}</tbody></table>
+    <div class="summary-row">
+      <div><small>Overall average</small><strong>${report.maxMarks ? `${report.average}%` : "—"}</strong></div>
+      <div><small>Points (A=5 to E=1)</small><strong>${report.secondaryPoints ?? "—"}</strong></div>
+      <div><small>Class position</small><strong>${report.position || "—"} / ${options.classSize}</strong></div>
+      <div><small>Subjects recorded</small><strong>${report.recordedSubjects ?? report.subjects.filter((subject) => !subject.isMissing).length} / ${report.subjects.length}</strong></div>
+    </div>
+    <section class="remark"><strong>Class teacher’s remarks</strong><p>${esc(options.classRemark || report.classTeacherComment || "")}</p></section>
+    <section class="remark"><strong>Headteacher’s remarks</strong><p>${esc(options.headRemark || report.hmComment || "")}</p></section>
+    <footer>HPG = Holiday Package · Midterm / Mock = the school’s mid-term examination · Final uses the assessment basis configured for this school.<br>Grade bands: A 85–100 · B 75–84 · C 65–74 · D 50–64 · E below 50.</footer>
+  </article>`;
+}
+
+const SECONDARY_PROGRESS_STYLES = (schoolColor: string) => `
+  @page{size:A4 portrait;margin:12mm}
+  *{box-sizing:border-box}
+  body{font:10px Arial,sans-serif;color:#1f2937;margin:0}
+  .secondary-progress-report{--school-color:${schoolColor};max-width:900px;margin:0 auto;padding:10px}
+  .report-header{position:relative;text-align:center;min-height:100px;border:1px solid #cbd5e1;padding:10px 78px 8px}
+  .school-logo{position:absolute;left:8px;top:8px;max-width:58px;max-height:55px;object-fit:contain}
+  .student-photo{position:absolute;right:8px;top:6px;width:58px;height:72px;object-fit:cover;border:1px solid #cbd5e1}
+  .school-name{font-size:19px;font-weight:bold;color:var(--school-color)}
+  .motto{font-style:italic;margin:2px 0}
+  .school-details{font-size:9px;color:#475569;margin:2px 0}
+  .report-header h1{font-size:14px;margin:5px 0 2px;color:var(--school-color)}
+  .student-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px 12px;margin:8px 0;padding:7px 9px;border:1px solid #cbd5e1}
+  .student-details small,.summary-row small{display:block;color:#64748b;font-size:8px;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px}
+  .student-details strong{font-size:10px}
+  .grades-table{width:100%;border-collapse:collapse;margin:8px 0;font-size:9px}
+  .grades-table th{background:var(--school-color);color:white;text-align:left;padding:6px 4px;font-size:8px;text-transform:uppercase;border:1px solid var(--school-color)}
+  .grades-table td{border:1px solid #cbd5e1;padding:5px 4px;vertical-align:middle}
+  .grades-table tbody tr:nth-child(even){background:#f8fafc}
+  .numeric{text-align:center;white-space:nowrap}.emphasis{font-weight:bold}
+  .summary-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:8px 0}
+  .summary-row>div{border:1px solid #cbd5e1;padding:6px;text-align:center}.summary-row strong{font-size:16px;color:var(--school-color)}
+  .remark{border:1px solid #cbd5e1;padding:7px 9px;margin:6px 0;min-height:42px}.remark strong{font-size:9px;text-transform:uppercase;color:#475569}.remark p{margin:5px 0 0;min-height:16px}
+  footer{border-top:1px solid #cbd5e1;margin-top:7px;padding-top:6px;font-size:8px;color:#475569;line-height:1.45}
+  @media print{.secondary-progress-report{break-after:page}.secondary-progress-report:last-child{break-after:auto}}
+`;
 
 export default function ReportCardsPage() {
   const { school, user, isDemo } = useAuth();
@@ -367,6 +474,10 @@ export default function ReportCardsPage() {
         "u1",
         "u2",
         "eot",
+        "holiday_package",
+        "hpg",
+        "mock",
+        "mock_exam",
       ]);
       gradesData = main.rows;
       usedOffline = main.offline;
@@ -380,7 +491,18 @@ export default function ReportCardsPage() {
 
     const studentSubjectScores: Record<
       string,
-      Record<string, { name: string; rows: { assessment_type: string; score: number; max_score?: number | null }[] }>
+      Record<
+        string,
+        {
+          name: string;
+          rows: {
+            assessment_type: string;
+            score: number;
+            max_score?: number | null;
+            teacher_remark?: string | null;
+          }[];
+        }
+      >
     > = {};
     const studentCompetencies: Record<string, Record<string, { level: string; notes: string; name: string }>> = {};
 
@@ -399,6 +521,7 @@ export default function ReportCardsPage() {
         assessment_type: g.assessment_type,
         score: g.score == null ? Number.NaN : Number(g.score),
         max_score: g.max_score ?? null,
+        teacher_remark: g.teacher_remark ?? null,
       });
     }
 
@@ -418,6 +541,15 @@ export default function ReportCardsPage() {
       return { reports: [], missingMarks: false, offline: usedOffline };
     }
 
+    const classHasHolidayPackage = gradesData.some((grade) =>
+      ["holiday_package", "hpg"].includes(String(grade.assessment_type).toLowerCase()),
+    );
+    const classHasMidterm = gradesData.some((grade) =>
+      ["mid_term", "mock", "mock_exam"].includes(String(grade.assessment_type).toLowerCase()),
+    );
+    const secondaryProgressive =
+      detectLevelFromClass(className) === "secondary" && classHasHolidayPackage && classHasMidterm;
+
     const reportList: StudentReport[] = students.map((student) => {
       const subjScores = studentSubjectScores[student.id] || {};
       const studentComp = studentCompetencies[student.id] || {};
@@ -433,6 +565,7 @@ export default function ReportCardsPage() {
           competencyLevel: comp?.level,
           competencyNotes: comp?.notes,
           isMissing: result.isMissing,
+          teacherRemark: data.rows.find((row) => row.teacher_remark?.trim())?.teacher_remark?.trim() || "",
           uganda: result.uganda,
         };
       });
@@ -469,6 +602,15 @@ export default function ReportCardsPage() {
         photoUrl: student.photo_url,
         className,
         subjects: cardSubjects,
+        ...(secondaryProgressive ? { assessmentModel: "secondary_progressive" as const } : {}),
+        ...(secondaryProgressive
+          ? {
+              secondaryPoints: cardSubjects.reduce((total, subject) => {
+                const points: Record<string, number> = { A: 5, B: 4, C: 3, D: 2, E: 1 };
+                return total + (points[subject.grade] || 0);
+              }, 0),
+            }
+          : {}),
         ...summary,
         position: 0,
         division: summary.division,
@@ -606,6 +748,8 @@ export default function ReportCardsPage() {
         gradeColor: s.gradeColor,
         competencyLevel: s.competencyLevel,
         competencyNotes: s.competencyNotes,
+        teacherRemark: s.teacherRemark,
+        uganda: s.uganda,
         isMissing: s.isMissing,
         ...(reportFormat === "cbc"
           ? {
@@ -1398,8 +1542,7 @@ export default function ReportCardsPage() {
     // With configured report rows the card's line order IS the school's
     // chosen order — the canonical subject re-sort would scatter grouped
     // lines like "Science and Social Studies" to the bottom.
-    const groupedActive =
-      resolveReportRows(reportRows, (selectedClassObj as any)?.level).length > 0;
+    const groupedActive = resolveReportRows(reportRows, (selectedClassObj as any)?.level).length > 0;
     const ordered = groupedActive ? raw : orderUgandaSubjects(raw);
     const totals = sumUgandaTotals(
       ordered.map((subject) => ({ mid: subject.bot, end: subject.eot, avg: subject.avg, agg: subject.agg })),
@@ -1475,6 +1618,34 @@ export default function ReportCardsPage() {
       handlePrintCBCReport(report);
       return;
     }
+    if (report.assessmentModel === "secondary_progressive") {
+      const printWindow = openPrintWindow();
+      if (!printWindow) {
+        toast.error("Your browser blocked the print window. Allow pop-ups for this site and try again.");
+        return;
+      }
+      const studentComment = comments[report.studentId] || { classTeacher: "", hm: "" };
+      const body = buildSecondaryProgressMarkup(report, {
+        schoolName: school?.name || "School Name",
+        schoolColor: school?.primary_color || "#002045",
+        logoUrl: school?.logo_url || "",
+        photoUrl: report.photoUrl || "",
+        motto: (school as any)?.school_motto || (school as any)?.motto || "",
+        address: (school as any)?.address || "",
+        phone: school?.phone || "",
+        email: school?.email || "",
+        term: currentTerm,
+        year: academicYear,
+        classSize: filteredStudents.length,
+        classRemark: studentComment.classTeacher,
+        headRemark: studentComment.hm,
+      });
+      writePrintDocument(printWindow, `Progress Report - ${report.name}`, body, {
+        styles: SECONDARY_PROGRESS_STYLES(school?.primary_color || "#002045"),
+      });
+      void printWhenReady(printWindow);
+      return;
+    }
     const studentComment = comments[report.studentId] || {
       classTeacher: "",
       hm: "",
@@ -1482,8 +1653,11 @@ export default function ReportCardsPage() {
     const schoolName = school?.name || "School Name";
     const schoolColor = school?.primary_color || "#002045";
     const logoUrl = school?.logo_url || "";
+    const schoolMotto = (school as any)?.school_motto || (school as any)?.motto || "";
+    const schoolAddress = (school as any)?.address || "";
     const reportHeader = (school as any)?.report_header_text || (school as any)?.report_header || "";
     const reportFooter = (school as any)?.report_footer_text || (school as any)?.report_footer || "";
+    const isSecondaryProgressive = report.assessmentModel === "secondary_progressive";
     const escapeHtml = (s: string) =>
       String(s)
         .replace(/&/g, "&amp;")
@@ -1498,16 +1672,32 @@ export default function ReportCardsPage() {
           reportFormat !== "numerical" && s.competencyLevel
             ? `<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">${competencyBadge(s.competencyLevel).emoji}</td>`
             : "";
-        return `<tr>
-        <td style="padding:6px 10px;border:1px solid #ddd">${escapeHtml(s.name)}</td>
-        ${
-          reportFormat !== "competency"
-            ? `<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">${s.isMissing ? "—" : s.score}</td>
-        <td style="padding:6px 10px;border:1px solid #ddd;text-align:center;font-weight:bold">${escapeHtml(s.grade)}</td>`
-            : ""
+        if (isSecondaryProgressive) {
+          const assessments = s.uganda?.assessmentBreakdown || [];
+          const valueFor = (type: string) => assessments.find((item) => item.type === type)?.score;
+          const hpg = valueFor("holiday_package");
+          const midterm = valueFor("mid_term");
+          const finalAverage = valueFor("final_average");
+          return `<tr>
+            <td>${escapeHtml(s.name)}</td>
+            <td class="number">${hpg == null ? "—" : hpg}</td>
+            <td class="number">${midterm == null ? "—" : midterm}</td>
+            <td class="number final-mark">${finalAverage == null ? "—" : finalAverage}</td>
+            <td class="number grade-mark">${escapeHtml(s.grade || "—")}</td>
+            <td>${escapeHtml(s.uganda?.gradeDescriptor || "—")}</td>
+            <td>${escapeHtml(s.teacherRemark || "")}</td>
+          </tr>`;
         }
-        ${compCell}
-      </tr>`;
+        return `<tr>
+          <td style="padding:6px 10px;border:1px solid #ddd">${escapeHtml(s.name)}</td>
+          ${
+            reportFormat !== "competency"
+              ? `<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">${s.isMissing ? "—" : s.score}</td>
+          <td style="padding:6px 10px;border:1px solid #ddd;text-align:center;font-weight:bold">${escapeHtml(s.grade)}</td>`
+              : ""
+          }
+          ${compCell}
+        </tr>`;
       })
       .join("");
 
@@ -1518,7 +1708,7 @@ export default function ReportCardsPage() {
          </div>`
         : "";
     const photoBlock = report.photoUrl
-      ? `<div style="display:flex;justify-content:center;margin:12px 0 4px"><img src="${escapeHtml(report.photoUrl)}" alt="${escapeHtml(report.name)}" style="width:88px;height:108px;object-fit:cover;border-radius:12px;border:1px solid #ddd" /></div>`
+      ? `<img src="${escapeHtml(report.photoUrl)}" alt="${escapeHtml(report.name)}" class="student-photo" />`
       : "";
 
     const printWindow = openPrintWindow();
@@ -1528,51 +1718,71 @@ export default function ReportCardsPage() {
     }
 
     const printCardStyles = `
-      body{font-family:Arial,sans-serif;padding:20px;max-width:700px;margin:0 auto}
-      .header{text-align:center;border-bottom:3px solid ${schoolColor};padding-bottom:15px;margin-bottom:15px}
-      .logo{max-width:80px;max-height:60px;margin-bottom:10px}
+      body{font-family:Arial,sans-serif;padding:16px;max-width:950px;margin:0 auto;color:#1f2937}
+      .header{text-align:center;border:1px solid #cbd5e1;padding:12px 90px 10px;margin-bottom:10px;position:relative;min-height:94px}
+      .logo{position:absolute;left:12px;top:12px;max-width:64px;max-height:58px;object-fit:contain}
+      .student-photo{position:absolute;right:12px;top:8px;width:64px;height:76px;object-fit:cover;border:1px solid #cbd5e1;border-radius:4px}
       .school-name{font-size:22px;font-weight:bold;color:${schoolColor}}
-      .school-info{font-size:11px;color:#666;margin:3px 0}
-      .report-title{font-size:16px;font-weight:bold;color:${schoolColor};margin:10px 0}
-      .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0;font-size:13px}
-      .info-grid div{padding:4px 0}
-      .info-label{color:#888;display:inline-block;width:120px}
+      .school-motto{font-size:12px;font-style:italic;margin:2px 0;color:#475569}
+      .school-info{font-size:10px;color:#555;margin:2px 0}
+      .report-title{font-size:15px;font-weight:bold;color:${schoolColor};margin:5px 0}
+      .info-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px 14px;margin:8px 0;font-size:11px;border:1px solid #cbd5e1;padding:7px 10px}
+      .info-grid div{padding:3px 0}
+      .info-label{color:#64748b;display:block;font-size:9px;text-transform:uppercase;letter-spacing:.3px}
       .info-value{font-weight:bold}
-      table{width:100%;border-collapse:collapse;margin:10px 0}
-      th{background:${schoolColor}15;padding:8px 10px;border:1px solid #ddd;text-align:left;font-size:12px;text-transform:uppercase}
-      .summary{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin:15px 0}
-      .summary-card{border:1px solid #ddd;border-radius:8px;padding:10px;text-align:center}
+      table{width:100%;border-collapse:collapse;margin:8px 0;font-size:${isSecondaryProgressive ? "10px" : "12px"}}
+      th{background:${schoolColor};color:#fff;padding:7px 5px;border:1px solid ${schoolColor};text-align:left;font-size:10px;text-transform:uppercase}
+      td{padding:6px 5px;border:1px solid #cbd5e1;vertical-align:middle}
+      td.number{text-align:center;white-space:nowrap}
+      td.final-mark,td.grade-mark{font-weight:bold}
+      tbody tr:nth-child(even){background:#f8fafc}
+      .summary{display:grid;grid-template-columns:repeat(${isSecondaryProgressive ? 4 : 4},minmax(0,1fr));gap:8px;margin:10px 0}
+      .summary-card{border:1px solid #cbd5e1;padding:8px;text-align:center}
       .summary-value{font-size:20px;font-weight:bold;color:${schoolColor}}
       .summary-label{font-size:10px;color:#888;text-transform:uppercase}
-      .comment-box{border:1px solid #ddd;border-radius:8px;padding:10px;margin:8px 0}
+      .comment-box{border:1px solid #cbd5e1;padding:8px;margin:7px 0;min-height:48px}
       .comment-label{font-size:11px;font-weight:bold;text-transform:uppercase;color:#888;margin-bottom:4px}
-      .footer{text-align:center;margin-top:25px;font-size:11px;color:#999;border-top:2px solid ${schoolColor};padding-top:15px}
+      .notes{font-size:9px;color:#475569;border-top:1px solid #cbd5e1;padding-top:6px;margin-top:8px;line-height:1.4}
+      .footer{text-align:center;margin-top:10px;font-size:9px;color:#64748b;border-top:1px solid #cbd5e1;padding-top:7px}
     `;
 
     const printCardBody = `
       <div class="header">
         ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" class="logo" alt="${escapeHtml(schoolName)}">` : ""}
+        ${photoBlock}
         <div class="school-name">${escapeHtml(schoolName)}</div>
+        ${schoolMotto ? `<div class="school-motto">“${escapeHtml(schoolMotto)}”</div>` : ""}
+        ${schoolAddress ? `<div class="school-info">${escapeHtml(schoolAddress)}</div>` : ""}
         <div class="school-info">Tel: ${escapeHtml(school?.phone || "")} | Email: ${escapeHtml(school?.email || "")}</div>
-        <div class="report-title">${escapeHtml(reportHeader || "STUDENT REPORT CARD")}</div>
-        <div class="school-info">Term ${currentTerm}, ${academicYear}</div>
+        <div class="report-title">${escapeHtml(reportHeader || (isSecondaryProgressive ? "TERM PROGRESSIVE REPORT" : "STUDENT REPORT CARD"))}</div>
+        <div class="school-info">Term ${currentTerm}, ${academicYear} · ${new Date().toLocaleDateString("en-GB")}</div>
       </div>
-      ${photoBlock}
       <div class="info-grid">
-        <div><span class="info-label">Student Name:</span> <span class="info-value">${escapeHtml(report.name)}</span></div>
-        <div><span class="info-label">Student No:</span> <span class="info-value">${escapeHtml(report.studentNumber)}</span></div>
-        <div><span class="info-label">Class:</span> <span class="info-value">${escapeHtml(report.className)}</span></div>
-        <div><span class="info-label">Gender:</span> <span class="info-value">${report.gender === "M" ? "Male" : "Female"}</span></div>
+        <div><span class="info-label">Student name</span><span class="info-value">${escapeHtml(report.name)}</span></div>
+        <div><span class="info-label">Learner ID</span><span class="info-value">${escapeHtml(report.studentNumber)}</span></div>
+        <div><span class="info-label">Class</span><span class="info-value">${escapeHtml(report.className)}</span></div>
+        <div><span class="info-label">Gender</span><span class="info-value">${report.gender === "M" ? "Male" : report.gender === "F" ? "Female" : escapeHtml(report.gender)}</span></div>
+        <div><span class="info-label">Term</span><span class="info-value">${currentTerm} · ${academicYear}</span></div>
+        <div><span class="info-label">Class position</span><span class="info-value">${report.position || "—"} of ${filteredStudents.length}</span></div>
       </div>
       <table>
         <thead>
-          <tr><th>Subject</th>${reportFormat !== "competency" ? '<th style="text-align:center">Score</th><th style="text-align:center">Grade</th>' : ""}${reportFormat !== "numerical" ? '<th style="text-align:center">Competency</th>' : ""}</tr>
+          <tr>${
+            isSecondaryProgressive
+              ? '<th>Subject</th><th style="text-align:center">HPG (%)</th><th style="text-align:center">Midterm / Mock (%)</th><th style="text-align:center">Final (%)</th><th style="text-align:center">Grade</th><th>Grade descriptor</th><th>Teacher remark</th>'
+              : `<th>Subject</th>${reportFormat !== "competency" ? '<th style="text-align:center">Score</th><th style="text-align:center">Grade</th>' : ""}${reportFormat !== "numerical" ? '<th style="text-align:center">Competency</th>' : ""}`
+          }</tr>
         </thead>
         <tbody>${subjectRows}</tbody>
       </table>
       <div class="summary">
-        <div class="summary-card"><div class="summary-value">${report.maxMarks ? `${report.totalMarks}/${report.maxMarks}` : "—"}</div><div class="summary-label">Total</div></div>
-        <div class="summary-card"><div class="summary-value">${report.maxMarks ? `${report.average}%` : "—"}</div><div class="summary-label">Average (recorded subjects)</div></div>
+        ${
+          isSecondaryProgressive
+            ? `<div class="summary-card"><div class="summary-value">${report.maxMarks ? `${report.average}%` : "—"}</div><div class="summary-label">Overall average</div></div>
+             <div class="summary-card"><div class="summary-value">${report.secondaryPoints ?? "—"}</div><div class="summary-label">Points (A=5 to E=1)</div></div>`
+            : `<div class="summary-card"><div class="summary-value">${report.maxMarks ? `${report.totalMarks}/${report.maxMarks}` : "—"}</div><div class="summary-label">Total</div></div>
+             <div class="summary-card"><div class="summary-value">${report.maxMarks ? `${report.average}%` : "—"}</div><div class="summary-label">Average (recorded subjects)</div></div>`
+        }
         <div class="summary-card"><div class="summary-value">${report.position || "—"}</div><div class="summary-label">Position</div></div>
         <div class="summary-card"><div class="summary-value">${escapeHtml(report.division)}</div><div class="summary-label">Division</div></div>
       </div>
@@ -1584,6 +1794,7 @@ export default function ReportCardsPage() {
         <div class="comment-label">Headteacher's Comment</div>
         <div>${escapeHtml(studentComment.hm || report.hmComment)}</div>
       </div>
+      ${isSecondaryProgressive ? `<div class="notes">HPG = Holiday Package. Midterm / Mock = the school's mid-term examination. Final mark uses the assessment basis configured for this school. Grade bands: A 85–100, B 75–84, C 65–74, D 50–64, E below 50.</div>` : ""}
       ${feeBlock}
       <div class="footer">
         <div>${escapeHtml(reportFooter || `Generated by ${APP_NAME}`)}</div>
@@ -1696,6 +1907,39 @@ export default function ReportCardsPage() {
 
     if (reportFormat === "cbc") {
       toast.info("Print individual reports using the print button per student");
+      return;
+    }
+
+    if (displayedReports.every((report) => report.assessmentModel === "secondary_progressive")) {
+      const printWindow = openPrintWindow();
+      if (!printWindow) {
+        toast.error("Your browser blocked the print window. Allow pop-ups for this site and try again.");
+        return;
+      }
+      const pages = displayedReports
+        .map((report) => {
+          const remarks = comments[report.studentId] || { classTeacher: "", hm: "" };
+          return buildSecondaryProgressMarkup(report, {
+            schoolName: school?.name || "School Name",
+            schoolColor: school?.primary_color || "#002045",
+            logoUrl: school?.logo_url || "",
+            photoUrl: report.photoUrl || "",
+            motto: (school as any)?.school_motto || (school as any)?.motto || "",
+            address: (school as any)?.address || "",
+            phone: school?.phone || "",
+            email: school?.email || "",
+            term: currentTerm,
+            year: academicYear,
+            classSize: filteredStudents.length,
+            classRemark: remarks.classTeacher,
+            headRemark: remarks.hm,
+          });
+        })
+        .join("");
+      writePrintDocument(printWindow, `Progress Reports - ${selectedClassName} (${displayedReports.length})`, pages, {
+        styles: SECONDARY_PROGRESS_STYLES(school?.primary_color || "#002045"),
+      });
+      void printWhenReady(printWindow);
       return;
     }
 
@@ -1854,9 +2098,7 @@ export default function ReportCardsPage() {
           <Card className="mb-5">
             <CardBody>
               <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
-                <h2 className="text-sm font-bold text-[var(--t1)]">
-                  Ready to go home?
-                </h2>
+                <h2 className="text-sm font-bold text-[var(--t1)]">Ready to go home?</h2>
                 <span className="text-xs text-[var(--t3)]">
                   {selectedClassName} · Term {currentTerm}, {academicYear}
                 </span>
@@ -1865,9 +2107,7 @@ export default function ReportCardsPage() {
                 <div className="flex items-start gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
                   <MaterialIcon
                     icon={readiness.onFile && readiness.onFile > 0 ? "description" : "warning"}
-                    className={
-                      readiness.onFile && readiness.onFile > 0 ? "text-emerald-600" : "text-amber-600"
-                    }
+                    className={readiness.onFile && readiness.onFile > 0 ? "text-emerald-600" : "text-amber-600"}
                     style={{ fontSize: 20 }}
                   />
                   <div>

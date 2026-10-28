@@ -25,6 +25,7 @@ export const ASSESSMENT_MAX: Record<string, number> = {
   ca4: 100,
   project: 100,
   exam: 100,
+  holiday_package: 100,
 };
 
 /** UNEB-style division. Shared by the sheet, summaries and printed reports. */
@@ -72,8 +73,9 @@ export function isStudentGraded(
   studentId: string,
   competencyMode: boolean,
   useBotEnabled: boolean,
+  additionalTypes: readonly string[] = [],
 ): boolean {
-  return assessmentTypesFor(competencyMode, useBotEnabled).every((type) => {
+  return [...assessmentTypesFor(competencyMode, useBotEnabled), ...additionalTypes].every((type) => {
     const value = marks[`${studentId}_${type}`];
     return value !== null && value !== undefined;
   });
@@ -111,6 +113,7 @@ const DEFAULT_LABELS: Record<string, string> = {
   ca4: "CA4",
   project: "Project",
   exam: "Exam",
+  holiday_package: "Holiday Package (HPG)",
   competency: "Competency Level",
 };
 

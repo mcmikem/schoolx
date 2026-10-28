@@ -9,7 +9,7 @@ import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print
 
 interface ReportCardProps {
   report: {
-    assessmentModel?: "uganda_primary" | "weighted";
+    assessmentModel?: "uganda_primary" | "weighted" | "secondary_progressive";
     student: {
       first_name: string;
       last_name: string;
@@ -62,6 +62,9 @@ interface ReportCardProps {
       average?: number | null;
       aggregatePoints?: number | null;
       grade: string;
+      assessmentBreakdown?: Array<{ type: string; label: string; score: number | null }>;
+      gradeDescriptor?: string;
+      teacherRemark?: string;
     }>;
     attendance: {
       total: number;
@@ -84,6 +87,7 @@ interface ReportCardProps {
       division: string;
       aggregate?: number | null;
       position?: number | null;
+      points?: number | null;
     };
     class_teacher_remark?: string;
     head_teacher_remark?: string;
@@ -135,6 +139,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
   const showRemarks = school.show_remarks_in_report !== false;
   const template = school.report_template || "default";
   const isUgandaPrimary = report.assessmentModel === "uganda_primary";
+  const isSecondaryProgressive = report.assessmentModel === "secondary_progressive";
   const ugandaPrimaryBody = isUgandaPrimary
     ? generateUgandaPrimaryBody({
         school: {
@@ -278,7 +283,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
   };
 
   const handleDownloadPDF = async () => {
-    if (isUgandaPrimary) {
+    if (isUgandaPrimary || isSecondaryProgressive) {
       handlePrint();
       return;
     }
@@ -336,6 +341,15 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
     doc.text(`Class: ${report.student.classes?.name || "N/A"}`, 120, studentY);
     doc.text(`Student No: ${report.student.student_number}`, 14, studentY + 7);
     doc.text(`Gender: ${report.student.gender === "M" ? "Male" : "Female"}`, 120, studentY + 7);
+    if (report.student.photo_url) {
+      try {
+        const photoData = await toDataUrl(report.student.photo_url);
+        const photoFormat = photoData.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
+        doc.addImage(photoData, photoFormat, 178, 44, 20, 25);
+      } catch {
+        // Continue producing the report if this learner's photo is unavailable.
+      }
+    }
 
     // Grades Table
     const tableData = report.subjects.map((s) =>
@@ -356,7 +370,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
     );
 
     autoTable(doc, {
-      startY: 65,
+      startY: 73,
       head: [
         isUgandaPrimary
           ? ["Subject", "BOT /100", "MOT /100", "EOT /100", "Average", "Grade"]
@@ -599,7 +613,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
           </div>
           {!reportHeader && (
             <div className="text-sm font-semibold mt-2 pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.3)" }}>
-              TERM {report.term} REPORT CARD — {report.academicYear}
+              TERM {report.term} {isSecondaryProgressive ? "PROGRESSIVE REPORT" : "REPORT CARD"} — {report.academicYear}
             </div>
           )}
         </div>
@@ -652,7 +666,16 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ backgroundColor: primaryColor }}>
-                {isUgandaPrimary ? (
+                {isSecondaryProgressive ? (
+                  <>
+                    <th className="text-left px-3 py-2 text-white font-semibold">Subject</th>
+                    {["HPG (%)", "Midterm / Mock (%)", "Final (%)", "Grade", "Grade descriptor", "TR"].map((label) => (
+                      <th key={label} className="text-center px-2 py-2 text-white font-semibold">
+                        {label}
+                      </th>
+                    ))}
+                  </>
+                ) : isUgandaPrimary ? (
                   <>
                     <th className="text-left px-3 py-2 text-white font-semibold">Subject</th>
                     {[
@@ -738,7 +761,18 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
               {report.subjects.map((subject, i) => (
                 <tr key={i} className="hover:bg-gray-50" style={i % 2 === 1 ? { backgroundColor: "#fafbfc" } : {}}>
                   <td className="px-3 py-2 text-gray-900 font-medium">{subject.name}</td>
-                  {isUgandaPrimary ? (
+                  {isSecondaryProgressive ? (
+                    <>
+                      {(["holiday_package", "mid_term", "final_average"] as const).map((type) => (
+                        <td key={type} className="text-center px-2 py-2">
+                          {subject.assessmentBreakdown?.find((item) => item.type === type)?.score ?? "—"}
+                        </td>
+                      ))}
+                      <td className="text-center px-2 py-2 font-bold">{subject.grade || "—"}</td>
+                      <td className="px-2 py-2 text-xs">{subject.gradeDescriptor || "—"}</td>
+                      <td className="px-2 py-2 text-xs">{subject.teacherRemark || ""}</td>
+                    </>
+                  ) : isUgandaPrimary ? (
                     <>
                       <td className="text-center px-2 py-2">{subject.bot ?? "—"}</td>
                       <td className="text-center px-2 py-2">{subject.mot ?? "—"}</td>
@@ -768,6 +802,13 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
             </tbody>
           </table>
         </div>
+
+        {isSecondaryProgressive && (
+          <div className="px-4 pt-2 text-xs text-gray-600">
+            HPG means Holiday Package. Midterm / Mock is the school mid-term examination. Final uses the assessment
+            basis configured for this school. Grade bands: A 85–100, B 75–84, C 65–74, D 50–64, E below 50.
+          </div>
+        )}
 
         {/* Conduct Section */}
         {showConduct && report.conduct && (
@@ -815,7 +856,9 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
               className="text-center p-3 rounded-lg"
               style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}
             >
-              <div className="text-xs text-gray-500 uppercase tracking-wide">Division</div>
+              <div className="text-xs text-gray-500 uppercase tracking-wide">
+                {isSecondaryProgressive ? "Points (A=5 to E=1)" : "Division"}
+              </div>
               <div
                 className={`text-xl font-black ${
                   report.overall.division === "Division I"
@@ -827,7 +870,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
                         : "text-red-600"
                 }`}
               >
-                {report.overall.division}
+                {isSecondaryProgressive ? (report.overall.points ?? "—") : report.overall.division}
               </div>
             </div>
             {showPosition && report.overall.position && (

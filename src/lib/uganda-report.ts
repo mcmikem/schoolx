@@ -59,6 +59,10 @@ export interface UgandaSubjectResult {
   agg: number | null;
   /** PLE grade band for avg, or "—" when avg is null. */
   grade: string;
+  /** Secondary-school marks displayed on a progressive report card. */
+  assessmentBreakdown?: Array<{ type: string; label: string; score: number | null }>;
+  /** Human-readable descriptor for the secondary A–E scale. */
+  gradeDescriptor?: string;
 }
 
 export interface UgandaTotals {
@@ -122,7 +126,7 @@ export function ugandaDivision(aggSum: number | null): string {
 }
 
 /** Which recorded exam a school wants the term grade built from. */
-export type GradeBasisType = "bot" | "mid_term" | "eot" | "ca";
+export type GradeBasisType = "bot" | "mid_term" | "eot" | "ca" | "holiday_package";
 /**
  * The school's term-grade recipe: which assessments count and their weights.
  * Stored in school_settings as term_grade_basis_v1; weights are plain
@@ -139,11 +143,14 @@ const UG_CA_TYPES = ["ca1", "ca2", "ca3", "ca4", "project", "u1", "u2", "class_t
 function typePct(rows: UgandaGradeRow[], type: GradeBasisType): number | null {
   let picked: UgandaGradeRow[];
   if (type === "bot") picked = rows.filter((r) => UG_MID_TYPES.includes(r.assessment_type));
-  else if (type === "mid_term") picked = rows.filter((r) => r.assessment_type === "mid_term");
+  else if (type === "mid_term")
+    picked = rows.filter((r) => ["mid_term", "mock", "mock_exam"].includes(r.assessment_type.toLowerCase()));
   else if (type === "eot") {
     const eot = rows.filter((r) => r.assessment_type === "eot");
     // Legacy records sit under "exam" when no EOT row exists.
     picked = eot.length > 0 ? eot : rows.filter((r) => r.assessment_type === "exam");
+  } else if (type === "holiday_package") {
+    picked = rows.filter((r) => ["holiday_package", "hpg"].includes(r.assessment_type.toLowerCase()));
   } else picked = rows.filter((r) => UG_CA_TYPES.includes(r.assessment_type));
   return meanOrNull(picked.map((r) => pct(Number(r.score), maxFor(r.assessment_type, r.max_score))));
 }
@@ -181,21 +188,27 @@ export function bucketUgandaSubject(rows: UgandaGradeRow[], basis?: TermGradeBas
   });
   if (invalid) return { mid: null, mot: null, end: null, avg: null, agg: null, grade: "—" };
   const midRows = rows.filter((r) => UG_MID_TYPES.includes(r.assessment_type));
-  const motRows = rows.filter((r) => r.assessment_type === "mid_term");
+  const motRows = rows.filter((r) => ["mid_term", "mock", "mock_exam"].includes(r.assessment_type.toLowerCase()));
   const eotRows = rows.filter((r) => r.assessment_type === "eot");
   const examRows = rows.filter((r) => r.assessment_type === "exam");
   const endRows = eotRows.length > 0 ? eotRows : examRows;
+  const holidayRows = rows.filter((r) => ["holiday_package", "hpg"].includes(r.assessment_type.toLowerCase()));
 
   const mid = meanOrNull(midRows.map((r) => pct(Number(r.score), maxFor(r.assessment_type, r.max_score))));
   const mot = meanOrNull(motRows.map((r) => pct(Number(r.score), maxFor(r.assessment_type, r.max_score))));
   const end = meanOrNull(endRows.map((r) => pct(Number(r.score), maxFor(r.assessment_type, r.max_score))));
+  const holiday = meanOrNull(holidayRows.map((r) => pct(Number(r.score), maxFor(r.assessment_type, r.max_score))));
 
   // Schools differ on what the term grade is made of: some count only the
   // EOT exam, some weight BOT/MOT/EOT, some run on continuous assessment.
   // The school's basis (school_settings) decides; unset keeps the classic
   // simple mean of whatever BOT/MOT/EOT exams were recorded.
   let avg: number | null = null;
-  if (basis && Array.isArray(basis.types) && basis.types.length > 0) {
+  if (holiday !== null && mot !== null && !basis?.types.includes("holiday_package")) {
+    // A number of secondary schools report a holiday package with a mid-term
+    // mock. Without school-configured weights, the recorded marks count equally.
+    avg = meanOrNull([holiday, mot]);
+  } else if (basis && Array.isArray(basis.types) && basis.types.length > 0) {
     avg = gradeBasisAvg(rows, basis);
   } else {
     avg = meanOrNull([mid, mot, end]);
@@ -209,7 +222,31 @@ export function bucketUgandaSubject(rows: UgandaGradeRow[], basis?: TermGradeBas
     avg = maxSum > 0 ? Math.round((total / maxSum) * 100) : null;
   }
 
-  if (avg === null) return { mid, mot, end, avg: null, agg: null, grade: "—" };
+  const holidayMidtermMode =
+    (holiday !== null || basis?.types.includes("holiday_package")) &&
+    (mot !== null || basis?.types.includes("mid_term"));
+  const assessmentBreakdown = holidayMidtermMode
+    ? [
+        { type: "holiday_package", label: "HPG", score: holiday },
+        { type: "mid_term", label: "Midterm / Mock", score: mot },
+        { type: "final_average", label: "Final Average", score: avg },
+      ]
+    : undefined;
+  if (avg === null) return { mid, mot, end, avg: null, agg: null, grade: "—", assessmentBreakdown };
+  if (assessmentBreakdown) {
+    const grade = avg >= 85 ? "A" : avg >= 75 ? "B" : avg >= 65 ? "C" : avg >= 50 ? "D" : "E";
+    const gradeDescriptor =
+      grade === "A"
+        ? "Exhibits an outstanding level of competency"
+        : grade === "B"
+          ? "Exhibits a very good level of competency"
+          : grade === "C"
+            ? "Exhibits an adequate level of competency"
+            : grade === "D"
+              ? "Exhibits a basic level of competency"
+              : "Exhibits little or no competency";
+    return { mid, mot, end, avg, agg: null, grade, assessmentBreakdown, gradeDescriptor };
+  }
   const grade = ugandaGrade(avg);
   return { mid, mot, end, avg, agg: UG_POINTS[grade] ?? null, grade };
 }

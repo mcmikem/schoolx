@@ -48,7 +48,7 @@ export interface ReportRowsConfig {
   levels?: Record<string, ReportRowConfig[]>;
 }
 
-const GRADE_BASIS_TYPES: TermGradeBasis["types"][number][] = ["bot", "mid_term", "eot", "ca"];
+const GRADE_BASIS_TYPES: TermGradeBasis["types"][number][] = ["bot", "mid_term", "eot", "ca", "holiday_package"];
 
 type GradeBasisType = TermGradeBasis["types"][number];
 
@@ -156,8 +156,7 @@ export interface GroupableSubjectDetail {
 const mean = (values: number[]): number | null =>
   values.length === 0 ? null : Math.round(values.reduce((a, b) => a + b, 0) / values.length);
 
-const meanOf = (values: Array<number | null>): number | null =>
-  mean(values.filter((v): v is number => v !== null));
+const meanOf = (values: Array<number | null>): number | null => mean(values.filter((v): v is number => v !== null));
 
 /**
  * Fold the school's subject details into the configured report lines.
@@ -199,7 +198,7 @@ export function groupSubjectDetails<T extends GroupableSubjectDetail>(details: T
     }
 
     const score = meanOf(present.map((m) => (m.uganda ? m.uganda.avg : m.score)));
-    const uganda = missing
+    const uganda: UgandaSubjectResult = missing
       ? { mid: null, mot: null, end: null, avg: null, agg: null, grade: "—" }
       : {
           mid: meanOf(members.map((m) => m.uganda?.mid ?? null)),
@@ -209,6 +208,33 @@ export function groupSubjectDetails<T extends GroupableSubjectDetail>(details: T
           agg: meanOf(present.map((m) => m.uganda?.agg ?? null)),
           grade: score != null ? ugandaGrade(score) : "—",
         };
+    if (!missing && score != null && members.some((member) => member.uganda?.assessmentBreakdown?.length)) {
+      const memberBreakdowns = members.map((member) => member.uganda?.assessmentBreakdown || []);
+      const breakdownTypes = [
+        ...new Set(memberBreakdowns.flatMap((breakdown) => breakdown.map((entry) => entry.type))),
+      ];
+      uganda.assessmentBreakdown = breakdownTypes.map((type) => ({
+        type,
+        label: memberBreakdowns.flatMap((breakdown) => breakdown).find((entry) => entry.type === type)?.label || type,
+        score: meanOf(
+          memberBreakdowns.map((breakdown) => breakdown.find((entry) => entry.type === type)?.score ?? null),
+        ),
+      }));
+      if (uganda.assessmentBreakdown.some((entry) => entry.type === "holiday_package")) {
+        uganda.grade = score >= 85 ? "A" : score >= 75 ? "B" : score >= 65 ? "C" : score >= 50 ? "D" : "E";
+        uganda.gradeDescriptor =
+          uganda.grade === "A"
+            ? "Exhibits an outstanding level of competency"
+            : uganda.grade === "B"
+              ? "Exhibits a very good level of competency"
+              : uganda.grade === "C"
+                ? "Exhibits an adequate level of competency"
+                : uganda.grade === "D"
+                  ? "Exhibits a basic level of competency"
+                  : "Exhibits little or no competency";
+        uganda.agg = null;
+      }
+    }
     const withComp = members.find((m) => m.competencyLevel && m.competencyLevel !== "not_started");
     grouped.push({
       ...(members[0] as T),

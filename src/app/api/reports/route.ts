@@ -14,6 +14,7 @@ import { requireActiveSubscription, requireModuleEntitlement } from "@/lib/subsc
 import { canAccessClass, isClassScopedRole } from "@/lib/server/class-scope";
 import { detectLevelFromClass, isLowerPrimary, pleAggregate, weighOldCurriculum } from "@/lib/grading-tracks";
 import { bucketUgandaSubject, ugandaGrade } from "@/lib/uganda-report";
+import { parseTermGradeBasis, TERM_GRADE_BASIS_KEY } from "@/lib/report-rows";
 
 import { REPORT_ALLOWED_ROLES } from "@/lib/server/report-access";
 import { loadFeeClearanceMap } from "@/lib/server/fee-clearance";
@@ -245,6 +246,14 @@ export async function POST(request: NextRequest) {
     // Fetch school info
     const { data: school } = await supabase.from("schools").select("*").eq("id", scope.schoolId).maybeSingle();
 
+    const { data: gradeBasisSetting } = await supabase
+      .from("school_settings")
+      .select("value")
+      .eq("school_id", scope.schoolId)
+      .eq("key", TERM_GRADE_BASIS_KEY)
+      .maybeSingle();
+    const gradeBasis = parseTermGradeBasis(gradeBasisSetting?.value);
+
     if (!school) {
       return apiError("School not found", 404);
     }
@@ -289,13 +298,25 @@ export async function POST(request: NextRequest) {
         assessment_type: grade.assessment_type,
         score: Number(grade.score),
         max_score: grade.max_score,
+        teacher_remark: grade.teacher_remark,
       });
     });
 
-    const isUgandaPrimary = detectLevelFromClass(student.classes?.name || student.classes?.level) === "primary";
+    const className = student.classes?.name || student.classes?.level || "";
+    const classLevel = detectLevelFromClass(className);
+    const isUgandaPrimary = classLevel === "primary";
+    const classHasHolidayPackage = (grades || []).some((grade: any) =>
+      ["holiday_package", "hpg"].includes(String(grade.assessment_type).toLowerCase()),
+    );
+    const classHasMidterm = (grades || []).some((grade: any) =>
+      ["mid_term", "mock", "mock_exam"].includes(String(grade.assessment_type).toLowerCase()),
+    );
+    const isSecondaryProgressive =
+      classLevel === "secondary" &&
+      ((classHasHolidayPackage && classHasMidterm) || gradeBasis?.types.includes("holiday_package"));
     const reportData = Object.values(subjectGrades).map((subject: any) => {
-      if (isUgandaPrimary) {
-        const result = bucketUgandaSubject(subject.rows);
+      if (isUgandaPrimary || isSecondaryProgressive) {
+        const result = bucketUgandaSubject(subject.rows, gradeBasis);
         return {
           ...subject,
           bot: result.mid,
@@ -303,6 +324,9 @@ export async function POST(request: NextRequest) {
           eot: result.end,
           average: result.avg,
           aggregatePoints: result.agg,
+          assessmentBreakdown: result.assessmentBreakdown,
+          gradeDescriptor: result.gradeDescriptor,
+          teacherRemark: subject.rows.find((row: any) => row.teacher_remark?.trim())?.teacher_remark?.trim() || "",
           totalCA: null,
           finalScore: result.avg,
           grade: result.grade,
@@ -329,6 +353,12 @@ export async function POST(request: NextRequest) {
     const overallAvg = recordedSubjects.length
       ? recordedSubjects.reduce((sum, subject) => sum + subject.finalScore, 0) / recordedSubjects.length
       : null;
+    const secondaryPoints = isSecondaryProgressive
+      ? reportData.reduce((sum, subject) => {
+          const points: Record<string, number> = { A: 5, B: 4, C: 3, D: 2, E: 1 };
+          return sum + (points[subject.grade] || 0);
+        }, 0)
+      : null;
     const primaryAggregate = isUgandaPrimary
       ? pleAggregate(
           reportData
@@ -336,7 +366,9 @@ export async function POST(request: NextRequest) {
             .filter((points): points is number => typeof points === "number"),
         )
       : null;
-    const division = primaryAggregate?.division || (overallAvg === null ? "Ungraded" : getUNEBDivision(overallAvg));
+    const division = isSecondaryProgressive
+      ? "—"
+      : primaryAggregate?.division || (overallAvg === null ? "Ungraded" : getUNEBDivision(overallAvg));
 
     // Compute class position by ranking all students in the same class
     let position: number | null = null;
@@ -379,20 +411,35 @@ export async function POST(request: NextRequest) {
       school,
       term: term || 1,
       academicYear: resolvedAcademicYear,
-      assessmentModel: isUgandaPrimary ? "uganda_primary" : "weighted",
+      assessmentModel: isUgandaPrimary
+        ? "uganda_primary"
+        : isSecondaryProgressive
+          ? "secondary_progressive"
+          : "weighted",
       subjects: reportData,
       attendance: attendanceSummary,
       overall: {
         average: overallAvg === null ? null : Math.round(overallAvg * 10) / 10,
         aggregate: primaryAggregate?.aggregate ?? null,
+        points: secondaryPoints,
         grade:
           overallAvg === null
             ? "—"
-            : isUgandaPrimary
-              ? isLowerPrimary(student.classes?.name || student.classes?.level)
-                ? "—"
-                : ugandaGrade(overallAvg)
-              : getUNEBGrade(overallAvg),
+            : isSecondaryProgressive
+              ? overallAvg >= 85
+                ? "A"
+                : overallAvg >= 75
+                  ? "B"
+                  : overallAvg >= 65
+                    ? "C"
+                    : overallAvg >= 50
+                      ? "D"
+                      : "E"
+              : isUgandaPrimary
+                ? isLowerPrimary(student.classes?.name || student.classes?.level)
+                  ? "—"
+                  : ugandaGrade(overallAvg)
+                : getUNEBGrade(overallAvg),
         division,
         position,
       },

@@ -126,6 +126,9 @@ export default function ReportsPage() {
             eot: s.eot ?? null,
             average: s.average ?? null,
             aggregatePoints: s.aggregatePoints ?? null,
+            assessmentBreakdown: s.assessmentBreakdown ?? [],
+            gradeDescriptor: s.gradeDescriptor ?? "",
+            teacherRemark: s.teacherRemark ?? "",
             grade: s.grade || (data.assessmentModel === "uganda_primary" ? "—" : "F9"),
           })) || [];
 
@@ -238,6 +241,20 @@ export default function ReportsPage() {
         .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
         .summary-item { text-align: center; padding: 12px; border: 1px solid #eee; border-radius: 8px; background: #fafbfc; }
         .summary-value { font-size: 18px; font-weight: 800; color: ${primaryColor}; }
+        .progressive-report { padding:16px;border:1px solid #cbd5e1;page-break-after:always }
+        .progressive-header { min-height:90px;padding:8px 70px;text-align:center;position:relative }
+        .progressive-header img.logo { position:absolute;left:0;top:0;max-width:56px;max-height:52px;object-fit:contain }
+        .progressive-header img.photo { position:absolute;right:0;top:0;width:56px;height:70px;object-fit:cover;border:1px solid #cbd5e1 }
+        .progressive-header h1 { font-size:18px;color:${primaryColor};margin:4px 0 }
+        .progressive-info { display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:9px;border:1px solid #cbd5e1;margin:8px 0 }
+        .progressive-info small { display:block;color:#64748b;font-size:9px;text-transform:uppercase }
+        .progressive-table { width:100%;border-collapse:collapse;font-size:9px }
+        .progressive-table th { background:${primaryColor};color:white;text-align:left;padding:6px 4px }
+        .progressive-table td { border:1px solid #cbd5e1;padding:5px 4px;text-align:left }
+        .progressive-table td.num { text-align:center }
+        .progressive-summary { display:flex;justify-content:space-around;margin:8px 0;padding:8px;border:1px solid #cbd5e1 }
+        .progressive-remark { border:1px solid #cbd5e1;padding:7px;margin:6px 0;min-height:38px }
+        .progressive-note { font-size:8px;color:#475569;margin-top:7px }
         @media print { body { padding: 0; } }
       `;
 
@@ -301,6 +318,41 @@ export default function ReportsPage() {
               feeBalance: null,
               nextTermBegins: null,
             })}</div>`;
+          }
+          if (report.assessmentModel === "secondary_progressive") {
+            const studentName = `${report.student?.first_name || ""} ${report.student?.last_name || ""}`.trim();
+            const h = (value: unknown) =>
+              String(value ?? "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/\"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+            const progressiveSubjects = (report.subjects || [])
+              .map((subject: any) => {
+                const values = subject.assessmentBreakdown || [];
+                const score = (type: string) => values.find((value: any) => value.type === type)?.score;
+                return `<tr><td>${h(subject.name)}</td><td class="num">${score("holiday_package") ?? "—"}</td><td class="num">${score("mid_term") ?? "—"}</td><td class="num"><strong>${score("final_average") ?? "—"}</strong></td><td class="num"><strong>${h(subject.grade || "—")}</strong></td><td>${h(subject.gradeDescriptor || "—")}</td><td>${h(subject.teacherRemark || "")}</td></tr>`;
+              })
+              .join("");
+            return `<article class="progressive-report"><header class="progressive-header">
+              ${report.school?.logo_url || logoUrl ? `<img class="logo" src="${h(report.school?.logo_url || logoUrl)}" alt="School logo">` : ""}
+              ${report.student?.photo_url ? `<img class="photo" src="${h(report.student.photo_url)}" alt="${h(studentName)}">` : ""}
+              <strong>${h(report.school?.name || school?.name || APP_NAME)}</strong>
+              ${report.school?.motto || report.school?.school_motto ? `<div>${h(report.school.motto || report.school.school_motto)}</div>` : ""}
+              <div>${h(report.school?.address || "")}${report.school?.phone ? ` · ${h(report.school.phone)}` : ""}</div>
+              <h1>TERM ${h(report.term)} PROGRESSIVE REPORT</h1><div>${h(report.academicYear)}</div></header>
+              <section class="progressive-info"><div><small>Student name</small><strong>${h(studentName)}</strong></div>
+              <div><small>Learner ID</small><strong>${h(report.student?.student_number || "—")}</strong></div>
+              <div><small>Class</small><strong>${h(report.student?.classes?.name || "—")}</strong></div>
+              <div><small>Gender</small><strong>${h(report.student?.gender || "—")}</strong></div>
+              <div><small>Term</small><strong>${h(report.term)} · ${h(report.academicYear)}</strong></div>
+              <div><small>Position</small><strong>${h(report.overall?.position || "—")}</strong></div></section>
+              <table class="progressive-table"><thead><tr><th>Subject</th><th>HPG (%)</th><th>Midterm / Mock (%)</th><th>Final (%)</th><th>Grade</th><th>Grade descriptor</th><th>TR</th></tr></thead><tbody>${progressiveSubjects}</tbody></table>
+              <div class="progressive-summary"><span>Overall average: <strong>${report.overall?.average == null ? "—" : `${h(report.overall.average)}%`}</strong></span><span>Points (A=5 to E=1): <strong>${h(report.overall?.points ?? "—")}</strong></span><span>Division: <strong>—</strong></span></div>
+              <div class="progressive-remark"><strong>Class teacher’s remarks</strong><br>${h(report.overall?.classTeacherRemark || "")}</div>
+              <div class="progressive-remark"><strong>Headteacher’s remarks</strong><br>${h(report.overall?.headTeacherRemark || "")}</div>
+              <div class="progressive-note">HPG = Holiday Package · Midterm / Mock = the school’s mid-term assessment. Final uses this school’s configured assessment basis. Grade bands: A 85–100 · B 75–84 · C 65–74 · D 50–64 · E below 50.</div></article>`;
           }
           return `
         <div class="report-card">
@@ -444,6 +496,9 @@ export default function ReportsPage() {
             eot: s.eot ?? null,
             average: s.average ?? null,
             aggregatePoints: s.aggregatePoints ?? null,
+            assessmentBreakdown: s.assessmentBreakdown ?? [],
+            gradeDescriptor: s.gradeDescriptor ?? "",
+            teacherRemark: s.teacherRemark ?? "",
             grade: s.grade || (data.assessmentModel === "uganda_primary" ? "—" : "F9"),
           })) || [];
 

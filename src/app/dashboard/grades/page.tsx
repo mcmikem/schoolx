@@ -60,6 +60,8 @@ import {
 } from "@/lib/operations";
 import { isClassScopedRole } from "@/lib/roles";
 import { canAccess, type UserRole } from "@/lib/roles";
+import { TERM_GRADE_BASIS_KEY, parseTermGradeBasis } from "@/lib/report-rows";
+import { gradeBasisAvg } from "@/lib/uganda-report";
 import { loadSchoolSettings } from "@/lib/school-settings";
 import { supabase } from "@/lib/supabase";
 
@@ -91,6 +93,7 @@ const ASSESSMENT_TYPES = [
   "ca4",
   "project",
   "exam",
+  "holiday_package",
   "competency",
   "u1",
   "u2",
@@ -295,6 +298,11 @@ export default function GradesPage() {
   }, [school?.id, isDemo]);
 
   const track = resolveTrackForClass(classes.find((item) => item.id === selectedClass)?.name, schoolSettings);
+  const gradeBasis = useMemo(() => parseTermGradeBasis(schoolSettings[TERM_GRADE_BASIS_KEY]), [schoolSettings]);
+  const additionalAssessmentTypes = useMemo(
+    () => (track.startsWith("secondary") && gradeBasis?.types.includes("holiday_package") ? ["holiday_package"] : []),
+    [track, gradeBasis],
+  );
   // A school that does not run a beginning-of-term test gets no BOT column at
   // all. Showing an empty one invites a stray mark, and BOT is weighed into
   // MID, so one accidental entry shifts every average for that pupil.
@@ -338,6 +346,7 @@ export default function GradesPage() {
       bot: { label: "BOT", explain: "Beginning of Term · /100" },
       mid_term: { label: "MOT", explain: "Mid Term · /100" },
       eot: { label: "EOT", explain: "End of Term · /100" },
+      holiday_package: { label: "HPG", explain: "Holiday package · /100" },
     };
     for (const column of GRADING_TRACKS[track].columns) {
       for (const key of column.keys)
@@ -481,17 +490,12 @@ export default function GradesPage() {
   };
 
   const [inlineEntryMode, setInlineEntryMode] = useState(true);
+  const [entryAssessment, setEntryAssessment] = useState<string>("bot");
 
   useEffect(() => {
-    // Default to the full list on every screen size.
-    //
-    // Phones used to start in the one-pupil-at-a-time swipe deck, which meant
-    // opening the page showed a single child out of forty-eight and required
-    // swiping through every one of them to see the class. One-at-a-time is a
-    // good way to mark; it is a bad way to arrive. The list is the default
-    // everywhere and the focused deck is opt-in, which is also how the
-    // attendance register works.
-    setInlineEntryMode(true);
+    // Use the focused pupil card on narrow phones and the full register on
+    // laptops. Teachers can switch views at any time.
+    setInlineEntryMode(!window.matchMedia("(max-width: 767px)").matches);
   }, []);
   const [saveStatuses, setSaveStatuses] = useState<Record<string, SaveStatus>>({});
   const [mobileStudentIndex, setMobileStudentIndex] = useState(0);
@@ -608,8 +612,15 @@ export default function GradesPage() {
   const gradeOffset = (gradePage - 1) * gradesPerPage;
   const gradeTotalPages = Math.max(1, Math.ceil(displayStudents.length / gradesPerPage));
   const isStudentGraded = useCallback(
-    (studentId: string): boolean => computeIsStudentGraded(marks, studentId, competencyMode, useBotEnabled),
-    [marks, competencyMode, useBotEnabled],
+    (studentId: string): boolean =>
+      computeIsStudentGraded(
+        marks,
+        studentId,
+        competencyMode,
+        useBotEnabled,
+        competencyMode ? [] : additionalAssessmentTypes,
+      ),
+    [marks, competencyMode, useBotEnabled, additionalAssessmentTypes],
   );
   const gradedCount = useMemo(
     () => filteredStudents.filter((student) => isStudentGraded(student.id)).length,
@@ -788,21 +799,53 @@ export default function GradesPage() {
 
   const getMark = (studentId: string, type: string): number | null => readMark(marks, studentId, type);
 
-  const getStudentTotal = (studentId: string): number | null => computeStudentTotal(marks, studentId, competencyMode);
-
   // Columns shown on a fresh sheet. The list used to be derived from existing
   // marks, so a class/subject with nothing entered yet rendered a sheet with
   // no input boxes at all -- while the on-page guidance said "type the score in
   // the box under CA1". The guidance described a UI that did not exist on
   // first use, which is why teachers could not work out where to type.
   const activeAssessmentTypes = useMemo(
-    () => assessmentTypesFor(competencyMode, useBotEnabled),
-    [competencyMode, useBotEnabled],
+    () =>
+      competencyMode
+        ? [...assessmentTypesFor(true, useBotEnabled)]
+        : [...assessmentTypesFor(false, useBotEnabled), ...additionalAssessmentTypes],
+    [competencyMode, useBotEnabled, additionalAssessmentTypes],
   );
+  const currentEntryAssessment = activeAssessmentTypes.includes(entryAssessment)
+    ? entryAssessment
+    : activeAssessmentTypes[0] || "mid_term";
+  useEffect(() => {
+    if (!activeAssessmentTypes.includes(entryAssessment) && activeAssessmentTypes[0]) {
+      setEntryAssessment(activeAssessmentTypes[0]);
+    }
+  }, [activeAssessmentTypes, entryAssessment]);
+  const entryAssessmentLabel = columnLabels[currentEntryAssessment]?.label || assessmentLabel(currentEntryAssessment);
+  const entryAssessmentCount = useMemo(
+    () =>
+      displayStudents.reduce(
+        (count, student) => count + (getMark(student.id, currentEntryAssessment) !== null ? 1 : 0),
+        0,
+      ),
+    [displayStudents, currentEntryAssessment, marks],
+  );
+  const getStudentTotal = (studentId: string): number | null => {
+    if (competencyMode) return computeStudentTotal(marks, studentId, true);
+    if (gradeBasis) {
+      const rows = activeAssessmentTypes.flatMap((type) => {
+        const score = getMark(studentId, type);
+        return score === null ? [] : [{ assessment_type: type, score, max_score: 100 }];
+      });
+      return gradeBasisAvg(rows, gradeBasis);
+    }
+    const scores = activeAssessmentTypes
+      .map((type) => getMark(studentId, type))
+      .filter((score): score is number => score !== null);
+    return scores.length ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length) : null;
+  };
 
   // Identity + one column per assessment + average/status + grade. The empty and
   // loading rows were pinned at 7, which over-spans a two-column sheet.
-  const markSheetColumnCount = activeAssessmentTypes.length + 3;
+  const markSheetColumnCount = 4;
 
   const debouncedAutoSave = useCallback(
     (studentId: string, type: string, target?: { subjectId: string; classId: string }) => {
@@ -1627,23 +1670,21 @@ export default function GradesPage() {
             them, not to choose a class. The entry form is still here -- some
             headmasters mark their own class -- but it is under its own
             heading, so the two are not confused. */}
-        <SubmittedSheetsPanel
-          sheets={submittedSheets}
-          loading={gradesLoading}
-          heading={isReviewer ? "Submitted for review" : "Your grade sheets"}
-          emptyHint={
-            isReviewer
-              ? "No sheets have been submitted yet. When a teacher sends their marks they appear here, ready to approve."
-              : "You have not entered any marks yet for this term."
-          }
-          nextAction={sheetNextAction}
-          onOpen={(sheet) => {
-            setShowTargetPicker(true);
-            setSelectedClass(sheet.classId);
-            setSelectedSubject(sheet.subjectId);
-          }}
-          onAdvance={(sheet, status) => void handleAdvanceWorkflow(status, sheet.classId, sheet.subjectId)}
-        />
+        {submittedSheets.length > 0 && (
+          <SubmittedSheetsPanel
+            sheets={submittedSheets}
+            loading={gradesLoading}
+            heading={isReviewer ? "Submitted for review" : "Your grade sheets"}
+            emptyHint="No grade sheets are waiting for review."
+            nextAction={sheetNextAction}
+            onOpen={(sheet) => {
+              setShowTargetPicker(true);
+              setSelectedClass(sheet.classId);
+              setSelectedSubject(sheet.subjectId);
+            }}
+            onAdvance={(sheet, status) => void handleAdvanceWorkflow(status, sheet.classId, sheet.subjectId)}
+          />
+        )}
         {/* Class picker — the one thing that has to be right before the
             subject list below means anything.
 
@@ -1800,12 +1841,55 @@ export default function GradesPage() {
         )}
         {/* The column meanings live in Owly now, so the table header stays a
             header instead of carrying a paragraph under every column. */}
-        {selectedClass && selectedSubject && Object.keys(marks).length === 0 && (
-          <OwlyTrigger guideId="grades-terms" label="What do BOT, MOT and EOT mean?" />
-        )}
         {/* Everything below only appears once a class + subject are chosen */}
         {selectedClass && selectedSubject && (
           <>
+            {!competencyMode && (
+              <section
+                aria-label="Choose assessment"
+                className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4"
+              >
+                <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                  <div>
+                    <h2 className="text-sm font-bold text-[var(--t1)]">Which marks are you entering?</h2>
+                    <p className="mt-0.5 text-xs text-[var(--t3)]">Each assessment is marked out of 100.</p>
+                  </div>
+                </div>
+                <div
+                  role="group"
+                  aria-label="Assessment period"
+                  className={`grid gap-2 ${activeAssessmentTypes.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}
+                >
+                  {activeAssessmentTypes.map((type) => {
+                    const label = columnLabels[type]?.label || assessmentLabel(type);
+                    const selected = currentEntryAssessment === type;
+                    return (
+                      <button
+                        key={type}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => setEntryAssessment(type)}
+                        className={`min-h-12 rounded-xl border px-2 py-2 text-sm font-bold transition-colors ${
+                          selected
+                            ? "border-[var(--primary)] bg-[var(--primary)] text-white shadow-sm"
+                            : "border-[var(--border)] bg-[var(--surface-container-lowest)] text-[var(--t2)] hover:border-[var(--primary)]"
+                        }`}
+                      >
+                        {label}
+                        <span className={`ml-1 text-xs font-medium ${selected ? "text-white/80" : "text-[var(--t3)]"}`}>
+                          /100
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 rounded-lg bg-[var(--navy-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--t2)]">
+                  {gradeBasis
+                    ? "The average follows the assessment recipe set by your school in Academic Settings; configured weights are used, or included marks count equally."
+                    : "BOT, MOT and EOT are separate marks and count equally in the average. EOT is the end-of-term exam; there is no separate final exam mark."}
+                </p>
+              </section>
+            )}
             {/*
                 One progress readout, not four.
 
@@ -1822,9 +1906,12 @@ export default function GradesPage() {
             <section aria-label="grades progress" className="px-1">
               <div className="flex items-baseline justify-between gap-3 text-xs">
                 <span className="font-semibold text-[var(--t2)]">
-                  <span className="text-[var(--green)] font-bold">{gradedCount}</span>
+                  <span className="text-[var(--green)] font-bold">
+                    {competencyMode ? gradedCount : entryAssessmentCount}
+                  </span>
                   {" of "}
-                  <span className="text-[var(--t1)] font-bold">{displayStudents.length}</span> graded
+                  <span className="text-[var(--t1)] font-bold">{displayStudents.length}</span>{" "}
+                  {competencyMode ? "assessed" : `${entryAssessmentLabel} marks entered`}
                 </span>
                 {pendingCount > 0 && completionStats.notGradedNames[0] && (
                   <span className="text-[var(--t3)]">
@@ -1835,15 +1922,15 @@ export default function GradesPage() {
               <div
                 className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-[var(--surface-container-high)]"
                 role="progressbar"
-                aria-valuenow={gradedCount}
+                aria-valuenow={competencyMode ? gradedCount : entryAssessmentCount}
                 aria-valuemin={0}
                 aria-valuemax={displayStudents.length}
-                aria-label="Pupils graded"
+                aria-label={competencyMode ? "Pupils assessed" : `${entryAssessmentLabel} marks entered`}
               >
                 <div
                   className="h-full rounded-full bg-[var(--green)] transition-all"
                   style={{
-                    width: `${displayStudents.length ? Math.round((gradedCount / displayStudents.length) * 100) : 0}%`,
+                    width: `${displayStudents.length ? Math.round(((competencyMode ? gradedCount : entryAssessmentCount) / displayStudents.length) * 100) : 0}%`,
                   }}
                 />
               </div>
@@ -2234,7 +2321,7 @@ export default function GradesPage() {
                             </th>
                           ) : (
                             <>
-                              {activeAssessmentTypes.map((type) => {
+                              {[currentEntryAssessment].map((type) => {
                                 const labelInfo = columnLabels[type] || {
                                   label: assessmentLabel(type),
                                   explain: "",
@@ -2363,7 +2450,7 @@ export default function GradesPage() {
                                     </div>
                                   </td>
                                 ) : (
-                                  activeAssessmentTypes.map((type) => (
+                                  [currentEntryAssessment].map((type) => (
                                     <td key={type} className="px-4 py-5">
                                       <div className="relative">
                                         <input
@@ -2528,7 +2615,7 @@ export default function GradesPage() {
                               </div>
                             ) : (
                               <div className="grid grid-cols-2 gap-3">
-                                {activeAssessmentTypes.map((type) => (
+                                {[currentEntryAssessment].map((type) => (
                                   <div key={type} className="space-y-1">
                                     <label
                                       htmlFor={`grade-card-${student.id}-${type}`}
@@ -2699,7 +2786,7 @@ export default function GradesPage() {
                           </div>
                         );
                       }
-                      return activeAssessmentTypes.map((type) => {
+                      return [currentEntryAssessment].map((type) => {
                         const val = getMark(studentId, type);
                         return (
                           <div key={type} className="space-y-2">
@@ -2774,32 +2861,33 @@ export default function GradesPage() {
                   </div>
                 </div>
 
-                {/* Student List Quick Nav */}
-                <div className="mt-4 bg-surface-container-lowest rounded-2xl p-4">
-                  <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
-                    All Students
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {filteredStudents.map((student, idx) => {
-                      const graded = isStudentGraded(student.id);
-                      return (
-                        <button
-                          key={student.id}
-                          onClick={() => setMobileStudentIndex(idx)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                            idx === mobileStudentIndex
-                              ? "bg-primary text-on-primary"
-                              : graded
-                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-700"
-                                : "bg-surface-container text-on-surface-variant"
-                          }`}
-                        >
-                          <PersonInitials name={`${student.first_name} ${student.last_name}`} size={28} />
-                        </button>
-                      );
-                    })}
+                <details className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+                  <summary className="min-h-12 cursor-pointer px-4 py-3 text-sm font-semibold text-[var(--t1)]">
+                    Jump to a pupil ({filteredStudents.length})
+                  </summary>
+                  <div className="max-h-56 overflow-y-auto border-t border-[var(--border)] p-2">
+                    {filteredStudents.map((student, idx) => (
+                      <button
+                        key={student.id}
+                        type="button"
+                        onClick={() => setMobileStudentIndex(idx)}
+                        className={`flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-left text-sm ${
+                          idx === mobileStudentIndex
+                            ? "bg-[var(--navy-soft)] font-bold text-[var(--primary)]"
+                            : "text-[var(--t2)] hover:bg-[var(--surface-container)]"
+                        }`}
+                      >
+                        <span className="w-8 text-xs text-[var(--t3)]">{idx + 1}.</span>
+                        <span className="min-w-0 flex-1 truncate">
+                          {student.first_name} {student.last_name}
+                        </span>
+                        {getMark(student.id, currentEntryAssessment) !== null && (
+                          <MaterialIcon icon="check_circle" size={16} className="text-[var(--green)]" />
+                        )}
+                      </button>
+                    ))}
                   </div>
-                </div>
+                </details>
               </div>
             )}
           </div>
@@ -2886,7 +2974,7 @@ export default function GradesPage() {
             className="min-h-11 flex flex-1 sm:flex-none items-center justify-center gap-2 px-3 py-2 hover:bg-[var(--surface-container)] rounded-full transition-colors font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <MaterialIcon>save</MaterialIcon>
-            Save Grades
+            Save draft
           </button>
           <button
             onClick={handleSubmitToDean}
@@ -2899,7 +2987,7 @@ export default function GradesPage() {
                    call the role something else. The workflow knows where the
                    marks go; the button should just say what the teacher is
                    doing. */
-                "Submit Grades"}
+                "Submit to HM"}
           </button>
         </div>
       </div>
