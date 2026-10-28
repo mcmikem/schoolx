@@ -6,7 +6,6 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { NoData } from "@/components/EmptyState";
 import FeeFormModal, { type FeeFormData } from "@/components/fees/FeeFormModal";
 import { useToast } from "@/components/Toast";
-import { Card, CardBody } from "@/components/ui/Card";
 import { Button, DataTable, Input, Select, StatStrip, type DataColumn } from "@/components/ui/index";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useAcademic } from "@/lib/academic-context";
@@ -180,6 +179,7 @@ export default function FeeStructurePage() {
       </div>
 
       <StatStrip
+        variant="flat"
         columns={3}
         items={[
           { label: "Fee items", value: visibleFees.length },
@@ -188,83 +188,79 @@ export default function FeeStructurePage() {
         ]}
       />
 
-      <Card>
-        <CardBody className="space-y-5 p-4 sm:p-6">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input
-              label="Search fees"
-              placeholder="Tuition, boarding, transport…"
-              value={list.q}
-              onChange={(event) => list.setQ(event.target.value)}
-            />
-            <Select
-              label="Class"
-              value={classId}
-              onChange={(event) => list.setFilter("class", event.target.value)}
-              options={[
-                { value: "", label: "All classes" },
-                ...classes.map((item) => ({ value: item.id, label: item.name })),
-              ]}
-            />
+      <div className="space-y-4">
+        <div className="grid gap-3 border-b border-[var(--border)] pb-4 sm:grid-cols-2">
+          <Input
+            label="Search fees"
+            placeholder="Tuition, boarding, transport…"
+            value={list.q}
+            onChange={(event) => list.setQ(event.target.value)}
+          />
+          <Select
+            label="Class"
+            value={classId}
+            onChange={(event) => list.setFilter("class", event.target.value)}
+            options={[
+              { value: "", label: "All classes" },
+              ...classes.map((item) => ({ value: item.id, label: item.name })),
+            ]}
+          />
+        </div>
+        {error ? (
+          <div role="alert" className="rounded-xl bg-[var(--error-container)] p-4">
+            <p>{error}</p>
+            <Button variant="ghost" onClick={() => void refetch()}>
+              Try again
+            </Button>
           </div>
-          {error ? (
-            <div role="alert" className="rounded-xl bg-[var(--error-container)] p-4">
-              <p>{error}</p>
-              <Button variant="ghost" onClick={() => void refetch()}>
-                Try again
-              </Button>
-            </div>
-          ) : (
-            <DataTable
-              columns={columns}
-              rows={visibleFees}
-              getRowId={(fee) => fee.id}
-              loading={loading}
-              initialSort={{ key: "name", dir: "asc" }}
-              caption="Fee structure"
-              empty={
-                <NoData
-                  title={list.q || classId ? "No matching fees" : "No fees set yet"}
-                  description={
-                    list.q || classId
-                      ? "Change your search or class filter."
-                      : "Add the charges students should pay before collecting fees."
-                  }
-                />
-              }
-              footer={
-                <span className="text-[var(--t3)]">
-                  {visibleFees.length} fee{visibleFees.length === 1 ? "" : "s"} shown
-                </span>
-              }
-              renderMobileCard={(fee) => (
-                <div className="space-y-2">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="min-w-0 font-semibold break-words">{fee.name}</p>
-                    <span className="shrink-0 font-bold text-[var(--primary)]">
-                      {formatCurrency(Number(fee.amount))}
-                    </span>
-                  </div>
-                  <p className="text-xs text-[var(--t3)]">
-                    {feeClassName(fee)} · {fee.boarding_status || "Day & boarding"}
-                  </p>
-                  <p className="text-xs text-[var(--t3)]">
-                    {termLabel(fee)} · {fee.academic_year}
-                  </p>
-                  <div className="flex gap-1 pt-1">
-                    <Button variant="ghost" onClick={() => openForm(fee)}>
-                      Edit
-                    </Button>
-                    <Button variant="ghost" onClick={() => setDeleteId(fee.id)}>
-                      Delete
-                    </Button>
-                  </div>
+        ) : (
+          <DataTable
+            columns={columns}
+            rows={visibleFees}
+            getRowId={(fee) => fee.id}
+            loading={loading}
+            initialSort={{ key: "name", dir: "asc" }}
+            caption="Fee structure"
+            empty={
+              <NoData
+                title={list.q || classId ? "No matching fees" : "No fees set yet"}
+                description={
+                  list.q || classId
+                    ? "Change your search or class filter."
+                    : "Add the charges students should pay before collecting fees."
+                }
+              />
+            }
+            footer={
+              <span className="text-[var(--t3)]">
+                {visibleFees.length} fee{visibleFees.length === 1 ? "" : "s"} shown
+              </span>
+            }
+            renderMobileCard={(fee) => (
+              <div className="space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="min-w-0 font-semibold break-words">{fee.name}</p>
+                  <span className="shrink-0 font-bold text-[var(--primary)]">{formatCurrency(Number(fee.amount))}</span>
                 </div>
-              )}
-            />
-          )}
-        </CardBody>
-      </Card>
+                <p className="text-xs text-[var(--t3)]">
+                  {feeClassName(fee)} · {fee.boarding_status || "Day & boarding"}
+                </p>
+                <p className="text-xs text-[var(--t3)]">
+                  {termLabel(fee)} · {fee.academic_year}
+                </p>
+                <div className="flex gap-1 pt-1">
+                  <Button variant="ghost" onClick={() => openForm(fee)} aria-label={`Edit ${fee.name}`}>
+                    Edit
+                  </Button>
+                  <Button variant="ghost" onClick={() => setDeleteId(fee.id)} aria-label={`Delete ${fee.name}`}>
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            )}
+          />
+        )}
+      </div>
       <FeeFormModal
         isOpen={modalOpen}
         onClose={() => {

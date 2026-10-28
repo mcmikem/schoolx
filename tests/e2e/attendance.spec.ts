@@ -29,27 +29,24 @@ test.describe("Attendance flow", () => {
 
     // Mark the first student as present — if the mark action is unavailable the
     // attendance flow is broken and the test must fail, not pass silently.
-    const presentBtn = page.getByRole("button", { name: /in school/i }).first();
+    const presentBtn = page.getByRole("button", { name: "Present", exact: true }).first();
     await expect(presentBtn).toBeVisible({ timeout: 5000 });
     await presentBtn.click();
     await page.waitForTimeout(500);
 
     // Verify save button is visible and enabled
-    const saveBtn = page.getByRole("button", { name: /save attendance/i });
+    const saveBtn = page.getByRole("button", { name: /^Save/i }).first();
     await expect(saveBtn).toBeVisible({ timeout: 3000 });
   });
 
-  test("roll call mode toggles correctly", async ({ page }) => {
+  test("explicit attendance status can be selected", async ({ page }) => {
     await selectFirstClass(page);
 
-    // Toggle roll call mode — the switch must exist for this flow to work.
-    const rollCallToggle = page.getByRole("switch", { name: /toggle call out names mode/i });
-    await expect(rollCallToggle).toBeVisible({ timeout: 5000 });
-    await rollCallToggle.click();
-    await page.waitForTimeout(500);
-
-    // Verify roll call UI is shown
-    await expect(page.getByText(/everyone starts as in school/i)).toBeVisible({ timeout: 3000 });
+    const presentBtn = page.getByRole("button", { name: "Present", exact: true }).first();
+    await expect(presentBtn).toBeVisible({ timeout: 5000 });
+    await presentBtn.click();
+    await expect(presentBtn).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("button", { name: /^Save/i }).first()).toBeVisible();
   });
 
   test("attendance history page loads", async ({ page }) => {

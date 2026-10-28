@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import { NoData } from "@/components/EmptyState";
-import { Card, CardBody } from "@/components/ui/Card";
 import { Button, DataTable, Input, Select, StatStrip, type DataColumn } from "@/components/ui/index";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -120,6 +119,7 @@ export default function FeeLedgerPage() {
           page pages receipts, so a school-wide total would be a different
           number every page. */}
       <StatStrip
+        variant="flat"
         columns={4}
         items={[
           { label: "Receipts shown", value: loading ? "—" : filtered.length },
@@ -133,102 +133,104 @@ export default function FeeLedgerPage() {
         ]}
       />
 
-      <Card>
-        <CardBody className="space-y-5 p-4 sm:p-6">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input
-              label="Search payments"
-              placeholder="Student, class or reference…"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-            <Select
-              label="Class"
-              value={classId}
-              onChange={(event) => setClassId(event.target.value)}
-              options={[
-                { value: "", label: "All classes" },
-                ...classes.map((item) => ({ value: item.id, label: item.name })),
-              ]}
-            />
+      <div className="space-y-4">
+        <div className="grid gap-3 border-b border-[var(--border)] pb-4 sm:grid-cols-2">
+          <Input
+            label="Search payments"
+            placeholder="Student, class or reference…"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          <Select
+            label="Class"
+            value={classId}
+            onChange={(event) => setClassId(event.target.value)}
+            options={[
+              { value: "", label: "All classes" },
+              ...classes.map((item) => ({ value: item.id, label: item.name })),
+            ]}
+          />
+        </div>
+        {error ? (
+          <div role="alert" className="rounded-xl bg-[var(--error-container)] p-4">
+            <p>{error}</p>
+            <Button variant="ghost" onClick={() => void refetch()}>
+              Try again
+            </Button>
           </div>
-          {error ? (
-            <div role="alert" className="rounded-xl bg-[var(--error-container)] p-4">
-              <p>{error}</p>
-              <Button variant="ghost" onClick={() => void refetch()}>
-                Try again
-              </Button>
-            </div>
-          ) : (
-            <DataTable
-              columns={columns}
-              rows={filtered}
-              getRowId={(payment) => payment.id}
-              loading={loading}
-              onRowClick={(payment) => setSelectedPayment(payment)}
-              caption="Recorded fee receipts"
-              initialSort={{ key: "date", dir: "desc" }}
-              empty={
-                <NoData
-                  title="No payments found"
-                  description={
-                    search || classId
-                      ? "Change the filters or check another page."
-                      : "Recorded payments will appear here."
-                  }
-                />
-              }
-              renderMobileCard={(payment) => {
-                const student = studentFor(payment);
-                const name = student ? `${student.first_name} ${student.last_name}` : "Unknown student";
-                return (
-                  <div className="space-y-1.5">
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="min-w-0">
-                        <span className="block truncate font-medium">{name}</span>
-                        <span className="block text-xs text-[var(--t3)]">{classNameFor(payment)}</span>
-                      </span>
-                      <span className="shrink-0 font-bold text-[var(--primary)]">
-                        {formatCurrency(Number(payment.amount_paid))}
-                      </span>
-                    </div>
-                    <p className="text-xs text-[var(--t3)]">
-                      {new Date(payment.payment_date).toLocaleDateString("en-GB")} ·{" "}
-                      {paymentMethodLabel(payment.payment_method)}
-                    </p>
-                    {payment.payment_reference && (
-                      <p className="font-mono text-xs text-[var(--t3)]">{payment.payment_reference}</p>
-                    )}
+        ) : (
+          <DataTable
+            columns={columns}
+            rows={filtered}
+            getRowId={(payment) => payment.id}
+            loading={loading}
+            onRowClick={(payment) => setSelectedPayment(payment)}
+            rowLabel={(payment) => {
+              const student = studentFor(payment);
+              return `Payment details for ${student ? `${student.first_name} ${student.last_name}` : "unknown student"}`;
+            }}
+            caption="Recorded fee receipts"
+            initialSort={{ key: "date", dir: "desc" }}
+            empty={
+              <NoData
+                title="No payments found"
+                description={
+                  search || classId
+                    ? "Change the filters or check another page."
+                    : "Recorded payments will appear here."
+                }
+              />
+            }
+            renderMobileCard={(payment) => {
+              const student = studentFor(payment);
+              const name = student ? `${student.first_name} ${student.last_name}` : "Unknown student";
+              return (
+                <div className="space-y-1.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium">{name}</span>
+                      <span className="block text-xs text-[var(--t3)]">{classNameFor(payment)}</span>
+                    </span>
+                    <span className="shrink-0 font-bold text-[var(--primary)]">
+                      {formatCurrency(Number(payment.amount_paid))}
+                    </span>
                   </div>
-                );
-              }}
-              footer={
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <span className="text-sm text-[var(--t3)]">
-                    Page {page} of {totalPages} · {filtered.length} shown
-                  </span>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      disabled={page === 1 || loading}
-                      onClick={() => setPage((previous) => previous - 1)}
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      disabled={page >= totalPages || loading}
-                      onClick={() => setPage((previous) => previous + 1)}
-                    >
-                      Next
-                    </Button>
-                  </div>
+                  <p className="text-xs text-[var(--t3)]">
+                    {new Date(payment.payment_date).toLocaleDateString("en-GB")} ·{" "}
+                    {paymentMethodLabel(payment.payment_method)}
+                  </p>
+                  {payment.payment_reference && (
+                    <p className="font-mono text-xs text-[var(--t3)]">{payment.payment_reference}</p>
+                  )}
                 </div>
-              }
-            />
-          )}
-        </CardBody>
-      </Card>
+              );
+            }}
+            footer={
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="text-sm text-[var(--t3)]">
+                  Page {page} of {totalPages} · {filtered.length} shown
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    disabled={page === 1 || loading}
+                    onClick={() => setPage((previous) => previous - 1)}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    disabled={page >= totalPages || loading}
+                    onClick={() => setPage((previous) => previous + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            }
+          />
+        )}
+      </div>
 
       <Modal isOpen={Boolean(selectedPayment)} onClose={() => setSelectedPayment(null)} title="Payment Details">
         {selectedPayment && (

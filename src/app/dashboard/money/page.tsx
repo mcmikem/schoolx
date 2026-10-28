@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
-import { Button, Modal, ModalFooter } from "@/components/ui";
+import { Button, Modal, ModalFooter, StatStrip } from "@/components/ui";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EXPENSE_CATEGORIES, OTHER_INCOME_CATEGORIES, useMoney, type ExpenseStatus } from "@/lib/hooks/money";
 import { getLocalDateString } from "@/lib/hooks/utils";
@@ -157,28 +157,36 @@ export default function MoneyPage() {
       )}
 
       {/* Position first — it is the answer bursars are asked for. */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Stat
-          label="Money in"
-          value={position.moneyIn}
-          tone="green"
-          hint={`Fees ${formatCurrency(position.feesCollected)}`}
-        />
-        <Stat
-          label="Money out"
-          value={position.moneyOut}
-          tone="red"
-          hint={`${formatCurrency(position.pendingOut)} pending`}
-        />
-        <Stat label="Balance" value={position.balance} tone={position.balance >= 0 ? "green" : "red"} />
-        <Stat
-          label="Available"
-          value={position.available}
-          tone={position.available >= 0 ? "green" : "red"}
-          hint={position.unebHeld > 0 ? `UNEB held ${formatCurrency(position.unebHeld)}` : "Excludes UNEB money held"}
-        />
-        <Stat label="Other income" value={position.otherIncome} tone="navy" hint="Not school fees" />
-      </div>
+      <StatStrip
+        variant="flat"
+        columns={5}
+        items={[
+          {
+            label: "Money in",
+            value: formatCurrency(position.moneyIn),
+            tone: "positive",
+            hint: `Fees ${formatCurrency(position.feesCollected)}`,
+          },
+          {
+            label: "Money out",
+            value: formatCurrency(position.moneyOut),
+            tone: "negative",
+            hint: `${formatCurrency(position.pendingOut)} pending`,
+          },
+          {
+            label: "Balance",
+            value: formatCurrency(position.balance),
+            tone: position.balance >= 0 ? "positive" : "negative",
+          },
+          {
+            label: "Available",
+            value: formatCurrency(position.available),
+            tone: position.available >= 0 ? "positive" : "negative",
+            hint: position.unebHeld > 0 ? `UNEB held ${formatCurrency(position.unebHeld)}` : "Excludes UNEB money held",
+          },
+          { label: "Other income", value: formatCurrency(position.otherIncome), tone: "info", hint: "Not school fees" },
+        ]}
+      />
 
       <div className="flex gap-2 border-b border-[var(--border)]">
         {(
@@ -203,7 +211,7 @@ export default function MoneyPage() {
       {tab === "position" && (
         <div className="space-y-5">
           <UnebQuarantinePanel />
-          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+          <section className="border-t border-[var(--border)] pt-4">
             <h2 className="text-sm font-bold text-[var(--t1)]">Where the money went</h2>
             <p className="mt-1 text-xs text-[var(--t3)]">Approved and paid spending this period.</p>
             {byCategory.length === 0 ? (
@@ -230,7 +238,7 @@ export default function MoneyPage() {
             )}
           </section>
 
-          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+          <section className="border-t border-[var(--border)] pt-4">
             <h2 className="text-sm font-bold text-[var(--t1)]">Spending waiting for approval</h2>
             <p className="mt-1 text-xs text-[var(--t3)]">
               Not yet counted as gone. Approve it once the head teacher has seen it.
@@ -249,14 +257,14 @@ export default function MoneyPage() {
       )}
 
       {tab === "expenses" && (
-        <div className="space-y-2">
+        <div className="divide-y divide-[var(--border)] border-t border-[var(--border)]">
           {expenses.length === 0 ? (
-            <p className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center text-sm text-[var(--t3)]">
+            <p className="py-6 text-center text-sm text-[var(--t3)]">
               Nothing spent yet. Record the first expense with the Expense button above.
             </p>
           ) : (
             expenses.map((e) => (
-              <article key={e.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+              <article key={e.id} className="py-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-[15px] font-semibold text-[var(--t1)]">{e.description}</p>
@@ -305,17 +313,14 @@ export default function MoneyPage() {
       )}
 
       {tab === "income" && (
-        <div className="space-y-2">
+        <div className="divide-y divide-[var(--border)] border-t border-[var(--border)]">
           {otherIncome.length === 0 ? (
-            <p className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center text-sm text-[var(--t3)]">
+            <p className="py-6 text-center text-sm text-[var(--t3)]">
               Nothing yet. Capitation, grants, donations and farm income belong here.
             </p>
           ) : (
             otherIncome.map((r) => (
-              <article
-                key={r.id}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4"
-              >
+              <article key={r.id} className="flex items-center justify-between gap-3 py-4">
                 <div className="min-w-0">
                   <p className="text-[15px] font-semibold text-[var(--t1)]">{r.source}</p>
                   <p className="mt-0.5 text-xs text-[var(--t3)]">
@@ -470,27 +475,6 @@ export default function MoneyPage() {
           </Button>
         </ModalFooter>
       </Modal>
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  tone,
-  hint,
-}: {
-  label: string;
-  value: number;
-  tone: "green" | "red" | "navy";
-  hint?: string;
-}) {
-  const colour = tone === "green" ? "text-[var(--green)]" : tone === "red" ? "text-[var(--red)]" : "text-[var(--navy)]";
-  return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3">
-      <p className="text-xs font-bold uppercase tracking-wide text-[var(--t3)]">{label}</p>
-      <p className={`mt-1 text-lg font-bold tabular-nums ${colour}`}>{formatCurrency(value)}</p>
-      {hint && <p className="mt-0.5 truncate text-xs text-[var(--t3)]">{hint}</p>}
     </div>
   );
 }

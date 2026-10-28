@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
@@ -124,7 +124,8 @@ export default function CommunicationHubPage() {
   const { user, school, isDemo } = useAuth();
   const toast = useToast();
   const searchParams = useSearchParams();
-  const { staff } = useStaff(school?.id);
+  const [activeTab, setActiveTab] = useState("messages");
+  const { staff } = useStaff(school?.id, activeTab === "notices");
   const {
     triggers,
     loading: triggersLoading,
@@ -132,9 +133,8 @@ export default function CommunicationHubPage() {
     runTrigger,
     createTrigger,
     updateTrigger,
-  } = useSMSTriggers(school?.id);
+  } = useSMSTriggers(school?.id, activeTab === "automation");
 
-  const [activeTab, setActiveTab] = useState("messages");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
@@ -188,6 +188,8 @@ export default function CommunicationHubPage() {
   const [bulkSending, setBulkSending] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(true);
+  const bulkDataLoadedForSchool = useRef<string | null>(null);
+  const noticesLoadedForSchool = useRef<string | null>(null);
   // Pupil ids with an unpaid fee balance. Loaded LAZILY when the
   // outstanding-fees audience is picked — never on page mount. Null means
   // "not loaded": every consumer must treat that as zero recipients, never
@@ -445,7 +447,7 @@ export default function CommunicationHubPage() {
   }, [user?.school_id, school?.id, isDemo, messageLimit]);
 
   const fetchBulkData = useCallback(async () => {
-    if (!school?.id) return;
+    if (!school?.id || bulkDataLoadedForSchool.current === school.id) return;
     try {
       const [classesRes, studentsRes, templatesRes] = await Promise.all([
         supabase.from("classes").select("id, name").eq("school_id", school.id).order("name"),
@@ -459,6 +461,9 @@ export default function CommunicationHubPage() {
       if (classesRes.data) setClasses(classesRes.data);
       if (studentsRes.data) setAllStudents(studentsRes.data as unknown as typeof allStudents);
       if (templatesRes.data) setTemplates(templatesRes.data);
+      if (!classesRes.error && !studentsRes.error && !templatesRes.error) {
+        bulkDataLoadedForSchool.current = school.id;
+      }
     } catch (err) {
       logger.error("Error:", err);
     } finally {
@@ -492,6 +497,7 @@ export default function CommunicationHubPage() {
             };
           }),
         );
+        noticesLoadedForSchool.current = school.id;
         return;
       }
       const { data, error } = await supabase
@@ -502,6 +508,7 @@ export default function CommunicationHubPage() {
         .limit(20);
       if (error) throw error;
       setNotices(data || []);
+      noticesLoadedForSchool.current = school.id;
     } catch (err) {
       logger.error("Error:", err);
     } finally {
@@ -516,13 +523,11 @@ export default function CommunicationHubPage() {
   }, [school?.id]);
 
   useEffect(() => {
-    if (user?.school_id) fetchMessagesData();
-    if (school?.id) {
-      fetchBulkData();
-      fetchNotices();
-      fetchTemplates();
-    }
-  }, [user?.school_id, school?.id, fetchMessagesData, fetchBulkData, fetchNotices, fetchTemplates]);
+    if (user?.school_id && activeTab === "messages") fetchMessagesData();
+    if (activeTab === "bulk-sms") fetchBulkData();
+    if (activeTab === "templates") fetchTemplates();
+    if (activeTab === "notices" && noticesLoadedForSchool.current !== school?.id) fetchNotices();
+  }, [activeTab, user?.school_id, school?.id, fetchMessagesData, fetchBulkData, fetchNotices, fetchTemplates]);
 
   useEffect(() => {
     async function loadAbsencePreview() {
@@ -556,8 +561,8 @@ export default function CommunicationHubPage() {
         logger.error("Failed to load absence preview", error);
       }
     }
-    if (!triggersLoading) loadAbsencePreview();
-  }, [school?.id, triggers, triggersLoading]);
+    if (activeTab === "automation" && !triggersLoading) loadAbsencePreview();
+  }, [activeTab, school?.id, triggers, triggersLoading]);
 
   useEffect(() => {
     async function loadLogs() {
@@ -570,8 +575,8 @@ export default function CommunicationHubPage() {
         .limit(10);
       if (!error) setAutomationLogs(data || []);
     }
-    if (!triggersLoading) loadLogs();
-  }, [school?.id, triggersLoading, triggers]);
+    if (activeTab === "automation" && !triggersLoading) loadLogs();
+  }, [activeTab, school?.id, triggersLoading, triggers]);
 
   const handleSendMessage = async () => {
     if (!message.trim() || !user?.school_id) return;
@@ -591,7 +596,10 @@ export default function CommunicationHubPage() {
         last_name?: string | null;
         parent_name?: string | null;
         parent_phone: string | null;
-        classes?: { name?: string | null; stream?: string | null } | { name?: string | null; stream?: string | null }[] | null;
+        classes?:
+          | { name?: string | null; stream?: string | null }
+          | { name?: string | null; stream?: string | null }[]
+          | null;
       }): NotifyParentEntry => {
         const joined = Array.isArray(s.classes) ? s.classes?.[0] : s.classes;
         return {
@@ -911,7 +919,9 @@ export default function CommunicationHubPage() {
       });
       // Dedupe by phone but keep a row per parent so the share-link composer
       // still names each child the message concerns.
-      const dedupedByPhone = Array.from(new Map(filtered.filter((s) => s.parent_phone).map((s) => [s.parent_phone, s])).values());
+      const dedupedByPhone = Array.from(
+        new Map(filtered.filter((s) => s.parent_phone).map((s) => [s.parent_phone, s])).values(),
+      );
       const phones = dedupedByPhone.map((s) => s.parent_phone);
       const bulkEntries: NotifyParentEntry[] = dedupedByPhone.map((s) => ({
         id: s.id,
@@ -1271,7 +1281,7 @@ export default function CommunicationHubPage() {
           </div>
         </TabPanel>
 
-        <TabPanel activeTab={activeTab} tabId="bulk-sms">
+        <TabPanel activeTab={activeTab} tabId="bulk-sms" lazy>
           <MessageRecipients
             audience={audience}
             onAudienceChange={setAudience}
@@ -1300,7 +1310,7 @@ export default function CommunicationHubPage() {
           />
         </TabPanel>
 
-        <TabPanel activeTab={activeTab} tabId="automation">
+        <TabPanel activeTab={activeTab} tabId="automation" lazy>
           <MessageAutomation
             triggers={triggers}
             triggersLoading={triggersLoading}
@@ -1321,7 +1331,7 @@ export default function CommunicationHubPage() {
           />
         </TabPanel>
 
-        <TabPanel activeTab={activeTab} tabId="templates">
+        <TabPanel activeTab={activeTab} tabId="templates" lazy>
           <MessageTemplates
             templates={templates}
             showCreateTemplate={showCreateTemplate}
@@ -1338,7 +1348,7 @@ export default function CommunicationHubPage() {
           />
         </TabPanel>
 
-        <TabPanel activeTab={activeTab} tabId="notices">
+        <TabPanel activeTab={activeTab} tabId="notices" lazy>
           <div className="space-y-6">
             <div className="flex justify-between items-center flex-wrap gap-4">
               <div className="flex gap-2 flex-wrap">

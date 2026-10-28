@@ -128,6 +128,8 @@ export type StudentQueryOptions = {
   offset?: number;
   /** "full" (default) or "slim" — the pick-list row set above. */
   fields?: "full" | "slim";
+  /** Hold the first fetch until the caller has resolved device/network settings. */
+  enabled?: boolean;
 };
 
 function buildCoreStudentPayload(student: Record<string, unknown>) {
@@ -282,7 +284,21 @@ async function fetchStudentsWithFallback(options: {
   offset: number;
   limit: number;
   fields?: "full" | "slim";
-}) {
+}): Promise<StudentWithClass[]> {
+  // PostgREST caps an individual response at 1,000 rows. A few screens ask
+  // for a larger list, so fetch it in bounded pages instead of silently
+  // receiving only the first server page.
+  if (options.limit > ROSTER_PAGE_SIZE) {
+    const { rows } = await collectRosterPages<StudentWithClass>(
+      async (offset, limit) => ({
+        rows: await fetchStudentsWithFallback({ ...options, offset: options.offset + offset, limit }),
+        total: options.limit,
+      }),
+      { pageSize: ROSTER_PAGE_SIZE, maxRows: options.limit },
+    );
+    return rows;
+  }
+
   // Slim rows are all core columns, so one attempt is enough; if the schema
   // turns out older than expected, fall through to the full ladder below.
   if (options.fields === "slim") {
@@ -635,6 +651,7 @@ export function useStudents(schoolId?: string, options?: StudentQueryOptions): U
   const limit = options?.limit || 100;
   const offset = options?.offset || 0;
   const slim = options?.fields === "slim";
+  const enabled = options?.enabled ?? true;
   const cacheKey = `students:${schoolId}:${limit}:${offset}:${slim ? "slim" : "full"}`;
   const cachedData = getCachedData<StudentsCacheEntry>(cacheKey);
   const [students, setStudents] = useState<StudentWithClass[]>(cachedData?.students || []);
@@ -1334,9 +1351,10 @@ export function useStudents(schoolId?: string, options?: StudentQueryOptions): U
   }, [schoolId, isDemo, limit]);
 
   useEffect(() => {
+    if (!enabled) return;
     fetchStudents();
     hasInitialized.current = true;
-  }, [fetchStudents]);
+  }, [enabled, fetchStudents]);
   return {
     students,
     loading,

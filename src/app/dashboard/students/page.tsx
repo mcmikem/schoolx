@@ -122,14 +122,26 @@ export default function StudentHubPage() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [isConstrainedNetwork, setIsConstrainedNetwork] = useState(false);
+  const [networkProfileReady, setNetworkProfileReady] = useState(false);
+  const [loadFullRoster, setLoadFullRoster] = useState(false);
   const [attendanceStatusMap, setAttendanceStatusMap] = useState<Record<string, AttendanceStatusMeta>>({});
   const preferredPageSize = tablePrefs.pageSize || (isConstrainedNetwork ? 20 : 50);
   const itemsPerPage = preferredPageSize;
-  const registryFetchLimit = isConstrainedNetwork ? 500 : 5000;
+  const registryFetchLimit = isConstrainedNetwork && !loadFullRoster ? 500 : 10000;
 
-  const { students, loading, createStudent, updateStudent, deleteStudent, totalCount } = useStudents(school?.id, {
+  const {
+    students,
+    loading,
+    createStudent,
+    updateStudent,
+    deleteStudent,
+    totalCount,
+    error: studentsError,
+    refetch,
+  } = useStudents(school?.id, {
     limit: registryFetchLimit,
     offset: 0,
+    enabled: networkProfileReady,
   });
   const { classes } = useClasses(school?.id);
 
@@ -201,7 +213,10 @@ export default function StudentHubPage() {
   const templateImport = useStudentImport(classes, createStudent, toast, importHouses);
 
   useEffect(() => {
-    if (typeof navigator === "undefined") return;
+    if (typeof navigator === "undefined") {
+      setNetworkProfileReady(true);
+      return;
+    }
 
     const nav = navigator as Navigator & {
       connection?: {
@@ -213,12 +228,16 @@ export default function StudentHubPage() {
     };
 
     const connection = nav.connection;
-    if (!connection) return;
+    if (!connection) {
+      setNetworkProfileReady(true);
+      return;
+    }
 
     const evaluateConnection = () => {
       const type = (connection.effectiveType || "").toLowerCase();
       const constrained = !!connection.saveData || type.includes("2g") || type.includes("3g");
       setIsConstrainedNetwork(constrained);
+      setNetworkProfileReady(true);
     };
 
     evaluateConnection();
@@ -743,6 +762,38 @@ export default function StudentHubPage() {
             </div>
           </div>
         </PageHeader>
+
+        {isConstrainedNetwork && !loadFullRoster && totalCount > students.length && !loading && (
+          <div
+            role="status"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm"
+          >
+            <p className="text-[var(--t2)]">
+              Showing the first {students.length} of {totalCount} students to save data on this slow connection.
+            </p>
+            <Button variant="secondary" size="sm" onClick={() => setLoadFullRoster(true)}>
+              Load full register
+            </Button>
+          </div>
+        )}
+
+        {loadFullRoster && totalCount > students.length && !loading && (
+          <div
+            role="status"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--amber)] bg-[var(--amber-soft)] px-4 py-3 text-sm text-[var(--t2)]"
+          >
+            <p>
+              {studentsError
+                ? `The full register could not load. Showing ${students.length} of ${totalCount} students.`
+                : `Showing ${students.length} of ${totalCount} students. This screen loads up to 10,000 at once.`}
+            </p>
+            {studentsError && (
+              <Button variant="secondary" size="sm" onClick={() => void refetch()}>
+                Try again
+              </Button>
+            )}
+          </div>
+        )}
 
         <OwlyTrigger guideId="students" label="How do I manage students?" className="mb-4" />
 

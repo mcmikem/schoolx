@@ -1179,11 +1179,15 @@ export default function FinanceHubPage() {
         // one.
         setShowReceiptPrompt(true);
       }
-      toast.success(
-        offlinePayment
-          ? "Payment saved on this phone. It syncs when the network returns"
-          : "Payment recorded successfully",
-      );
+      // The receipt prompt already confirms the payment. Showing a second
+      // toast in the same bottom area covered its action buttons on phones.
+      if (!student) {
+        toast.success(
+          offlinePayment
+            ? "Payment saved on this phone. It syncs when the network returns"
+            : "Payment recorded successfully",
+        );
+      }
       if (!isDemo && !offlinePayment) void refetchPayments();
       setShowPaymentModal(false);
       setNewPayment({

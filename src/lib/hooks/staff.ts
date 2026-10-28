@@ -32,7 +32,7 @@ type StaffUser = {
   created_at: string;
 };
 
-export function useStaff(schoolId?: string) {
+export function useStaff(schoolId?: string, enabled = true) {
   const [staff, setStaff] = useState<(StaffUser | DemoStaff)[]>([]);
   const [loading, setLoading] = useState(true);
   const { isDemo } = useAuth();
@@ -40,6 +40,7 @@ export function useStaff(schoolId?: string) {
   useEffect(() => {
     let cancelled = false;
     async function fetchStaff() {
+      if (!enabled) return;
       if (isDemo || isDemoSchool(schoolId)) {
         if (!cancelled) {
           setStaff(DEMO_STAFF);
@@ -83,7 +84,7 @@ export function useStaff(schoolId?: string) {
     return () => {
       cancelled = true;
     };
-  }, [schoolId, isDemo]);
+  }, [schoolId, isDemo, enabled]);
 
   return { staff, loading };
 }

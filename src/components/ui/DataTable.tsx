@@ -36,6 +36,8 @@ interface DataTableProps<T> {
   rowClassName?: (row: T) => string | undefined;
   /** Rows visible per page when paging is handled by the parent. */
   initialSort?: { key: string; dir: "asc" | "desc" };
+  /** Accessible name for a clickable mobile row when `onRowClick` is set. */
+  rowLabel?: (row: T) => string;
 }
 
 const alignClass = {
@@ -57,6 +59,7 @@ export function DataTable<T>({
   className = "",
   rowClassName,
   initialSort,
+  rowLabel,
 }: DataTableProps<T>) {
   const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(initialSort ?? null);
 
@@ -186,8 +189,25 @@ export function DataTable<T>({
         {sorted.map((row) => (
           <li key={getRowId(row)}>
             <div
+              role={onRowClick ? "button" : undefined}
+              tabIndex={onRowClick ? 0 : undefined}
+              aria-label={onRowClick ? rowLabel?.(row) : undefined}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
-              className={cn("px-4 py-3", onRowClick && "cursor-pointer active:bg-[var(--surface-container-low)]")}
+              onKeyDown={
+                onRowClick
+                  ? (event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onRowClick(row);
+                      }
+                    }
+                  : undefined
+              }
+              className={cn(
+                "px-4 py-3",
+                onRowClick &&
+                  "cursor-pointer active:bg-[var(--surface-container-low)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--primary)]",
+              )}
             >
               {renderMobileCard ? (
                 renderMobileCard(row)

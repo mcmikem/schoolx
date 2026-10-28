@@ -588,6 +588,7 @@ ${request.detail}`
       {suggestionOpen && currentSuggestion && (
         <div
           data-owl-suggestion=""
+          data-owl-float=""
           className="fixed z-[9991] w-[min(320px,calc(100vw-32px))] rounded-2xl p-4 shadow-2xl bottom-[calc(var(--mobile-nav-clearance)+74px)] right-4 sm:bottom-[92px] sm:right-6"
           style={{ background: "var(--surface, #fff)", border: "1px solid var(--border, #e5e7eb)" }}
           role="dialog"
@@ -637,6 +638,7 @@ ${request.detail}`
             setFabHint(false);
             setOpen(true);
           }}
+          data-owl-float=""
           className="fixed z-[9990] flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold text-white shadow-xl transition-transform hover:scale-105 active:scale-95 bottom-[calc(var(--mobile-nav-clearance)+74px)] right-4 sm:bottom-[92px] sm:right-6"
           style={{ background: "#0b1c39" }}
         >
@@ -656,6 +658,7 @@ ${request.detail}`
       <button
         onClick={handleFabClick}
         data-owl-assistant=""
+        data-owl-float=""
         aria-hidden={!fabVisible && !open && !attention}
         tabIndex={!fabVisible && !open && !attention ? -1 : undefined}
         className={`fixed z-[9990] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--green)] bottom-[calc(var(--mobile-nav-clearance)+10px)] right-4 sm:bottom-6 sm:right-6 transition-all duration-200 ${
@@ -857,6 +860,7 @@ ${request.detail}`
       {open && (
         <div
           data-owl-assistant=""
+          data-owl-float=""
           className="fixed z-[9989] w-[calc(100vw-32px)] max-w-[360px] rounded-2xl shadow-2xl flex flex-col overflow-hidden bottom-[calc(var(--mobile-nav-clearance)+82px)] right-4 sm:bottom-[100px] sm:right-6"
           style={{
             background: "var(--surface, #fff)",

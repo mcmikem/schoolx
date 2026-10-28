@@ -2756,7 +2756,11 @@ html.lite [role="button"] {
 .rounded-b-2xl { border-radius: 0 0 18px 18px; }
 .rounded-b-3xl { border-radius: 0 0 24px 24px; }
 
-body:has([aria-modal="true"]) [data-owl-assistant] {
+/* A dialog owns the screen: the guide's launcher, label pill and panels sit
+   above the overlay by design and would otherwise cover the sheet's own
+   buttons (the mobile "Ask Owly" pill blocked Record Payment's Next). */
+body:has([aria-modal="true"]) [data-owl-assistant],
+body:has([aria-modal="true"]) [data-owl-float] {
   visibility: hidden;
   pointer-events: none;
 }

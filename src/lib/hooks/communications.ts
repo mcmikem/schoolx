@@ -169,7 +169,7 @@ export function useAcademicEvents(schoolId?: string, limit = 5) {
   return { events, loading };
 }
 
-export function useSMSTriggers(schoolId?: string) {
+export function useSMSTriggers(schoolId?: string, enabled = true) {
   const [triggers, setTriggers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { isDemo } = useAuth();
@@ -337,6 +337,7 @@ export function useSMSTriggers(schoolId?: string) {
 
   useEffect(() => {
     async function fetchTriggers() {
+      if (!enabled) return;
       if (!schoolId) {
         setLoading(false);
         return;
@@ -387,7 +388,7 @@ export function useSMSTriggers(schoolId?: string) {
       }
     }
     fetchTriggers();
-  }, [schoolId, isDemo]);
+  }, [schoolId, isDemo, enabled]);
 
   return {
     triggers,

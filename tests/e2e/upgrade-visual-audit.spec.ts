@@ -53,7 +53,7 @@ test("fee form creates and edits annual charges with preserved metadata", async 
   await edit.getByLabel("Amount (UGX)", { exact: true }).fill("175000");
   await edit.getByRole("button", { name: "Save Changes", exact: true }).click();
   await expect(edit).not.toBeVisible();
-  await expect(page.getByText("UGX 175,000", { exact: true })).toBeVisible();
+  await expect(page.getByRole("list").getByText("UGX 175,000", { exact: true })).toBeVisible();
 });
 
 test("grading configuration saves selections and the ledger opens payment details", async ({ page }) => {
@@ -97,6 +97,9 @@ test("bursar searches for a student and records a historical payment date", asyn
   await dialog.getByLabel("Payment Reference", { exact: true }).fill("AUDIT-RECEIPT");
   await page.screenshot({ path: join(output, "record-payment-390.png"), animations: "disabled" });
   await dialog.getByRole("button", { name: "Record UGX 1,000", exact: true }).click();
+  const receiptPrompt = page.getByRole("status").filter({ hasText: "Payment added" });
+  await expect(receiptPrompt).toBeVisible();
+  await receiptPrompt.getByRole("button", { name: "Receipt", exact: true }).click();
   const receipt = page.getByRole("dialog", { name: "Fee Payment Receipt", exact: true });
   await expect(receipt).toBeVisible();
   await expect(receipt.getByText("05/02/2026", { exact: true })).toBeVisible();

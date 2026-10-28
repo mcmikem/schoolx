@@ -18,6 +18,8 @@ interface StatStripProps {
   className?: string;
   /** Announced to screen readers when values change (offline/sync screens). */
   ariaLive?: "polite" | "off";
+  /** "flat" drops the boxed cards for one hairline-divided strip. */
+  variant?: "cards" | "flat";
 }
 
 const columnClass: Record<2 | 3 | 4 | 5, string> = {
@@ -35,16 +37,43 @@ const toneClass: Record<StatTone, string> = {
   info: "text-[var(--primary)]",
 };
 
-export function StatStrip({ items, columns = 4, className = "", ariaLive = "off" }: StatStripProps) {
+export function StatStrip({ items, columns = 4, className = "", ariaLive = "off", variant = "cards" }: StatStripProps) {
+  const flat = variant === "flat";
+  const mobileColumns = 2;
+  const tabletColumns = columns === 4 ? 2 : columns === 5 ? 3 : columns;
+  const lastRowStart = (columnCount: number) => {
+    const remainder = items.length % columnCount;
+    return remainder === 0 ? items.length - columnCount : items.length - remainder;
+  };
+  const mobileLastRowStart = lastRowStart(mobileColumns);
+  const tabletLastRowStart = lastRowStart(tabletColumns);
+  const desktopLastRowStart = lastRowStart(columns);
   return (
     <dl
       aria-live={ariaLive === "off" ? undefined : ariaLive}
-      className={cn("grid grid-cols-2 gap-3 sm:gap-4", columnClass[columns], className)}
+      className={cn(
+        flat
+          ? "grid grid-cols-2 gap-x-4 border-y border-[var(--border)] sm:gap-x-0"
+          : "grid grid-cols-2 gap-3 sm:gap-4",
+        columnClass[columns],
+        className,
+      )}
     >
-      {items.map((item) => (
+      {items.map((item, index) => (
         <div
           key={item.label}
-          className="min-w-0 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-[var(--sh1)]"
+          className={cn(
+            flat
+              ? "min-w-0 py-3 sm:px-4 sm:first:pl-0 sm:last:pr-0"
+              : "min-w-0 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-[var(--sh1)]",
+            flat && items.length % mobileColumns === 1 && index === items.length - 1 && "col-span-2 sm:col-span-1",
+            flat && index < mobileLastRowStart && "border-b border-[var(--border)]",
+            flat && index >= mobileLastRowStart && "border-b-0",
+            flat && index < tabletLastRowStart && "sm:border-b sm:border-[var(--border)]",
+            flat && index >= tabletLastRowStart && "sm:border-b-0",
+            flat && index < desktopLastRowStart && "lg:border-b lg:border-[var(--border)]",
+            flat && index >= desktopLastRowStart && "lg:border-b-0",
+          )}
         >
           <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--t3)]">{item.label}</dt>
           <dd

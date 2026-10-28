@@ -197,6 +197,58 @@
         }
       },
       "updatedAt": "2026-10-28T04:03:20.452Z"
+    },
+    "/dashboard/money": {
+      "targetKind": "existing-ui",
+      "projectId": "450043c7-e09e-4fbc-a8dd-7f8b2b3fdd20",
+      "baselineDraftId": "c1fa6946-c175-48ee-bf1b-41ed8e0ae2ca",
+      "activeDraftId": "c1fa6946-c175-48ee-bf1b-41ed8e0ae2ca",
+      "designSystemPath": ".superdesign/design-system.md",
+      "referenceIds": [
+        "public-SkoolMate-logos-SchoolMate-logo-official.svg"
+      ],
+      "contextFiles": [
+        ".superdesign/design-system.md",
+        ".superdesign/init/theme.md",
+        "src/app/dashboard/money/page.tsx",
+        "src/app/dashboard/layout.tsx",
+        "src/components/dashboard/SidebarShell.tsx",
+        "src/components/dashboard/TopBar.tsx",
+        "src/components/dashboard/MobileBottomNav.tsx",
+        "src/components/ui/PageHeader.tsx",
+        "src/components/ui/Card.tsx",
+        "src/components/ui/index.tsx",
+        "src/components/ui/StatStrip.tsx",
+        "src/components/MaterialIcon.tsx",
+        "src/app/globals.css",
+        "tailwind.config.js"
+      ],
+      "fingerprints": {
+        ".superdesign/design-system.md": "9259e3a4b0344ac83b0cfc8ce0fb1f4b998fae6f11c451b200deea4d06ed74ec",
+        ".superdesign/init/theme.md": "ff8b79c3ac57f938db6d9e0230c098d72cb40caa4db3a71d4f4f48f61ccb9622",
+        "src/app/dashboard/money/page.tsx": "b071f10abbee43432fb61162d6b68a9c5d463b9ae3809933ef8a31d487b3d09f",
+        "src/app/dashboard/layout.tsx": "12112162a26a706ff38624465b73a029b5343915fa8661d085737bfb51ba2e5c",
+        "src/components/dashboard/SidebarShell.tsx": "aba6502f1a8bec35e4ec784d9867c33899f66e1c9659764aa2d98c6045c00415",
+        "src/components/dashboard/TopBar.tsx": "4af41e13e354bd950c3625974b390262151e156efe2f8066aca1930367532904",
+        "src/components/dashboard/MobileBottomNav.tsx": "3a07d5763dc1ff6aaff10aaca71094d3512a4871869aab526b2477dac51e874b",
+        "src/components/ui/PageHeader.tsx": "bc2d96c61695ec2e4e832f70fc4030e80abbbc8afdc68458275bc1cf628ac0a4",
+        "src/components/ui/Card.tsx": "953958c00e66ed05666e86c34030fd9569b259bd84fe657b16cbe35a923321d2",
+        "src/components/ui/index.tsx": "7a8804acdf9457c8860cacc1a18d3c0cb31690595d50515b02389cfa2a663cd3",
+        "src/components/ui/StatStrip.tsx": "ff83b1340298714e8d1ff18bf134c3a7f05c6cf87d4a134c0b5e0cf230b040c1",
+        "src/components/MaterialIcon.tsx": "e8092aadde009cac25f0a73e0915740178c2448baf035340fae4393b3288733e",
+        "src/app/globals.css": "2cc0dfb8732a5a36c0c4238898fc3c079759c2862c6d349c3ef54c1499d1c91c",
+        "tailwind.config.js": "c37f85521f65776f09f47d5cc2d9b43768feb42a13b14a1df681a3e133e51cef"
+      },
+      "components": [],
+      "drafts": {
+        "c1fa6946-c175-48ee-bf1b-41ed8e0ae2ca": {
+          "title": "Bursar Money — clearer mobile financial overview",
+          "visualDirection": "SkoolMate mobile-first money in/out, balance and finance actions with compact clear layout",
+          "parentDraftId": null,
+          "currentVersion": 2
+        }
+      },
+      "updatedAt": "2026-10-28T17:32:31.478Z"
     }
   }
 }
