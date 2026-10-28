@@ -38,6 +38,16 @@ import { competencyBadge, reportGradeColor } from "@/lib/report-card-presentatio
 import { searchReportList } from "@/lib/report-list";
 import { suggestClassTeacherRemark, suggestHeadTeacherRemark } from "@/lib/report-remarks";
 import { classicReportSubject, rankCompleteReports, summarizeClassicReport } from "@/lib/report-summary";
+import {
+  REPORT_ROWS_KEY,
+  TERM_GRADE_BASIS_KEY,
+  groupSubjectDetails,
+  parseReportRows,
+  parseTermGradeBasis,
+  resolveReportRows,
+  type ReportRowsConfig,
+  type TermGradeBasis,
+} from "@/lib/report-rows";
 import { loadSchoolSettings } from "@/lib/school-settings";
 import { canSendSms } from "@/lib/sms-permissions";
 import {
@@ -226,6 +236,10 @@ export default function ReportCardsPage() {
   // Whether the school runs a beginning-of-term test. Drives whether the printed
   // report has a BOT column at all.
   const [showBot, setShowBot] = useState(true);
+  // The school's term-grade recipe (which assessments count and their weights)
+  // and report-row grouping (subjects taught separately, graded as one line).
+  const [gradeBasis, setGradeBasis] = useState<TermGradeBasis | null>(null);
+  const [reportRows, setReportRows] = useState<ReportRowsConfig | null>(null);
   useEffect(() => {
     let cancelled = false;
     setReportLayout("uganda_classic");
@@ -238,6 +252,8 @@ export default function ReportCardsPage() {
         setReportLayout(layout);
         setReportFormat(layout === "ncdc_cbc" ? "cbc" : "numerical");
         setShowBot(resolveUseBot(settings));
+        setGradeBasis(parseTermGradeBasis(settings[TERM_GRADE_BASIS_KEY]));
+        setReportRows(parseReportRows(settings[REPORT_ROWS_KEY]));
       } catch {
         setReportFormat("numerical");
       }
@@ -249,6 +265,8 @@ export default function ReportCardsPage() {
       setReportLayout(resolved);
       setReportFormat(resolved === "ncdc_cbc" ? "cbc" : "numerical");
       setShowBot(resolveUseBot(settings));
+      setGradeBasis(parseTermGradeBasis(settings[TERM_GRADE_BASIS_KEY]));
+      setReportRows(parseReportRows(settings[REPORT_ROWS_KEY]));
     });
     return () => {
       cancelled = true;
@@ -404,7 +422,7 @@ export default function ReportCardsPage() {
       const subjScores = studentSubjectScores[student.id] || {};
       const studentComp = studentCompetencies[student.id] || {};
       const subjectDetails = Object.entries(subjScores).map(([subjId, data]) => {
-        const result = classicReportSubject(data.rows);
+        const result = classicReportSubject(data.rows, gradeBasis);
         const comp = studentComp[subjId];
         return {
           subjectId: subjId,
@@ -423,6 +441,7 @@ export default function ReportCardsPage() {
         const existing = subjectDetails.find((sd) => sd.subjectId === sub.id);
         return (
           existing || {
+            subjectId: sub.id,
             name: sub.name,
             score: 0,
             grade: "M.M",
@@ -434,7 +453,13 @@ export default function ReportCardsPage() {
         );
       });
 
-      const summary = summarizeClassicReport(allSubjectDetails, className);
+      // Subjects the school reports as one line (e.g. science and social
+      // studies on a P.2 card) fold together here; ungrouped subjects keep
+      // their own lines. No configuration → unchanged ladder.
+      const classLevel = classes.find((c: any) => c.id === classId)?.level as string | undefined;
+      const cardSubjects = groupSubjectDetails(allSubjectDetails, resolveReportRows(reportRows, classLevel));
+
+      const summary = summarizeClassicReport(cardSubjects, className);
 
       return {
         studentId: student.id,
@@ -443,7 +468,7 @@ export default function ReportCardsPage() {
         gender: student.gender,
         photoUrl: student.photo_url,
         className,
-        subjects: allSubjectDetails,
+        subjects: cardSubjects,
         ...summary,
         position: 0,
         division: summary.division,
@@ -1360,18 +1385,22 @@ export default function ReportCardsPage() {
     ctx: { byStudent: Map<string, { present: number; total: number }>; nextTermBegins: string | null },
   ): Promise<string> => {
     const studentComment = comments[report.studentId] || { classTeacher: "", hm: "" };
-    const ordered = orderUgandaSubjects(
-      report.subjects.map((s) => ({
-        name: s.name,
-        bot: s.uganda?.mid ?? null,
-        mot: s.uganda?.mot ?? null,
-        eot: s.uganda?.end ?? null,
-        avg: s.uganda?.avg ?? null,
-        agg: s.uganda?.agg ?? null,
-        grade: s.uganda?.grade ?? "—",
-        remarks: s.competencyNotes || "",
-      })),
-    );
+    const raw = report.subjects.map((s) => ({
+      name: s.name,
+      bot: s.uganda?.mid ?? null,
+      mot: s.uganda?.mot ?? null,
+      eot: s.uganda?.end ?? null,
+      avg: s.uganda?.avg ?? null,
+      agg: s.uganda?.agg ?? null,
+      grade: s.uganda?.grade ?? "—",
+      remarks: s.competencyNotes || "",
+    }));
+    // With configured report rows the card's line order IS the school's
+    // chosen order — the canonical subject re-sort would scatter grouped
+    // lines like "Science and Social Studies" to the bottom.
+    const groupedActive =
+      resolveReportRows(reportRows, (selectedClassObj as any)?.level).length > 0;
+    const ordered = groupedActive ? raw : orderUgandaSubjects(raw);
     const totals = sumUgandaTotals(
       ordered.map((subject) => ({ mid: subject.bot, end: subject.eot, avg: subject.avg, agg: subject.agg })),
     );

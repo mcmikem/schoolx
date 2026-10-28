@@ -3,6 +3,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAcademic } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
+import { useClasses, useSubjects } from "@/lib/hooks";
+import {
+  REPORT_ROWS_KEY,
+  TERM_GRADE_BASIS_KEY,
+  parseReportRows,
+  parseTermGradeBasis,
+  type ReportRowConfig,
+  type TermGradeBasis,
+} from "@/lib/report-rows";
 import { loadSchoolSetting, saveSchoolSetting } from "@/lib/school-settings";
 import { getErrorMessage } from "@/lib/validation";
 import { useToast } from "@/components/Toast";
@@ -272,6 +281,351 @@ export default function AcademicSettings() {
             </button>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+const BASIS_OPTIONS: Array<{ id: TermGradeBasis["types"][number]; label: string; hint: string }> = [
+  { id: "bot", label: "Beginning of Term (BOT)", hint: "The opening test of the term" },
+  { id: "mid_term", label: "Mid of Term (MOT)", hint: "The mid-term examination" },
+  { id: "eot", label: "End of Term (EOT)", hint: "The end-of-term examination" },
+  { id: "ca", label: "Continuous assessment", hint: "CA1-CA4, projects and class tests" },
+];
+
+const DEFAULT_BASIS: TermGradeBasis = { types: ["bot", "mid_term", "eot"], weights: {} };
+
+function TermGradeBasisCard() {
+  const { school } = useAuth();
+  const toast = useToast();
+  const [basis, setBasis] = useState<TermGradeBasis>(DEFAULT_BASIS);
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!school?.id) return;
+    let cancelled = false;
+    loadSchoolSetting<TermGradeBasis | null>(school.id, TERM_GRADE_BASIS_KEY, null)
+      .then((saved) => {
+        if (cancelled) return;
+        setBasis(parseTermGradeBasis(saved) ?? DEFAULT_BASIS);
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+    return () => {
+      cancelled = true;
+    };
+  }, [school?.id]);
+
+  const toggleType = (id: TermGradeBasis["types"][number], on: boolean) => {
+    setBasis((prev) => {
+      const types = on ? [...new Set([...prev.types, id])] : prev.types.filter((t) => t !== id);
+      return { ...prev, types };
+    });
+  };
+
+  const setWeight = (id: TermGradeBasis["types"][number], weight: number) => {
+    setBasis((prev) => ({ ...prev, weights: { ...prev.weights, [id]: Math.max(0, Math.min(100, weight)) } }));
+  };
+
+  const totalWeight = basis.types.reduce((sum, t) => sum + (Number(basis.weights?.[t]) > 0 ? Number(basis.weights?.[t]) : 0), 0);
+  const weighted = basis.types.some((t) => Number(basis.weights?.[t]) > 0);
+
+  const save = async () => {
+    if (!school?.id) return;
+    if (weighted && totalWeight !== 100) {
+      toast.error("Weights must total 100% — or clear every weight to count each exam equally.");
+      return;
+    }
+    if (basis.types.length === 0) {
+      toast.error("Tick at least one assessment the report card grades on.");
+      return;
+    }
+    try {
+      setSaving(true);
+      await saveSchoolSetting(school.id, TERM_GRADE_BASIS_KEY, basis);
+      toast.success("Term grade basis saved — new report cards will use it");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to save term grade basis"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
+      <h2 className="text-lg font-semibold text-[var(--t1)] mb-2 flex items-center gap-2">
+        <MaterialIcon icon="rule" className="text-primary" />
+        What the term grade is made of
+      </h2>
+      <p className="text-sm text-on-surface-variant mb-4">
+        Some schools grade on the end-of-term exam only, some combine BOT, MOT and EOT. Tick what counts and set each
+        weight. A pupil who missed one exam is not penalised — the others carry the grade on their own weights.
+      </p>
+      <div className="space-y-2">
+        {BASIS_OPTIONS.map((option) => {
+          const on = basis.types.includes(option.id);
+          return (
+            <div key={option.id} className="flex items-center gap-3 p-3 bg-[#f8fafc] rounded-lg">
+              <input
+                type="checkbox"
+                checked={on}
+                onChange={(e) => toggleType(option.id, e.target.checked)}
+                className="w-4 h-4 rounded border-[var(--border2)] text-primary"
+                aria-label={option.label}
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[var(--t1)]">{option.label}</p>
+                <p className="text-xs text-[var(--t3)]">{option.hint}</p>
+              </div>
+              <input
+                type="number"
+                inputMode="numeric"
+                value={basis.weights?.[option.id] ?? ""}
+                placeholder="—"
+                onChange={(e) => setWeight(option.id, Number(e.target.value))}
+                disabled={!on}
+                className="w-16 px-2 py-1 text-sm border border-[var(--border2)] rounded disabled:opacity-50"
+                min={0}
+                max={100}
+                aria-label={`${option.label} weight`}
+              />
+              <span className="text-sm text-[var(--slate-ink)]">%</span>
+            </div>
+          );
+        })}
+      </div>
+      {weighted && (
+        <p className={`text-xs mt-2 ${totalWeight !== 100 ? "text-red-600" : "text-green-600"}`}>
+          Weights total {totalWeight}% — must equal 100%, or clear them all to count each exam equally.
+        </p>
+      )}
+      <button onClick={save} disabled={saving || !loaded} className="btn mt-4 w-full disabled:opacity-50">
+        {saving ? "Saving..." : "Save term grade basis"}
+      </button>
+    </div>
+  );
+}
+
+interface RowDraft {
+  id: string;
+  label: string;
+  subjectIds: string[];
+  mode: "mean" | "best";
+}
+
+const DEFAULT_LEVEL_KEY = "__default__";
+
+function ReportRowsCard() {
+  const { school } = useAuth();
+  const toast = useToast();
+  const { classes } = useClasses(school?.id);
+  const { subjects } = useSubjects(school?.id);
+  const [rowsByLevel, setRowsByLevel] = useState<Record<string, RowDraft[]>>({});
+  const [levelKey, setLevelKey] = useState<string>(DEFAULT_LEVEL_KEY);
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const levels = Array.from(new Set(classes.map((c: any) => String(c.level || "").trim()).filter(Boolean))).sort();
+
+  useEffect(() => {
+    if (!school?.id) return;
+    let cancelled = false;
+    loadSchoolSetting<ReportRowConfig[] | null>(school.id, REPORT_ROWS_KEY, null)
+      .then((saved) => {
+        if (cancelled) return;
+        const parsed = parseReportRows(saved);
+        const next: Record<string, RowDraft[]> = {
+          [DEFAULT_LEVEL_KEY]: parsed?.default ?? [],
+        };
+        for (const [level, rows] of Object.entries(parsed?.levels ?? {})) next[level] = rows;
+        setRowsByLevel(next);
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+    return () => {
+      cancelled = true;
+    };
+  }, [school?.id]);
+
+  const rows = rowsByLevel[levelKey] ?? [];
+
+  const updateRows = (next: RowDraft[]) => setRowsByLevel((prev) => ({ ...prev, [levelKey]: next }));
+
+  const addRow = () =>
+    updateRows([
+      ...rows,
+      { id: `row-${Date.now()}-${rows.length}`, label: "", subjectIds: [], mode: "mean" },
+    ]);
+
+  const removeRow = (id: string) => updateRows(rows.filter((r) => r.id !== id));
+
+  const moveRow = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= rows.length) return;
+    const next = [...rows];
+    [next[index], next[target]] = [next[target], next[index]];
+    updateRows(next);
+  };
+
+  const patchRow = (id: string, patch: Partial<RowDraft>) =>
+    updateRows(rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+
+  const toggleSubject = (rowId: string, subjectId: string) =>
+    updateRows(
+      rows.map((r) =>
+        r.id === rowId
+          ? {
+              ...r,
+              subjectIds: r.subjectIds.includes(subjectId)
+                ? r.subjectIds.filter((s) => s !== subjectId)
+                : [...r.subjectIds, subjectId],
+            }
+          : r,
+      ),
+    );
+
+  const save = async () => {
+    if (!school?.id) return;
+    for (const row of rows) {
+      if (!row.label.trim() || row.subjectIds.length === 0) {
+        toast.error("Every combined line needs a name and at least one subject.");
+        return;
+      }
+    }
+    try {
+      setSaving(true);
+      const config: Record<string, unknown> = {};
+      if ((rowsByLevel[DEFAULT_LEVEL_KEY] ?? []).length > 0) config.default = rowsByLevel[DEFAULT_LEVEL_KEY];
+      const levelOverrides: Record<string, RowDraft[]> = {};
+      for (const [key, list] of Object.entries(rowsByLevel)) {
+        if (key !== DEFAULT_LEVEL_KEY && list.length > 0) levelOverrides[key] = list;
+      }
+      if (Object.keys(levelOverrides).length > 0) config.levels = levelOverrides;
+      await saveSchoolSetting(school.id, REPORT_ROWS_KEY, config);
+      toast.success("Report card lines saved");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to save report card lines"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
+      <h2 className="text-lg font-semibold text-[var(--t1)] mb-2 flex items-center gap-2">
+        <MaterialIcon icon="category" className="text-primary" />
+        Report card lines
+      </h2>
+      <p className="text-sm text-on-surface-variant mb-4">
+        Some subjects are taught separately but reported as one grade — lower-primary science and social studies, or
+        SST with Religious Education. Combine them here and the report card prints one line per group. Subjects you
+        leave out of a group keep their own line.
+      </p>
+      <div className="flex items-center gap-3 mb-4">
+        <label className="text-sm font-medium text-[var(--t1)]" htmlFor="rows-level">
+          Setting for
+        </label>
+        <select
+          id="rows-level"
+          value={levelKey}
+          onChange={(e) => setLevelKey(e.target.value)}
+          className="input flex-1"
+        >
+          <option value={DEFAULT_LEVEL_KEY}>All classes (default)</option>
+          {levels.map((level) => (
+            <option key={level} value={level}>
+              {level} classes
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {rows.length === 0 ? (
+        <p className="text-sm text-[var(--t3)] bg-[#f8fafc] rounded-lg p-4">
+          {levelKey === DEFAULT_LEVEL_KEY
+            ? "No combined lines for the whole school. Add one if teachers mark subjects separately but the report shows a single grade."
+            : `${levelKey} classes follow the default above. Add an override only if this level reports differently.`}
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {rows.map((row, index) => (
+            <div key={row.id} className="border border-[var(--surface-container-high)] rounded-xl p-3 space-y-3">
+              <div className="flex items-center gap-2">
+                <input
+                  value={row.label}
+                  onChange={(e) => patchRow(row.id, { label: e.target.value })}
+                  placeholder="Line on the card, e.g. Science and Social Studies"
+                  className="input flex-1"
+                  aria-label="Combined line name"
+                />
+                <select
+                  value={row.mode}
+                  onChange={(e) => patchRow(row.id, { mode: e.target.value as RowDraft["mode"] })}
+                  className="input w-28"
+                  aria-label="How the line is graded"
+                >
+                  <option value="mean">Average</option>
+                  <option value="best">Highest</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => moveRow(index, -1)}
+                  className="p-2 text-[var(--t3)] hover:text-[var(--t1)] disabled:opacity-30"
+                  disabled={index === 0}
+                  aria-label="Move line up"
+                >
+                  <MaterialIcon icon="arrow_upward" className="text-base" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveRow(index, 1)}
+                  className="p-2 text-[var(--t3)] hover:text-[var(--t1)] disabled:opacity-30"
+                  disabled={index === rows.length - 1}
+                  aria-label="Move line down"
+                >
+                  <MaterialIcon icon="arrow_downward" className="text-base" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeRow(row.id)}
+                  className="p-2 text-red-500 hover:text-red-700"
+                  aria-label="Remove line"
+                >
+                  <MaterialIcon icon="delete" className="text-base" />
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {subjects.map((subject: any) => {
+                  const on = row.subjectIds.includes(subject.id);
+                  return (
+                    <button
+                      key={subject.id}
+                      type="button"
+                      onClick={() => toggleSubject(row.id, subject.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${
+                        on
+                          ? "bg-primary text-white border-primary"
+                          : "bg-[var(--surface)] text-[var(--t2)] border-[var(--border2)] hover:border-primary"
+                      }`}
+                    >
+                      {subject.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-2 mt-4">
+        <button type="button" onClick={addRow} className="btn btn-secondary flex-1">
+          <MaterialIcon icon="add" className="text-base mr-1" />
+          Add combined line
+        </button>
+        <button onClick={save} disabled={saving || !loaded} className="btn flex-1 disabled:opacity-50">
+          {saving ? "Saving..." : "Save report card lines"}
+        </button>
       </div>
     </div>
   );

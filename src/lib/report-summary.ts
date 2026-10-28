@@ -1,8 +1,13 @@
 import { detectLevelFromClass, isALevel, pleAggregate, uceAggregate } from "@/lib/grading-tracks";
-import { bucketUgandaSubject, type UgandaGradeRow, type UgandaSubjectResult } from "@/lib/uganda-report";
+import {
+  bucketUgandaSubject,
+  type TermGradeBasis,
+  type UgandaGradeRow,
+  type UgandaSubjectResult,
+} from "@/lib/uganda-report";
 
-export function classicReportSubject(rows: UgandaGradeRow[]) {
-  const uganda = bucketUgandaSubject(rows);
+export function classicReportSubject(rows: UgandaGradeRow[], basis?: TermGradeBasis | null) {
+  const uganda = bucketUgandaSubject(rows, basis);
   return { score: uganda.avg ?? 0, grade: uganda.grade, isMissing: uganda.avg === null, uganda };
 }
 

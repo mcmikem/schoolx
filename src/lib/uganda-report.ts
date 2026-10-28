@@ -121,7 +121,53 @@ export function ugandaDivision(aggSum: number | null): string {
   return "U";
 }
 
-export function bucketUgandaSubject(rows: UgandaGradeRow[]): UgandaSubjectResult {
+/** Which recorded exam a school wants the term grade built from. */
+export type GradeBasisType = "bot" | "mid_term" | "eot" | "ca";
+/**
+ * The school's term-grade recipe: which assessments count and their weights.
+ * Stored in school_settings as term_grade_basis_v1; weights are plain
+ * percentages (30/30/40) — anything unweighted counts equally.
+ */
+export interface TermGradeBasis {
+  types: GradeBasisType[];
+  weights?: Partial<Record<GradeBasisType, number>>;
+}
+
+/** Continuous-assessment row types folded into the "ca" bucket. */
+const UG_CA_TYPES = ["ca1", "ca2", "ca3", "ca4", "project", "u1", "u2", "class_test", "saturday"];
+
+function typePct(rows: UgandaGradeRow[], type: GradeBasisType): number | null {
+  let picked: UgandaGradeRow[];
+  if (type === "bot") picked = rows.filter((r) => UG_MID_TYPES.includes(r.assessment_type));
+  else if (type === "mid_term") picked = rows.filter((r) => r.assessment_type === "mid_term");
+  else if (type === "eot") {
+    const eot = rows.filter((r) => r.assessment_type === "eot");
+    // Legacy records sit under "exam" when no EOT row exists.
+    picked = eot.length > 0 ? eot : rows.filter((r) => r.assessment_type === "exam");
+  } else picked = rows.filter((r) => UG_CA_TYPES.includes(r.assessment_type));
+  return meanOrNull(picked.map((r) => pct(Number(r.score), maxFor(r.assessment_type, r.max_score))));
+}
+
+/**
+ * Weighted mean over the basis types actually on record — a pupil who missed
+ * the mid-term is not punished: the remaining types carry the grade on their
+ * own weights. Returns null when none of the chosen types have any rows.
+ */
+export function gradeBasisAvg(rows: UgandaGradeRow[], basis: TermGradeBasis): number | null {
+  const present = basis.types
+    .map((type) => ({ type, score: typePct(rows, type) }))
+    .filter((entry): entry is { type: GradeBasisType; score: number } => entry.score !== null);
+  if (present.length === 0) return null;
+  const weightOf = (type: GradeBasisType): number => {
+    const w = Number(basis.weights?.[type]);
+    return Number.isFinite(w) && w > 0 ? w : 1;
+  };
+  const totalWeight = present.reduce((sum, entry) => sum + weightOf(entry.type), 0);
+  const weighted = present.reduce((sum, entry) => sum + entry.score * weightOf(entry.type), 0);
+  return Math.round(weighted / totalWeight);
+}
+
+export function bucketUgandaSubject(rows: UgandaGradeRow[], basis?: TermGradeBasis | null): UgandaSubjectResult {
   const invalid = rows.some((row) => {
     const score = Number(row.score);
     const maximum = maxFor(row.assessment_type, row.max_score);
@@ -144,10 +190,20 @@ export function bucketUgandaSubject(rows: UgandaGradeRow[]): UgandaSubjectResult
   const mot = meanOrNull(motRows.map((r) => pct(Number(r.score), maxFor(r.assessment_type, r.max_score))));
   const end = meanOrNull(endRows.map((r) => pct(Number(r.score), maxFor(r.assessment_type, r.max_score))));
 
-  let avg: number | null = meanOrNull([mid, mot, end]);
+  // Schools differ on what the term grade is made of: some count only the
+  // EOT exam, some weight BOT/MOT/EOT, some run on continuous assessment.
+  // The school's basis (school_settings) decides; unset keeps the classic
+  // simple mean of whatever BOT/MOT/EOT exams were recorded.
+  let avg: number | null = null;
+  if (basis && Array.isArray(basis.types) && basis.types.length > 0) {
+    avg = gradeBasisAvg(rows, basis);
+  } else {
+    avg = meanOrNull([mid, mot, end]);
+  }
   if (avg === null && rows.length > 0) {
-    // No MID/END exams on record (CA-only school): percent-of-possible over
-    // everything recorded, so the column still answers honestly.
+    // Nothing the school grades on is on record (CA-only school, or the one
+    // exam it counts was never sat): percent-of-possible over everything
+    // recorded, so the column still answers honestly.
     const total = rows.reduce((s, r) => s + Number(r.score || 0), 0);
     const maxSum = rows.reduce((s, r) => s + maxFor(r.assessment_type, r.max_score), 0);
     avg = maxSum > 0 ? Math.round((total / maxSum) * 100) : null;
