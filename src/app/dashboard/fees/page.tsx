@@ -14,7 +14,6 @@ import FeeStats from "@/components/fees/FeeStats";
 import FeeTable, { StudentBalance } from "@/components/fees/FeeTable";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { OwlyTrigger } from "@/components/owly/OwlyTrigger";
 import { useToast } from "@/components/Toast";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { Button } from "@/components/ui/index";
@@ -2012,10 +2011,7 @@ export default function FinanceHubPage() {
           sticky list bar), each with its own rounding, so the same number
           appeared in several places and none of them agreed.
         */}
-        <section
-          aria-label="Term position"
-          className="rounded-2xl border border-[var(--border)] bg-[var(--surface-container-lowest)] overflow-hidden"
-        >
+        <section aria-label="Term position" className="border-y border-[var(--border)]">
           <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)]">
             {[
               { label: "Expected", value: partition.totalExpected, tone: "text-[var(--t1)]" },
@@ -2035,7 +2031,7 @@ export default function FinanceHubPage() {
               </div>
             ))}
           </div>
-          <div className="px-4 sm:px-5 py-3 bg-[var(--surface-container-low)] border-t border-[var(--border)]">
+          <div className="border-t border-[var(--border)] px-4 py-3 sm:px-5">
             <div className="flex items-center justify-between gap-3 mb-2">
               <span className="text-xs font-bold uppercase tracking-wider text-[var(--t2)]">
                 {partition.realizationRate}% collected
@@ -2059,8 +2055,6 @@ export default function FinanceHubPage() {
             </div>
           </div>
         </section>
-
-        <OwlyTrigger guideId="fees" label="How do I manage fees?" className="mb-4" />
 
         <div className="mb-3">
           <StaleDataNotice tables={["students", "fee_payments", "fee_structure"]} />

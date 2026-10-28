@@ -113,10 +113,7 @@ export default function FeeStats({ stats, paymentsCount, onFilter, activeFilter 
   ];
 
   return (
-    <section
-      aria-label="Fee collection overview"
-      className="mb-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-container-lowest)] p-4 sm:p-5"
-    >
+    <section aria-label="Fee collection overview" className="border-t border-[var(--border)] pt-5">
       <div className="flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
         <RosterDonut stats={stats} onFilter={onFilter} activeFilter={activeFilter} />
 
@@ -128,7 +125,11 @@ export default function FeeStats({ stats, paymentsCount, onFilter, activeFilter 
             </span>
           </div>
 
-          <div className={`mt-3 grid grid-cols-1 gap-2 ${rows.length > 3 ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
+          <div
+            className={`mt-3 grid grid-cols-1 divide-y divide-[var(--border)] border-y border-[var(--border)] ${
+              rows.length > 3 ? "sm:grid-cols-4" : "sm:grid-cols-3"
+            } sm:divide-x sm:divide-y-0`}
+          >
             {rows.map((r) => {
               const active = activeFilter === r.key;
               return (
@@ -137,10 +138,8 @@ export default function FeeStats({ stats, paymentsCount, onFilter, activeFilter 
                   type="button"
                   onClick={() => onFilter?.(r.key)}
                   aria-pressed={active}
-                  className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 min-h-[44px] text-left transition-colors ${
-                    active
-                      ? "border-[var(--primary)] bg-[var(--primary)]/[0.06]"
-                      : "border-[var(--border)] hover:bg-[var(--surface-container-low)]"
+                  className={`flex items-center gap-2 px-3 py-2.5 min-h-[44px] text-left transition-colors ${
+                    active ? "bg-[var(--primary)]/[0.06]" : "hover:bg-[var(--surface-container-low)]"
                   }`}
                 >
                   <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${r.dot}`} />
