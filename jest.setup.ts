@@ -1,5 +1,26 @@
 import "@testing-library/jest-dom";
 
+// jsdom ships no matchMedia. Components that pick a layout from it on mount
+// (the grades page switches between the focused pupil card on phones and the
+// full register on laptops) crash every test that renders them, so tests see
+// a desktop-width viewport by default. A test that needs another width
+// redefines window.matchMedia locally.
+if (typeof window !== "undefined" && !window.matchMedia) {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: jest.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    })),
+  });
+}
+
 if (typeof global.Request === "undefined") {
   class RequestShim {}
 

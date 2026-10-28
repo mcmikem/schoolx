@@ -60,14 +60,17 @@ describe("progress is reported once, not four times", () => {
 });
 
 describe("one save action, in one reachable place", () => {
-  it("renders Save Grades once", () => {
-    // Two existed, calling different handlers -- handleSaveGrades in the header
-    // and handleSaveDraft in the sticky bar -- so the outcome depended on which
-    // button the teacher happened to press.
-    // Anchored to the closing button tag so the prose "<strong>Save Grades</strong>"
-    // in the first-run guidance is not counted as a button.
-    const buttons = live.match(/Save Grades\s*<\/button>/g) ?? [];
-    expect(buttons.length).toBe(1);
+  it("renders one draft save and one submit, both in the sticky bar", () => {
+    // Two "Save Grades" buttons used to exist, calling different handlers --
+    // handleSaveGrades in the header and handleSaveDraft in the sticky bar --
+    // so the outcome depended on which button the teacher happened to press.
+    // The flat workspace moved to per-cell saves plus a sticky bar with two
+    // distinct actions: keeping marks as a draft, and submitting the sheet
+    // for approval. Each may appear once.
+    const saveButtons = live.match(/Save draft\s*<\/?/g) ?? [];
+    expect(saveButtons.length).toBe(1);
+    const submitButtons = live.match(/Submit to HM/g) ?? [];
+    expect(submitButtons.length).toBe(1);
   });
 
   it("has no permanent status light that cannot change", () => {
@@ -90,8 +93,12 @@ describe("the page asks for the class before listing its subjects", () => {
     expect(classPicker).toBeLessThan(subjectList);
   });
 
-  it("explains the assessment types once, behind a disclosure", () => {
-    expect(live).toContain("What do BOT, MOT and EOT mean?");
+  it("carries no assessment-type explainer once the how-to cards were dropped", () => {
+    // The how-to and AI-assistant cards were removed outright (the picker and
+    // sticky bar are self-explanatory now). This pins the full removal so a
+    // stray explainer cannot creep back onto the marks table.
+    expect(live).not.toContain("What do BOT, MOT and EOT mean?");
+    expect(live).not.toContain("How to enter marks");
   });
 
   it("gives first-run guidance without repeating itself", () => {
@@ -103,17 +110,16 @@ describe("the page asks for the class before listing its subjects", () => {
 });
 
 describe("a phone sees the class, not one pupil at a time", () => {
-  it("defaults to the full list on every screen size", () => {
-    // Phones used to open in the one-pupil swipe deck, so a teacher arriving to
-    // mark a class of forty-eight was shown one child and had to swipe through
-    // all of them. One-at-a-time is a good way to mark and a bad way to arrive.
-    expect(live).not.toMatch(
-      /window\.innerWidth\s*>=\s*768\)\s*setInlineEntryMode\(true\);\s*\n\s*else\s+setInlineEntryMode\(false\)/,
+  it("picks the layout from the viewport on mount, and lets the teacher switch", () => {
+    // The one-pupil focused card is the deliberate phone default now; laptops
+    // open on the full register. Note the polarity: focused mode means the
+    // media query matched, i.e. a phone (width <= 767px).
+    expect(live).toContain(
+      'setInlineEntryMode(!window.matchMedia("(max-width: 767px)").matches)',
     );
-    // The branch that used to do this is gone entirely, and the list default
-    // is set unconditionally in the mount effect.
+    expect(live).toContain("All pupils");
+    expect(live).toContain("One at a time");
     expect(live).not.toContain("window.innerWidth >= 768");
-    expect(live).toContain("setInlineEntryMode(true);");
   });
 
   it("keeps both layouts reachable", () => {
