@@ -9,6 +9,7 @@ import { setupErrorLogging } from "@/lib/error-logger";
 import { logger } from "@/lib/logger";
 import { offlineDB } from "@/lib/offline";
 import { clearOfflineQueryCache, installOfflineApiFetch, setOfflineCacheUser } from "@/lib/offline-query-cache";
+import { OfflineDataWarmer } from "@/lib/offline-data-warmer";
 import { OfflineRouteWarmer } from "@/lib/offline-route-warmer";
 import { supabase } from "@/lib/supabase";
 import { ThemeProvider } from "@/lib/theme-context";
@@ -356,6 +357,7 @@ export default function Providers({ children }: { children: ReactNode }) {
                 <MobileKeyboardHandler />
                 <OfflineCacheScope />
                 <OfflineRouteWarmer />
+                <OfflineDataWarmer />
                 <FaviconUpdater />
                 <CommCenter />
                 <BrandProvider>{children}</BrandProvider>

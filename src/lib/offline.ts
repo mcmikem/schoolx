@@ -991,6 +991,74 @@ class OfflineDB {
     return { synced: syncResult.success, errors };
   }
 
+  /**
+   * Download whole tables into the offline store, a page at a time.
+   *
+   * `refreshAll` asks PostgREST for one page (the default 1,000 rows), which
+   * was enough for a small school but silently left the rest of a large one
+   * unavailable offline. This walks pages up to a per-table cap so the core
+   * registers, classes, fee structure and canteen catalogue are all present
+   * before the connection is lost. It is deliberately bounded: a phone should
+   * not try to mirror years of attendance history.
+   */
+  async warmTables(
+    tables: string[],
+    options: { pageSize?: number; maxRows?: number } = {},
+  ): Promise<{ tables: number; rows: number; errors: string[] }> {
+    const pageSize = Math.min(Math.max(options.pageSize ?? 500, 1), 1000);
+    const maxRows = Math.max(options.maxRows ?? 2000, pageSize);
+    const errors: string[] = [];
+    let warmedTables = 0;
+    let rows = 0;
+
+    try {
+      const { supabase } = await import("@/lib/supabase");
+      for (const table of tables) {
+        if (missingTables.has(table)) continue;
+        let offset = 0;
+        let tableRows = 0;
+        let tableFailed = false;
+
+        while (tableRows < maxRows) {
+          const to = Math.min(offset + pageSize - 1, maxRows - 1);
+          try {
+            const query = supabase.from(table).select("*").range(offset, to);
+            const result = (await Promise.race([
+              query,
+              new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error(`${table} download timed out`)), 20_000),
+              ),
+            ])) as { data: unknown; error: { code?: string; message?: string } | null };
+
+            if (result.error) {
+              if (result.error.code === MISSING_TABLE_CODE) missingTables.add(table);
+              errors.push(`${table}: ${result.error.message ?? "could not download"}`);
+              tableFailed = true;
+              break;
+            }
+
+            const batch = (result.data as Record<string, unknown>[] | null) ?? [];
+            if (batch.length > 0) await this.cacheFromServer(table, batch);
+            tableRows += batch.length;
+            rows += batch.length;
+            if (batch.length < pageSize) break;
+            offset += pageSize;
+          } catch (error) {
+            errors.push(`${table}: ${error instanceof Error ? error.message : "could not download"}`);
+            tableFailed = true;
+            break;
+          }
+        }
+
+        if (!tableFailed) warmedTables += 1;
+      }
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : "Could not start the offline download");
+    }
+
+    return { tables: warmedTables, rows, errors };
+  }
+
   // Conflict resolution: server data wins, overwrite local cache
   async resolveConflicts(table: string, serverData: Record<string, unknown>[]): Promise<void> {
     await this.cacheFromServer(table, serverData);

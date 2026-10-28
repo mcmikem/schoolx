@@ -7,6 +7,7 @@ import {
   installOfflineApiFetch,
   isCacheableApiRequest,
   isCacheableRequest,
+  isOnlineOnlyApiRequest,
   queryCacheKey,
   readHeader,
   recordToResponse,
@@ -459,6 +460,57 @@ describe("offline api cache: replay", () => {
     const fetchWithCache = createOfflineAwareApiFetch(base, store, buildResponse);
 
     await expect(fetchWithCache("/api/reports/", { signal: controller.signal })).rejects.toBe(abortError);
+  });
+});
+
+describe("offline api actions that cannot be queued", () => {
+  it("recognises provider-backed actions", () => {
+    expect(isOnlineOnlyApiRequest("/api/sms/send")).toBe(true);
+    expect(isOnlineOnlyApiRequest("/api/payment/checkout/")).toBe(true);
+    expect(isOnlineOnlyApiRequest("/api/ai/ask/")).toBe(true);
+    expect(isOnlineOnlyApiRequest("/api/import/students/")).toBe(true);
+    expect(isOnlineOnlyApiRequest("/api/parent/fee-payment-claims/")).toBe(true);
+    expect(isOnlineOnlyApiRequest("/api/automation/sms/run/")).toBe(true);
+    expect(isOnlineOnlyApiRequest("/api/reports/attendance/")).toBe(false);
+  });
+
+  it("answers an offline write with a labelled 503 instead of a network error", async () => {
+    setOnline(false);
+    const base = jest.fn(async () => {
+      throw new Error("network down");
+    });
+    const fetchWithCache = createOfflineAwareApiFetch(base, new MemoryStore(), buildResponse);
+    const response = await fetchWithCache("/api/sms/send", {
+      method: "POST",
+      headers: { authorization: AUTH },
+      body: JSON.stringify({ message: "hello" }),
+    });
+    expect(base).not.toHaveBeenCalled();
+    expect(response.status).toBe(503);
+    expect(response.headers.get("x-offline-action")).toBe("1");
+    await expect(response.json()).resolves.toMatchObject({ offline: true });
+  });
+
+  it("still lets offline GETs read their saved copy", async () => {
+    setOnline(false);
+    setOfflineCacheUser("user-a");
+    const store = new MemoryStore();
+    const key = "user-a::api::/api/reports/";
+    store.records.set(key, {
+      key,
+      userId: "user-a",
+      status: 200,
+      statusText: "OK",
+      headers: [["content-type", "application/json"]],
+      body: "[]",
+      savedAt: Date.now(),
+    });
+    const base = jest.fn(async () => {
+      throw new Error("network down");
+    });
+    const fetchWithCache = createOfflineAwareApiFetch(base, store, buildResponse);
+    const response = (await fetchWithCache("/api/reports/")) as unknown as FakeResponse;
+    expect(await response.json()).toEqual([]);
   });
 });
 

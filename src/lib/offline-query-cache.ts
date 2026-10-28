@@ -73,6 +73,59 @@ const API_BLOCKED_PREFIXES = [
   "/api/import",
 ];
 
+/**
+ * Actions whose result belongs to a provider or a server-side job. Offline they
+ * cannot be queued safely, so the app answers with a clear "needs internet"
+ * message instead of letting the browser's network error surface as "something
+ * went wrong".
+ */
+const ONLINE_ONLY_API_PREFIXES = [
+  "/api/payment/",
+  "/api/schoolpay/",
+  "/api/parent/fee-payment",
+  "/api/sms/",
+  "/api/automation/",
+  "/api/email/",
+  "/api/ai/",
+  "/api/import",
+  "/api/parse-import/",
+  "/api/modules/",
+  "/api/marketers/",
+  "/api/admin/",
+  "/api/contact",
+];
+
+export function isOnlineOnlyApiRequest(url: string): boolean {
+  try {
+    const origin = typeof location !== "undefined" ? location.origin : null;
+    const parsed = new URL(url, origin ?? "https://app.local");
+    if (origin && parsed.origin !== origin) return false;
+    return ONLINE_ONLY_API_PREFIXES.some(
+      (prefix) => parsed.pathname === prefix.replace(/\/$/, "") || parsed.pathname.startsWith(prefix),
+    );
+  } catch {
+    return false;
+  }
+}
+
+function offlineActionResponse(buildResponse: ResponseBuilder): Response {
+  return buildResponse({
+    key: "offline-action",
+    userId: "",
+    status: 503,
+    statusText: "Offline",
+    headers: [
+      ["content-type", "application/json"],
+      ["x-offline-action", "1"],
+    ],
+    body: JSON.stringify({
+      error: "This action needs an internet connection. Your other work is saved on this device.",
+      offline: true,
+    }),
+    savedAt: Date.now(),
+  });
+}
+
 let activeUserId: string | null = null;
 
 /**
@@ -418,6 +471,15 @@ export function createOfflineAwareApiFetch(
     const request = typeof Request !== "undefined" && input instanceof Request ? input : null;
     const url = request ? request.url : input instanceof URL ? input.href : String(input);
     const method = init?.method ?? request?.method ?? "GET";
+
+    if (
+      typeof navigator !== "undefined" &&
+      navigator.onLine === false &&
+      method.toUpperCase() !== "GET" &&
+      isOnlineOnlyApiRequest(url)
+    ) {
+      return offlineActionResponse(buildResponse);
+    }
 
     if (!isCacheableApiRequest(url, method)) return baseFetch(input, init);
 

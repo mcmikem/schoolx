@@ -4,8 +4,10 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { NavGroup, sortNavGroupsByPriority } from "@/lib/navigation";
+import { getOnlineOnlyFeature } from "@/lib/offline-features";
 import { readUserScoped, writeUserScoped } from "@/lib/user-scoped-storage";
 import { cn } from "@/lib/utils";
+import { useSyncStatus } from "@/lib/useSyncStatus";
 
 interface CollapsibleSidebarProps {
   groups: readonly NavGroup[];
@@ -24,6 +26,7 @@ interface CollapsibleSidebarProps {
 export default function CollapsibleSidebar({ groups, onNavigate, compact = false, userId }: CollapsibleSidebarProps) {
   const pathname = usePathname();
   const path = pathname ?? "";
+  const { isOnline } = useSyncStatus();
   const [query, setQuery] = useState("");
   const [recentPages, setRecentPages] = useState<Array<{ href: string; label: string; icon: string }>>([]);
 
@@ -223,6 +226,7 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
                 <div className="mt-1 ml-2 space-y-1 border-l border-[var(--border)] pl-2.5">
                   {group.items.map((item) => {
                     const isActive = item.href === activeHref;
+                    const onlineOnly = getOnlineOnlyFeature(item.href);
                     return (
                       <Link
                         key={item.href}
@@ -250,6 +254,16 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
                           )}
                         />
                         <span className="flex-1 truncate">{item.label}</span>
+                        {!isOnline && onlineOnly && (
+                          <span
+                            title={`${onlineOnly.label} needs internet`}
+                            aria-label={`${onlineOnly.label} needs internet`}
+                            className="flex items-center gap-1 rounded-full bg-[var(--amber-soft)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--amber-ink)]"
+                          >
+                            <MaterialIcon icon="cloud_off" className="text-[11px]" />
+                            Online
+                          </span>
+                        )}
                         {item.badge && (
                           <span
                             className={cn(

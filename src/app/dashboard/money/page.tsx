@@ -131,7 +131,7 @@ export default function MoneyPage() {
     value;
 
   return (
-    <div className="space-y-5 pb-28">
+    <div className="space-y-5 p-4 pb-28 sm:p-6 sm:pb-6">
       <PageHeader
         title="Money in and out"
         subtitle={`Term ${currentTerm} · ${academicYear}`}

@@ -78,6 +78,9 @@ const APP_SHELL_ROUTES = [
   '/dashboard/store/pos/',
   '/dashboard/sync-center/',
   '/onboarding/',
+  '/parent-portal/',
+  '/student-portal/',
+  '/super-admin/',
 ];
 
 function isNavigationRequest(request) {

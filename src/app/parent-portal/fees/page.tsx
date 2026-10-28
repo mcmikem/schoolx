@@ -2,6 +2,7 @@
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { useOnlineStatus } from "@/lib/offline";
 import { supabase } from "@/lib/supabase";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { splitBalance } from "@/lib/fee-triage";
@@ -45,6 +46,7 @@ const QUICK_TOPUP_AMOUNTS = [5000, 10000, 20000, 50000] as const;
 
 export default function ParentFeesPage() {
   const { isDemo } = useAuth();
+  const isOnline = useOnlineStatus();
   const toast = useToast();
   const { selectedChild } = useParentPortal();
   const [feeStructure, setFeeStructure] = useState<ParentPortalFeeStructureItem[]>([]);
@@ -961,10 +963,16 @@ export default function ParentFeesPage() {
                     />
                   </div>
 
+                  {!isOnline && (
+                    <p className="rounded-xl bg-[var(--amber-soft)] px-3 py-2 text-xs font-semibold text-[var(--amber-ink)]">
+                      Sending this confirmation needs internet. Your balance and receipts stay available offline.
+                    </p>
+                  )}
+
                   <Button
                     onClick={submitPaymentClaim}
                     loading={payLoading}
-                    disabled={!selectedChild || !payAmount.trim()}
+                    disabled={!selectedChild || !payAmount.trim() || !isOnline}
                     className="w-full"
                   >
                     <MaterialIcon icon="check_circle" />{" "}

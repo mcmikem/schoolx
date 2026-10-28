@@ -20,7 +20,10 @@ const PRIORITY_ROUTES = [
   "/dashboard/attendance/",
   "/dashboard/grades/",
   "/dashboard/fees/",
+  "/dashboard/fee-structure/",
+  "/dashboard/money/",
   "/dashboard/students/",
+  "/dashboard/messages/",
   "/dashboard/report-cards/",
   "/dashboard/cashbook/",
   "/dashboard/fee-ledger/",
@@ -74,7 +77,7 @@ function isSlowConnection(): boolean {
     }
   ).connection;
   if (connection?.saveData) return true;
-  return connection?.effectiveType === "slow-2g" || connection?.effectiveType === "2g";
+  return ["slow-2g", "2g", "3g"].includes(connection?.effectiveType || "");
 }
 
 function delay(ms: number): Promise<void> {
@@ -125,6 +128,10 @@ export function OfflineRouteWarmer() {
   useEffect(() => {
     if (!authInitialized || !user || !isOnline) return;
     if (typeof navigator === "undefined") return;
+    // The worker is deliberately unregistered in `next dev`, so there is no
+    // offline shell to fill there and prefetching 100+ routes would only slow
+    // the dev server.
+    if (process.env.NODE_ENV !== "production") return;
 
     let cancelled = false;
     let idleHandle: number | undefined;
@@ -150,19 +157,22 @@ export function OfflineRouteWarmer() {
       }
       if (cancelled || !manifest?.routes?.length) return;
 
-      const routes = routesForRole(manifest.routes, user.role);
+      const roleRoutes = routesForRole(manifest.routes, user.role);
+      const slow = isSlowConnection();
+      // On Data Saver / weak mobile data, prepare the pages teachers and
+      // bursars need first. Leave the rest pending for a better connection.
+      const routes = slow ? PRIORITY_ROUTES.filter((route) => roleRoutes.includes(route)) : roleRoutes;
       const done = readDone(manifest.version);
       const pending = routes.filter((route) => !done.has(route));
       if (pending.length === 0) return;
 
-      const slow = isSlowConnection();
       const wait = slow ? BATCH_DELAY_SLOW_MS : BATCH_DELAY_MS;
 
       let controller: ServiceWorker | null = null;
       if ("serviceWorker" in navigator) {
         try {
-          const registration = await navigator.serviceWorker.ready;
-          controller = navigator.serviceWorker.controller || registration.active;
+          const registration = await Promise.race([navigator.serviceWorker.ready, delay(3_000).then(() => null)]);
+          controller = navigator.serviceWorker.controller || registration?.active || null;
         } catch {
           controller = null;
         }

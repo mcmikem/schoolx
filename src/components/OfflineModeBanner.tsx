@@ -47,7 +47,7 @@ export function OfflineModeBanner() {
   }, []);
 
   const featureMessage = onlineOnlySummary(pathname);
-  if (isOnline && !fallbackFrom && !featureMessage) return null;
+  if (isOnline && !fallbackFrom) return null;
 
   return (
     <div
