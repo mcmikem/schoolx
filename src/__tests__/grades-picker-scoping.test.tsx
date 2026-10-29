@@ -126,13 +126,9 @@ jest.mock("@/components/ui/index", () => ({
   Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
 }));
 
-/** The page renders `<label>` with no htmlFor and no wrapping, so the class
- *  select has no accessible name. Find it by the label text in its wrapper. */
-function selectUnder(labelText: RegExp): HTMLSelectElement {
-  const label = screen.getByText(labelText);
-  const select = label.parentElement?.querySelector("select");
-  if (!select) throw new Error(`no select found under ${labelText}`);
-  return select as HTMLSelectElement;
+/** Use the selector's accessible name so wording changes don't break picker tests. */
+function selectUnder(_labelText: RegExp): HTMLSelectElement {
+  return screen.getByLabelText(/^class$/i) as HTMLSelectElement;
 }
 
 function optionLabels(select: HTMLSelectElement, placeholder: string) {
@@ -157,21 +153,20 @@ async function openTargetPicker() {
   // picker can be read.
   await waitFor(() => {
     if (screen.queryByRole("button", { name: /change class or subject/i })) return;
-    const label = screen.queryByText(/target class/i);
-    const select = label?.parentElement?.querySelector("select");
+    const select = screen.queryByLabelText(/^class$/i) as HTMLSelectElement | null;
     expect(select && select.options.length > 1).toBe(true);
   });
 
   const change = screen.queryByRole("button", { name: /change class or subject/i });
   if (change) {
     fireEvent.click(change);
-    await waitFor(() => expect(screen.getByText(/target class/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText(/^class$/i)).toBeInTheDocument());
   }
 }
 
 /**
- * Subjects are no longer a `<select>`. The teacher picks one by tapping a card
- * that carries its own progress, so the assertions read the cards instead.
+ * Subjects are no longer a `<select>`. The teacher switches between compact
+ * tabs carrying their own progress, so assertions read those tab buttons.
  * These tests pin which subjects are *offered* for a given class and role --
  * that scoping is the behaviour that regressed -- not the shape of the picker.
  */
@@ -180,6 +175,7 @@ async function openTargetPicker() {
 function subjectPickerHeading(): HTMLElement {
   return (
     screen.queryByRole("heading", { name: /what are you grading/i }) ??
+    screen.queryByRole("heading", { name: /^subjects$/i }) ??
     screen.queryByRole("heading", { name: /what do you teach/i })!
   );
 }
@@ -241,7 +237,7 @@ describe("grade picker scoping (scenario #18)", () => {
     });
     // The class picker is not in the way, and the change link is.
     await waitFor(() => {
-      expect(screen.queryByText(/target class/i)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/^class$/i)).not.toBeInTheDocument();
     });
     expect(screen.getByRole("button", { name: /change class or subject/i })).toBeInTheDocument();
   });
@@ -322,7 +318,7 @@ describe("grade picker scoping (scenario #18)", () => {
     // No allocation means no single target, so the picker stays on screen --
     // empty.
     await waitFor(() => {
-      expect(screen.getByText(/target class/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/^class$/i)).toBeInTheDocument();
     });
     await waitFor(() => {
       expect(optionLabels(selectUnder(/target class/i), "Select Class")).toEqual([]);

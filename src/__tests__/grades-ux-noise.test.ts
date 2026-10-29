@@ -114,17 +114,23 @@ describe("a phone sees the class, not one pupil at a time", () => {
     // The one-pupil focused card is the deliberate phone default now; laptops
     // open on the full register. Note the polarity: focused mode means the
     // media query matched, i.e. a phone (width <= 767px).
-    expect(live).toContain(
-      'setInlineEntryMode(!window.matchMedia("(max-width: 767px)").matches)',
-    );
+    expect(live).toContain('setInlineEntryMode(!window.matchMedia("(max-width: 767px)").matches)');
     expect(live).toContain("All pupils");
     expect(live).toContain("One at a time");
     expect(live).not.toContain("window.innerWidth >= 768");
   });
 
   it("keeps both layouts reachable", () => {
-    expect(live).toContain("hidden md:block");
+    expect(live).toMatch(/className="hidden[^\"]*md:block"/);
     expect(live).toContain("md:hidden");
+  });
+
+  it("uses a full assessment spreadsheet on desktop", () => {
+    expect(live).toContain("data-grade-columns={competencyMode ? 1 : activeAssessmentTypes.length}");
+    const tableStart = live.indexOf("data-grade-scope\n                      data-grade-columns=");
+    expect(tableStart).toBeGreaterThan(-1);
+    expect(live.slice(tableStart, tableStart + 12000)).toContain("activeAssessmentTypes.map((type) => {");
+    expect(live).toContain("assessmentTypes={activeAssessmentTypes}");
   });
 
   it("names the modes for what they do", () => {

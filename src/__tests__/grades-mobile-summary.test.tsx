@@ -90,7 +90,7 @@ describe("Grades page progressive disclosure", () => {
     // Pickers are the first controls, always visible. The class is still a
     // select; subjects are tap targets the teacher can see all at once, with
     // their own progress, rather than a dropdown to open and scan.
-    expect(screen.getByText(/target class/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^class$/i)).toBeInTheDocument();
     expect(screen.getByText(/select class/i)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /what do you teach/i })).toBeInTheDocument();
     // Subjects stay hidden until the class is known, so this list can never

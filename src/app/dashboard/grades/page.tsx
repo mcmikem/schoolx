@@ -1,7 +1,7 @@
 "use client";
 import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { EmptyState, NoData } from "@/components/EmptyState";
+import { NoData } from "@/components/EmptyState";
 import { ClassAverageRow } from "@/components/grades/ClassAverageRow";
 import { GradeStatusBadge } from "@/components/grades/GradeStatusBadge";
 import SubmittedSheetsPanel, { type SubmittedSheet } from "@/components/grades/SubmittedSheetsPanel";
@@ -10,14 +10,12 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { OwlyTrigger } from "@/components/owly/OwlyTrigger";
 import { VideoLessonButton } from "@/components/onboarding/VideoLesson";
 import { useToast } from "@/components/Toast";
-import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
-import { FilterBar } from "@/components/ui/FilterBar";
-import { Badge, Button, Input, Select } from "@/components/ui/index";
+import { Card, CardBody } from "@/components/ui/Card";
+import { Button } from "@/components/ui/index";
 import { Modal, ModalFooter } from "@/components/ui/Modal";
-import { PageHeader, PageSection } from "@/components/ui/PageHeader";
+import { PageHeader } from "@/components/ui/PageHeader";
 import PersonInitials from "@/components/ui/PersonInitials";
 import { FullPageLoader, TableSkeleton } from "@/components/ui/Skeleton";
-import { TabPanel, Tabs } from "@/components/ui/Tabs";
 import { useAcademic } from "@/lib/academic-context";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
 import { useAuth } from "@/lib/auth-context";
@@ -855,7 +853,7 @@ export default function GradesPage() {
     [displayStudents, currentEntryAssessment, marks],
   );
 
-  // Live per-subject pupil counts for the selected class so subject cards/pills
+  // Live per-subject pupil counts for the selected class so subject tabs
   // reflect saved marks and in-session edits immediately. Count distinct
   // pupils, not `student_grades` rows, which can contain aggregate rows that
   // don't correspond to a pupil's current mark-entry sheet.
@@ -915,7 +913,7 @@ export default function GradesPage() {
 
   // Identity + one column per assessment + average/status + grade. The empty and
   // loading rows were pinned at 7, which over-spans a two-column sheet.
-  const markSheetColumnCount = 4;
+  const markSheetColumnCount = competencyMode ? 4 : activeAssessmentTypes.length + 3;
 
   const debouncedAutoSave = useCallback(
     (studentId: string, type: string, target?: { subjectId: string; classId: string }) => {
@@ -1054,7 +1052,8 @@ export default function GradesPage() {
       if (e.key === "Enter") el.blur();
       return;
     }
-    const next = inputs[current + dir];
+    const columns = Number(scope.getAttribute("data-grade-columns")) || 1;
+    const next = inputs[current + dir * columns];
     if (next) {
       next.focus();
       next.select();
@@ -1674,7 +1673,7 @@ export default function GradesPage() {
 
   return (
     <PageErrorBoundary>
-      <div className="space-y-6 p-4 pb-52 sm:p-6 sm:pb-48">
+      <div className="content min-w-0 pb-40">
         {/* Grade workflow confirm modal */}
         <Modal
           isOpen={gradeConfirm.open}
@@ -1784,14 +1783,14 @@ export default function GradesPage() {
           </h2>
         )}
         {!(singleTarget && !showTargetPicker) && (
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm space-y-4">
-            <div className="grid grid-cols-1 gap-3">
+          <div className="border-y border-[var(--border)] py-3">
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-center lg:gap-6">
               <div>
                 <label
                   htmlFor="grade-target-class"
-                  className="block text-xs font-bold uppercase tracking-wider mb-2 text-[var(--t2)]"
+                  className="mb-1 block text-xs font-bold uppercase tracking-wider text-[var(--t3)]"
                 >
-                  Target Class
+                  Class
                 </label>
                 {classesLoading ? (
                   <div className="bg-[var(--navy-soft)] border border-[rgba(0,31,63,0.12)] rounded-xl p-4">
@@ -1821,7 +1820,7 @@ export default function GradesPage() {
                     id="grade-target-class"
                     value={selectedClass}
                     onChange={(e) => setSelectedClass(e.target.value)}
-                    className="w-full bg-[var(--surface-container-lowest)] border border-[var(--border)] rounded-xl py-2.5 px-3.5 focus:ring-2 focus:ring-primary focus:border-primary text-sm font-semibold text-[var(--t1)] transition-all"
+                    className="input !h-10 !py-0 text-sm font-semibold"
                   >
                     <option value="">Select Class</option>
                     {classOptions.map((c) => (
@@ -1833,148 +1832,84 @@ export default function GradesPage() {
                   </select>
                 )}
               </div>
-            </div>
-
-            <section aria-labelledby="subject-picker-heading" className="border-t border-[var(--border)]/60 pt-3.5">
-              {!selectedClass ? (
-                <div>
-                  <h2 id="subject-picker-heading" className="text-sm font-semibold text-[var(--t1)]">
-                    What do you teach?
-                  </h2>
-                  <p className="mt-1 text-xs text-[var(--t3)]">Choose a class to see its subjects.</p>
-                </div>
-              ) : subjectOptions.length === 0 ? (
-                <div>
-                  <h2 id="subject-picker-heading" className="text-sm font-semibold text-[var(--t1)]">
-                    What do you teach in {selectedClassName}?
-                  </h2>
-                  <p className="mt-1 text-xs text-[var(--t3)]">
-                    No subjects are assigned to this class yet. Ask an administrator to update the teaching assignments.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <div className="mb-2.5 flex items-baseline justify-between gap-3">
+              <section aria-labelledby="subject-picker-heading" className="min-w-0">
+                {!selectedClass ? (
+                  <div>
+                    <h2 id="subject-picker-heading" className="text-sm font-semibold text-[var(--t1)]">
+                      What do you teach?
+                    </h2>
+                    <p className="mt-1 text-xs text-[var(--t3)]">Choose a class to see its subjects.</p>
+                  </div>
+                ) : subjectOptions.length === 0 ? (
+                  <div>
                     <h2 id="subject-picker-heading" className="text-sm font-semibold text-[var(--t1)]">
                       What do you teach in {selectedClassName}?
                     </h2>
-                    <span className="text-xs font-medium text-[var(--t3)]">
-                      {selectedClass
-                        ? `${subjectOptions.filter((s) => (liveSubjectProgress[s.id] ?? 0) > 0).length} of ${subjectOptions.length} started`
-                        : `${subjectOptions.length} to choose from`}
-                    </span>
+                    <p className="mt-1 text-xs text-[var(--t3)]">
+                      No subjects are assigned to this class yet. Ask an administrator to update the teaching
+                      assignments.
+                    </p>
                   </div>
-                  <div
-                    className={
-                      selectedClass && selectedSubject
-                        ? "flex flex-wrap gap-2"
-                        : "grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4"
-                    }
-                  >
-                    {subjectOptions.map((subject) => {
-                      const done = liveSubjectProgress[subject.id] ?? 0;
-                      const total = filteredStudents.length;
-                      const active = subject.id === selectedSubject;
-                      const complete = total > 0 && done >= total;
-                      const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
-                      const isCompact = Boolean(selectedClass && selectedSubject);
-
-                      if (isCompact) {
-                        return (
-                          <button
-                            key={subject.id}
-                            type="button"
-                            aria-pressed={active}
-                            onClick={() => setSelectedSubject(subject.id)}
-                            className={`group inline-flex min-h-11 items-center gap-2 rounded-xl border px-3.5 py-2 text-left transition-all ${
-                              active
-                                ? "border-[var(--primary)] bg-[var(--primary)] text-white shadow-sm"
-                                : "border-[var(--border)] bg-[var(--surface-container-lowest)] text-[var(--t1)] hover:border-[var(--primary)]/60 hover:bg-[var(--surface-container-low)]"
-                            }`}
-                          >
-                            <span className="text-sm font-semibold leading-tight">{subject.name}</span>
-                            <span
-                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                ) : (
+                  <>
+                    <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
+                      <h2
+                        id="subject-picker-heading"
+                        className="shrink-0 text-xs font-bold uppercase tracking-wider text-[var(--t3)]"
+                      >
+                        Subjects
+                      </h2>
+                      <div className="flex min-w-0 flex-1 items-stretch overflow-x-auto border-b border-[var(--border)] sm:border-0">
+                        {subjectOptions.map((subject) => {
+                          const done = liveSubjectProgress[subject.id] ?? 0;
+                          const total = filteredStudents.length;
+                          const active = subject.id === selectedSubject;
+                          const complete = total > 0 && done >= total;
+                          return (
+                            <button
+                              key={subject.id}
+                              type="button"
+                              aria-pressed={active}
+                              onClick={() => setSelectedSubject(subject.id)}
+                              className={`relative flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 text-sm transition-colors ${
                                 active
-                                  ? "bg-white/20 text-white"
-                                  : complete
-                                    ? "bg-[var(--green-soft)] text-[var(--green-ink)]"
-                                    : done > 0
-                                      ? "bg-[var(--amber-soft)] text-[var(--amber-ink)]"
-                                      : "bg-[var(--surface-container)] text-[var(--t3)]"
+                                  ? "border-[var(--primary)] font-bold text-[var(--primary)]"
+                                  : "border-transparent font-medium text-[var(--t2)] hover:text-[var(--t1)]"
                               }`}
                             >
-                              {complete ? `✓ ${total}` : total > 0 ? `${done}/${total}` : "0"}
-                            </span>
-                          </button>
-                        );
-                      }
-
-                      return (
-                        <button
-                          key={subject.id}
-                          type="button"
-                          aria-pressed={active}
-                          onClick={() => setSelectedSubject(active && !selectedClass ? "" : subject.id)}
-                          className={`relative overflow-hidden min-h-16 rounded-xl border p-3 text-left transition-all ${
-                            active
-                              ? "border-[var(--primary)] bg-[var(--navy-soft)] ring-2 ring-[var(--primary)]"
-                              : "border-[var(--border)] bg-[var(--surface-container-lowest)] hover:border-[var(--primary)]/60 hover:shadow-xs"
-                          }`}
-                        >
-                          <span className="block text-sm font-semibold leading-tight text-[var(--t1)]">
-                            {subject.name}
-                          </span>
-                          <span className="mt-1.5 flex items-center gap-1.5 text-xs">
-                            {!selectedClass ? (
-                              <span className="text-[var(--t3)]">Choose a class first</span>
-                            ) : total === 0 ? (
-                              <span className="text-[var(--t3)]">No pupils in this class</span>
-                            ) : complete ? (
-                              <>
-                                <MaterialIcon icon="check_circle" size={14} className="text-[var(--green)]" />
-                                <span className="font-semibold text-[var(--green)]">All {total} done</span>
-                              </>
-                            ) : done > 0 ? (
-                              <>
-                                <MaterialIcon icon="edit" size={14} className="text-[var(--amber)]" />
-                                <span className="font-semibold text-[var(--amber)]">
-                                  {done} of {total}
-                                </span>
-                              </>
-                            ) : (
-                              <>
-                                <MaterialIcon icon="radio_button_unchecked" size={14} className="text-[var(--t3)]" />
-                                <span className="text-[var(--t3)]">Not started</span>
-                              </>
-                            )}
-                          </span>
-                          {selectedClass && total > 0 && done > 0 && (
-                            <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-[var(--surface-container-high)]">
-                              <div
-                                className={`h-full rounded-full transition-all ${complete ? "bg-[var(--green)]" : "bg-[var(--amber)]"}`}
-                                style={{ width: `${pct}%` }}
-                              />
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </section>
+                              <span>{subject.name}</span>
+                              <span
+                                className={`text-xs tabular-nums ${complete ? "text-[var(--green)]" : "text-[var(--t3)]"}`}
+                              >
+                                {done}/{total}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <span className="hidden shrink-0 text-xs text-[var(--t3)] xl:inline">
+                        {subjectOptions.filter((s) => (liveSubjectProgress[s.id] ?? 0) > 0).length} started
+                      </span>
+                    </div>
+                  </>
+                )}
+              </section>
+            </div>
           </div>
         )}
         {/* Sticky context. Once marks are on screen, a teacher scrolling a
             long register needs to be able to answer "which subject is this?"
             without scrolling back up. */}
         {selectedClass && selectedSubjectName && (
-          <div className="sticky top-0 z-20 mb-3 -mx-1 px-1">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-xs px-3.5 py-2 shadow-sm">
-              <span className="text-sm font-bold text-[var(--t1)]">{selectedSubjectName}</span>
+          <div className="sticky top-0 z-20 -mx-3 border-b border-[var(--border)] bg-[var(--bg)]/95 px-3 py-2 backdrop-blur-xs">
+            <div className="flex min-h-9 flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="text-sm font-bold text-[var(--t1)]">{selectedClassName}</span>
+              <span className="text-[var(--t3)]" aria-hidden="true">
+                /
+              </span>
+              <span className="text-sm font-semibold text-[var(--t2)]">{selectedSubjectName}</span>
               <span className="text-xs text-[var(--t3)]">
-                {selectedClassName} &middot; Term {currentTerm} &middot; {academicYear}
+                Term {currentTerm} &middot; {academicYear}
               </span>
               <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${statusTone}`}>
                 {statusLabels[submissionStatus]}
@@ -2009,20 +1944,24 @@ export default function GradesPage() {
         {selectedClass && selectedSubject && (
           <>
             {!competencyMode && (
-              <section
-                aria-label="Choose assessment"
-                className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4"
-              >
-                <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-                  <div>
-                    <h2 className="text-sm font-bold text-[var(--t1)]">Which marks are you entering?</h2>
-                    <p className="mt-0.5 text-xs text-[var(--t3)]">Each assessment is marked out of 100.</p>
-                  </div>
+              <section aria-label="Choose assessment" className="border-b border-[var(--border)] pb-2 md:hidden">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--t3)]">Assessment</h2>
+                  <details className="group text-xs text-[var(--t3)]">
+                    <summary className="cursor-pointer list-none font-semibold hover:text-[var(--t1)]">
+                      How totals work
+                    </summary>
+                    <p className="mt-2 max-w-lg text-[var(--t2)]">
+                      {gradeBasis
+                        ? "The average follows the assessment recipe set by your school; configured weights are used, or included marks count equally."
+                        : "BOT, MOT and EOT count equally. EOT is the end-of-term exam; there is no separate final exam mark."}
+                    </p>
+                  </details>
                 </div>
                 <div
                   role="group"
                   aria-label="Assessment period"
-                  className={`grid gap-2 ${activeAssessmentTypes.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}
+                  className="mt-1 flex min-w-0 overflow-x-auto border-b border-[var(--border)]"
                 >
                   {activeAssessmentTypes.map((type) => {
                     const label = columnLabels[type]?.label || assessmentLabel(type);
@@ -2037,30 +1976,24 @@ export default function GradesPage() {
                         type="button"
                         aria-pressed={selected}
                         onClick={() => setEntryAssessment(type)}
-                        className={`min-h-12 rounded-xl border px-3 py-2 text-sm font-bold transition-all flex items-center justify-between gap-2 ${
+                        className={`min-h-11 shrink-0 border-b-2 px-3 text-sm transition-colors flex items-center justify-between gap-2 ${
                           selected
-                            ? "border-[var(--primary)] bg-[var(--primary)] text-white shadow-sm"
-                            : "border-[var(--border)] bg-[var(--surface-container-lowest)] text-[var(--t2)] hover:border-[var(--primary)]"
+                            ? "border-[var(--primary)] font-bold text-[var(--primary)]"
+                            : "border-transparent font-medium text-[var(--t2)] hover:text-[var(--t1)]"
                         }`}
                       >
                         <span>
                           {label}
-                          <span
-                            className={`ml-1 text-xs font-medium ${selected ? "text-white/80" : "text-[var(--t3)]"}`}
-                          >
-                            /100
-                          </span>
+                          <span className="ml-1 text-xs font-medium text-[var(--t3)]">/100</span>
                         </span>
                         {filteredStudents.length > 0 && (
                           <span
-                            className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                              selected
-                                ? "bg-white/20 text-white"
-                                : typeEnteredCount >= filteredStudents.length
-                                  ? "bg-[var(--green-soft)] text-[var(--green-ink)]"
-                                  : typeEnteredCount > 0
-                                    ? "bg-[var(--amber-soft)] text-[var(--amber-ink)]"
-                                    : "bg-[var(--surface-container)] text-[var(--t3)]"
+                            className={`text-[11px] font-bold tabular-nums ${
+                              typeEnteredCount >= filteredStudents.length && filteredStudents.length > 0
+                                ? "text-[var(--green)]"
+                                : typeEnteredCount > 0
+                                  ? "text-[var(--amber)]"
+                                  : "text-[var(--t3)]"
                             }`}
                           >
                             {typeEnteredCount}/{filteredStudents.length}
@@ -2070,11 +2003,6 @@ export default function GradesPage() {
                     );
                   })}
                 </div>
-                <p className="mt-2 rounded-lg bg-[var(--navy-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--t2)]">
-                  {gradeBasis
-                    ? "The average follows the assessment recipe set by your school in Academic Settings; configured weights are used, or included marks count equally."
-                    : "BOT, MOT and EOT are separate marks and count equally in the average. EOT is the end-of-term exam; there is no separate final exam mark."}
-                </p>
               </section>
             )}
             {/*
@@ -2090,7 +2018,7 @@ export default function GradesPage() {
                 the next name to grade when there is one. The averaging rule
                 moved into the explainer above, where it belongs.
               */}
-            <section aria-label="grades progress" className="px-1">
+            <section aria-label="grades progress" className="px-1 md:hidden">
               <div className="flex items-baseline justify-between gap-3 text-xs">
                 <span className="font-semibold text-[var(--t2)]">
                   <span className="text-[var(--green)] font-bold">
@@ -2263,32 +2191,24 @@ export default function GradesPage() {
         )}
         {/* Workflow Status Filter */}
         {selectedClass && selectedSubject && (
-          <FilterBar
-            searchLabel="Search students"
-            searchPlaceholder="Student name or number…"
-            searchValue={searchQuery}
-            onSearchChange={(value) => {
-              setSearchQuery(value);
-              setGradePage(1);
-            }}
-            chips={
-              statusFilter === "all"
-                ? []
-                : [{ key: "status", label: "Status", value: statusFilter, display: statusFilter }]
-            }
-            onRemoveChip={() => {
-              setStatusFilter("all");
-              setGradePage(1);
-            }}
-            onClearAll={() => {
-              setSearchQuery("");
-              setStatusFilter("all");
-              setGradePage(1);
-            }}
-            resultCount={displayStudents.length}
-            totalCount={filteredStudents.length}
-          >
-            <div role="group" aria-label="Grade status" className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-end gap-3 border-y border-[var(--border)] py-3">
+            <div className="min-w-[220px] flex-1">
+              <label htmlFor="grade-student-search" className="mb-1 block text-xs font-semibold text-[var(--t3)]">
+                Find a pupil
+              </label>
+              <input
+                id="grade-student-search"
+                type="search"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setGradePage(1);
+                }}
+                placeholder="Name or student number"
+                className="input !h-10 !py-0 text-sm"
+              />
+            </div>
+            <div role="group" aria-label="Grade status" className="flex flex-wrap items-center gap-x-3 gap-y-1">
               {(["all", "draft", "submitted", "approved"] as const).map((f) => (
                 <button
                   key={f}
@@ -2298,49 +2218,60 @@ export default function GradesPage() {
                     setStatusFilter(f);
                     setGradePage(1);
                   }}
-                  className={`min-h-11 px-3 py-2 rounded-full text-xs font-bold transition-colors ${
+                  className={`min-h-10 border-b-2 px-1 text-xs font-semibold transition-colors ${
                     statusFilter === f
-                      ? f === "all"
-                        ? "bg-primary text-on-primary"
-                        : f === "draft"
-                          ? "bg-[var(--amber-soft)] text-[var(--amber-ink)] border border-[var(--amber)]/30"
-                          : f === "submitted"
-                            ? "bg-blue-50 text-blue-700 border border-blue-200"
-                            : "bg-[var(--green-soft)] text-[var(--green-ink)] border border-[var(--green)]/30"
-                      : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                      ? "border-[var(--primary)] text-[var(--primary)]"
+                      : "border-transparent text-[var(--t3)] hover:text-[var(--t1)]"
                   }`}
                 >
                   {f === "all" ? "All" : f === "draft" ? "Draft" : f === "submitted" ? "Submitted" : "Approved"}
                 </button>
               ))}
             </div>
-          </FilterBar>
+            <span role="status" className="ml-auto pb-2 text-xs text-[var(--t3)]">
+              {displayStudents.length} of {filteredStudents.length} pupils
+            </span>
+          </div>
         )}
         {selectedClass && selectedSubject && (
-          <Tabs
-            tabs={[
-              { id: "marks", label: "Marks Entry" },
-              { id: "coverage", label: "Topic Coverage" },
-            ]}
-            activeTab={tab}
-            onChange={(id) => setTab(id as "marks" | "coverage")}
-          />
+          <div role="group" aria-label="Grade workspace" className="flex gap-5 border-b border-[var(--border)]">
+            {(
+              [
+                ["marks", "Marks"],
+                ["coverage", "Topic coverage"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={tab === id}
+                onClick={() => setTab(id)}
+                className={`min-h-11 border-b-2 px-1 text-sm transition-colors ${
+                  tab === id
+                    ? "border-[var(--primary)] font-bold text-[var(--primary)]"
+                    : "border-transparent font-medium text-[var(--t3)] hover:text-[var(--t1)]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         )}
         {/* Inline Entry Controls */}
         {tab === "marks" && selectedClass && selectedSubject && filteredStudents.length > 0 && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* The out-of-100 rule is in the Owly guide; repeating it above the
                 table on every visit was one banner too many. */}
             {/* View Mode Toggle & Quick Actions */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setInlineEntryMode(true)}
                   title="Show every pupil in a list"
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                  className={`min-h-10 border-b-2 px-2 text-sm font-semibold transition-all ${
                     inlineEntryMode
-                      ? "bg-primary text-on-primary shadow-sm"
-                      : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                      ? "border-[var(--primary)] text-[var(--primary)]"
+                      : "border-transparent text-[var(--t3)] hover:text-[var(--t1)]"
                   }`}
                 >
                   <span className="flex items-center gap-2">
@@ -2351,10 +2282,10 @@ export default function GradesPage() {
                 <button
                   onClick={() => setInlineEntryMode(false)}
                   title="Mark one pupil at a time"
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all md:hidden ${
+                  className={`min-h-10 border-b-2 px-2 text-sm font-semibold transition-all md:hidden ${
                     !inlineEntryMode
-                      ? "bg-primary text-on-primary shadow-sm"
-                      : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                      ? "border-[var(--primary)] text-[var(--primary)]"
+                      : "border-transparent text-[var(--t3)] hover:text-[var(--t1)]"
                   }`}
                 >
                   <span className="flex items-center gap-2">
@@ -2367,17 +2298,15 @@ export default function GradesPage() {
                 <button
                   onClick={() => setCompetencyMode(!competencyMode)}
                   title={competencyMode ? "Switch to marks-based grading" : "Switch to competency-based assessment"}
-                  className={`px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 ${
-                    competencyMode
-                      ? "bg-amber-100 text-amber-800 border border-amber-300"
-                      : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                  className={`min-h-10 px-2 text-sm font-medium transition-all flex items-center gap-1.5 ${
+                    competencyMode ? "text-[var(--amber-ink)]" : "text-[var(--t3)] hover:text-[var(--t1)]"
                   }`}
                 >
                   <MaterialIcon icon="psychology" className="text-base" />
                   Competency
                 </button>
                 <button
-                  className="px-3 py-2 rounded-xl text-sm font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all flex items-center gap-1.5"
+                  className="min-h-10 px-2 text-sm font-medium text-[var(--t3)] transition-colors hover:text-[var(--t1)] flex items-center gap-1.5"
                   onClick={() => setBulkImportOpen(true)}
                 >
                   <MaterialIcon icon="upload" className="text-base" />
@@ -2385,10 +2314,8 @@ export default function GradesPage() {
                 </button>
                 <div className="relative">
                   <button
-                    className={`px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 ${
-                      setAllOpen
-                        ? "bg-primary text-on-primary shadow-sm"
-                        : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                    className={`min-h-10 px-2 text-sm font-medium transition-all flex items-center gap-1.5 ${
+                      setAllOpen ? "text-[var(--primary)]" : "text-[var(--t3)] hover:text-[var(--t1)]"
                     }`}
                     onClick={() => setSetAllOpen((v) => !v)}
                     aria-expanded={setAllOpen}
@@ -2478,69 +2405,71 @@ export default function GradesPage() {
               </div>
             </div>
 
-            {/* Desktop: Inline Table View (md and up) + mobile cards (<md) */}
+            {/* Desktop uses a full-width register; phones get pupil-focused cards. */}
             {inlineEntryMode && (
               <>
-                <div className="hidden md:block bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm">
+                <div className="hidden overflow-hidden border-y border-[var(--border)] md:block">
                   <div className="overflow-x-auto table-responsive">
-                    <table className="w-full border-collapse">
+                    <table
+                      className="w-full min-w-max border-collapse"
+                      data-grade-scope
+                      data-grade-columns={competencyMode ? 1 : activeAssessmentTypes.length}
+                    >
                       <thead>
-                        <tr className="bg-surface-container-low/50 text-left">
-                          <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                            Student Identity
+                        <tr className="sticky top-0 bg-[var(--bg)] text-left">
+                          <th className="sticky left-0 z-10 min-w-[220px] border-b border-[var(--border)] bg-[var(--bg)] px-3 py-3 text-xs font-bold text-[var(--t2)]">
+                            Pupil
                           </th>
                           {competencyMode ? (
-                            <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                            <th className="border-b border-[var(--border)] px-3 py-3 text-center text-xs font-bold text-[var(--t2)]">
                               Competency Level
                             </th>
                           ) : (
                             <>
-                              {[currentEntryAssessment].map((type) => {
+                              {activeAssessmentTypes.map((type) => {
                                 const labelInfo = columnLabels[type] || {
                                   label: assessmentLabel(type),
                                   explain: "",
                                 };
+                                const entered = filteredStudents.reduce(
+                                  (count, student) => count + (getMark(student.id, type) !== null ? 1 : 0),
+                                  0,
+                                );
                                 return (
                                   <th
                                     key={type}
                                     scope="col"
-                                    className="px-4 py-3 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center align-bottom"
+                                    className={`min-w-20 border-b border-[var(--border)] px-2 py-3 text-center align-bottom text-xs font-bold ${
+                                      type === currentEntryAssessment ? "text-[var(--primary)]" : "text-[var(--t2)]"
+                                    }`}
                                   >
                                     <span className="block">{labelInfo.label}</span>
-                                    {/*
-                                      The out-of mark belongs here as "/100". It was a
-                                      stray ")" that rendered every numeric header as
-                                      ")100", and the long explanation was repeated
-                                      under every column, turning the header row into a
-                                      paragraph. Both live in the explainer below the
-                                      table now.
-                                    */}
-                                    <span className="block text-xs font-semibold normal-case tracking-normal text-[var(--t3)]">
-                                      /{ASSESSMENT_MAX[type]}
+                                    <span className="mt-0.5 block text-[11px] font-medium text-[var(--t3)]">
+                                      {entered}/{filteredStudents.length} · /{ASSESSMENT_MAX[type]}
                                     </span>
                                   </th>
                                 );
                               })}
                             </>
                           )}
-                          <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                            {competencyMode ? "Status" : "Average /100"}
+                          <th className="min-w-20 border-b border-[var(--border)] px-3 py-3 text-center text-xs font-bold text-[var(--t2)]">
+                            Average
                           </th>
-                          <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-right">
+                          <th className="min-w-16 border-b border-[var(--border)] px-3 py-3 text-right text-xs font-bold text-[var(--t2)]">
                             Grade
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-surface-container">
+                      <tbody className="divide-y divide-[var(--border)]">
                         {studentsLoading ? (
                           <tr>
-                            <td colSpan={markSheetColumnCount} className="px-8 py-12">
+                            <td colSpan={markSheetColumnCount} className="px-3 py-10 text-sm text-[var(--t3)]">
                               <TableSkeleton rows={5} />
                             </td>
                           </tr>
                         ) : displayStudents.length === 0 ? (
                           <tr>
-                            <td colSpan={markSheetColumnCount} className="px-8 py-12">
+                            <td colSpan={markSheetColumnCount} className="px-3 py-10 text-sm text-[var(--t3)]">
                               <NoData
                                 title={
                                   statusFilter !== "all"
@@ -2555,7 +2484,7 @@ export default function GradesPage() {
                           // absence can erase a whole assessment column. Say so
                           // rather than let the sheet look complete.
                           <tr>
-                            <td colSpan={markSheetColumnCount} className="px-8 py-10">
+                            <td colSpan={markSheetColumnCount} className="px-3 py-8">
                               <div className="rounded-xl border border-[var(--amber)]/30 bg-[var(--amber-soft)] px-4 py-3 text-sm text-[var(--t1)]">
                                 <p className="font-semibold">
                                   {unassignedStudents.length} student
@@ -2586,21 +2515,21 @@ export default function GradesPage() {
                                     : ""
                                 }`}
                               >
-                                <td className="px-8 py-5">
-                                  <div className="flex items-center gap-4">
-                                    <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />
-                                    <div>
-                                      <p className="font-bold text-primary">
-                                        {student.first_name} {student.last_name}
-                                      </p>
-                                      <p className="text-xs text-on-surface-variant">{student.student_number || "-"}</p>
-                                      <GradeStatusBadge status={studentStatusMap[student.id]} />
-                                    </div>
-                                    {graded && <MaterialIcon icon="check_circle" className="text-green-500 text-lg" />}
+                                <td className="sticky left-0 z-[1] bg-[var(--surface)] px-3 py-2">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-semibold text-[var(--t1)]">
+                                      {student.first_name} {student.last_name}
+                                    </p>
+                                    <p className="text-[11px] text-[var(--t3)]">
+                                      {student.student_number || "-"}
+                                      {studentStatusMap[student.id] && studentStatusMap[student.id] !== "draft"
+                                        ? ` · ${statusLabels[studentStatusMap[student.id]]}`
+                                        : ""}
+                                    </p>
                                   </div>
                                 </td>
                                 {competencyMode ? (
-                                  <td className="px-4 py-5">
+                                  <td className="px-2 py-1.5">
                                     <div className="relative">
                                       <select
                                         className="w-24 mx-auto block text-center font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all bg-surface-container-low"
@@ -2624,11 +2553,11 @@ export default function GradesPage() {
                                     </div>
                                   </td>
                                 ) : (
-                                  [currentEntryAssessment].map((type) => (
-                                    <td key={type} className="px-4 py-5">
-                                      <div className="relative w-24 mx-auto">
+                                  activeAssessmentTypes.map((type) => (
+                                    <td key={type} className="px-2 py-1.5">
+                                      <div className="relative mx-auto w-16">
                                         <input
-                                          className={`w-24 mx-auto block text-center text-base font-bold py-2 px-2 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] focus:border-[var(--primary)] focus:bg-[var(--surface)] focus:ring-2 focus:ring-[var(--primary)]/20 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${getInputBorderClass(student.id, type)}`}
+                                          className={`h-9 w-16 rounded-md border border-[var(--border)] bg-[var(--surface)] px-1 text-center font-mono text-sm tabular-nums text-[var(--t1)] focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)]/20 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${getInputBorderClass(student.id, type)}`}
                                           type="number"
                                           inputMode="numeric"
                                           min={0}
@@ -2657,36 +2586,16 @@ export default function GradesPage() {
                                     </td>
                                   ))
                                 )}
-                                <td className="px-4 py-5 text-center">
+                                <td className="px-3 py-2 text-center">
                                   <span
-                                    className={`font-black text-xl ${total !== null ? "text-primary" : "text-on-surface-variant"}`}
+                                    className={`font-mono text-sm font-bold tabular-nums ${total !== null ? "text-[var(--t1)]" : "text-[var(--t3)]"}`}
                                   >
                                     {total !== null ? total : "—"}
                                   </span>
-                                  {!competencyMode && activeAssessmentTypes.length > 1 && (
-                                    <div className="mt-1 flex items-center justify-center gap-1.5 text-[11px] text-[var(--t3)]">
-                                      {activeAssessmentTypes.map((t) => {
-                                        const m = getMark(student.id, t);
-                                        const lbl = columnLabels[t]?.label || assessmentLabel(t);
-                                        return (
-                                          <span
-                                            key={t}
-                                            className={`rounded px-1.5 py-0.5 ${
-                                              t === currentEntryAssessment
-                                                ? "bg-[var(--navy-soft)] font-bold text-[var(--primary)]"
-                                                : "bg-[var(--surface-container)]"
-                                            }`}
-                                          >
-                                            {lbl}: {m !== null ? m : "—"}
-                                          </span>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
                                 </td>
-                                <td className="px-8 py-5 text-right">
+                                <td className="px-3 py-2 text-right">
                                   <span
-                                    className={`px-4 py-1.5 rounded-full text-xs font-black ${gradeInfo ? "bg-surface-container" : "bg-surface-bright text-on-surface-variant"} ${gradeInfo?.color || ""}`}
+                                    className={`font-mono text-sm font-bold ${gradeInfo ? gradeInfo.color : "text-[var(--t3)]"}`}
                                   >
                                     {gradeInfo ? gradeInfo.grade : "-"}
                                   </span>
@@ -2697,12 +2606,12 @@ export default function GradesPage() {
                         )}
                       </tbody>
                       {displayStudents.length > 0 && !competencyMode && (
-                        <tfoot className="bg-surface-container-low/40">
+                        <tfoot className="border-t-2 border-[var(--border)] bg-[var(--surface-container-low)]">
                           <tr>
                             <ClassAverageRow
                               marks={marks}
                               studentIds={displayStudents.map((s) => s.id)}
-                              assessmentTypes={[currentEntryAssessment]}
+                              assessmentTypes={activeAssessmentTypes}
                               competencyMode={competencyMode}
                             />
                           </tr>
@@ -2736,8 +2645,8 @@ export default function GradesPage() {
                     </div>
                   )}
                 </div>
-                {/* Mobile: grade cards (<md) — same students + handlers as the desktop table above */}
-                <div className="md:hidden space-y-3" data-grade-scope>
+                {/* Mobile all-pupils view — same students and handlers as the desktop table above. */}
+                <div className="md:hidden space-y-3" data-grade-scope data-grade-columns="1">
                   {studentsLoading ? (
                     <Card>
                       <CardBody>
@@ -3088,50 +2997,53 @@ export default function GradesPage() {
         )}
         {/* Topic Coverage */}
         {tab === "coverage" && selectedSubject && (
-          <div className="space-y-6">
-            {/* Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-surface-container-low p-6 rounded-xl text-center">
-                <div className="text-2xl font-bold text-secondary">{coverageStats.completed}</div>
-                <div className="text-sm text-on-surface-variant">Completed</div>
+          <div>
+            <dl className="grid grid-cols-3 divide-x divide-[var(--border)] border-y border-[var(--border)] py-3">
+              <div className="px-3 first:pl-0">
+                <dt className="text-xs text-[var(--t3)]">Completed</dt>
+                <dd className="mt-0.5 text-lg font-bold tabular-nums text-[var(--t1)]">{coverageStats.completed}</dd>
               </div>
-              <div className="bg-surface-container-low p-6 rounded-xl text-center">
-                <div className="text-2xl font-bold text-tertiary">{coverageStats.inProgress}</div>
-                <div className="text-sm text-on-surface-variant">In Progress</div>
+              <div className="px-3">
+                <dt className="text-xs text-[var(--t3)]">In progress</dt>
+                <dd className="mt-0.5 text-lg font-bold tabular-nums text-[var(--t1)]">{coverageStats.inProgress}</dd>
               </div>
-              <div className="bg-surface-container-low p-6 rounded-xl text-center">
-                <div className="text-2xl font-bold text-primary">{coverageStats.percentage}%</div>
-                <div className="text-sm text-on-surface-variant">Coverage</div>
+              <div className="px-3 last:pr-0">
+                <dt className="text-xs text-[var(--t3)]">Coverage</dt>
+                <dd className="mt-0.5 text-lg font-bold tabular-nums text-[var(--t1)]">{coverageStats.percentage}%</dd>
               </div>
-            </div>
+            </dl>
 
             {/* Topics */}
-            <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
-              <div className="p-6 border-b border-outline-variant/10">
-                <h3 className="font-headline font-bold text-lg text-primary">Topic Coverage</h3>
+            <div className="mt-4">
+              <div className="flex items-baseline justify-between border-b border-[var(--border)] py-2">
+                <h3 className="text-sm font-bold text-[var(--t1)]">Topic coverage</h3>
+                <span className="text-xs text-[var(--t3)]">{topics.length} syllabus topics</span>
               </div>
-              <div className="divide-y divide-outline-variant/5">
+              <div className="divide-y divide-[var(--border)]">
                 {topics.map((topic) => {
                   const status = getTopicStatus(topic);
                   return (
-                    <div key={topic} className="flex items-center justify-between p-4 hover:bg-surface-bright">
-                      <span className="font-medium text-primary">{topic}</span>
-                      <div className="flex gap-2">
+                    <div key={topic} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                      <span className="text-sm font-medium text-[var(--t1)]">{topic}</span>
+                      <div role="group" aria-label={`${topic} status`} className="flex items-center gap-1">
                         <button
                           onClick={() => updateTopicStatus(topic, "not_started")}
-                          className={`px-3 py-1 rounded-full text-xs font-bold ${status === "not_started" ? "bg-surface-container text-on-surface-variant" : "bg-surface-bright text-on-surface-variant hover:bg-surface-container"}`}
+                          aria-pressed={status === "not_started"}
+                          className={`min-h-9 px-2 text-xs font-medium ${status === "not_started" ? "text-[var(--primary)]" : "text-[var(--t3)] hover:text-[var(--t1)]"}`}
                         >
                           Not Started
                         </button>
                         <button
                           onClick={() => updateTopicStatus(topic, "in_progress")}
-                          className={`px-3 py-1 rounded-full text-xs font-bold ${status === "in_progress" ? "bg-tertiary-fixed text-on-tertiary-fixed" : "bg-surface-bright text-on-surface-variant hover:bg-surface-container"}`}
+                          aria-pressed={status === "in_progress"}
+                          className={`min-h-9 px-2 text-xs font-medium ${status === "in_progress" ? "text-[var(--primary)]" : "text-[var(--t3)] hover:text-[var(--t1)]"}`}
                         >
                           In Progress
                         </button>
                         <button
                           onClick={() => updateTopicStatus(topic, "completed")}
-                          className={`px-3 py-1 rounded-full text-xs font-bold ${status === "completed" ? "bg-secondary-container text-on-secondary-container" : "bg-surface-bright text-on-surface-variant hover:bg-surface-container"}`}
+                          aria-pressed={status === "completed"}
+                          className={`min-h-9 px-2 text-xs font-medium ${status === "completed" ? "text-[var(--green)]" : "text-[var(--t3)] hover:text-[var(--t1)]"}`}
                         >
                           Completed
                         </button>
@@ -3144,17 +3056,14 @@ export default function GradesPage() {
           </div>
         )}
         {(!selectedClass || !selectedSubject) && (
-          <EmptyState
-            icon="edit_note"
-            title="Select a class and subject"
-            description="Choose a class and subject from the pickers above to start entering grades."
-            owlyQuestion="How do I enter marks for a class?"
-          />
+          <p className="border-b border-[var(--border)] py-6 text-center text-sm text-[var(--t3)]">
+            Select a class and subject to open the marks register.
+          </p>
         )}
         {/* Sticky Action Bar */}
         <div
           data-page-action-bar=""
-          className="fixed bottom-[calc(84px+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 flex w-[calc(100%-24px)] max-w-2xl items-center justify-between gap-2 bg-[var(--surface)] dark:bg-[var(--surface-container-lowest)] px-3 py-3 rounded-2xl shadow-2xl z-40 border border-[var(--border)]/50 sm:w-auto sm:gap-4 sm:px-6 sm:py-4 sm:rounded-full"
+          className="fixed bottom-[calc(84px+env(safe-area-inset-bottom,0px))] left-1/2 z-40 flex w-[calc(100%-24px)] max-w-2xl -translate-x-1/2 items-center justify-between gap-2 rounded-2xl border border-[var(--border)]/50 bg-[var(--surface)] px-3 py-3 shadow-2xl sm:w-auto sm:gap-4 sm:px-6 sm:py-4 sm:rounded-full md:bottom-0 md:left-0 md:w-full md:max-w-none md:translate-x-0 md:justify-end md:rounded-none md:border-x-0 md:border-b-0 md:border-t md:bg-[var(--bg)]/95 md:px-6 md:py-2 md:shadow-none"
         >
           {/*
               "Sync Active" was a permanent green light that read the same whether
