@@ -934,8 +934,12 @@ class OfflineDB {
       } else {
         // Most tables have no updated_at column, so a raw insert failed with
         // PGRST204 and the row never reached the server. Strip the local-only
-        // keys the same way the attendance/grades upserts do.
-        const { error } = await supabase.from(item.table).insert(this.stripSyncKeys(item.data));
+        // keys. Offline creates have client-generated UUIDs, so upsert by id
+        // also makes replay safe if the server saved the row but its response
+        // never reached the device.
+        const payload = this.stripSyncKeys(item.data);
+        const query = supabase.from(item.table);
+        const { error } = payload.id ? await query.upsert(payload, { onConflict: "id" }) : await query.insert(payload);
         if (error) throw error;
       }
       return { status: "synced" };
