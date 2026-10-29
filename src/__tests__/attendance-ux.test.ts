@@ -138,7 +138,7 @@ describe("one-pupil view stays put", () => {
 describe("register adapts without losing desktop density", () => {
   it("renders a card for phones and a dense row for desktop", () => {
     expect(page).toContain("lg:hidden");
-    expect(page).toContain("hidden lg:flex lg:items-center lg:gap-4");
+    expect(page).toMatch(/className="hidden[^\"]*lg:flex lg:items-center lg:gap-4/);
   });
 
   it("builds both from one pass over the pupils", () => {
@@ -154,6 +154,28 @@ describe("register adapts without losing desktop density", () => {
     expect(page.match(/CARD_STATUSES/g) ?? []).toHaveLength(3);
     expect(page).toContain("statuses={CARD_STATUSES}");
     expect(page).toContain("{CARD_STATUSES.map((option) => {");
+  });
+});
+
+describe("attendance desktop workspace stays flat", () => {
+  it("uses one compact class/date rail instead of a selector card", () => {
+    expect(page).toContain('className="border-y border-[var(--border)] py-3"');
+    expect(page).toContain('className="input !h-10 !py-0 text-sm font-semibold"');
+    expect(page).toContain('id="attendance-student-search"');
+  });
+
+  it("renders desktop pupils as separator rows, not individual cards", () => {
+    const desktop = page.slice(page.indexOf("{/* Desktop */}"));
+    expect(desktop).toContain("min-h-12 border-b border-[var(--border)]");
+    expect(desktop).not.toContain(
+      'className="hidden lg:flex lg:items-center lg:gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest',
+    );
+  });
+
+  it("keeps one save action per viewport", () => {
+    expect(page).toContain('className="hidden shadow-md shadow-navy/20 md:inline-flex"');
+    expect(page).toContain("mobile-sticky-action fixed");
+    expect(page).toContain("md:hidden");
   });
 });
 

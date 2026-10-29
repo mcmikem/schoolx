@@ -143,7 +143,6 @@ export default function AttendancePage() {
   const urlFilters = useUrlSyncedFilters();
   const router = useRouter();
   const pathname = usePathname();
-  const classSelectRef = useRef<HTMLSelectElement>(null);
   // True once the teacher has marked anything this session that has not been
   // saved. A refresh triggered by returning to the tab must not clobber it.
   const dirtyRef = useRef(false);
@@ -1148,7 +1147,7 @@ export default function AttendancePage() {
       )}
 
       <PageErrorBoundary>
-        <div className="space-y-5 p-4 pb-24 sm:p-6 sm:pb-24 lg:pb-6">
+        <div className="content min-w-0 pb-28 lg:pb-20">
           <PageHeader
             title="Attendance Center"
             subtitle={`Marking records for ${selectedClassName?.name || "Academic Classes"}`}
@@ -1174,7 +1173,7 @@ export default function AttendancePage() {
                     variant="primary"
                     size="sm"
                     icon={<MaterialIcon icon="save" />}
-                    className="shadow-md shadow-navy/20"
+                    className="hidden shadow-md shadow-navy/20 md:inline-flex"
                   >
                     Save
                   </Button>
@@ -1261,10 +1260,7 @@ export default function AttendancePage() {
             <StaleDataNotice tables="students" />
           </div>
 
-          {/* For a headmaster this is the page: who has marked. It sits above
-              the register, not under it -- the register is the teacher's
-              screen, and the headmaster's first question is which class has
-              not registered yet. */}
+          {/* For a headmaster this is the page: who has marked. */}
           {todaysMarking.length > 0 && (
             <TodaysMarkingPanel
               classes={todaysMarking}
@@ -1273,68 +1269,8 @@ export default function AttendancePage() {
             />
           )}
 
-          {/*
-              Only shown once a class is chosen. Before that it reads
-              "0/0 marked - 0 present - 0 absent", which says nothing,
-              and it pushes the class picker -- the one control a
-              teacher needs first -- roughly 350px further down the
-              page on a phone.
-          */}
-          {selectedClass && (
-            <div
-              aria-label="Teacher attendance register summary"
-              className="rounded-[28px] border border-[var(--border)] bg-white p-4 shadow-[0_16px_35px_rgba(15,23,42,0.06)]"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--primary)]">Register</p>
-                  <h2 className="mt-1 text-lg font-bold text-[var(--t1)] font-['Sora']">Mark today&apos;s class</h2>
-                </div>
-                {/*
-                  Reads "Choose class" until one is picked, in a pill that looks
-                  pressable. Teachers tapped it and nothing happened, because it
-                  was a plain span. Until a class is chosen this is the one thing
-                  standing between them and the register, so it now actually does
-                  what it looks like it does: focuses the real picker.
-                */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    classSelectRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
-                    classSelectRef.current?.focus();
-                  }}
-                  className="rounded-full bg-[var(--primary-50)] px-2.5 py-1 text-xs font-bold uppercase tracking-[0.1em] text-[var(--t1)]"
-                >
-                  {selectedClassName?.name || "Choose class"}
-                </button>
-              </div>
-
-              <p className="mt-3 text-sm text-on-surface-variant">
-                <span className="font-bold text-on-surface">
-                  {markedCount}/{students.length} marked
-                </span>
-                {" · "}
-                <span className="font-semibold text-secondary">{effectivePresentCount} present</span>
-                {" · "}
-                <span className="font-semibold text-error">{absentCount} absent</span>
-                {lateCount > 0 && (
-                  <>
-                    {" · "}
-                    <span className="font-semibold text-tertiary">{lateCount} late</span>
-                  </>
-                )}
-                {excusedCount > 0 && (
-                  <>
-                    {" · "}
-                    <span className="font-semibold text-[var(--violet)]">{excusedCount} excused</span>
-                  </>
-                )}
-              </p>
-            </div>
-          )}
-
           {canManageSmsAutomation && showSmsSettings && (
-            <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] py-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div
                   className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${absenteeAlertEnabled ? "bg-error-container" : "bg-surface-container-high"}`}
@@ -1378,11 +1314,11 @@ export default function AttendancePage() {
             </div>
           )}
 
-          <div className="bg-surface-container-lowest rounded-[24px] border border-outline-variant p-4">
-            <div className="flex flex-col sm:flex-row gap-4">
+          <div className="border-y border-[var(--border)] py-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
               <div className="flex-1">
-                <label className="text-xs font-black uppercase tracking-[0.14em] text-on-surface-variant mb-2 block">
-                  Select class
+                <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-[var(--t3)]">
+                  Class
                   {isClassTeacher && !isAdmin && (
                     <span className="ml-2 normal-case font-medium text-primary">(your classes)</span>
                   )}
@@ -1415,10 +1351,9 @@ export default function AttendancePage() {
                   </div>
                 ) : (
                   <select
-                    ref={classSelectRef}
                     value={selectedClass || ""}
                     onChange={(e) => setSelectedClass(e.target.value || null)}
-                    className="w-full bg-surface-container border-none rounded-xl py-3 px-4 min-h-[44px] text-base font-medium focus:ring-2 focus:ring-primary/20"
+                    className="input !h-10 !py-0 text-sm font-semibold"
                   >
                     <option value="">Select a class</option>
                     {filteredClasses.map((c) => (
@@ -1431,16 +1366,14 @@ export default function AttendancePage() {
                 )}
               </div>
               <div className="flex items-end gap-2">
-                <div className={bulkMode ? "sm:w-40" : "sm:w-48"}>
-                  <label className="text-xs font-black uppercase tracking-[0.14em] text-on-surface-variant mb-2 block">
-                    Date
-                  </label>
+                <div>
+                  <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-[var(--t3)]">Date</label>
                   <input
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
                     disabled={bulkMode}
-                    className="w-full bg-surface-container border-none rounded-xl py-3 px-4 min-h-[44px] text-base font-medium focus:ring-2 focus:ring-primary/20 disabled:opacity-40"
+                    className="input !h-10 !py-0 text-sm font-semibold disabled:opacity-40"
                   />
                 </div>
               </div>
@@ -1548,16 +1481,14 @@ export default function AttendancePage() {
           </div>
 
           {!selectedClass ? (
-            <EmptyState
-              icon="fact_check"
-              title="Select a class"
-              description={
-                isClassTeacher && !isAdmin && filteredClasses.length === 0
-                  ? "Your administrator hasn't assigned you to a class or subject yet"
-                  : "Choose a class to mark attendance"
-              }
-              owlyQuestion="How do I mark attendance for a class?"
-            />
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] py-5">
+              <p className="text-sm text-[var(--t3)]">
+                {isClassTeacher && !isAdmin && filteredClasses.length === 0
+                  ? "Your administrator has not assigned you to a class yet."
+                  : "Choose a class to open its attendance register."}
+              </p>
+              <OwlyTrigger guideId="attendance" label="How do I mark attendance?" />
+            </div>
           ) : loading ? (
             <TableSkeleton rows={5} />
           ) : students.length === 0 ? (
@@ -1592,24 +1523,24 @@ export default function AttendancePage() {
               <p className="mt-1 text-sm text-on-surface-variant">
                 {savedSummary.className} · {savedSummary.date} · {savedSummary.total} pupils
               </p>
-              <div className="mt-6 grid grid-cols-2 gap-3 text-left">
-                <div className="rounded-2xl border border-secondary/30 bg-secondary/5 p-4">
-                  <div className="text-3xl font-bold text-secondary tabular-nums">{savedSummary.present}</div>
-                  <div className="text-sm font-medium text-on-surface-variant">Present</div>
+              <dl className="mt-6 grid grid-cols-4 divide-x divide-[var(--border)] border-y border-[var(--border)] py-3 text-left">
+                <div className="px-2 first:pl-0 sm:px-4">
+                  <dt className="text-xs text-[var(--t3)]">Present</dt>
+                  <dd className="mt-1 text-xl font-bold tabular-nums text-[var(--green)]">{savedSummary.present}</dd>
                 </div>
-                <div className="rounded-2xl border border-error/30 bg-error/5 p-4">
-                  <div className="text-3xl font-bold text-error tabular-nums">{savedSummary.absent}</div>
-                  <div className="text-sm font-medium text-on-surface-variant">Absent</div>
+                <div className="px-2 sm:px-4">
+                  <dt className="text-xs text-[var(--t3)]">Absent</dt>
+                  <dd className="mt-1 text-xl font-bold tabular-nums text-[var(--red)]">{savedSummary.absent}</dd>
                 </div>
-                <div className="rounded-2xl border border-tertiary/30 bg-tertiary/5 p-4">
-                  <div className="text-3xl font-bold text-tertiary tabular-nums">{savedSummary.late}</div>
-                  <div className="text-sm font-medium text-on-surface-variant">Late</div>
+                <div className="px-2 sm:px-4">
+                  <dt className="text-xs text-[var(--t3)]">Late</dt>
+                  <dd className="mt-1 text-xl font-bold tabular-nums text-[var(--amber)]">{savedSummary.late}</dd>
                 </div>
-                <div className="rounded-2xl border border-[var(--violet)]/30 bg-[var(--violet-soft)] p-4">
-                  <div className="text-3xl font-bold text-[var(--violet)] tabular-nums">{savedSummary.excused}</div>
-                  <div className="text-sm font-medium text-on-surface-variant">Excused</div>
+                <div className="px-2 last:pr-0 sm:px-4">
+                  <dt className="text-xs text-[var(--t3)]">Excused</dt>
+                  <dd className="mt-1 text-xl font-bold tabular-nums text-[var(--violet)]">{savedSummary.excused}</dd>
                 </div>
-              </div>
+              </dl>
               <div className="mt-6 flex flex-col gap-2">
                 <Button
                   onClick={() => router.push("/dashboard/attendance/history/")}
@@ -1651,69 +1582,39 @@ export default function AttendancePage() {
                 exceptions". Shown until the first mark so it does not
                 permanently cost vertical space on the register. */}
               {students.length > 0 && markedCount === 0 && (
-                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4">
-                  <div className="flex items-start gap-3">
-                    <MaterialIcon icon="touch_app" className="text-xl text-primary mt-0.5 shrink-0" />
-                    <div>
-                      <p className="font-bold text-sm text-[var(--t1)]">How marking works</p>
-                      <ol className="mt-2 space-y-1.5 text-[13px] text-[var(--t2)] list-decimal list-inside">
-                        <li>Everyone counts as Present. You only mark the ones who are not there.</li>
-                        <li>Tap a pupil to mark them Absent. Tap again to put them back to Present.</li>
-                        <li>Use the row buttons for Late or Excused.</li>
-                        <li>Swipe a row left for Present, right for Absent.</li>
-                        <li>When you finish, tap Save.</li>
-                      </ol>
-                    </div>
+                <div className="border-l-2 border-[var(--primary)] py-1 pl-3 text-xs text-[var(--t3)]">
+                  <p>Everyone counts as Present. Mark exceptions as Absent, Late, or Excused, then save the class.</p>
+                  <p className="mt-1 lg:hidden">On a phone, swipe left for Present or right for Absent.</p>
+                  <div className="mt-2 flex gap-3">
+                    <OwlyTrigger guideId="attendance" label="How do I mark attendance?" />
+                    <VideoLessonButton lesson="attendance" />
                   </div>
                 </div>
               )}
 
               {students.length > 0 && (
-                <div className="sticky top-0 z-10 -mx-1 px-1 py-2 bg-[var(--bg)]/95 backdrop-blur-sm">
-                  <div className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 shadow-sm">
+                <div className="sticky top-0 z-10 -mx-3 border-b border-[var(--border)] bg-[var(--bg)]/95 px-3 py-2">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="shrink-0 text-sm font-bold tabular-nums text-[var(--t1)]">
+                      {markedCount}/{students.length} marked
+                    </span>
                     <div
-                      className="relative h-10 w-10 shrink-0"
-                      role="img"
-                      aria-label={`${markedCount} of ${students.length} marked`}
+                      className="h-1.5 min-w-12 flex-1 overflow-hidden rounded-full bg-[var(--surface-container-high)]"
+                      role="progressbar"
+                      aria-label="Attendance marked"
+                      aria-valuenow={markedCount}
+                      aria-valuemin={0}
+                      aria-valuemax={students.length}
                     >
-                      <svg viewBox="0 0 36 36" className="h-10 w-10 -rotate-90">
-                        <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--border)" strokeWidth="4" />
-                        <circle
-                          cx="18"
-                          cy="18"
-                          r="15.5"
-                          fill="none"
-                          stroke="currentColor"
-                          className="text-emerald-500"
-                          strokeWidth="4"
-                          strokeLinecap="round"
-                          strokeDasharray={`${markedPct} 100`}
-                          pathLength={100}
-                        />
-                      </svg>
-                      <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-[var(--t1)]">
-                        {markedPct}%
-                      </span>
+                      <div className="h-full bg-[var(--green)] transition-all" style={{ width: `${markedPct}%` }} />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      {/*
-                        Wraps rather than truncates. In the register header of a
-                        real class this reads "0 of 128 marked", which does not
-                        fit beside the progress ring on a 393px phone -- it was
-                        cut to "0 of 8 mark..." with the number that matters
-                        hidden.
-                      */}
-                      <div className="text-sm font-bold text-[var(--t1)] leading-snug">
-                        {markedCount} of {students.length} marked
-                      </div>
-                      <div className="truncate text-xs text-[var(--t3)]">
-                        {!isOnline
-                          ? "Offline — marks queue on this device"
-                          : offlineCount > 0
-                            ? `${offlineCount} waiting to sync`
-                            : "All synced"}
-                      </div>
-                    </div>
+                    <span className="text-xs text-[var(--t3)]">
+                      {!isOnline
+                        ? "Offline · saved on this device"
+                        : offlineCount > 0
+                          ? `${offlineCount} waiting to sync`
+                          : "Synced"}
+                    </span>
                     {unmarkedCount > 0 && !showMarked && (
                       <Button
                         variant="secondary"
@@ -1738,14 +1639,14 @@ export default function AttendancePage() {
                 </div>
               )}
 
-              <div className="rounded-[24px] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-bold text-on-surface">Mark register</div>
-                  <div className="text-xs text-on-surface-variant font-medium">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] py-2">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-sm font-bold text-[var(--t1)]">Register</h2>
+                  <span className="text-xs text-[var(--t3)] font-medium">
                     {presentCount} present · {absentCount} absent
-                  </div>
+                  </span>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Button
                     variant="secondary"
                     onClick={handleMarkAllPresent}
@@ -1765,25 +1666,38 @@ export default function AttendancePage() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <input
-                  type="text"
-                  placeholder="Search student name..."
-                  className="w-full md:w-48 rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 min-h-[44px] text-base"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <div className="-mx-1 overflow-x-auto pb-1">
-                <div className="flex min-w-max gap-2 px-1">
+              <div className="flex flex-col gap-3 border-b border-[var(--border)] py-3 sm:flex-row sm:items-end">
+                <div className="min-w-[220px] flex-1">
+                  <label
+                    htmlFor="attendance-student-search"
+                    className="mb-1 block text-xs font-semibold text-[var(--t3)]"
+                  >
+                    Find a pupil
+                  </label>
+                  <input
+                    id="attendance-student-search"
+                    type="search"
+                    placeholder="Name or student number"
+                    className="input !h-10 !py-0 text-sm"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <div
+                  role="group"
+                  aria-label="Attendance status"
+                  className="flex min-w-0 items-center gap-3 overflow-x-auto"
+                >
                   {(["all", "present", "absent", "late", "excused"] as const).map((f) => (
                     <button
                       key={f}
+                      type="button"
+                      aria-pressed={filterStatus === f}
                       onClick={() => setFilterStatus(f)}
-                      className={`px-3 py-2 rounded-xl text-sm font-medium transition-all min-h-[44px] ${
+                      className={`min-h-10 shrink-0 border-b-2 px-1 text-sm font-medium transition-colors ${
                         filterStatus === f
-                          ? "bg-primary text-on-primary"
-                          : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                          ? "border-[var(--primary)] font-bold text-[var(--primary)]"
+                          : "border-transparent text-[var(--t3)] hover:text-[var(--t1)]"
                       }`}
                     >
                       {f === "all"
@@ -1796,8 +1710,7 @@ export default function AttendancePage() {
                               ? "Late"
                               : "Excused"}
                       {f !== "all" && (
-                        <span className="ml-1 opacity-70">
-                          (
+                        <span className="ml-1 text-xs tabular-nums text-[var(--t3)]">
                           {f === "present"
                             ? presentCount
                             : f === "absent"
@@ -1805,65 +1718,29 @@ export default function AttendancePage() {
                               : f === "late"
                                 ? lateCount
                                 : excusedCount}
-                          )
                         </span>
                       )}
                     </button>
                   ))}
                 </div>
-              </div>
-              {(searchQuery || filterStatus !== "all" || selectedClass) && (
-                <div className="flex flex-wrap items-center gap-2">
-                  {searchQuery && (
-                    <span className="inline-flex items-center gap-1.5 pl-3 pr-1 py-1 rounded-full bg-[var(--primary-50)] border border-[var(--primary-200)] text-xs font-medium text-[var(--primary-700)]">
-                      Search: “{searchQuery}”{" "}
-                      <button
-                        onClick={() => setSearchQuery("")}
-                        className="w-5 h-5 rounded-full bg-white/70 hover:bg-white flex items-center justify-center"
-                      >
-                        <MaterialIcon icon="close" className="text-[14px]" />
-                      </button>
-                    </span>
-                  )}
-                  {selectedClass && (
-                    <span className="inline-flex items-center gap-1.5 pl-3 pr-1 py-1 rounded-full bg-[var(--primary-50)] border border-[var(--primary-200)] text-xs font-medium text-[var(--primary-700)]">
-                      Class: {filteredClasses.find((c) => c.id === selectedClass)?.name || selectedClass}{" "}
-                      <button
-                        onClick={() => setSelectedClass(null)}
-                        className="w-5 h-5 rounded-full bg-white/70 hover:bg-white flex items-center justify-center"
-                      >
-                        <MaterialIcon icon="close" className="text-[14px]" />
-                      </button>
-                    </span>
-                  )}
-                  {filterStatus !== "all" && (
-                    <span className="inline-flex items-center gap-1.5 pl-3 pr-1 py-1 rounded-full bg-[var(--primary-50)] border border-[var(--primary-200)] text-xs font-medium text-[var(--primary-700)]">
-                      Status: {filterStatus}{" "}
-                      <button
-                        onClick={() => setFilterStatus("all")}
-                        className="w-5 h-5 rounded-full bg-white/70 hover:bg-white flex items-center justify-center"
-                      >
-                        <MaterialIcon icon="close" className="text-[14px]" />
-                      </button>
-                    </span>
-                  )}
+                {(searchQuery || filterStatus !== "all") && (
                   <button
+                    type="button"
                     onClick={() => {
                       setSearchQuery("");
                       setFilterStatus("all");
                     }}
-                    className="text-xs font-semibold text-[var(--primary)] hover:underline ml-1"
+                    className="min-h-10 shrink-0 text-xs font-semibold text-[var(--primary)] hover:underline"
                   >
-                    Clear filters
+                    Clear
                   </button>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* The gesture legend used to live here as permanent copy. Owly
                   now owns the explanation; the functional "one pupil at a
                   time" shortcut stays because it changes the register itself. */}
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <OwlyTrigger guideId="attendance" label="How do I mark attendance?" />
+              <div className="mb-2 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setFocusStudentId(visibleStudents[0]?.id ?? null)}
@@ -1875,7 +1752,7 @@ export default function AttendancePage() {
 
               <div
                 ref={attendanceListRef}
-                className={shouldVirtualizeAttendance ? "relative" : "space-y-2.5"}
+                className={shouldVirtualizeAttendance ? "relative" : "space-y-2.5 lg:space-y-0"}
                 style={shouldVirtualizeAttendance ? { height: attendanceVirtualizer.getTotalSize() } : undefined}
                 data-attendance-virtualized={shouldVirtualizeAttendance ? "true" : undefined}
               >
@@ -1928,7 +1805,7 @@ export default function AttendancePage() {
                       </div>
 
                       {/* Desktop */}
-                      <div className="hidden lg:flex lg:items-center lg:gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-2.5 min-h-[56px]">
+                      <div className="hidden min-h-12 border-b border-[var(--border)] px-2 py-1.5 transition-colors hover:bg-[var(--surface-container-low)] lg:flex lg:items-center lg:gap-4">
                         <div className="flex items-center gap-3 min-w-0 flex-1">
                           <RollCallPhoto
                             name={`${student.first_name} ${student.last_name}`}
@@ -1942,7 +1819,7 @@ export default function AttendancePage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <div className="flex flex-shrink-0 items-center gap-1">
                           {CARD_STATUSES.map((option) => {
                             const active = studentStatus === option.key;
                             return (
@@ -1951,10 +1828,10 @@ export default function AttendancePage() {
                                 type="button"
                                 aria-pressed={active}
                                 onClick={() => markAttendance(student.id, option.key)}
-                                className={`flex min-h-[40px] items-center gap-1.5 rounded-lg border px-3 text-xs font-bold transition-colors ${
+                                className={`flex min-h-9 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition-colors ${
                                   active
-                                    ? `${option.activeBg} ${option.activeText} border-transparent`
-                                    : "border-outline-variant bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                                    ? `${option.activeBg} ${option.activeText}`
+                                    : "text-on-surface-variant hover:bg-surface-container"
                                 }`}
                               >
                                 <MaterialIcon icon={option.icon} size={15} />
@@ -1965,7 +1842,7 @@ export default function AttendancePage() {
                           <button
                             type="button"
                             onClick={() => setFocusStudentId(student.id)}
-                            className="ml-1 rounded-lg p-2 text-on-surface-variant hover:bg-surface-container"
+                            className="ml-1 flex h-9 w-9 items-center justify-center text-on-surface-variant hover:bg-surface-container"
                             aria-label={`Open ${student.first_name} ${student.last_name} on their own screen`}
                             title="Mark one pupil at a time"
                           >
@@ -1988,15 +1865,6 @@ export default function AttendancePage() {
                         the filters or &quot;Show marked&quot; to review or correct.
                       </p>
                       <div className="mt-4 flex flex-col items-center gap-2">
-                        <Button
-                          onClick={() => saveAttendance()}
-                          disabled={saving}
-                          loading={saving}
-                          icon={<MaterialIcon icon="save" />}
-                          size="lg"
-                        >
-                          Save
-                        </Button>
                         <button
                           type="button"
                           onClick={() => setShowMarked(true)}
@@ -2049,7 +1917,7 @@ export default function AttendancePage() {
 
               <div
                 data-page-action-bar=""
-                className="mobile-sticky-action fixed bottom-[calc(84px+env(safe-area-inset-bottom,0px))] left-0 right-0 p-4 md:relative md:bottom-auto md:p-0 bg-surface/95 md:bg-transparent border-t border-outline-variant md:border-0 z-10"
+                className="mobile-sticky-action fixed bottom-[calc(84px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-10 border-t border-outline-variant bg-surface/95 p-4 md:hidden"
               >
                 <Button
                   onClick={() => saveAttendance()}
