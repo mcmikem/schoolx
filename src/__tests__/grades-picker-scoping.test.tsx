@@ -209,19 +209,26 @@ describe("grade picker scoping (scenario #18)", () => {
     mockExistingGrades = [];
   });
 
-  it("lists the whole school before a class is chosen", async () => {
-    // Two allocations, so the page does not open on a single target and the
-    // subject list is still the unfiltered one.
+  it("waits for a class before listing only its assigned subjects", async () => {
     mockAllocations = [
       { subject_id: "sub-math", class_id: "class-1" },
       { subject_id: "sub-eng", class_id: "class-1" },
     ];
     render(<GradesPage />);
 
-    // Guards the tests below: if the list were empty everywhere, "scoped"
-    // would pass for the wrong reason.
     await waitFor(() => {
-      expect(subjectChoices()).toEqual(["Mathematics", "English", "Science"]);
+      expect(
+        optionLabels(selectUnder(/target class/i), "Select Class").some((label) => label.includes("Primary 3")),
+      ).toBe(true);
+    });
+    expect(subjectChoices()).toEqual([]);
+
+    const classSelect = selectUnder(/target class/i);
+    const primary3 = Array.from(classSelect.options).find((o) => o.textContent?.includes("Primary 3"))!;
+    fireEvent.change(classSelect, { target: { value: primary3.value } });
+
+    await waitFor(() => {
+      expect(subjectChoices()).toEqual(["Mathematics", "English"]);
     });
   });
 
@@ -336,7 +343,13 @@ describe("grade picker scoping (scenario #18)", () => {
       expect(classes.join(" ")).toContain("Primary 4");
     });
 
-    expect(subjectChoices()).toEqual(["Mathematics", "English", "Science"]);
+    const classSelect = selectUnder(/target class/i);
+    const primary3 = Array.from(classSelect.options).find((o) => o.textContent?.includes("Primary 3"))!;
+    fireEvent.change(classSelect, { target: { value: primary3.value } });
+
+    await waitFor(() => {
+      expect(subjectChoices()).toEqual(["Mathematics", "English", "Science"]);
+    });
   });
 });
 /**

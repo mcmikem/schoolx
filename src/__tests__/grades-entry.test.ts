@@ -6,6 +6,7 @@ import {
   getGrade,
   getStudentTotal,
   isStudentGraded,
+  parseMarkKey,
   readMark,
 } from "@/lib/grades/entry";
 
@@ -105,5 +106,29 @@ describe("class averages", () => {
     // a has 50/40 -> 45; b has only bot 70 -> 70; c has nothing.
     expect(averageOfTotals(marks, ["a", "b", "c"], false)).toBe(57.5);
     expect(averageOfTotals(marks, ["c"], false)).toBeNull();
+  });
+});
+
+describe("parseMarkKey", () => {
+  it("keeps UUID student IDs intact when the assessment type contains an underscore", () => {
+    expect(parseMarkKey("41238a22-9bde-4076-811c-a7c2309648b6_mid_term")).toEqual({
+      studentId: "41238a22-9bde-4076-811c-a7c2309648b6",
+      assessmentType: "mid_term",
+    });
+    expect(parseMarkKey("41238a22-9bde-4076-811c-a7c2309648b6_holiday_package")).toEqual({
+      studentId: "41238a22-9bde-4076-811c-a7c2309648b6",
+      assessmentType: "holiday_package",
+    });
+  });
+
+  it("handles single-word assessment types and student IDs with underscores", () => {
+    expect(parseMarkKey("41238a22-9bde-4076-811c-a7c2309648b6_bot")).toEqual({
+      studentId: "41238a22-9bde-4076-811c-a7c2309648b6",
+      assessmentType: "bot",
+    });
+    expect(parseMarkKey("demo_student_1_mid_term")).toEqual({
+      studentId: "demo_student_1",
+      assessmentType: "mid_term",
+    });
   });
 });

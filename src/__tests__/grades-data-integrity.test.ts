@@ -30,12 +30,12 @@ describe("the 30s flush cannot file a mark under the wrong subject", () => {
   it("records the destination subject when a cell goes dirty", () => {
     // dirtyCellsRef was a Set of "studentId_type" with no subject, so a flush
     // after switching subjects wrote the old sheet's mark into the new one.
-    expect(src).toContain("useRef<Map<string, { subjectId: string; classId: string }>>");
+    expect(src).toContain("studentId: string; assessmentType: string");
     expect(src).toContain("dirtyCellsRef.current.set(");
   });
 
   it("passes the recorded destination into the autosave", () => {
-    expect(src).toContain("debouncedAutoSave(studentId, type, target)");
+    expect(src).toContain("debouncedAutoSave(target.studentId, target.assessmentType, target)");
     expect(src).toContain("const subjectId = target?.subjectId ?? selectedSubject");
     expect(src).toContain("const classId = target?.classId ?? selectedClass");
   });

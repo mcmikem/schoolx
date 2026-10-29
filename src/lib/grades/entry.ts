@@ -15,6 +15,51 @@ export const TRADITIONAL_ASSESSMENT_TYPES = ["bot", "mid_term", "eot"] as const;
 
 export const COMPETENCY_ASSESSMENT_TYPES = ["competency"] as const;
 
+/**
+ * Every assessment key the mark sheet can read or write, ordered longest-first
+ * so suffix matching in `parseMarkKey` never splits `mid_term` or
+ * `holiday_package` on their internal underscore.
+ */
+export const KNOWN_ASSESSMENT_TYPES = [
+  "holiday_package",
+  "competency",
+  "mid_term",
+  "project",
+  "exam",
+  "bot",
+  "eot",
+  "ca1",
+  "ca2",
+  "ca3",
+  "ca4",
+  "u1",
+  "u2",
+] as const;
+
+/**
+ * Splits a `${studentId}_${assessmentType}` key back into its two parts.
+ *
+ * Several assessment types contain an underscore (`mid_term`,
+ * `holiday_package`), so naive `key.split("_")` corrupts UUID student IDs into
+ * `<uuid>_mid` with type `term`, which Postgres rejects with 22P02 (`invalid
+ * input syntax for type uuid`).
+ */
+export function parseMarkKey(key: string): { studentId: string; assessmentType: string } | null {
+  for (const type of KNOWN_ASSESSMENT_TYPES) {
+    const suffix = `_${type}`;
+    if (key.endsWith(suffix)) {
+      const studentId = key.slice(0, -suffix.length);
+      if (studentId) return { studentId, assessmentType: type };
+    }
+  }
+  const lastUnderscore = key.lastIndexOf("_");
+  if (lastUnderscore <= 0 || lastUnderscore === key.length - 1) return null;
+  return {
+    studentId: key.slice(0, lastUnderscore),
+    assessmentType: key.slice(lastUnderscore + 1),
+  };
+}
+
 export const ASSESSMENT_MAX: Record<string, number> = {
   bot: 100,
   mid_term: 100,

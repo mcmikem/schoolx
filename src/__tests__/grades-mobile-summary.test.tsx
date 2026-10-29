@@ -93,13 +93,12 @@ describe("Grades page progressive disclosure", () => {
     expect(screen.getByText(/target class/i)).toBeInTheDocument();
     expect(screen.getByText(/select class/i)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /what do you teach/i })).toBeInTheDocument();
-    // Every offered subject is reachable in one tap, by name.
+    // Subjects stay hidden until the class is known, so this list can never
+    // imply that the teacher is assigned to school-wide subjects.
     const picker = screen.getByRole("heading", { name: /what do you teach/i }).closest("section")!;
     const cards = picker.querySelectorAll("button[aria-pressed]");
-    expect(cards.length).toBeGreaterThan(0);
-    for (const card of Array.from(cards)) {
-      expect(card).toHaveAttribute("aria-pressed", "false");
-    }
+    expect(cards).toHaveLength(0);
+    expect(screen.getByText(/choose a class to see its subjects/i)).toBeInTheDocument();
     // Empty state guides the next step.
     expect(screen.getAllByText(/select a class and subject/i).length).toBeGreaterThan(0);
     // The overview tiles (graded/pending) only appear after selection.

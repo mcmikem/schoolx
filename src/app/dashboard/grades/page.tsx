@@ -40,6 +40,7 @@ import {
   getGrade,
   getStudentTotal as computeStudentTotal,
   isStudentGraded as computeIsStudentGraded,
+  parseMarkKey,
   readMark,
   type SaveStatus,
   type StudentMarks,
@@ -308,39 +309,6 @@ export default function GradesPage() {
   // MID, so one accidental entry shifts every average for that pupil.
   const useBotEnabled = resolveUseBot(schoolSettings);
 
-  // How many marks exist per subject for this class and term, so the subject
-  // picker can say "12 of 40 done" instead of leaving the teacher to remember
-  // which of the nine subjects they finished last week. One small column read,
-  // re-run when the class or term changes.
-  const [subjectProgress, setSubjectProgress] = useState<Record<string, number>>({});
-  useEffect(() => {
-    if (!selectedClass || !school?.id) {
-      setSubjectProgress({});
-      return;
-    }
-    let cancelled = false;
-    void withTimeout(
-      supabase
-        .from("student_grades")
-        .select("subject_id")
-        .eq("school_id", school.id)
-        .eq("class_id", selectedClass)
-        .eq("term", currentTerm)
-        .eq("academic_year", academicYear),
-      10000,
-      timeoutFallback(),
-    ).then((result) => {
-      if (cancelled) return;
-      const counts: Record<string, number> = {};
-      for (const row of (result.data ?? []) as Array<{ subject_id: string }>) {
-        counts[row.subject_id] = (counts[row.subject_id] ?? 0) + 1;
-      }
-      setSubjectProgress(counts);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedClass, currentTerm, academicYear, school?.id]);
   const columnLabels = useMemo(() => {
     const labels: Record<string, { label: string; explain: string }> = {
       bot: { label: "BOT", explain: "Beginning of Term · /100" },
@@ -372,10 +340,20 @@ export default function GradesPage() {
   const classOptions = teacherScoped
     ? classes.filter((c) => teacherSubjects.some((ts) => ts.class_id === c.id))
     : classes;
-  const subjectOptions =
-    teacherScoped && selectedClass
+  const subjectOptions = !selectedClass
+    ? []
+    : teacherScoped
       ? subjects.filter((s) => teacherSubjects.some((ts) => ts.class_id === selectedClass && ts.subject_id === s.id))
       : subjects;
+
+  // When switching classes, if the previously selected subject is not taught in
+  // the new class, clear it so the teacher never grades an invalid class/subject pair.
+  useEffect(() => {
+    if (!selectedClass || !selectedSubject) return;
+    if (!subjectOptions.some((s) => s.id === selectedSubject)) {
+      setSelectedSubject("");
+    }
+  }, [selectedClass, selectedSubject, subjectOptions]);
 
   /**
    * The one class and subject this teacher is assigned, when there is only
@@ -499,16 +477,16 @@ export default function GradesPage() {
   }, []);
   const [saveStatuses, setSaveStatuses] = useState<Record<string, SaveStatus>>({});
   const [mobileStudentIndex, setMobileStudentIndex] = useState(0);
-  const [quickFillModal, setQuickFillModal] = useState<{
-    open: boolean;
-    type: string;
-    value: string;
-  }>({ open: false, type: "", value: "" });
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   // Set-All popover: click-toggle (not hover-only) so it's touch/keyboard reachable.
   const [setAllOpen, setSetAllOpen] = useState(false);
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const dirtyCellsRef = useRef<Map<string, { subjectId: string; classId: string }>>(new Map());
+  const dirtyCellsRef = useRef<
+    Map<string, { subjectId: string; classId: string; studentId: string; assessmentType: string }>
+  >(new Map());
+  const sheetMarksCacheRef = useRef<Record<string, StudentMarks>>({});
+  const activeSheetKey =
+    selectedClass && selectedSubject ? `${selectedClass}:${selectedSubject}:${currentTerm}:${academicYear}` : "";
 
   // Undo for marks.
   //
@@ -539,7 +517,13 @@ export default function GradesPage() {
 
   const undoLastMark = () => {
     if (!undoMark) return;
-    setMarks(undoMark.before);
+    setMarks((prev) => {
+      const next = { ...prev, ...undoMark.before };
+      if (activeSheetKey) {
+        sheetMarksCacheRef.current[activeSheetKey] = next;
+      }
+      return next;
+    });
     setUndoMark(null);
     if (undoTimer.current) clearTimeout(undoTimer.current);
     toast.info("Change undone.");
@@ -583,16 +567,30 @@ export default function GradesPage() {
   // roster says exist but the selected class cannot show.
   const unassignedStudents = useMemo(() => classStudents.filter((s) => !s.class_id), [classStudents]);
 
+  // Scope existingGrades to the currently active class + subject + term + year.
+  // Rows in unit tests that omit class_id/subject_id still pass through so
+  // mocked status/workflow tests continue to work without boilerplate.
+  const sheetGrades = useMemo(() => {
+    if (!existingGrades?.length) return [];
+    return existingGrades.filter((g: any) => {
+      if (g.class_id && selectedClass && g.class_id !== selectedClass) return false;
+      if (g.subject_id && selectedSubject && g.subject_id !== selectedSubject) return false;
+      if (g.term != null && currentTerm != null && Number(g.term) !== Number(currentTerm)) return false;
+      if (g.academic_year && academicYear && String(g.academic_year) !== String(academicYear)) return false;
+      return true;
+    });
+  }, [existingGrades, selectedClass, selectedSubject, currentTerm, academicYear]);
+
   const studentStatusMap = useMemo(() => {
     const map: Record<string, GradeWorkflowStatus> = {};
-    if (!existingGrades?.length) return map;
-    const studentIds = [...new Set(existingGrades.map((g: any) => g.student_id))];
+    if (!sheetGrades.length) return map;
+    const studentIds = [...new Set(sheetGrades.map((g: any) => g.student_id).filter(Boolean))];
     studentIds.forEach((sid: string) => {
-      const studentGrades = existingGrades.filter((g: any) => g.student_id === sid);
+      const studentGrades = sheetGrades.filter((g: any) => g.student_id === sid);
       map[sid] = deriveGradeWorkflowStatus(studentGrades as Array<{ status?: string | null }>);
     });
     return map;
-  }, [existingGrades]);
+  }, [sheetGrades]);
 
   const displayStudents = useMemo(() => {
     let list = filteredStudents;
@@ -630,6 +628,9 @@ export default function GradesPage() {
 
   useEffect(() => {
     setGradePage(1);
+    setMobileStudentIndex(0);
+    setSaveStatuses({});
+    setUndoMark(null);
   }, [selectedClass, selectedSubject]);
 
   useEffect(() => {
@@ -640,20 +641,24 @@ export default function GradesPage() {
 
   const paginatedStudents = displayStudents.slice(gradeOffset, gradeOffset + gradesPerPage);
 
-  // Initialize marks from existing grades (offline-aware)
+  // Initialize marks from existing grades (offline-aware) and scope strictly
+  // to the active class + subject + term + year so switching subjects never
+  // carries the previous subject's marks into the new sheet.
   useEffect(() => {
-    const hydrationSignature = `${existingGradesSignature}:${staffSignature}`;
+    const hydrationSignature = `${activeSheetKey}:${existingGradesSignature}:${staffSignature}`;
     if (lastHydratedGradesSignature.current === hydrationSignature) return;
     lastHydratedGradesSignature.current = hydrationSignature;
 
-    if ((existingGrades?.length || 0) > 0) {
+    const cachedSheetMarks = activeSheetKey ? sheetMarksCacheRef.current[activeSheetKey] : undefined;
+
+    if (sheetGrades.length > 0 || (cachedSheetMarks && Object.keys(cachedSheetMarks).length > 0)) {
       const marksMap: StudentMarks = {};
       const newMarksBy: Record<string, { name: string; type: string }> = {};
       let isCaLocked = false;
       let lockedBy = "";
 
       const legacyExamMarks: Record<string, number | null> = {};
-      (existingGrades || []).forEach((g: any) => {
+      sheetGrades.forEach((g: any) => {
         if (g.assessment_type === "exam") {
           legacyExamMarks[g.student_id] = g.score ?? null;
           if (g.recorded_by) {
@@ -681,7 +686,12 @@ export default function GradesPage() {
         if (marksMap[eotKey] == null && score != null) marksMap[eotKey] = score;
       }
 
-      setMarks(marksMap);
+      const mergedMarks = cachedSheetMarks ? { ...marksMap, ...cachedSheetMarks } : marksMap;
+      if (activeSheetKey) {
+        sheetMarksCacheRef.current[activeSheetKey] = mergedMarks;
+      }
+
+      setMarks(mergedMarks);
       setMarksBy(newMarksBy);
       setCaLocked(isCaLocked);
 
@@ -692,7 +702,9 @@ export default function GradesPage() {
         setLockedByName("");
       }
 
-      setSubmissionStatus(deriveGradeWorkflowStatus(existingGrades as Array<{ status?: string | null }>));
+      setSubmissionStatus(
+        sheetGrades.length > 0 ? deriveGradeWorkflowStatus(sheetGrades as Array<{ status?: string | null }>) : "draft",
+      );
     } else {
       setMarks({});
       setMarksBy({});
@@ -700,7 +712,7 @@ export default function GradesPage() {
       setLockedByName("");
       setSubmissionStatus("draft");
     }
-  }, [existingGradesSignature, staffSignature, toastSignature]);
+  }, [activeSheetKey, sheetGrades, existingGradesSignature, staffSignature, toastSignature, staff]);
 
   const handleLockCA = async () => {
     if (!selectedClass || !selectedSubject || !user?.id) return;
@@ -768,7 +780,13 @@ export default function GradesPage() {
       return;
     }
     if (value === "") {
-      setMarks((prev) => ({ ...prev, [`${studentId}_${type}`]: null }));
+      setMarks((prev) => {
+        const next = { ...prev, [`${studentId}_${type}`]: null };
+        if (activeSheetKey) {
+          sheetMarksCacheRef.current[activeSheetKey] = next;
+        }
+        return next;
+      });
     } else {
       const maxVal = type === "competency" ? 3 : ASSESSMENT_MAX[type] || 100;
       const num = Math.min(maxVal, Math.max(0, Number(value)));
@@ -789,10 +807,18 @@ export default function GradesPage() {
         { [`${studentId}_${type}`]: marks[`${studentId}_${type}`] ?? null },
         `${pupilForUndo ? `${pupilForUndo.first_name} ${pupilForUndo.last_name}` : "Cell"} · ${assessmentLabels[type] ?? type.toUpperCase()} → ${num}`,
       );
-      setMarks((prev) => ({ ...prev, [`${studentId}_${type}`]: num }));
-      dirtyCellsRef.current.set(`${studentId}_${type}`, {
+      setMarks((prev) => {
+        const next = { ...prev, [`${studentId}_${type}`]: num };
+        if (activeSheetKey) {
+          sheetMarksCacheRef.current[activeSheetKey] = next;
+        }
+        return next;
+      });
+      dirtyCellsRef.current.set(`${activeSheetKey}:${studentId}_${type}`, {
         subjectId: selectedSubject,
         classId: selectedClass,
+        studentId,
+        assessmentType: type,
       });
     }
   };
@@ -828,6 +854,50 @@ export default function GradesPage() {
       ),
     [displayStudents, currentEntryAssessment, marks],
   );
+
+  // Live per-subject pupil counts for the selected class so subject cards/pills
+  // reflect saved marks and in-session edits immediately. Count distinct
+  // pupils, not `student_grades` rows, which can contain aggregate rows that
+  // don't correspond to a pupil's current mark-entry sheet.
+  const liveSubjectProgress = useMemo(() => {
+    const result: Record<string, number> = {};
+    if (!selectedClass) return result;
+    const validStudentIds = new Set(filteredStudents.map((s) => s.id));
+    for (const sub of subjectOptions) {
+      const gradedStudentIds = new Set<string>();
+      for (const g of (existingGrades ?? []) as Array<Record<string, any>>) {
+        if (g.class_id && g.class_id !== selectedClass) continue;
+        if (g.subject_id !== sub.id) continue;
+        if (g.term != null && Number(g.term) !== Number(currentTerm)) continue;
+        if (g.academic_year && String(g.academic_year) !== String(academicYear)) continue;
+        if (g.score !== null && g.score !== undefined && (!validStudentIds.size || validStudentIds.has(g.student_id))) {
+          gradedStudentIds.add(g.student_id);
+        }
+      }
+      const sKey = `${selectedClass}:${sub.id}:${currentTerm}:${academicYear}`;
+      const localMap = sub.id === selectedSubject ? marks : sheetMarksCacheRef.current[sKey];
+      if (localMap) {
+        for (const [k, v] of Object.entries(localMap)) {
+          if (v === null || v === undefined) continue;
+          const parsed = parseMarkKey(k);
+          if (parsed && (!validStudentIds.size || validStudentIds.has(parsed.studentId))) {
+            gradedStudentIds.add(parsed.studentId);
+          }
+        }
+      }
+      result[sub.id] = Math.max(result[sub.id] ?? 0, gradedStudentIds.size);
+    }
+    return result;
+  }, [
+    selectedClass,
+    selectedSubject,
+    filteredStudents,
+    subjectOptions,
+    existingGrades,
+    currentTerm,
+    academicYear,
+    marks,
+  ]);
   const getStudentTotal = (studentId: string): number | null => {
     if (competencyMode) return computeStudentTotal(marks, studentId, true);
     if (gradeBasis) {
@@ -855,30 +925,32 @@ export default function GradesPage() {
       // destination at the moment the cell went dirty.
       const subjectId = target?.subjectId ?? selectedSubject;
       const classId = target?.classId ?? selectedClass;
-      if (debounceTimers.current[key]) {
-        clearTimeout(debounceTimers.current[key]);
+      const sheetKey = `${classId}:${subjectId}:${currentTerm}:${academicYear}`;
+      const statusKey = `${sheetKey}:${key}`;
+      if (debounceTimers.current[statusKey]) {
+        clearTimeout(debounceTimers.current[statusKey]);
       }
-      setSaveStatuses((prev) => ({ ...prev, [key]: "dirty" }));
-      debounceTimers.current[key] = setTimeout(async () => {
-        dirtyCellsRef.current.delete(key);
-        const score = marks[key];
+      setSaveStatuses((prev) => ({ ...prev, [statusKey]: "dirty" }));
+      debounceTimers.current[statusKey] = setTimeout(async () => {
+        dirtyCellsRef.current.delete(`${sheetKey}:${key}`);
+        const score = sheetMarksCacheRef.current[sheetKey]?.[key] ?? marks[key];
         if (score === null || score === undefined) {
-          setSaveStatuses((prev) => ({ ...prev, [key]: "idle" }));
+          setSaveStatuses((prev) => ({ ...prev, [statusKey]: "idle" }));
           return;
         }
         const isAssigned = teacherSubjects.some((ts) => ts.subject_id === subjectId && ts.class_id === classId);
         if (!isAssigned && user?.role === "teacher") {
           toast.error("You are not assigned to teach this subject in this class.");
-          setSaveStatuses((prev) => ({ ...prev, [key]: "idle" }));
+          setSaveStatuses((prev) => ({ ...prev, [statusKey]: "idle" }));
           return;
         }
         if (termLocked && ["exam", "bot", "mid_term", "eot"].includes(type)) {
           toast.error("This term is locked. Assessment marks can no longer be changed.");
-          setSaveStatuses((prev) => ({ ...prev, [key]: "idle" }));
+          setSaveStatuses((prev) => ({ ...prev, [statusKey]: "idle" }));
           return;
         }
 
-        setSaveStatuses((prev) => ({ ...prev, [key]: "saving" }));
+        setSaveStatuses((prev) => ({ ...prev, [statusKey]: "saving" }));
         try {
           await saveGrade({
             student_id: studentId,
@@ -893,17 +965,17 @@ export default function GradesPage() {
             isDemo,
             schoolId: school?.id,
           });
-          setSaveStatuses((prev) => ({ ...prev, [key]: "saved" }));
+          setSaveStatuses((prev) => ({ ...prev, [statusKey]: "saved" }));
           setTimeout(() => {
             setSaveStatuses((prev) => {
               const next = { ...prev };
-              if (next[key] === "saved") next[key] = "idle";
+              if (next[statusKey] === "saved") next[statusKey] = "idle";
               return next;
             });
           }, 2000);
         } catch (err) {
           logger.warn("Failed to auto-save grade:", err);
-          setSaveStatuses((prev) => ({ ...prev, [key]: "idle" }));
+          setSaveStatuses((prev) => ({ ...prev, [statusKey]: "idle" }));
           toast.error(`Failed to auto-save ${type.toUpperCase()} for student`);
         }
       }, 500);
@@ -935,11 +1007,8 @@ export default function GradesPage() {
       if (dirtyCellsRef.current.size === 0) return;
       const toSave = Array.from(dirtyCellsRef.current.entries());
       dirtyCellsRef.current.clear();
-      toSave.forEach(([key, target]) => {
-        const [studentId, type] = key.split("_");
-        if (studentId && type) {
-          debouncedAutoSave(studentId, type, target);
-        }
+      toSave.forEach(([, target]) => {
+        debouncedAutoSave(target.studentId, target.assessmentType, target);
       });
     }, 30000);
     return () => clearInterval(interval);
@@ -971,22 +1040,26 @@ export default function GradesPage() {
    */
   const handleGridNav = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     const el = e.currentTarget;
-    if (e.key === "Enter") {
-      e.preventDefault();
-      el.blur();
-    }
-    const dir = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
+    const dir = e.key === "ArrowDown" || e.key === "Enter" ? 1 : e.key === "ArrowUp" ? -1 : 0;
     if (!dir) return;
     e.preventDefault();
     const scope = el.closest("[data-grade-scope]") ?? el.closest("table");
-    if (!scope) return;
+    if (!scope) {
+      if (e.key === "Enter") el.blur();
+      return;
+    }
     const inputs = Array.from(scope.querySelectorAll<HTMLInputElement>("input[data-grade-cell]"));
     const current = inputs.indexOf(el);
-    if (current === -1) return;
+    if (current === -1) {
+      if (e.key === "Enter") el.blur();
+      return;
+    }
     const next = inputs[current + dir];
     if (next) {
       next.focus();
       next.select();
+    } else if (e.key === "Enter") {
+      el.blur();
     }
   }, []);
 
@@ -1004,22 +1077,28 @@ export default function GradesPage() {
         filteredStudents.forEach((s) => {
           next[`${s.id}_${type}`] = Math.min(ASSESSMENT_MAX[type] || 100, Math.max(0, value));
         });
+        if (activeSheetKey) {
+          sheetMarksCacheRef.current[activeSheetKey] = next;
+        }
         return next;
       });
       toast.success(`All ${type.toUpperCase()} set to ${value}`);
     },
-    [filteredStudents, caLocked, toast, marks],
+    [filteredStudents, caLocked, toast, marks, activeSheetKey],
   );
 
   const handleClearAll = useCallback(() => {
     setPendingAction(() => () => {
       pushUndo({ ...marks }, "All marks cleared");
       setMarks({});
+      if (activeSheetKey) {
+        sheetMarksCacheRef.current[activeSheetKey] = {};
+      }
       setSaveStatuses({});
       toast.success("All marks cleared");
     });
     setConfirmOpen(true);
-  }, [toast, marks]);
+  }, [toast, marks, activeSheetKey]);
 
   const handleCopyFromPreviousTerm = useCallback(async () => {
     if (!selectedClass || !selectedSubject || !user?.id) return;
@@ -1086,9 +1165,9 @@ export default function GradesPage() {
 
   const getSaveStatusForInput = useCallback(
     (studentId: string, type: string): SaveStatus => {
-      return saveStatuses[`${studentId}_${type}`] || "idle";
+      return saveStatuses[`${activeSheetKey}:${studentId}_${type}`] || "idle";
     },
-    [saveStatuses],
+    [saveStatuses, activeSheetKey],
   );
 
   const getInputBorderClass = useCallback(
@@ -1140,9 +1219,9 @@ export default function GradesPage() {
       setSaving(true);
       for (const [key, score] of Object.entries(marks)) {
         if (score === null || score === undefined) continue;
-        const parts = key.split("_");
-        const assessmentType = parts.pop()!;
-        const studentId = parts.join("_");
+        const parsed = parseMarkKey(key);
+        if (!parsed) continue;
+        const { studentId, assessmentType } = parsed;
         const gradePayload: any = {
           student_id: studentId,
           subject_id: selectedSubject,
@@ -1166,7 +1245,13 @@ export default function GradesPage() {
         (key) => !TRADITIONAL_ASSESSMENT_TYPES.some((type) => key.endsWith(`_${type}`)),
       );
       if (!competencyMode && hasLegacyMarks) {
-        const studentIds = [...new Set(Object.keys(marks).map((k) => k.split("_").slice(0, -1).join("_")))];
+        const studentIds = [
+          ...new Set(
+            Object.keys(marks)
+              .map((k) => parseMarkKey(k)?.studentId)
+              .filter((sid): sid is string => Boolean(sid)),
+          ),
+        ];
         await Promise.allSettled(
           studentIds.map((sid) =>
             syncStudentGrades({
@@ -1699,69 +1784,209 @@ export default function GradesPage() {
           </h2>
         )}
         {!(singleTarget && !showTargetPicker) && (
-          <div className="grid grid-cols-1 gap-3">
-            <div>
-              <label htmlFor="grade-target-class" className="block text-sm font-semibold mb-2 text-primary">
-                Target Class
-              </label>
-              {classesLoading ? (
-                <div className="bg-[var(--navy-soft)] border border-[rgba(0,31,63,0.12)] rounded-xl p-4">
-                  <p className="text-[var(--t1)] text-sm font-medium">Loading classes...</p>
-                  <p className="text-[var(--t3)] text-xs mt-1">
-                    The class list is still being fetched for this school.
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm space-y-4">
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <label
+                  htmlFor="grade-target-class"
+                  className="block text-xs font-bold uppercase tracking-wider mb-2 text-[var(--t2)]"
+                >
+                  Target Class
+                </label>
+                {classesLoading ? (
+                  <div className="bg-[var(--navy-soft)] border border-[rgba(0,31,63,0.12)] rounded-xl p-4">
+                    <p className="text-[var(--t1)] text-sm font-medium">Loading classes...</p>
+                    <p className="text-[var(--t3)] text-xs mt-1">
+                      The class list is still being fetched for this school.
+                    </p>
+                  </div>
+                ) : classes.length === 0 ? (
+                  <div className="bg-[var(--amber-soft)] border border-[var(--amber)]/20 rounded-xl p-4">
+                    {isClassScopedRole(user?.role) ? (
+                      <>
+                        <p className="text-[var(--t1)] text-sm font-medium">No classes assigned yet</p>
+                        <p className="text-[var(--amber)] text-xs mt-1">
+                          Your administrator hasn&apos;t assigned you to a class or subject yet.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-[var(--t1)] text-sm font-medium">No classes found</p>
+                        <p className="text-[var(--amber)] text-xs mt-1">Contact support if this persists.</p>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <select
+                    id="grade-target-class"
+                    value={selectedClass}
+                    onChange={(e) => setSelectedClass(e.target.value)}
+                    className="w-full bg-[var(--surface-container-lowest)] border border-[var(--border)] rounded-xl py-2.5 px-3.5 focus:ring-2 focus:ring-primary focus:border-primary text-sm font-semibold text-[var(--t1)] transition-all"
+                  >
+                    <option value="">Select Class</option>
+                    {classOptions.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                        {c.stream ? ` ${c.stream}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            </div>
+
+            <section aria-labelledby="subject-picker-heading" className="border-t border-[var(--border)]/60 pt-3.5">
+              {!selectedClass ? (
+                <div>
+                  <h2 id="subject-picker-heading" className="text-sm font-semibold text-[var(--t1)]">
+                    What do you teach?
+                  </h2>
+                  <p className="mt-1 text-xs text-[var(--t3)]">Choose a class to see its subjects.</p>
+                </div>
+              ) : subjectOptions.length === 0 ? (
+                <div>
+                  <h2 id="subject-picker-heading" className="text-sm font-semibold text-[var(--t1)]">
+                    What do you teach in {selectedClassName}?
+                  </h2>
+                  <p className="mt-1 text-xs text-[var(--t3)]">
+                    No subjects are assigned to this class yet. Ask an administrator to update the teaching assignments.
                   </p>
                 </div>
-              ) : classes.length === 0 ? (
-                <div className="bg-[var(--amber-soft)] border border-[var(--amber)]/20 rounded-xl p-4">
-                  {isClassScopedRole(user?.role) ? (
-                    <>
-                      <p className="text-[var(--t1)] text-sm font-medium">No classes assigned yet</p>
-                      <p className="text-[var(--amber)] text-xs mt-1">
-                        Your administrator hasn&apos;t assigned you to a class or subject yet.
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-[var(--t1)] text-sm font-medium">No classes found</p>
-                      <p className="text-[var(--amber)] text-xs mt-1">Contact support if this persists.</p>
-                    </>
-                  )}
-                </div>
               ) : (
-                <select
-                  id="grade-target-class"
-                  value={selectedClass}
-                  onChange={(e) => setSelectedClass(e.target.value)}
-                  className="w-full bg-surface-container-lowest border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary text-sm font-medium"
-                >
-                  <option value="">Select Class</option>
-                  {classOptions.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                      {c.stream ? ` ${c.stream}` : ""}
-                    </option>
-                  ))}
-                </select>
+                <>
+                  <div className="mb-2.5 flex items-baseline justify-between gap-3">
+                    <h2 id="subject-picker-heading" className="text-sm font-semibold text-[var(--t1)]">
+                      What do you teach in {selectedClassName}?
+                    </h2>
+                    <span className="text-xs font-medium text-[var(--t3)]">
+                      {selectedClass
+                        ? `${subjectOptions.filter((s) => (liveSubjectProgress[s.id] ?? 0) > 0).length} of ${subjectOptions.length} started`
+                        : `${subjectOptions.length} to choose from`}
+                    </span>
+                  </div>
+                  <div
+                    className={
+                      selectedClass && selectedSubject
+                        ? "flex flex-wrap gap-2"
+                        : "grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4"
+                    }
+                  >
+                    {subjectOptions.map((subject) => {
+                      const done = liveSubjectProgress[subject.id] ?? 0;
+                      const total = filteredStudents.length;
+                      const active = subject.id === selectedSubject;
+                      const complete = total > 0 && done >= total;
+                      const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+                      const isCompact = Boolean(selectedClass && selectedSubject);
+
+                      if (isCompact) {
+                        return (
+                          <button
+                            key={subject.id}
+                            type="button"
+                            aria-pressed={active}
+                            onClick={() => setSelectedSubject(subject.id)}
+                            className={`group inline-flex min-h-11 items-center gap-2 rounded-xl border px-3.5 py-2 text-left transition-all ${
+                              active
+                                ? "border-[var(--primary)] bg-[var(--primary)] text-white shadow-sm"
+                                : "border-[var(--border)] bg-[var(--surface-container-lowest)] text-[var(--t1)] hover:border-[var(--primary)]/60 hover:bg-[var(--surface-container-low)]"
+                            }`}
+                          >
+                            <span className="text-sm font-semibold leading-tight">{subject.name}</span>
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                                active
+                                  ? "bg-white/20 text-white"
+                                  : complete
+                                    ? "bg-[var(--green-soft)] text-[var(--green-ink)]"
+                                    : done > 0
+                                      ? "bg-[var(--amber-soft)] text-[var(--amber-ink)]"
+                                      : "bg-[var(--surface-container)] text-[var(--t3)]"
+                              }`}
+                            >
+                              {complete ? `✓ ${total}` : total > 0 ? `${done}/${total}` : "0"}
+                            </span>
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <button
+                          key={subject.id}
+                          type="button"
+                          aria-pressed={active}
+                          onClick={() => setSelectedSubject(active && !selectedClass ? "" : subject.id)}
+                          className={`relative overflow-hidden min-h-16 rounded-xl border p-3 text-left transition-all ${
+                            active
+                              ? "border-[var(--primary)] bg-[var(--navy-soft)] ring-2 ring-[var(--primary)]"
+                              : "border-[var(--border)] bg-[var(--surface-container-lowest)] hover:border-[var(--primary)]/60 hover:shadow-xs"
+                          }`}
+                        >
+                          <span className="block text-sm font-semibold leading-tight text-[var(--t1)]">
+                            {subject.name}
+                          </span>
+                          <span className="mt-1.5 flex items-center gap-1.5 text-xs">
+                            {!selectedClass ? (
+                              <span className="text-[var(--t3)]">Choose a class first</span>
+                            ) : total === 0 ? (
+                              <span className="text-[var(--t3)]">No pupils in this class</span>
+                            ) : complete ? (
+                              <>
+                                <MaterialIcon icon="check_circle" size={14} className="text-[var(--green)]" />
+                                <span className="font-semibold text-[var(--green)]">All {total} done</span>
+                              </>
+                            ) : done > 0 ? (
+                              <>
+                                <MaterialIcon icon="edit" size={14} className="text-[var(--amber)]" />
+                                <span className="font-semibold text-[var(--amber)]">
+                                  {done} of {total}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <MaterialIcon icon="radio_button_unchecked" size={14} className="text-[var(--t3)]" />
+                                <span className="text-[var(--t3)]">Not started</span>
+                              </>
+                            )}
+                          </span>
+                          {selectedClass && total > 0 && done > 0 && (
+                            <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-[var(--surface-container-high)]">
+                              <div
+                                className={`h-full rounded-full transition-all ${complete ? "bg-[var(--green)]" : "bg-[var(--amber)]"}`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
               )}
-            </div>
+            </section>
           </div>
         )}
         {/* Sticky context. Once marks are on screen, a teacher scrolling a
             long register needs to be able to answer "which subject is this?"
-            without scrolling back up. Sits above the grid on phones, beside it
-            on wide screens. */}
+            without scrolling back up. */}
         {selectedClass && selectedSubjectName && (
           <div className="sticky top-0 z-20 mb-3 -mx-1 px-1">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 shadow-sm">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-xs px-3.5 py-2 shadow-sm">
               <span className="text-sm font-bold text-[var(--t1)]">{selectedSubjectName}</span>
               <span className="text-xs text-[var(--t3)]">
                 {selectedClassName} &middot; Term {currentTerm} &middot; {academicYear}
               </span>
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${statusTone}`}>
+                {statusLabels[submissionStatus]}
+              </span>
               <button
                 type="button"
                 onClick={() => {
-                  setShowTargetPicker(true);
-                  setSelectedSubject("");
+                  setShowTargetPicker((prev) => (singleTarget ? !prev : true));
+                  const el = document.getElementById("grade-target-class");
+                  if (el && typeof el.scrollIntoView === "function") {
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }
                 }}
                 className="ml-auto min-h-11 text-xs font-semibold text-[var(--primary)] hover:underline"
               >
@@ -1769,67 +1994,6 @@ export default function GradesPage() {
               </button>
             </div>
           </div>
-        )}
-        {subjectOptions.length > 0 && !(singleTarget && !showTargetPicker) && (
-          <section aria-labelledby="subject-picker-heading" className="mb-4">
-            <div className="mb-2 flex items-baseline justify-between gap-3">
-              <h2 id="subject-picker-heading" className="text-sm font-semibold text-[var(--t1)]">
-                {selectedClassName ? `What are you grading in ${selectedClassName}?` : "What do you teach?"}
-              </h2>
-              <span className="text-xs text-[var(--t3)]">
-                {selectedClass
-                  ? `${subjectOptions.filter((s) => (subjectProgress[s.id] ?? 0) > 0).length} of ${subjectOptions.length} started`
-                  : `${subjectOptions.length} to choose from`}
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-              {subjectOptions.map((subject) => {
-                const done = subjectProgress[subject.id] ?? 0;
-                const total = displayStudents.length;
-                const active = subject.id === selectedSubject;
-                const complete = total > 0 && done >= total;
-                return (
-                  <button
-                    key={subject.id}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => setSelectedSubject(active ? "" : subject.id)}
-                    className={`min-h-16 rounded-xl border p-3 text-left transition-colors ${
-                      active
-                        ? "border-[var(--primary)] bg-[var(--navy-soft)] ring-2 ring-[var(--primary)]"
-                        : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--primary)]"
-                    }`}
-                  >
-                    <span className="block text-sm font-semibold leading-tight text-[var(--t1)]">{subject.name}</span>
-                    <span className="mt-1 flex items-center gap-1.5 text-xs">
-                      {!selectedClass ? (
-                        <span className="text-[var(--t3)]">Tap to choose</span>
-                      ) : total === 0 ? (
-                        <span className="text-[var(--t3)]">No pupils in this class</span>
-                      ) : complete ? (
-                        <>
-                          <MaterialIcon icon="check_circle" size={14} className="text-[var(--green)]" />
-                          <span className="font-semibold text-[var(--green)]">All {total} done</span>
-                        </>
-                      ) : done > 0 ? (
-                        <>
-                          <MaterialIcon icon="edit" size={14} className="text-[var(--amber)]" />
-                          <span className="font-semibold text-[var(--amber)]">
-                            {done} of {total}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <MaterialIcon icon="radio_button_unchecked" size={14} className="text-[var(--t3)]" />
-                          <span className="text-[var(--t3)]">Not started</span>
-                        </>
-                      )}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
         )}
         {/* First-run guidance. Owly owns the steps now; the button only stays
             until the teacher has entered their first mark. */}
@@ -1863,22 +2027,45 @@ export default function GradesPage() {
                   {activeAssessmentTypes.map((type) => {
                     const label = columnLabels[type]?.label || assessmentLabel(type);
                     const selected = currentEntryAssessment === type;
+                    const typeEnteredCount = filteredStudents.reduce(
+                      (count, st) => count + (getMark(st.id, type) !== null ? 1 : 0),
+                      0,
+                    );
                     return (
                       <button
                         key={type}
                         type="button"
                         aria-pressed={selected}
                         onClick={() => setEntryAssessment(type)}
-                        className={`min-h-12 rounded-xl border px-2 py-2 text-sm font-bold transition-colors ${
+                        className={`min-h-12 rounded-xl border px-3 py-2 text-sm font-bold transition-all flex items-center justify-between gap-2 ${
                           selected
                             ? "border-[var(--primary)] bg-[var(--primary)] text-white shadow-sm"
                             : "border-[var(--border)] bg-[var(--surface-container-lowest)] text-[var(--t2)] hover:border-[var(--primary)]"
                         }`}
                       >
-                        {label}
-                        <span className={`ml-1 text-xs font-medium ${selected ? "text-white/80" : "text-[var(--t3)]"}`}>
-                          /100
+                        <span>
+                          {label}
+                          <span
+                            className={`ml-1 text-xs font-medium ${selected ? "text-white/80" : "text-[var(--t3)]"}`}
+                          >
+                            /100
+                          </span>
                         </span>
+                        {filteredStudents.length > 0 && (
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                              selected
+                                ? "bg-white/20 text-white"
+                                : typeEnteredCount >= filteredStudents.length
+                                  ? "bg-[var(--green-soft)] text-[var(--green-ink)]"
+                                  : typeEnteredCount > 0
+                                    ? "bg-[var(--amber-soft)] text-[var(--amber-ink)]"
+                                    : "bg-[var(--surface-container)] text-[var(--t3)]"
+                            }`}
+                          >
+                            {typeEnteredCount}/{filteredStudents.length}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -2189,27 +2376,14 @@ export default function GradesPage() {
                   <MaterialIcon icon="psychology" className="text-base" />
                   Competency
                 </button>
+                <button
+                  className="px-3 py-2 rounded-xl text-sm font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all flex items-center gap-1.5"
+                  onClick={() => setBulkImportOpen(true)}
+                >
+                  <MaterialIcon icon="upload" className="text-base" />
+                  Import
+                </button>
                 <div className="relative">
-                  <button
-                    className="px-3 py-2 rounded-xl text-sm font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all flex items-center gap-1.5"
-                    onClick={() =>
-                      setQuickFillModal({
-                        open: true,
-                        type: "ca1",
-                        value: "",
-                      })
-                    }
-                  >
-                    <MaterialIcon icon="playlist_add" className="text-base" />
-                    Quick Fill
-                  </button>
-                  <button
-                    className="px-3 py-2 rounded-xl text-sm font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all flex items-center gap-1.5"
-                    onClick={() => setBulkImportOpen(true)}
-                  >
-                    <MaterialIcon icon="upload" className="text-base" />
-                    Import
-                  </button>
                   <button
                     className={`px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 ${
                       setAllOpen
@@ -2452,9 +2626,9 @@ export default function GradesPage() {
                                 ) : (
                                   [currentEntryAssessment].map((type) => (
                                     <td key={type} className="px-4 py-5">
-                                      <div className="relative">
+                                      <div className="relative w-24 mx-auto">
                                         <input
-                                          className={`w-16 mx-auto block text-center font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${getInputBorderClass(student.id, type)}`}
+                                          className={`w-24 mx-auto block text-center text-base font-bold py-2 px-2 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] focus:border-[var(--primary)] focus:bg-[var(--surface)] focus:ring-2 focus:ring-[var(--primary)]/20 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${getInputBorderClass(student.id, type)}`}
                                           type="number"
                                           inputMode="numeric"
                                           min={0}
@@ -2489,6 +2663,26 @@ export default function GradesPage() {
                                   >
                                     {total !== null ? total : "—"}
                                   </span>
+                                  {!competencyMode && activeAssessmentTypes.length > 1 && (
+                                    <div className="mt-1 flex items-center justify-center gap-1.5 text-[11px] text-[var(--t3)]">
+                                      {activeAssessmentTypes.map((t) => {
+                                        const m = getMark(student.id, t);
+                                        const lbl = columnLabels[t]?.label || assessmentLabel(t);
+                                        return (
+                                          <span
+                                            key={t}
+                                            className={`rounded px-1.5 py-0.5 ${
+                                              t === currentEntryAssessment
+                                                ? "bg-[var(--navy-soft)] font-bold text-[var(--primary)]"
+                                                : "bg-[var(--surface-container)]"
+                                            }`}
+                                          >
+                                            {lbl}: {m !== null ? m : "—"}
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
                                 </td>
                                 <td className="px-8 py-5 text-right">
                                   <span
@@ -2508,7 +2702,7 @@ export default function GradesPage() {
                             <ClassAverageRow
                               marks={marks}
                               studentIds={displayStudents.map((s) => s.id)}
-                              assessmentTypes={activeAssessmentTypes}
+                              assessmentTypes={[currentEntryAssessment]}
                               competencyMode={competencyMode}
                             />
                           </tr>
