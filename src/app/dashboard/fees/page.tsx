@@ -1096,7 +1096,8 @@ export default function FinanceHubPage() {
         // from a field with no signal -- and when they failed, the catch
         // reported a payment the phone had already banked as "failed", which
         // called a retry and a duplicate. So the slip hands over without a
-        // number; the receipt book catches up when the queue replays.
+        // number; the fee_payments insert trigger mints it when the queue
+        // replays.
         receiptNumberForRecord = null;
       } else if (!isDemo && school?.id && paymentResult?.id) {
         // Retry-after-timeout returns the EXISTING payment row (idempotent),
