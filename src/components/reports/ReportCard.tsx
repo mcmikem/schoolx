@@ -8,6 +8,7 @@ import { generateUgandaPrimaryBody } from "@/components/reports/ugandaPrimaryRep
 import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print-window";
 
 interface ReportCardProps {
+  assessmentView?: "all" | "midterm" | "end_term" | "averages";
   report: {
     assessmentModel?: "uganda_primary" | "weighted" | "secondary_progressive";
     student: {
@@ -123,7 +124,7 @@ const CONDUCT_RATINGS: Record<number, string> = {
   5: "Excellent",
 };
 
-export default function ReportCard({ report, onCustomize }: ReportCardProps) {
+export default function ReportCard({ report, onCustomize, assessmentView = "all" }: ReportCardProps) {
   const reportRef = useRef<HTMLDivElement>(null);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -140,6 +141,38 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
   const template = school.report_template || "default";
   const isUgandaPrimary = report.assessmentModel === "uganda_primary";
   const isSecondaryProgressive = report.assessmentModel === "secondary_progressive";
+  const progressiveColumns =
+    assessmentView === "all"
+      ? ["holiday_package", "mid_term", "final_average", "grade", "descriptor", "remark"]
+      : assessmentView === "midterm"
+        ? ["mid_term"]
+        : assessmentView === "end_term"
+          ? ["final_average"]
+          : ["final_average", "grade", "descriptor", "remark"];
+  const weightedColumns =
+    assessmentView === "all"
+      ? ["ca1", "ca2", "ca3", "ca4", "project", "totalCA", "exam", "finalScore", "grade"]
+      : assessmentView === "midterm"
+        ? ["totalCA"]
+        : assessmentView === "end_term"
+          ? ["exam"]
+          : ["finalScore", "grade"];
+  const weightedLabels: Record<string, string> = {
+    ca1: "CA1",
+    ca2: "CA2",
+    ca3: "CA3",
+    ca4: "CA4",
+    project: "Proj",
+    totalCA: "CA Avg",
+    exam: "Exam",
+    finalScore: "Total",
+    grade: "Grade",
+  };
+  const weightedValue = (subject: (typeof report.subjects)[number], key: string) => {
+    if (key === "totalCA") return Math.round(subject.totalCA || 0);
+    if (key === "finalScore") return Math.round(subject.finalScore || 0);
+    return (subject as any)[key] ?? "—";
+  };
   const ugandaPrimaryBody = isUgandaPrimary
     ? generateUgandaPrimaryBody({
         school: {
@@ -174,6 +207,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
           grade: subject.grade || "—",
           remarks: "",
         })),
+        assessmentView,
         totals: {
           ...sumUgandaTotals(
             report.subjects.map((subject) => ({
@@ -352,29 +386,36 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
     }
 
     // Grades Table
-    const tableData = report.subjects.map((s) =>
+    const tableData = report.subjects.map((subject) =>
       isUgandaPrimary
-        ? [s.name, s.bot ?? "—", s.mot ?? "—", s.eot ?? "—", s.average ?? "—", s.grade]
-        : [
-            s.name,
-            s.ca1,
-            s.ca2,
-            s.ca3,
-            s.ca4,
-            s.project,
-            Math.round(s.totalCA || 0),
-            s.exam,
-            Math.round(s.finalScore || 0),
-            s.grade,
-          ],
+        ? [
+            subject.name,
+            ...(assessmentView === "all"
+              ? [subject.bot ?? "—", subject.mot ?? "—", subject.eot ?? "—", subject.average ?? "—", subject.grade]
+              : assessmentView === "midterm"
+                ? [subject.mot ?? "—"]
+                : assessmentView === "end_term"
+                  ? [subject.eot ?? "—"]
+                  : [subject.average ?? "—", subject.aggregatePoints ?? "—", subject.grade]),
+          ]
+        : [subject.name, ...weightedColumns.map((key) => weightedValue(subject, key))],
     );
 
     autoTable(doc, {
       startY: 73,
       head: [
         isUgandaPrimary
-          ? ["Subject", "BOT /100", "MOT /100", "EOT /100", "Average", "Grade"]
-          : ["Subject", "CA1", "CA2", "CA3", "CA4", "Proj", "CA Avg", "Exam", "Total", "Grade"],
+          ? [
+              "Subject",
+              ...(assessmentView === "all"
+                ? ["BOT /100", "MOT /100", "EOT /100", "Average", "Grade"]
+                : assessmentView === "midterm"
+                  ? ["MOT /100"]
+                  : assessmentView === "end_term"
+                    ? ["EOT /100"]
+                    : ["Average", "Aggregate", "Grade"]),
+            ]
+          : ["Subject", ...weightedColumns.map((key) => weightedLabels[key])],
       ],
       body: tableData,
       styles: { fontSize: 8, cellPadding: 2 },
@@ -382,7 +423,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
       alternateRowStyles: { fillColor: [250, 251, 252] },
       columnStyles: {
         0: { cellWidth: 45, halign: "left" },
-        [isUgandaPrimary ? 5 : 9]: { fontStyle: "bold" },
+        [tableData[0]?.length - 1 || 1]: { fontStyle: "bold" },
       },
     });
 
@@ -418,9 +459,11 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
-    doc.text(`Overall Average: ${report.overall.average == null ? "—" : `${report.overall.average}%`}`, 14, summaryY);
-    doc.text(`Grade: ${report.overall.grade}`, 80, summaryY);
-    doc.text(`Division: ${report.overall.division}`, 140, summaryY);
+    if (assessmentView === "all" || assessmentView === "averages") {
+      doc.text(`Overall Average: ${report.overall.average == null ? "—" : `${report.overall.average}%`}`, 14, summaryY);
+      doc.text(`Grade: ${report.overall.grade}`, 80, summaryY);
+      doc.text(`Division: ${report.overall.division}`, 140, summaryY);
+    }
 
     if (showPosition && report.overall.position) {
       doc.text(`Position: ${report.overall.position}`, 14, summaryY + 7);
@@ -669,22 +712,45 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
                 {isSecondaryProgressive ? (
                   <>
                     <th className="text-left px-3 py-2 text-white font-semibold">Subject</th>
-                    {["HPG (%)", "Midterm / Mock (%)", "Final (%)", "Grade", "Grade descriptor", "TR"].map((label) => (
-                      <th key={label} className="text-center px-2 py-2 text-white font-semibold">
-                        {label}
-                      </th>
-                    ))}
+                    {progressiveColumns.map((key) => {
+                      const label = (
+                        {
+                          holiday_package: "HPG (%)",
+                          mid_term: "Midterm / Mock (%)",
+                          final_average: "Final (%)",
+                          grade: "Grade",
+                          descriptor: "Grade descriptor",
+                          remark: "TR",
+                        } as Record<string, string>
+                      )[key];
+                      return (
+                        <th key={key} className="text-center px-2 py-2 text-white font-semibold">
+                          {label}
+                        </th>
+                      );
+                    })}
                   </>
                 ) : isUgandaPrimary ? (
                   <>
                     <th className="text-left px-3 py-2 text-white font-semibold">Subject</th>
-                    {[
-                      ["BOT /100", "bot"],
-                      ["MOT /100", "mot"],
-                      ["EOT /100", "eot"],
-                      ["Average", "average"],
-                      ["Grade", "grade"],
-                    ].map(([label, key]) => (
+                    {(assessmentView === "all"
+                      ? [
+                          ["BOT /100", "bot"],
+                          ["MOT /100", "mot"],
+                          ["EOT /100", "eot"],
+                          ["Average", "average"],
+                          ["Grade", "grade"],
+                        ]
+                      : assessmentView === "midterm"
+                        ? [["MOT /100", "mot"]]
+                        : assessmentView === "end_term"
+                          ? [["EOT /100", "eot"]]
+                          : [
+                              ["Average", "average"],
+                              ["Aggregate", "aggregatePoints"],
+                              ["Grade", "grade"],
+                            ]
+                    ).map(([label, key]) => (
                       <th
                         key={key}
                         className="text-center px-2 py-2 text-white font-semibold"
@@ -699,60 +765,15 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
                     <th className="text-left px-3 py-2 text-white font-semibold" style={{ borderColor: primaryColor }}>
                       Subject
                     </th>
-                    <th
-                      className="text-center px-2 py-2 text-white font-semibold"
-                      style={{ borderColor: primaryColor }}
-                    >
-                      CA1
-                    </th>
-                    <th
-                      className="text-center px-2 py-2 text-white font-semibold"
-                      style={{ borderColor: primaryColor }}
-                    >
-                      CA2
-                    </th>
-                    <th
-                      className="text-center px-2 py-2 text-white font-semibold"
-                      style={{ borderColor: primaryColor }}
-                    >
-                      CA3
-                    </th>
-                    <th
-                      className="text-center px-2 py-2 text-white font-semibold"
-                      style={{ borderColor: primaryColor }}
-                    >
-                      CA4
-                    </th>
-                    <th
-                      className="text-center px-2 py-2 text-white font-semibold"
-                      style={{ borderColor: primaryColor }}
-                    >
-                      Proj
-                    </th>
-                    <th
-                      className="text-center px-2 py-2 text-white font-semibold"
-                      style={{ borderColor: primaryColor }}
-                    >
-                      CA Avg
-                    </th>
-                    <th
-                      className="text-center px-2 py-2 text-white font-semibold"
-                      style={{ borderColor: primaryColor }}
-                    >
-                      Exam
-                    </th>
-                    <th
-                      className="text-center px-2 py-2 text-white font-semibold"
-                      style={{ borderColor: primaryColor }}
-                    >
-                      Total
-                    </th>
-                    <th
-                      className="text-center px-2 py-2 text-white font-semibold"
-                      style={{ borderColor: primaryColor }}
-                    >
-                      Grade
-                    </th>
+                    {weightedColumns.map((key) => (
+                      <th
+                        key={key}
+                        className="text-center px-2 py-2 text-white font-semibold"
+                        style={{ borderColor: primaryColor }}
+                      >
+                        {weightedLabels[key]}
+                      </th>
+                    ))}
                   </>
                 )}
               </tr>
@@ -763,38 +784,50 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
                   <td className="px-3 py-2 text-gray-900 font-medium">{subject.name}</td>
                   {isSecondaryProgressive ? (
                     <>
-                      {(["holiday_package", "mid_term", "final_average"] as const).map((type) => (
-                        <td key={type} className="text-center px-2 py-2">
-                          {subject.assessmentBreakdown?.find((item) => item.type === type)?.score ?? "—"}
-                        </td>
-                      ))}
-                      <td className="text-center px-2 py-2 font-bold">{subject.grade || "—"}</td>
-                      <td className="px-2 py-2 text-xs">{subject.gradeDescriptor || "—"}</td>
-                      <td className="px-2 py-2 text-xs">{subject.teacherRemark || ""}</td>
+                      {progressiveColumns.map((key) =>
+                        key === "grade" ? (
+                          <td key={key} className="text-center px-2 py-2 font-bold">
+                            {subject.grade || "—"}
+                          </td>
+                        ) : key === "descriptor" ? (
+                          <td key={key} className="px-2 py-2 text-xs">
+                            {subject.gradeDescriptor || "—"}
+                          </td>
+                        ) : key === "remark" ? (
+                          <td key={key} className="px-2 py-2 text-xs">
+                            {subject.teacherRemark || ""}
+                          </td>
+                        ) : (
+                          <td key={key} className="text-center px-2 py-2">
+                            {subject.assessmentBreakdown?.find((item) => item.type === key)?.score ?? "—"}
+                          </td>
+                        ),
+                      )}
                     </>
                   ) : isUgandaPrimary ? (
                     <>
-                      <td className="text-center px-2 py-2">{subject.bot ?? "—"}</td>
-                      <td className="text-center px-2 py-2">{subject.mot ?? "—"}</td>
-                      <td className="text-center px-2 py-2">{subject.eot ?? "—"}</td>
-                      <td className="text-center px-2 py-2 font-semibold">{subject.average ?? "—"}</td>
-                      <td className="text-center px-2 py-2 font-bold">{subject.grade || "—"}</td>
+                      {(assessmentView === "all"
+                        ? ["bot", "mot", "eot", "average", "grade"]
+                        : assessmentView === "midterm"
+                          ? ["mot"]
+                          : assessmentView === "end_term"
+                            ? ["eot"]
+                            : ["average", "aggregatePoints", "grade"]
+                      ).map((key) => (
+                        <td key={key} className="text-center px-2 py-2 font-semibold">
+                          {key === "aggregatePoints"
+                            ? (subject.aggregatePoints ?? "—")
+                            : ((subject as any)[key] ?? "—")}
+                        </td>
+                      ))}
                     </>
                   ) : (
                     <>
-                      <td className="text-center px-2 py-2">{subject.ca1}</td>
-                      <td className="text-center px-2 py-2">{subject.ca2}</td>
-                      <td className="text-center px-2 py-2">{subject.ca3}</td>
-                      <td className="text-center px-2 py-2">{subject.ca4}</td>
-                      <td className="text-center px-2 py-2">{subject.project}</td>
-                      <td className="text-center px-2 py-2 font-medium" style={{ backgroundColor: `${accentColor}10` }}>
-                        {Math.round(subject.totalCA || 0)}
-                      </td>
-                      <td className="text-center px-2 py-2">{subject.exam}</td>
-                      <td className="text-center px-2 py-2 font-bold" style={{ backgroundColor: `${accentColor}10` }}>
-                        {Math.round(subject.finalScore || 0)}
-                      </td>
-                      <td className="text-center px-2 py-2 font-bold">{subject.grade}</td>
+                      {weightedColumns.map((key) => (
+                        <td key={key} className="text-center px-2 py-2">
+                          {weightedValue(subject, key)}
+                        </td>
+                      ))}
                     </>
                   )}
                 </tr>
@@ -832,59 +865,63 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
 
         {/* Summary */}
         <div className="p-4 border-t-2" style={{ borderColor: primaryColor }}>
-          <div className={`grid gap-3 mb-4 ${showPosition ? "grid-cols-4" : "grid-cols-3"}`}>
-            <div
-              className="text-center p-3 rounded-lg"
-              style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}
-            >
-              <div className="text-xs text-gray-500 uppercase tracking-wide">Overall Average</div>
-              <div className="text-2xl font-black" style={{ color: primaryColor }}>
-                {report.overall.average ?? "—"}
-                {report.overall.average == null ? "" : "%"}
-              </div>
-            </div>
-            <div
-              className="text-center p-3 rounded-lg"
-              style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}
-            >
-              <div className="text-xs text-gray-500 uppercase tracking-wide">Grade</div>
-              <div className="text-2xl font-black" style={{ color: primaryColor }}>
-                {report.overall.grade}
-              </div>
-            </div>
-            <div
-              className="text-center p-3 rounded-lg"
-              style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}
-            >
-              <div className="text-xs text-gray-500 uppercase tracking-wide">
-                {isSecondaryProgressive ? "Points (A=5 to E=1)" : "Division"}
-              </div>
-              <div
-                className={`text-xl font-black ${
-                  report.overall.division === "Division I"
-                    ? "text-green-600"
-                    : report.overall.division === "Division II"
-                      ? "text-blue-600"
-                      : report.overall.division === "Division III"
-                        ? "text-yellow-600"
-                        : "text-red-600"
-                }`}
-              >
-                {isSecondaryProgressive ? (report.overall.points ?? "—") : report.overall.division}
-              </div>
-            </div>
-            {showPosition && report.overall.position && (
-              <div
-                className="text-center p-3 rounded-lg"
-                style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}
-              >
-                <div className="text-xs text-gray-500 uppercase tracking-wide">Position</div>
-                <div className="text-2xl font-black" style={{ color: primaryColor }}>
-                  {report.overall.position}
+          {(assessmentView === "all" || assessmentView === "averages") && (
+            <div>
+              <div className={`grid gap-3 mb-4 ${showPosition ? "grid-cols-4" : "grid-cols-3"}`}>
+                <div
+                  className="text-center p-3 rounded-lg"
+                  style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}
+                >
+                  <div className="text-xs text-gray-500 uppercase tracking-wide">Overall Average</div>
+                  <div className="text-2xl font-black" style={{ color: primaryColor }}>
+                    {report.overall.average ?? "—"}
+                    {report.overall.average == null ? "" : "%"}
+                  </div>
                 </div>
+                <div
+                  className="text-center p-3 rounded-lg"
+                  style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}
+                >
+                  <div className="text-xs text-gray-500 uppercase tracking-wide">Grade</div>
+                  <div className="text-2xl font-black" style={{ color: primaryColor }}>
+                    {report.overall.grade}
+                  </div>
+                </div>
+                <div
+                  className="text-center p-3 rounded-lg"
+                  style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}
+                >
+                  <div className="text-xs text-gray-500 uppercase tracking-wide">
+                    {isSecondaryProgressive ? "Points (A=5 to E=1)" : "Division"}
+                  </div>
+                  <div
+                    className={`text-xl font-black ${
+                      report.overall.division === "Division I"
+                        ? "text-green-600"
+                        : report.overall.division === "Division II"
+                          ? "text-blue-600"
+                          : report.overall.division === "Division III"
+                            ? "text-yellow-600"
+                            : "text-red-600"
+                    }`}
+                  >
+                    {isSecondaryProgressive ? (report.overall.points ?? "—") : report.overall.division}
+                  </div>
+                </div>
+                {showPosition && report.overall.position && (
+                  <div
+                    className="text-center p-3 rounded-lg"
+                    style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}
+                  >
+                    <div className="text-xs text-gray-500 uppercase tracking-wide">Position</div>
+                    <div className="text-2xl font-black" style={{ color: primaryColor }}>
+                      {report.overall.position}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {showAttendance && (
             <div

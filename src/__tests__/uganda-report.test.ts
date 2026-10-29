@@ -157,7 +157,7 @@ describe("generateUgandaPrimaryHTML", () => {
   it("renders every reference section with real data", () => {
     const html = generateUgandaPrimaryHTML(baseInput);
     for (const needle of [
-"PRIMARY PUPIL'S PROGRESS REPORT",
+      "PRIMARY PUPIL'S PROGRESS REPORT",
       // The official Ugandan form carries Class/Term/Year in the identity
       // block under the boxed title, not in a second boxed subtitle, so the
       // report matches the form an inspector expects.
@@ -238,6 +238,29 @@ describe("generateUgandaPrimaryHTML", () => {
         const lead = showBot ? 4 : 3;
         expect(html).toContain(`colspan="${lead}"`);
       }
+    });
+
+    it("can print only the midterm or end-of-term assessment", () => {
+      const midterm = generateUgandaPrimaryBody({ ...baseInput, assessmentView: "midterm" });
+      expect(midterm).toContain(">MOT<");
+      expect(midterm).not.toContain(">BOT<");
+      expect(midterm).not.toContain(">EOT<");
+      expect(midterm).not.toContain(">AVG %<");
+
+      const endTerm = generateUgandaPrimaryBody({ ...baseInput, assessmentView: "end_term" });
+      expect(endTerm).toContain(">EOT<");
+      expect(endTerm).not.toContain(">BOT<");
+      expect(endTerm).not.toContain(">MOT<");
+      expect(endTerm).not.toContain(">AVG %<");
+    });
+
+    it("can print averages and grades without individual exam columns", () => {
+      const html = generateUgandaPrimaryBody({ ...baseInput, assessmentView: "averages" });
+      expect(html).toContain(">AVG %<");
+      expect(html).toContain(">AGG<");
+      expect(html).not.toContain(">BOT<");
+      expect(html).not.toContain(">MOT<");
+      expect(html).not.toContain(">EOT<");
     });
   });
 });

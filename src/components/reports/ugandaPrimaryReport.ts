@@ -80,6 +80,8 @@ export interface UgandaPrintInput {
    * reads as "the teacher did not record it".
    */
   showBot?: boolean;
+  /** Limit the academic table to a school's preferred exam/result view. */
+  assessmentView?: "all" | "midterm" | "end_term" | "averages";
   position?: number | null;
   feeBalance: number | null;
   nextTermBegins: string | null;
@@ -164,12 +166,20 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
   const contact = [school.address, school.phone].filter(Boolean).join(" · ");
   // Callers pass "DIV 2" / "DIV I"; prefixing again produced "DIV: DIV 2" and
   // wrapped the cell. Only add the prefix when it is not already there.
-  // Column count drives every colspan below, so it is derived once here
-  // rather than hardcoded: 1 subject + (showBot ? 3 : 2) marks + avg/agg/grade/remarks.
+  // Column count drives every colspan below, so it is derived once here.
   const showBot = input.showBot !== false;
-  const markColumns = showBot ? 3 : 2;
-  const markColspan = markColumns;
-  const leadColspan = 1 + markColumns;
+  const view = input.assessmentView ?? "all";
+  const markKeys =
+    view === "all"
+      ? [...(showBot ? ["bot"] : []), "mot", "eot"]
+      : view === "midterm"
+        ? ["mot"]
+        : view === "end_term"
+          ? ["eot"]
+          : [];
+  const summaryKeys =
+    view === "all" ? ["avg", "agg", "grade", "remarks"] : view === "averages" ? ["avg", "agg", "grade"] : [];
+  const leadColspan = view === "all" ? 1 + markKeys.length : 1;
 
   const brand = brandPalette(school.primaryColor);
 
@@ -190,32 +200,67 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
     `<td${colspan ? ` colspan="${colspan}"` : ""} style="${extra}">${content}</td>`;
 
   const subjectRows = subjects
-    .map(
-      (s) => `<tr>
-        ${td(escapeHtml(s.name), "text-align:left;width:26%;")}
-        ${showBot ? td(cell(s.bot), "text-align:center;") : ""}
-        ${td(cell(s.mot), "text-align:center;")}
-        ${td(cell(s.eot), "text-align:center;")}
-        ${td(cell(s.avg), "text-align:center;")}
-        ${td(cell(s.agg), "text-align:center;font-weight:bold;")}
-        ${td(escapeHtml(s.grade), "text-align:center;font-weight:bold;width:8%;")}
-        ${td(escapeHtml(s.remarks), "text-align:left;")}
-      </tr>`,
-    )
+    .map((s) => {
+      const markValues: Record<string, number | null> = { bot: s.bot, mot: s.mot, eot: s.eot };
+      const markLabels: Record<string, string> = { bot: "BOT", mot: "MOT", eot: "EOT" };
+      const markCells = markKeys.map((key) => td(cell(markValues[key]), "text-align:center;")).join("");
+      const summaryCells = summaryKeys
+        .map((key) => {
+          if (key === "avg") return td(cell(s.avg), "text-align:center;");
+          if (key === "agg") return td(cell(s.agg), "text-align:center;font-weight:bold;");
+          if (key === "grade") return td(escapeHtml(s.grade), "text-align:center;font-weight:bold;width:8%;");
+          return td(escapeHtml(s.remarks), "text-align:left;");
+        })
+        .join("");
+      return `<tr>${td(escapeHtml(s.name), "text-align:left;width:26%;")}${markCells}${summaryCells}</tr>`;
+    })
+    .join("");
+  const markLabel: Record<string, string> = { bot: "BOT", mot: "MOT", eot: "EOT" };
+  const summaryLabel: Record<string, string> = {
+    avg: "AVG %",
+    agg: "AGG",
+    grade: "GRADE",
+    remarks: "REMARKS / COMPETENCY",
+  };
+  const totalLabels = (view === "all" || view === "averages" ? summaryKeys : markKeys).map(
+    (key) => markLabel[key] || summaryLabel[key],
+  );
+  const recordedMotMarks = subjects.map((subject) => subject.mot).filter((value): value is number => value !== null);
+  const motTotal = recordedMotMarks.length ? recordedMotMarks.reduce((sum, value) => sum + value, 0) : null;
+  const headers = markKeys.length
+    ? `<th colspan="${markKeys.length}" style="text-align:center;">MARKS (EACH OUT OF 100)</th>${summaryKeys.map((key) => `<th rowspan="2" style="text-align:${key === "remarks" ? "left" : "center"};">${summaryLabel[key]}</th>`).join("")}`
+    : summaryKeys
+        .map(
+          (key) =>
+            `<th rowspan="2" style="text-align:${key === "remarks" ? "left" : "center"};">${summaryLabel[key]}</th>`,
+        )
+        .join("");
+  const totalsCells = totalLabels
+    .map((label) => {
+      if (label === "BOT") return td(cell(totals.midTotal), "text-align:center;font-weight:bold;");
+      if (label === "MOT") return td(cell(motTotal), "text-align:center;font-weight:bold;");
+      if (label === "EOT") return td(cell(totals.endTotal), "text-align:center;font-weight:bold;");
+      if (label === "AVG %") return td(cell(totals.avgMean), "text-align:center;font-weight:bold;");
+      if (label === "AGG") return td(`AGG: ${cell(totals.aggSum)}`, "text-align:center;font-weight:bold;");
+      if (label === "GRADE") return td(divisionCell, "text-align:center;font-weight:bold;");
+      return td("", "");
+    })
     .join("");
 
   // Official layout is four bands across, then a full-width fail/absent row.
   const legendHtml =
-    `<tr>${GRADING_LEGEND.slice(0, 4).map((band) => td(escapeHtml(band), "text-align:center;font-size:10px;")).join("")}</tr>` +
-    `<tr>${GRADING_LEGEND.slice(4).map((band) => td(escapeHtml(band), "text-align:center;font-size:10px;")).join("")}</tr>` +
+    `<tr>${GRADING_LEGEND.slice(0, 4)
+      .map((band) => td(escapeHtml(band), "text-align:center;font-size:10px;"))
+      .join("")}</tr>` +
+    `<tr>${GRADING_LEGEND.slice(4)
+      .map((band) => td(escapeHtml(band), "text-align:center;font-size:10px;"))
+      .join("")}</tr>` +
     `<tr>${td("0-44: F9 (Fail) | X: Absent", "text-align:center;font-size:10px;font-weight:bold;", 4)}</tr>`;
 
   // Show what was recorded, in the order the form uses. Nothing recorded is
   // stated in words -- four empty boxes read as "this teacher did not fill
   // this in" to a parent, which is exactly the impression to avoid.
-  const recorded = new Map(
-    (input.behaviour ?? []).map((entry) => [entry.skill.trim().toLowerCase(), entry.rating]),
-  );
+  const recorded = new Map((input.behaviour ?? []).map((entry) => [entry.skill.trim().toLowerCase(), entry.rating]));
   const skills =
     input.behaviour && input.behaviour.length > 0
       ? input.behaviour.map((entry) => entry.skill)
@@ -244,9 +289,9 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
     : `<p style="font-size:9px;color:#666;margin:3px 0 0;">Not recorded for this pupil this term.</p>`;
 
   // `label` is an internal constant, never user input, so it is interpolated
-// directly -- escaping it would entity-encode the apostrophe in "Teacher's"
-// for no benefit. The free-text remark beside it is always escaped.
-const remarkBlock = (label: string, text: string): string => `
+  // directly -- escaping it would entity-encode the apostrophe in "Teacher's"
+  // for no benefit. The free-text remark beside it is always escaped.
+  const remarkBlock = (label: string, text: string): string => `
     <div style="page-break-inside:avoid;">
       <p style="font-size:11px;font-weight:bold;margin:9px 0 1px;">${label}:</p>
       ${text ? `<p style="font-size:11px;margin:0 0 1px;">${escapeHtml(text)}</p>` : ""}
@@ -303,26 +348,17 @@ const remarkBlock = (label: string, text: string): string => `
       <thead>
         <tr>
           <th rowspan="2" style="text-align:left;">SUBJECT</th>
-          <th colspan="${markColspan}" style="text-align:center;">MARKS (EACH OUT OF 100)</th>
-          <th rowspan="2" style="text-align:center;">AVG %</th>
-          <th rowspan="2" style="text-align:center;">AGG</th>
-          <th rowspan="2" style="text-align:center;">GRADE</th>
-          <th rowspan="2" style="text-align:left;">REMARKS / COMPETENCY</th>
+          ${headers}
         </tr>
         <tr>
-          ${showBot ? '<th style="text-align:center;">BOT</th>' : ""}
-          <th style="text-align:center;">MOT</th>
-          <th style="text-align:center;">EOT</th>
+          ${markKeys.map((key) => `<th style="text-align:center;">${markLabel[key]}</th>`).join("")}
         </tr>
       </thead>
       <tbody>
         ${subjectRows}
         <tr>
           ${td("TOTALS", "font-weight:bold;text-align:center;", leadColspan)}
-          ${td(cell(totals.avgMean), "text-align:center;font-weight:bold;")}
-          ${td(`AGG: ${cell(totals.aggSum)}`, "text-align:center;font-weight:bold;")}
-          ${td(divisionCell, "text-align:center;font-weight:bold;")}
-          ${td("", "")}
+          ${totalsCells}
         </tr>
       </tbody>
     </table>
