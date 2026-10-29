@@ -18,6 +18,7 @@ interface GradeImportModalProps {
   students: { id: string; student_number: string; first_name: string; last_name: string }[];
   userId?: string;
   isDemo?: boolean;
+  assessmentMaximums: Record<string, number>;
   toast: { success: (msg: string) => void; error: (msg: string) => void; info: (msg: string) => void };
 }
 
@@ -44,6 +45,7 @@ export function GradeImportModal({
   students,
   userId,
   isDemo,
+  assessmentMaximums,
   toast,
 }: GradeImportModalProps) {
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
@@ -71,7 +73,21 @@ export function GradeImportModal({
     fixedAssessmentType: "exam",
   });
 
-  const ASSESSMENT_TYPES = ["ca1", "ca2", "ca3", "ca4", "project", "exam", "competency", "u1", "u2", "eot"];
+  const ASSESSMENT_TYPES = [
+    "bot",
+    "mid_term",
+    "eot",
+    "ca1",
+    "ca2",
+    "ca3",
+    "ca4",
+    "project",
+    "exam",
+    "holiday_package",
+    "competency",
+    "u1",
+    "u2",
+  ];
 
   const reset = useCallback(() => {
     setParsedRows([]);
@@ -298,6 +314,13 @@ export function GradeImportModal({
         setImportProgress({ completed: i + 1, total, success, failed });
         continue;
       }
+      const maxScore = assessmentType === "competency" ? 3 : (assessmentMaximums[assessmentType] ?? 100);
+      if (score > maxScore) {
+        captureError(`Row ${i + 1}: ${assessmentType.toUpperCase()} score exceeds the maximum of ${maxScore}`);
+        failed++;
+        setImportProgress({ completed: i + 1, total, success, failed });
+        continue;
+      }
 
       try {
         const payload = {
@@ -306,6 +329,7 @@ export function GradeImportModal({
           class_id: classId,
           assessment_type: assessmentType,
           score,
+          max_score: maxScore,
           term,
           academic_year: academicYear,
           recorded_by: userId,

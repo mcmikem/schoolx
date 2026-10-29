@@ -47,4 +47,23 @@ describe("ClassAverageRow", () => {
     );
     expect(screen.getAllByText("—")).toHaveLength(2);
   });
+
+  it("uses the configured percentage total when a school has custom mark maxima", () => {
+    render(
+      <table>
+        <tbody>
+          <tr>
+            <ClassAverageRow
+              marks={{ a_mid_term: 40 }}
+              studentIds={["a"]}
+              assessmentTypes={["mid_term"]}
+              competencyMode={false}
+              getStudentTotal={() => 80}
+            />
+          </tr>
+        </tbody>
+      </table>,
+    );
+    expect(screen.getByText("80")).toBeInTheDocument();
+  });
 });

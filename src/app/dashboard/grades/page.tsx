@@ -33,11 +33,11 @@ import {
   TRADITIONAL_ASSESSMENT_TYPES,
   assessmentLabel,
   assessmentTypesFor,
-  averageOfTotals,
-  columnAverage,
   getGrade,
   getStudentTotal as computeStudentTotal,
   isStudentGraded as computeIsStudentGraded,
+  ASSESSMENT_MAX_SCORES_KEY,
+  parseAssessmentMaxScores,
   parseMarkKey,
   readMark,
   type SaveStatus,
@@ -173,7 +173,7 @@ async function syncStudentGrades(params: {
 }) {
   const { data: allGrades } = await supabase
     .from("grades")
-    .select("assessment_type, score")
+    .select("assessment_type, score, max_score")
     .eq("student_id", params.student_id)
     .eq("subject_id", params.subject_id)
     .eq("term", params.term)
@@ -181,12 +181,19 @@ async function syncStudentGrades(params: {
 
   if (!allGrades || allGrades.length === 0) return;
 
-  const ca1 = allGrades.find((g: any) => g.assessment_type === "ca1")?.score || 0;
-  const ca2 = allGrades.find((g: any) => g.assessment_type === "ca2")?.score || 0;
-  const ca3 = allGrades.find((g: any) => g.assessment_type === "ca3")?.score || 0;
-  const ca4 = allGrades.find((g: any) => g.assessment_type === "ca4")?.score || 0;
-  const project = allGrades.find((g: any) => g.assessment_type === "project")?.score || 0;
-  const exam_score = allGrades.find((g: any) => g.assessment_type === "exam")?.score || 0;
+  const scoreAsPercent = (type: string) => {
+    const grade = allGrades.find((item: any) => item.assessment_type === type);
+    if (!grade) return 0;
+    const score = Number(grade.score) || 0;
+    const maximum = Number(grade.max_score) > 0 ? Number(grade.max_score) : ASSESSMENT_MAX[type] || 100;
+    return (score / maximum) * 100;
+  };
+  const ca1 = scoreAsPercent("ca1");
+  const ca2 = scoreAsPercent("ca2");
+  const ca3 = scoreAsPercent("ca3");
+  const ca4 = scoreAsPercent("ca4");
+  const project = scoreAsPercent("project");
+  const exam_score = scoreAsPercent("exam");
   const final_score = calculateSubjectTotal(ca1, ca2, ca3, ca4, project, exam_score);
 
   const studentGradePayload = {
@@ -298,6 +305,12 @@ export default function GradesPage() {
 
   const track = resolveTrackForClass(classes.find((item) => item.id === selectedClass)?.name, schoolSettings);
   const gradeBasis = useMemo(() => parseTermGradeBasis(schoolSettings[TERM_GRADE_BASIS_KEY]), [schoolSettings]);
+  const assessmentMaximums = useMemo(
+    () => parseAssessmentMaxScores(schoolSettings[ASSESSMENT_MAX_SCORES_KEY]),
+    [schoolSettings],
+  );
+  const getAssessmentMaximum = (type: string) =>
+    type === "competency" ? 3 : (assessmentMaximums[type] ?? ASSESSMENT_MAX[type] ?? 100);
   const additionalAssessmentTypes = useMemo(
     () => (track.startsWith("secondary") && gradeBasis?.types.includes("holiday_package") ? ["holiday_package"] : []),
     [track, gradeBasis],
@@ -309,10 +322,10 @@ export default function GradesPage() {
 
   const columnLabels = useMemo(() => {
     const labels: Record<string, { label: string; explain: string }> = {
-      bot: { label: "BOT", explain: "Beginning of Term · /100" },
-      mid_term: { label: "MOT", explain: "Mid Term · /100" },
-      eot: { label: "EOT", explain: "End of Term · /100" },
-      holiday_package: { label: "HPG", explain: "Holiday package · /100" },
+      bot: { label: "BOT", explain: `Beginning of Term · /${getAssessmentMaximum("bot")}` },
+      mid_term: { label: "MOT", explain: `Mid Term · /${getAssessmentMaximum("mid_term")}` },
+      eot: { label: "EOT", explain: `End of Term · /${getAssessmentMaximum("eot")}` },
+      holiday_package: { label: "HPG", explain: `Holiday package · /${getAssessmentMaximum("holiday_package")}` },
     };
     for (const column of GRADING_TRACKS[track].columns) {
       for (const key of column.keys)
@@ -322,7 +335,7 @@ export default function GradesPage() {
         };
     }
     return labels;
-  }, [track]);
+  }, [track, assessmentMaximums]);
   const [selectedSubject, setSelectedSubject] = useState("");
   // A teacher who is assigned one class and one subject should land on the
   // marks, not on a form asking them to choose what they already chose.
@@ -379,6 +392,7 @@ export default function GradesPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [marks, setMarks] = useState<StudentMarks>({});
+  const [markMaxScores, setMarkMaxScores] = useState<Record<string, number>>({});
   const [gradeConfirm, setGradeConfirm] = useState<{
     open: boolean;
     message: string;
@@ -467,6 +481,7 @@ export default function GradesPage() {
 
   const [inlineEntryMode, setInlineEntryMode] = useState(true);
   const [entryAssessment, setEntryAssessment] = useState<string>("bot");
+  const [showAllAssessmentColumns, setShowAllAssessmentColumns] = useState(false);
 
   useEffect(() => {
     // Use the focused pupil card on narrow phones and the full register on
@@ -483,6 +498,7 @@ export default function GradesPage() {
     Map<string, { subjectId: string; classId: string; studentId: string; assessmentType: string }>
   >(new Map());
   const sheetMarksCacheRef = useRef<Record<string, StudentMarks>>({});
+  const sheetMarkMaxCacheRef = useRef<Record<string, Record<string, number>>>({});
   const activeSheetKey =
     selectedClass && selectedSubject ? `${selectedClass}:${selectedSubject}:${currentTerm}:${academicYear}` : "";
 
@@ -496,12 +512,13 @@ export default function GradesPage() {
   // every pupil at once and reverting one cell would leave it half-applied.
   const [undoMark, setUndoMark] = useState<{
     before: Record<string, number | null>;
+    beforeMaxScores: Record<string, number>;
     describe: string;
   } | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const pushUndo = (before: Record<string, number | null>, describe: string) => {
-    setUndoMark({ before, describe });
+    setUndoMark({ before, beforeMaxScores: { ...markMaxScores }, describe });
     if (undoTimer.current) clearTimeout(undoTimer.current);
     undoTimer.current = setTimeout(() => setUndoMark(null), 6000);
   };
@@ -519,9 +536,11 @@ export default function GradesPage() {
       const next = { ...prev, ...undoMark.before };
       if (activeSheetKey) {
         sheetMarksCacheRef.current[activeSheetKey] = next;
+        sheetMarkMaxCacheRef.current[activeSheetKey] = undoMark.beforeMaxScores;
       }
       return next;
     });
+    setMarkMaxScores(undoMark.beforeMaxScores);
     setUndoMark(null);
     if (undoTimer.current) clearTimeout(undoTimer.current);
     toast.info("Change undone.");
@@ -648,24 +667,34 @@ export default function GradesPage() {
     lastHydratedGradesSignature.current = hydrationSignature;
 
     const cachedSheetMarks = activeSheetKey ? sheetMarksCacheRef.current[activeSheetKey] : undefined;
+    const cachedSheetMaxScores = activeSheetKey ? sheetMarkMaxCacheRef.current[activeSheetKey] : undefined;
 
     if (sheetGrades.length > 0 || (cachedSheetMarks && Object.keys(cachedSheetMarks).length > 0)) {
       const marksMap: StudentMarks = {};
+      const maxScoresMap: Record<string, number> = {};
       const newMarksBy: Record<string, { name: string; type: string }> = {};
       let isCaLocked = false;
       let lockedBy = "";
 
       const legacyExamMarks: Record<string, number | null> = {};
+      const legacyExamMaxScores: Record<string, number> = {};
       sheetGrades.forEach((g: any) => {
         if (g.assessment_type === "exam") {
           legacyExamMarks[g.student_id] = g.score ?? null;
+          if (Number.isFinite(Number(g.max_score)) && Number(g.max_score) > 0) {
+            legacyExamMaxScores[`${g.student_id}_eot`] = Number(g.max_score);
+          }
           if (g.recorded_by) {
             const staffMember = staff.find((s) => s.id === g.recorded_by);
             newMarksBy[g.recorded_by] = { name: staffMember?.full_name || "Unknown", type: "eot" };
           }
           return;
         }
-        marksMap[`${g.student_id}_${g.assessment_type}`] = g.score ?? null;
+        const markKey = `${g.student_id}_${g.assessment_type}`;
+        marksMap[markKey] = g.score ?? null;
+        if (Number.isFinite(Number(g.max_score)) && Number(g.max_score) > 0) {
+          maxScoresMap[markKey] = Number(g.max_score);
+        }
         if (g.recorded_by) {
           const staffMember = staff.find((s) => s.id === g.recorded_by);
           newMarksBy[g.recorded_by] = {
@@ -682,14 +711,20 @@ export default function GradesPage() {
       for (const [studentId, score] of Object.entries(legacyExamMarks)) {
         const eotKey = `${studentId}_eot`;
         if (marksMap[eotKey] == null && score != null) marksMap[eotKey] = score;
+        if (maxScoresMap[eotKey] == null && legacyExamMaxScores[eotKey] != null) {
+          maxScoresMap[eotKey] = legacyExamMaxScores[eotKey];
+        }
       }
 
       const mergedMarks = cachedSheetMarks ? { ...marksMap, ...cachedSheetMarks } : marksMap;
+      const mergedMaxScores = cachedSheetMaxScores ? { ...maxScoresMap, ...cachedSheetMaxScores } : maxScoresMap;
       if (activeSheetKey) {
         sheetMarksCacheRef.current[activeSheetKey] = mergedMarks;
+        sheetMarkMaxCacheRef.current[activeSheetKey] = mergedMaxScores;
       }
 
       setMarks(mergedMarks);
+      setMarkMaxScores(mergedMaxScores);
       setMarksBy(newMarksBy);
       setCaLocked(isCaLocked);
 
@@ -705,6 +740,7 @@ export default function GradesPage() {
       );
     } else {
       setMarks({});
+      setMarkMaxScores({});
       setMarksBy({});
       setCaLocked(false);
       setLockedByName("");
@@ -785,8 +821,14 @@ export default function GradesPage() {
         }
         return next;
       });
+      setMarkMaxScores((prev) => {
+        const next = { ...prev };
+        delete next[`${studentId}_${type}`];
+        if (activeSheetKey) sheetMarkMaxCacheRef.current[activeSheetKey] = next;
+        return next;
+      });
     } else {
-      const maxVal = type === "competency" ? 3 : ASSESSMENT_MAX[type] || 100;
+      const maxVal = type === "competency" ? 3 : getAssessmentMaximum(type);
       const num = Math.min(maxVal, Math.max(0, Number(value)));
       // The clamp itself is deliberate -- never store a mark the report cannot
       // render. What was missing was any signal that it had happened: a teacher
@@ -810,6 +852,11 @@ export default function GradesPage() {
         if (activeSheetKey) {
           sheetMarksCacheRef.current[activeSheetKey] = next;
         }
+        return next;
+      });
+      setMarkMaxScores((prev) => {
+        const next = { ...prev, [`${studentId}_${type}`]: getAssessmentMaximum(type) };
+        if (activeSheetKey) sheetMarkMaxCacheRef.current[activeSheetKey] = next;
         return next;
       });
       dirtyCellsRef.current.set(`${activeSheetKey}:${studentId}_${type}`, {
@@ -838,6 +885,7 @@ export default function GradesPage() {
   const currentEntryAssessment = activeAssessmentTypes.includes(entryAssessment)
     ? entryAssessment
     : activeAssessmentTypes[0] || "mid_term";
+  const visibleAssessmentTypes = showAllAssessmentColumns ? activeAssessmentTypes : [currentEntryAssessment];
   useEffect(() => {
     if (!activeAssessmentTypes.includes(entryAssessment) && activeAssessmentTypes[0]) {
       setEntryAssessment(activeAssessmentTypes[0]);
@@ -899,21 +947,30 @@ export default function GradesPage() {
   const getStudentTotal = (studentId: string): number | null => {
     if (competencyMode) return computeStudentTotal(marks, studentId, true);
     if (gradeBasis) {
-      const rows = activeAssessmentTypes.flatMap((type) => {
-        const score = getMark(studentId, type);
-        return score === null ? [] : [{ assessment_type: type, score, max_score: 100 }];
+      const rows = Object.entries(marks).flatMap(([key, score]) => {
+        const parsed = parseMarkKey(key);
+        if (!parsed || parsed.studentId !== studentId || score === null || score === undefined) return [];
+        return [
+          {
+            assessment_type: parsed.assessmentType,
+            score,
+            max_score: markMaxScores[key] ?? getAssessmentMaximum(parsed.assessmentType),
+          },
+        ];
       });
       return gradeBasisAvg(rows, gradeBasis);
     }
-    const scores = activeAssessmentTypes
-      .map((type) => getMark(studentId, type))
-      .filter((score): score is number => score !== null);
+    const scores = activeAssessmentTypes.flatMap((type) => {
+      const key = `${studentId}_${type}`;
+      const score = getMark(studentId, type);
+      return score === null ? [] : [(score / (markMaxScores[key] ?? getAssessmentMaximum(type))) * 100];
+    });
     return scores.length ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length) : null;
   };
 
   // Identity + one column per assessment + average/status + grade. The empty and
   // loading rows were pinned at 7, which over-spans a two-column sheet.
-  const markSheetColumnCount = competencyMode ? 4 : activeAssessmentTypes.length + 3;
+  const markSheetColumnCount = competencyMode ? 4 : visibleAssessmentTypes.length + 3;
 
   const debouncedAutoSave = useCallback(
     (studentId: string, type: string, target?: { subjectId: string; classId: string }) => {
@@ -950,12 +1007,15 @@ export default function GradesPage() {
 
         setSaveStatuses((prev) => ({ ...prev, [statusKey]: "saving" }));
         try {
+          const maxScore =
+            sheetMarkMaxCacheRef.current[sheetKey]?.[key] ?? markMaxScores[key] ?? getAssessmentMaximum(type);
           await saveGrade({
             student_id: studentId,
             subject_id: subjectId,
             class_id: classId,
             assessment_type: type,
             score,
+            max_score: maxScore,
             term: currentTerm,
             academic_year: academicYear,
             recorded_by: user?.id,
@@ -989,6 +1049,8 @@ export default function GradesPage() {
       user?.role,
       isDemo,
       school?.id,
+      assessmentMaximums,
+      markMaxScores,
       toast,
     ],
   );
@@ -1074,30 +1136,40 @@ export default function GradesPage() {
       setMarks((prev) => {
         const next = { ...prev };
         filteredStudents.forEach((s) => {
-          next[`${s.id}_${type}`] = Math.min(ASSESSMENT_MAX[type] || 100, Math.max(0, value));
+          next[`${s.id}_${type}`] = Math.min(getAssessmentMaximum(type), Math.max(0, value));
         });
         if (activeSheetKey) {
           sheetMarksCacheRef.current[activeSheetKey] = next;
         }
         return next;
       });
+      setMarkMaxScores((prev) => {
+        const next = { ...prev };
+        filteredStudents.forEach((student) => {
+          next[`${student.id}_${type}`] = getAssessmentMaximum(type);
+        });
+        if (activeSheetKey) sheetMarkMaxCacheRef.current[activeSheetKey] = next;
+        return next;
+      });
       toast.success(`All ${type.toUpperCase()} set to ${value}`);
     },
-    [filteredStudents, caLocked, toast, marks, activeSheetKey],
+    [filteredStudents, caLocked, toast, marks, markMaxScores, activeSheetKey, assessmentMaximums],
   );
 
   const handleClearAll = useCallback(() => {
     setPendingAction(() => () => {
       pushUndo({ ...marks }, "All marks cleared");
       setMarks({});
+      setMarkMaxScores({});
       if (activeSheetKey) {
         sheetMarksCacheRef.current[activeSheetKey] = {};
+        sheetMarkMaxCacheRef.current[activeSheetKey] = {};
       }
       setSaveStatuses({});
       toast.success("All marks cleared");
     });
     setConfirmOpen(true);
-  }, [toast, marks, activeSheetKey]);
+  }, [toast, marks, markMaxScores, activeSheetKey]);
 
   const handleCopyFromPreviousTerm = useCallback(async () => {
     if (!selectedClass || !selectedSubject || !user?.id) return;
@@ -1118,13 +1190,25 @@ export default function GradesPage() {
         toast.info("No grades found from previous term");
         return;
       }
+      const nextMaxScores: Record<string, number> = {};
+      prevGrades.forEach((g: any) => {
+        const key = `${g.student_id}_${g.assessment_type}`;
+        if (Number.isFinite(Number(g.max_score)) && Number(g.max_score) > 0) {
+          nextMaxScores[key] = Number(g.max_score);
+        } else if (ASSESSMENT_MAX[g.assessment_type]) {
+          nextMaxScores[key] = ASSESSMENT_MAX[g.assessment_type];
+        }
+      });
       setMarks((prev) => {
         const next = { ...prev };
         prevGrades.forEach((g: any) => {
           next[`${g.student_id}_${g.assessment_type}`] = g.score ?? null;
         });
+        if (activeSheetKey) sheetMarksCacheRef.current[activeSheetKey] = next;
         return next;
       });
+      setMarkMaxScores(nextMaxScores);
+      if (activeSheetKey) sheetMarkMaxCacheRef.current[activeSheetKey] = nextMaxScores;
       toast.success(`Copied ${prevGrades.length} grades from Term ${prevTerm}`);
     } catch (err) {
       logger.warn("Failed to copy grades from previous term:", err);
@@ -1132,7 +1216,7 @@ export default function GradesPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedClass, selectedSubject, user?.id, currentTerm, academicYear, toast]);
+  }, [selectedClass, selectedSubject, user?.id, currentTerm, academicYear, toast, activeSheetKey]);
 
   const handleMobileTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -1227,6 +1311,7 @@ export default function GradesPage() {
           class_id: selectedClass,
           assessment_type: assessmentType,
           score,
+          max_score: markMaxScores[key] ?? (assessmentType === "competency" ? 3 : getAssessmentMaximum(assessmentType)),
           term: currentTerm,
           academic_year: academicYear,
           recorded_by: user?.id,
@@ -1944,19 +2029,31 @@ export default function GradesPage() {
         {selectedClass && selectedSubject && (
           <>
             {!competencyMode && (
-              <section aria-label="Choose assessment" className="border-b border-[var(--border)] pb-2 md:hidden">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <section aria-label="Choose assessment" className="border-b border-[var(--border)] pb-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--t3)]">Assessment</h2>
-                  <details className="group text-xs text-[var(--t3)]">
-                    <summary className="cursor-pointer list-none font-semibold hover:text-[var(--t1)]">
-                      How totals work
-                    </summary>
-                    <p className="mt-2 max-w-lg text-[var(--t2)]">
-                      {gradeBasis
-                        ? "The average follows the assessment recipe set by your school; configured weights are used, or included marks count equally."
-                        : "BOT, MOT and EOT count equally. EOT is the end-of-term exam; there is no separate final exam mark."}
-                    </p>
-                  </details>
+                  <div className="flex items-center gap-3">
+                    {!competencyMode && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllAssessmentColumns((value) => !value)}
+                        aria-pressed={showAllAssessmentColumns}
+                        className="hidden min-h-9 rounded-lg border border-[var(--border)] px-3 text-xs font-semibold text-[var(--t2)] hover:border-[var(--primary)] hover:text-[var(--primary)] md:inline-flex md:items-center"
+                      >
+                        {showAllAssessmentColumns ? "Focus on selected assessment" : "Show all assessment columns"}
+                      </button>
+                    )}
+                    <details className="group text-xs text-[var(--t3)]">
+                      <summary className="cursor-pointer list-none font-semibold hover:text-[var(--t1)]">
+                        How totals work
+                      </summary>
+                      <p className="mt-2 max-w-lg text-[var(--t2)]">
+                        {gradeBasis
+                          ? "The average follows the assessment recipe set by your school; configured weights are used, or included marks count equally."
+                          : "BOT, MOT and EOT count equally. EOT is the end-of-term exam; there is no separate final exam mark."}
+                      </p>
+                    </details>
+                  </div>
                 </div>
                 <div
                   role="group"
@@ -1984,7 +2081,9 @@ export default function GradesPage() {
                       >
                         <span>
                           {label}
-                          <span className="ml-1 text-xs font-medium text-[var(--t3)]">/100</span>
+                          <span className="ml-1 text-xs font-medium text-[var(--t3)]">
+                            /{getAssessmentMaximum(type)}
+                          </span>
                         </span>
                         {filteredStudents.length > 0 && (
                           <span
@@ -2368,8 +2467,8 @@ export default function GradesPage() {
                               type="number"
                               inputMode="numeric"
                               min={0}
-                              max={ASSESSMENT_MAX[type]}
-                              placeholder={`Max ${ASSESSMENT_MAX[type]}`}
+                              max={getAssessmentMaximum(type)}
+                              placeholder={`Max ${getAssessmentMaximum(type)}`}
                               className="flex-1 bg-surface-container border-none rounded-lg text-sm py-1.5 px-2 focus:ring-2 focus:ring-primary"
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
@@ -2413,7 +2512,7 @@ export default function GradesPage() {
                     <table
                       className="w-full min-w-max border-collapse"
                       data-grade-scope
-                      data-grade-columns={competencyMode ? 1 : activeAssessmentTypes.length}
+                      data-grade-columns={competencyMode ? 1 : visibleAssessmentTypes.length}
                     >
                       <thead>
                         <tr className="sticky top-0 bg-[var(--bg)] text-left">
@@ -2426,7 +2525,7 @@ export default function GradesPage() {
                             </th>
                           ) : (
                             <>
-                              {activeAssessmentTypes.map((type) => {
+                              {visibleAssessmentTypes.map((type) => {
                                 const labelInfo = columnLabels[type] || {
                                   label: assessmentLabel(type),
                                   explain: "",
@@ -2445,7 +2544,7 @@ export default function GradesPage() {
                                   >
                                     <span className="block">{labelInfo.label}</span>
                                     <span className="mt-0.5 block text-[11px] font-medium text-[var(--t3)]">
-                                      {entered}/{filteredStudents.length} · /{ASSESSMENT_MAX[type]}
+                                      {entered}/{filteredStudents.length} · /{getAssessmentMaximum(type)}
                                     </span>
                                   </th>
                                 );
@@ -2553,7 +2652,7 @@ export default function GradesPage() {
                                     </div>
                                   </td>
                                 ) : (
-                                  activeAssessmentTypes.map((type) => (
+                                  visibleAssessmentTypes.map((type) => (
                                     <td key={type} className="px-2 py-1.5">
                                       <div className="relative mx-auto w-16">
                                         <input
@@ -2561,7 +2660,7 @@ export default function GradesPage() {
                                           type="number"
                                           inputMode="numeric"
                                           min={0}
-                                          max={ASSESSMENT_MAX[type]}
+                                          max={getAssessmentMaximum(type)}
                                           placeholder="—"
                                           value={
                                             marks[`${student.id}_${type}`] !== null &&
@@ -2611,8 +2710,9 @@ export default function GradesPage() {
                             <ClassAverageRow
                               marks={marks}
                               studentIds={displayStudents.map((s) => s.id)}
-                              assessmentTypes={activeAssessmentTypes}
+                              assessmentTypes={visibleAssessmentTypes}
                               competencyMode={competencyMode}
+                              getStudentTotal={getStudentTotal}
                             />
                           </tr>
                         </tfoot>
@@ -2724,7 +2824,7 @@ export default function GradesPage() {
                                       htmlFor={`grade-card-${student.id}-${type}`}
                                       className="block text-xs font-semibold text-[var(--t3)] uppercase tracking-wider"
                                     >
-                                      {assessmentLabels[type] ?? type.toUpperCase()} ({ASSESSMENT_MAX[type] ?? 100})
+                                      {assessmentLabels[type] ?? type.toUpperCase()} ({getAssessmentMaximum(type)})
                                     </label>
                                     <div className="relative">
                                       <input
@@ -2735,7 +2835,7 @@ export default function GradesPage() {
                                         type="number"
                                         inputMode="numeric"
                                         min={0}
-                                        max={ASSESSMENT_MAX[type]}
+                                        max={getAssessmentMaximum(type)}
                                         placeholder="—"
                                         value={
                                           marks[`${student.id}_${type}`] !== null &&
@@ -2894,14 +2994,14 @@ export default function GradesPage() {
                         return (
                           <div key={type} className="space-y-2">
                             <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-                              {assessmentLabels[type] ?? type.toUpperCase()} ({ASSESSMENT_MAX[type] ?? 100})
+                              {assessmentLabels[type] ?? type.toUpperCase()} ({getAssessmentMaximum(type)})
                             </label>
                             <input
                               className={`w-full text-center text-2xl font-bold py-4 rounded-xl border-none focus:outline-none transition-all ${getInputBorderClass(studentId, type)}`}
                               type="number"
                               inputMode="numeric"
                               min={0}
-                              max={ASSESSMENT_MAX[type]}
+                              max={getAssessmentMaximum(type)}
                               placeholder="—"
                               value={val !== null ? String(val) : ""}
                               onChange={(e) => handleMarkChange(studentId, type, e.target.value)}
@@ -3116,6 +3216,7 @@ export default function GradesPage() {
         students={filteredStudents}
         userId={user?.id}
         isDemo={isDemo}
+        assessmentMaximums={assessmentMaximums}
         toast={toast}
       />
       <ConfirmDialog

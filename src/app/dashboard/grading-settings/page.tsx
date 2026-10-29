@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useToast } from "@/components/Toast";
+import { AssessmentMaximumsCard, ReportRowsCard, TermGradeBasisCard } from "@/components/settings/AcademicSettings";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button, Select } from "@/components/ui/index";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -32,9 +33,7 @@ export default function GradingSettingsPage() {
   const [reload, setReload] = useState(0);
   const [saved, setSaved] = useState({ secondaryTrack: "new", reportLayout: "uganda_classic", useBot: true });
   const dirty =
-    saved.secondaryTrack !== secondaryTrack ||
-    saved.reportLayout !== reportLayout ||
-    saved.useBot !== useBot;
+    saved.secondaryTrack !== secondaryTrack || saved.reportLayout !== reportLayout || saved.useBot !== useBot;
   const trackInfo = GRADING_TRACKS[secondaryTrack === "old" ? "secondary_old" : "secondary_new"];
 
   useEffect(() => {
@@ -124,7 +123,7 @@ export default function GradingSettingsPage() {
     <div className="space-y-6 min-w-0 p-4 sm:p-6 pb-24 sm:pb-6">
       <PageHeader
         title="Grading Configuration"
-        subtitle="Choose the secondary curriculum and printed report format."
+        subtitle="Choose your curriculum, assessment scales, term-grade recipe, and report format."
         actions={
           <Button onClick={save} disabled={saving || loading || Boolean(error) || !dirty}>
             {saving ? "Saving…" : "Save Changes"}
@@ -247,6 +246,9 @@ export default function GradingSettingsPage() {
               </p>
             </CardBody>
           </Card>
+          <TermGradeBasisCard />
+          <AssessmentMaximumsCard />
+          <ReportRowsCard />
         </>
       )}
     </div>

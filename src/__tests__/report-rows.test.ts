@@ -31,9 +31,17 @@ describe("term grade basis", () => {
     expect(result.end).toBe(80);
   });
 
+  it("can grade on the mid-term alone and converts custom maxima to percentages", () => {
+    const rows = [row("bot", 10), row("mid_term", 40, 50), row("eot", 10)];
+    expect(gradeBasisAvg(rows, { types: ["mid_term"] })).toBe(80);
+  });
+
   it("weights BOT/MOT/EOT as the school set them", () => {
     const rows = [row("bot", 40), row("mid_term", 60), row("eot", 100)];
-    const result = bucketUgandaSubject(rows, { types: ["bot", "mid_term", "eot"], weights: { bot: 30, mid_term: 30, eot: 40 } });
+    const result = bucketUgandaSubject(rows, {
+      types: ["bot", "mid_term", "eot"],
+      weights: { bot: 30, mid_term: 30, eot: 40 },
+    });
     // 40*0.3 + 60*0.3 + 100*0.4 = 70
     expect(result.avg).toBe(70);
   });
@@ -144,9 +152,10 @@ describe("report row grouping", () => {
   });
 
   it("lets the strongest member stand for the line in best mode", () => {
-    const [combined, ...rest] = groupSubjectDetails([science, sst, english], [
-      { id: "r1", label: "Studies", subjectIds: ["sci", "sst"], mode: "best" },
-    ]);
+    const [combined, ...rest] = groupSubjectDetails(
+      [science, sst, english],
+      [{ id: "r1", label: "Studies", subjectIds: ["sci", "sst"], mode: "best" }],
+    );
     expect(combined.score).toBe(80);
     expect(combined.uganda?.agg).toBe(2);
     expect(rest).toHaveLength(1);
@@ -175,9 +184,10 @@ describe("report row grouping", () => {
   });
 
   it("skips a group whose subjects do not exist at this school", () => {
-    const out = groupSubjectDetails([english], [
-      { id: "r1", label: "Ghost line", subjectIds: ["sci", "sst"], mode: "mean" },
-    ]);
+    const out = groupSubjectDetails(
+      [english],
+      [{ id: "r1", label: "Ghost line", subjectIds: ["sci", "sst"], mode: "mean" }],
+    );
     expect(out.map((s) => s.name)).toEqual(["English"]);
   });
 });
@@ -195,12 +205,8 @@ describe("report rows configuration", () => {
   });
 
   it("parses the stored shape and repairs ids", () => {
-    const parsed = parseReportRows(
-      '{"default":[{"label":"Studies","subjectIds":["sci","sst"],"mode":"mean"}]}',
-    );
-    expect(parsed?.default).toEqual([
-      { id: "row-0", label: "Studies", subjectIds: ["sci", "sst"], mode: "mean" },
-    ]);
+    const parsed = parseReportRows('{"default":[{"label":"Studies","subjectIds":["sci","sst"],"mode":"mean"}]}');
+    expect(parsed?.default).toEqual([{ id: "row-0", label: "Studies", subjectIds: ["sci", "sst"], mode: "mean" }]);
   });
 
   it("rejects garbage and empty groups", () => {

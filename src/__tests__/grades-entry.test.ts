@@ -1,12 +1,14 @@
 import {
   assessmentLabel,
   assessmentTypesFor,
+  ASSESSMENT_MAX,
   averageOfTotals,
   columnAverage,
   getGrade,
   getStudentTotal,
   isStudentGraded,
   parseMarkKey,
+  parseAssessmentMaxScores,
   readMark,
 } from "@/lib/grades/entry";
 
@@ -40,6 +42,31 @@ describe("assessment columns", () => {
 
   it("shows BOT/MID/EOT when the school uses BOT", () => {
     expect(assessmentTypesFor(false, true)).toEqual(["bot", "mid_term", "eot"]);
+  });
+});
+
+describe("school assessment maxima", () => {
+  it("defaults every numeric assessment to 100", () => {
+    expect(parseAssessmentMaxScores(null)).toEqual(ASSESSMENT_MAX);
+  });
+
+  it("accepts valid school-specific maxima and ignores invalid or unknown values", () => {
+    expect(parseAssessmentMaxScores({ eot: 80, mid_term: 50, bot: 0, custom: 25 })).toMatchObject({
+      eot: 80,
+      mid_term: 50,
+      bot: 100,
+    });
+    expect(parseAssessmentMaxScores({ eot: 80, mid_term: 50, bot: 0, custom: 25 })).not.toHaveProperty("custom");
+  });
+
+  it("uses the three-point maximum for AOI and identifier levels", () => {
+    expect(parseAssessmentMaxScores(null)).toMatchObject({ aoi: 3, identifier_score: 3 });
+    expect(assessmentLabel("aoi")).toBe("Activity of Integration (AOI)");
+    expect(assessmentLabel("identifier_score")).toBe("Identifier Score");
+    expect(parseMarkKey("student_id_identifier_score")).toEqual({
+      studentId: "student_id",
+      assessmentType: "identifier_score",
+    });
   });
 });
 

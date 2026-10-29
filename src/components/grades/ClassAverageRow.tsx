@@ -7,11 +7,25 @@ interface ClassAverageRowProps {
   studentIds: string[];
   assessmentTypes: readonly string[];
   competencyMode: boolean;
+  getStudentTotal?: (studentId: string) => number | null;
 }
 
 /** Footer cells for the mark sheet: per-column averages and the class mean. */
-export function ClassAverageRow({ marks, studentIds, assessmentTypes, competencyMode }: ClassAverageRowProps) {
-  const classAverage = averageOfTotals(marks, studentIds, competencyMode);
+export function ClassAverageRow({
+  marks,
+  studentIds,
+  assessmentTypes,
+  competencyMode,
+  getStudentTotal,
+}: ClassAverageRowProps) {
+  const totals = getStudentTotal
+    ? studentIds.map(getStudentTotal).filter((value): value is number => value !== null)
+    : [];
+  const classAverage = getStudentTotal
+    ? totals.length
+      ? Math.round((totals.reduce((sum, value) => sum + value, 0) / totals.length) * 10) / 10
+      : null
+    : averageOfTotals(marks, studentIds, competencyMode);
 
   return (
     <>

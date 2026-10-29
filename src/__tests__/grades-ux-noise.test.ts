@@ -12,6 +12,7 @@ import * as path from "node:path";
 
 const ROOT = path.join(__dirname, "..", "..");
 const src = fs.readFileSync(path.join(ROOT, "src/app/dashboard/grades/page.tsx"), "utf8");
+const gradingSettings = fs.readFileSync(path.join(ROOT, "src/app/dashboard/grading-settings/page.tsx"), "utf8");
 
 /** Strips comments, so prose explaining a fix is never mistaken for the defect. */
 function code(): string {
@@ -28,13 +29,21 @@ describe("the marks table has readable headers", () => {
   });
 
   it("states the out-of mark as a suffix", () => {
-    expect(live).toContain("/{ASSESSMENT_MAX[type]}");
+    expect(live).toContain("/{getAssessmentMaximum(type)}");
   });
 
   it("does not repeat one sentence under every column", () => {
     // Was seven copies of "Classwork average -- every test..." in the header row.
     const repeats = (live.match(/Classwork average/g) ?? []).length;
     expect(repeats).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("school grading choices remain visible in settings", () => {
+  it("exposes the term-grade recipe, per-assessment maxima, and report lines", () => {
+    expect(gradingSettings).toContain("<TermGradeBasisCard />");
+    expect(gradingSettings).toContain("<AssessmentMaximumsCard />");
+    expect(gradingSettings).toContain("<ReportRowsCard />");
   });
 });
 
@@ -125,12 +134,14 @@ describe("a phone sees the class, not one pupil at a time", () => {
     expect(live).toContain("md:hidden");
   });
 
-  it("uses a full assessment spreadsheet on desktop", () => {
-    expect(live).toContain("data-grade-columns={competencyMode ? 1 : activeAssessmentTypes.length}");
+  it("opens on the selected assessment and keeps the all-columns spreadsheet optional", () => {
+    expect(live).toContain("data-grade-columns={competencyMode ? 1 : visibleAssessmentTypes.length}");
+    expect(live).toContain("showAllAssessmentColumns ? activeAssessmentTypes : [currentEntryAssessment]");
+    expect(live).toContain("Show all assessment columns");
     const tableStart = live.indexOf("data-grade-scope\n                      data-grade-columns=");
     expect(tableStart).toBeGreaterThan(-1);
-    expect(live.slice(tableStart, tableStart + 12000)).toContain("activeAssessmentTypes.map((type) => {");
-    expect(live).toContain("assessmentTypes={activeAssessmentTypes}");
+    expect(live.slice(tableStart, tableStart + 12000)).toContain("visibleAssessmentTypes.map((type) => {");
+    expect(live).toContain("assessmentTypes={visibleAssessmentTypes}");
   });
 
   it("names the modes for what they do", () => {

@@ -21,8 +21,10 @@ export const COMPETENCY_ASSESSMENT_TYPES = ["competency"] as const;
  * `holiday_package` on their internal underscore.
  */
 export const KNOWN_ASSESSMENT_TYPES = [
+  "identifier_score",
   "holiday_package",
   "competency",
+  "aoi",
   "mid_term",
   "project",
   "exam",
@@ -71,7 +73,35 @@ export const ASSESSMENT_MAX: Record<string, number> = {
   project: 100,
   exam: 100,
   holiday_package: 100,
+  aoi: 3,
+  identifier_score: 3,
+  u1: 100,
+  u2: 100,
 };
+
+export const ASSESSMENT_MAX_SCORES_KEY = "assessment_max_scores_v1";
+
+/** Load school-specific mark maxima, keeping the familiar /100 default. */
+export function parseAssessmentMaxScores(raw: unknown): Record<string, number> {
+  let value = raw;
+  if (typeof raw === "string") {
+    try {
+      value = JSON.parse(raw);
+    } catch {
+      return { ...ASSESSMENT_MAX };
+    }
+  }
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return { ...ASSESSMENT_MAX };
+
+  const maxima = { ...ASSESSMENT_MAX };
+  for (const [type, rawMaximum] of Object.entries(value as Record<string, unknown>)) {
+    const maximum = Number(rawMaximum);
+    if (Object.hasOwn(ASSESSMENT_MAX, type) && Number.isFinite(maximum) && maximum > 0 && maximum <= 10000) {
+      maxima[type] = maximum;
+    }
+  }
+  return maxima;
+}
 
 /** UNEB-style division. Shared by the sheet, summaries and printed reports. */
 export function getGrade(score: number): GradeResult {
@@ -159,6 +189,8 @@ const DEFAULT_LABELS: Record<string, string> = {
   project: "Project",
   exam: "Exam",
   holiday_package: "Holiday Package (HPG)",
+  aoi: "Activity of Integration (AOI)",
+  identifier_score: "Identifier Score",
   competency: "Competency Level",
 };
 

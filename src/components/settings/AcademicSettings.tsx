@@ -14,6 +14,12 @@ import {
 } from "@/lib/report-rows";
 import { loadSchoolSetting, saveSchoolSetting } from "@/lib/school-settings";
 import { getErrorMessage } from "@/lib/validation";
+import {
+  ASSESSMENT_MAX,
+  ASSESSMENT_MAX_SCORES_KEY,
+  assessmentLabel,
+  parseAssessmentMaxScores,
+} from "@/lib/grades/entry";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 
@@ -296,7 +302,7 @@ const BASIS_OPTIONS: Array<{ id: TermGradeBasis["types"][number]; label: string;
 
 const DEFAULT_BASIS: TermGradeBasis = { types: ["bot", "mid_term", "eot"], weights: {} };
 
-function TermGradeBasisCard() {
+export function TermGradeBasisCard() {
   const { school } = useAuth();
   const toast = useToast();
   const [basis, setBasis] = useState<TermGradeBasis>(DEFAULT_BASIS);
@@ -412,6 +418,91 @@ function TermGradeBasisCard() {
   );
 }
 
+export function AssessmentMaximumsCard() {
+  const { school } = useAuth();
+  const toast = useToast();
+  const defaults = Object.fromEntries(Object.entries(ASSESSMENT_MAX).map(([type, max]) => [type, String(max)]));
+  const [maxima, setMaxima] = useState<Record<string, string>>(defaults);
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!school?.id) return;
+    let cancelled = false;
+    loadSchoolSetting<Record<string, number> | null>(school.id, ASSESSMENT_MAX_SCORES_KEY, null)
+      .then((saved) => {
+        if (cancelled) return;
+        const parsed = parseAssessmentMaxScores(saved);
+        setMaxima(Object.fromEntries(Object.entries(parsed).map(([type, max]) => [type, String(max)])));
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+    return () => {
+      cancelled = true;
+    };
+  }, [school?.id]);
+
+  const save = async () => {
+    if (!school?.id) return;
+    const parsed: Record<string, number> = {};
+    for (const type of Object.keys(ASSESSMENT_MAX)) {
+      const max = Number(maxima[type]);
+      if (!Number.isFinite(max) || max <= 0 || max > 10000) {
+        toast.error(`${assessmentLabel(type)} maximum must be between 1 and 10,000.`);
+        return;
+      }
+      parsed[type] = max;
+    }
+    try {
+      setSaving(true);
+      await saveSchoolSetting(school.id, ASSESSMENT_MAX_SCORES_KEY, parsed);
+      toast.success("Assessment maximum marks saved");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to save assessment maximum marks"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
+      <h2 className="text-lg font-semibold text-[var(--t1)] mb-2 flex items-center gap-2">
+        <MaterialIcon icon="score" className="text-primary" />
+        Assessment maximum marks
+      </h2>
+      <p className="text-sm text-on-surface-variant mb-4">
+        Marks default to out of 100. Change a maximum only if your school uses a different scale; reports convert marks
+        to percentages using the maximum saved with each result.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {Object.keys(ASSESSMENT_MAX).map((type) => (
+          <label key={type} className="flex items-center justify-between gap-3 rounded-lg bg-[#f8fafc] p-3 text-sm">
+            <span>{assessmentLabel(type)}</span>
+            <span className="flex items-center gap-2">
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={10000}
+                step={1}
+                value={maxima[type] ?? "100"}
+                onChange={(event) => setMaxima((prev) => ({ ...prev, [type]: event.target.value }))}
+                disabled={!loaded || saving}
+                aria-label={`${assessmentLabel(type)} maximum mark`}
+                className="w-20 rounded border border-[var(--border2)] px-2 py-1 text-right"
+              />
+              <span className="text-[var(--t3)]">marks</span>
+            </span>
+          </label>
+        ))}
+      </div>
+      <button onClick={save} disabled={saving || !loaded} className="btn mt-4 w-full disabled:opacity-50">
+        {saving ? "Saving..." : "Save assessment maxima"}
+      </button>
+    </div>
+  );
+}
+
 interface RowDraft {
   id: string;
   label: string;
@@ -421,7 +512,7 @@ interface RowDraft {
 
 const DEFAULT_LEVEL_KEY = "__default__";
 
-function ReportRowsCard() {
+export function ReportRowsCard() {
   const { school } = useAuth();
   const toast = useToast();
   const { classes } = useClasses(school?.id);
