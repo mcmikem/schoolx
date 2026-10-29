@@ -20,8 +20,10 @@ export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 const MAX_MODULE_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 500;
 const MAX_RECORD_ID_LENGTH = 200;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface AuditInsertRow {
+  id?: string;
   school_id: string;
   user_id: string | null;
   user_name: string | null;
@@ -79,9 +81,15 @@ export function buildAuditInsertRow(params: {
     if (!Number.isNaN(parsed.getTime())) createdAt = parsed.toISOString();
   }
 
+  // The queued event's id lets a replay hit the same row instead of appending
+  // a second copy when the first response was lost. Only a real UUID is
+  // accepted; the column is a uuid, so anything else would fail the insert.
+  const id = typeof data.id === "string" && UUID_PATTERN.test(data.id) ? data.id : null;
+
   return {
     ok: true,
     row: {
+      ...(id ? { id } : {}),
       // Identity is server-derived; the client's values are discarded.
       school_id: schoolId,
       user_id: userId,

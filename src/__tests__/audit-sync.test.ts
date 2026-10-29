@@ -117,6 +117,28 @@ describe("buildAuditInsertRow", () => {
     expect(result.row.new_value).toEqual({ score: 80 });
   });
 
+  it("keeps a queued event's UUID so a replay targets the same row", () => {
+    const result = buildAuditInsertRow({
+      data: { ...validData, id: "3f2504e0-4f89-41d3-9a0c-0305e82c3301" },
+      ...identity,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.row.id).toBe("3f2504e0-4f89-41d3-9a0c-0305e82c3301");
+  });
+
+  it("drops an id that is not a UUID instead of failing the insert", () => {
+    const result = buildAuditInsertRow({
+      data: { ...validData, id: "not-a-uuid" },
+      ...identity,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.row.id).toBeUndefined();
+  });
+
   it("tolerates a profile with no name and no id", () => {
     const result = buildAuditInsertRow({
       data: validData,

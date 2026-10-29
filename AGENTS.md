@@ -33,8 +33,10 @@ Pre-commit hook runs: `lint-staged → typecheck → test:regression`. All must 
 **Post-push workflow:** Always run `npm run check:ci` after pushing to verify GitHub Actions and Vercel build status before notifying the user. This catches secret-scan failures, build errors, or Vercel deployment issues without manual browser checking. Once the deployment is live, run `npm run smoke:prod` with the `SMOKE_*` credentials to prove sign-in, profile and DB write still work. `.github/workflows/smoke.yml` does the same automatically after CI on `main` (add `SMOKE_PHONE`/`SMOKE_PASSWORD` repo secrets; without them it runs the public checks only).
 
 Env vars for `check:ci` (optional):
-- `GITHUB_TOKEN` — required for private repos
-- `VERCEL_TOKEN` — required for Vercel deployment checks (`https://vercel.com/account/tokens`)
+- `GITHUB_TOKEN` — falls back to `gh auth token`
+- `VERCEL_TOKEN` — falls back to the Vercel CLI auth file (`https://vercel.com/account/tokens`)
+
+`check:ci` exits 3 when GitHub Actions is blocked before a job can start (for example, an account billing lock). That is not a code failure: fix billing, then re-run. Until then, run `npm run lint && npm run typecheck && npm test` locally.
 
 ## Architecture
 

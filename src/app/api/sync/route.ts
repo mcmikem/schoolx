@@ -12,6 +12,7 @@ import {
 } from "@/lib/api-utils";
 import type { Database } from "@/lib/supabase";
 import { SYNC_VALID_TABLES, SYNC_MAX_ITEMS, isValidSyncData } from "@/lib/server/sync-validation";
+import { stripLocalOnlySyncKeys } from "@/lib/sync-payload";
 import { buildAuditInsertRow } from "@/lib/server/audit-sync";
 import { canAccessClass, isClassScopedRole } from "@/lib/server/class-scope";
 
@@ -375,7 +376,10 @@ async function handleSyncPost(request: NextRequest) {
                 errors.push(auditRow.error);
                 break;
               }
-              const { error } = await supabase.from("audit_log").insert(auditRow.row as never);
+              const auditQuery = supabase.from("audit_log");
+              const { error } = auditRow.row.id
+                ? await auditQuery.upsert(auditRow.row as never, { onConflict: "id", ignoreDuplicates: true })
+                : await auditQuery.insert(auditRow.row as never);
               if (error) {
                 failedCount++;
                 errors.push("Create failed for audit_log");
@@ -385,7 +389,17 @@ async function handleSyncPost(request: NextRequest) {
               break;
             }
 
-            const { error } = await supabase.from(item.table as any).insert(item.data as never);
+            // Queued rows are stamped with local-only keys (updated_at, isDemo,
+            // …) that most tables do not have. Sending them made PostgREST
+            // reject the write with PGRST204, and the row retried until it was
+            // parked. Client-generated ids make an upsert the safe replay: if
+            // the first attempt committed but its response was lost, this
+            // targets the same row instead of duplicating it.
+            const createData = stripLocalOnlySyncKeys(item.data);
+            const createQuery = supabase.from(item.table as any);
+            const { error } = createData.id
+              ? await createQuery.upsert(createData as never, { onConflict: "id" })
+              : await createQuery.insert(createData as never);
             if (error) {
               failedCount++;
               errors.push(`Create failed for ${item.table}`);
@@ -402,7 +416,7 @@ async function handleSyncPost(request: NextRequest) {
               errors.push(`Missing id for update on ${item.table}`);
               continue;
             }
-            const { id, ...updateData } = item.data;
+            const { id, ...updateData } = stripLocalOnlySyncKeys(item.data);
             const query = supabase
               .from(item.table as any)
               .update(updateData as never)

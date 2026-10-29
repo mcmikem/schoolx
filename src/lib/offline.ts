@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { logger } from "@/lib/logger";
+import { payloadMatchesServerRow, stripLocalOnlySyncKeys } from "@/lib/sync-payload";
 
 const DB_NAME = "omuto.org-db";
 // 10 -> 11: adds the academic_terms, homework and homework_submissions stores.
@@ -498,18 +499,47 @@ class OfflineDB {
 
         store.delete(id);
 
-        try {
-          syncStore.add({
-            table,
-            data: { id, ...(localUpdatedAt ? { updated_at: localUpdatedAt } : {}) },
-            action: "delete",
-            timestamp: Date.now(),
-            synced: false,
-            attempts: 0,
-          });
-        } catch (queueErr) {
-          logger.warn("Failed to enqueue offline delete for sync", { table, queueErr });
-        }
+        // A create/update queued for this row must not replay after the delete:
+        // the server would briefly resurrect a row the user removed. Drop those
+        // pending writes, and keep a single delete item if one is already
+        // queued rather than stacking duplicates.
+        const queueRequest = syncStore.getAll();
+        queueRequest.onsuccess = () => {
+          const pending = (queueRequest.result as OfflineRecord[]).filter(
+            (entry) => entry.table === table && entry.data?.id === id && !entry.synced,
+          );
+
+          let queuedDelete: OfflineRecord | undefined;
+          for (const entry of pending) {
+            if (entry.id == null) continue;
+            if (entry.action === "delete") {
+              queuedDelete = entry;
+              continue;
+            }
+            syncStore.delete(entry.id);
+          }
+
+          if (queuedDelete) {
+            queuedDelete.data = { id, ...(localUpdatedAt ? { updated_at: localUpdatedAt } : {}) };
+            queuedDelete.timestamp = Date.now();
+            queuedDelete.attempts = 0;
+            delete queuedDelete.reason;
+            syncStore.put(queuedDelete);
+          } else {
+            try {
+              syncStore.add({
+                table,
+                data: { id, ...(localUpdatedAt ? { updated_at: localUpdatedAt } : {}) },
+                action: "delete",
+                timestamp: Date.now(),
+                synced: false,
+                attempts: 0,
+              });
+            } catch (queueErr) {
+              logger.warn("Failed to enqueue offline delete for sync", { table, queueErr });
+            }
+          }
+        };
       };
 
       transaction.oncomplete = () => {
@@ -827,29 +857,24 @@ class OfflineDB {
   // before the record enters the sync queue.
   // (canteen_sales does its own deletes inline and is left untouched.)
   private stripSyncKeys(data: Record<string, unknown>): Record<string, unknown> {
-    const {
-      updated_at: _updatedAt,
-      isDemo: _isDemo,
-      schoolId: _schoolId,
-      pending_wallet_deduction: _pendingWallet,
-      ...rest
-    } = data;
-    void _updatedAt;
-    void _isDemo;
-    void _schoolId;
-    void _pendingWallet;
-    return rest;
+    return stripLocalOnlySyncKeys(data);
   }
 
   // Sync a single item to server
   private async syncSingleItem(item: OfflineRecord): Promise<SyncItemResult> {
     try {
       const { supabase } = await import("@/lib/supabase");
-      const rowId = (item.data as Record<string, unknown>)?.id as string | undefined;
-      const localUpdatedAt = (item.data as Record<string, unknown>)?.updated_at as string | undefined;
+      const data = item.data as Record<string, unknown>;
+      const rowId = data?.id as string | undefined;
+      const localUpdatedAt = data?.updated_at as string | undefined;
+      const payload = this.stripSyncKeys(data);
 
-      // Server-wins conflict policy for mutable records when updated_at is available.
-      // If server has a newer version, skip local write and treat as resolved conflict.
+      // Server-wins conflict policy for mutable records when updated_at is
+      // available. The row is fetched whole so a replay can first check whether
+      // the previous attempt already committed: a lost response leaves the
+      // queue item pending, and the server's updated_at trigger then reads as
+      // "newer" even though the write landed. Comparing the fields we sent
+      // against the row that is there avoids parking synced work as a conflict.
       if (
         rowId &&
         localUpdatedAt &&
@@ -857,15 +882,35 @@ class OfflineDB {
         item.table !== "grades" &&
         item.table !== "canteen_sales"
       ) {
-        const { data: serverRow } = await supabase.from(item.table).select("updated_at").eq("id", rowId).maybeSingle();
+        const { data: serverRow, error: lookupError } = await supabase
+          .from(item.table)
+          .select("*")
+          .eq("id", rowId)
+          .maybeSingle();
 
-        const serverUpdatedAt = (serverRow as Record<string, unknown> | null)?.updated_at as string | undefined;
+        // A failed lookup is a connection problem, not evidence of a conflict.
+        // Let the write itself decide and retry normally.
+        if (!lookupError) {
+          const server = serverRow as Record<string, unknown> | null;
 
-        if (serverUpdatedAt && new Date(serverUpdatedAt).getTime() > new Date(localUpdatedAt).getTime()) {
-          return {
-            status: "conflict",
-            reason: `${item.table}:${rowId} server newer than offline mutation`,
-          };
+          if (item.action === "delete") {
+            // Already gone (hard delete) or already soft-deleted: the queued
+            // delete has nothing left to do.
+            if (!server || server.deleted_at != null) return { status: "synced" };
+          } else if (payloadMatchesServerRow(payload, server)) {
+            // The write committed on a previous attempt; only the response was
+            // lost. Do not apply it a second time or call it a conflict.
+            return { status: "synced" };
+          }
+
+          const serverUpdatedAt = server?.updated_at as string | undefined;
+
+          if (serverUpdatedAt && new Date(serverUpdatedAt).getTime() > new Date(localUpdatedAt).getTime()) {
+            return {
+              status: "conflict",
+              reason: `${item.table}:${rowId} server newer than offline mutation`,
+            };
+          }
         }
       }
 
@@ -925,10 +970,7 @@ class OfflineDB {
         }
         return { status: "synced" };
       } else if (item.action === "update") {
-        const { id, ...updateData } = this.stripSyncKeys(item.data as Record<string, unknown>) as Record<
-          string,
-          unknown
-        > & { id: string };
+        const { id, ...updateData } = payload as Record<string, unknown> & { id: string };
         const { error } = await supabase.from(item.table).update(updateData).eq("id", id);
         if (error) throw error;
       } else {
@@ -937,9 +979,15 @@ class OfflineDB {
         // keys. Offline creates have client-generated UUIDs, so upsert by id
         // also makes replay safe if the server saved the row but its response
         // never reached the device.
-        const payload = this.stripSyncKeys(item.data);
         const query = supabase.from(item.table);
-        const { error } = payload.id ? await query.upsert(payload, { onConflict: "id" }) : await query.insert(payload);
+        const { error } = payload.id
+          ? item.table === "audit_log"
+            ? // The audit trail is append-only: a replay may add the event but
+              // must never rewrite it, and there is no UPDATE policy to allow
+              // a merge. Ignore the duplicate id instead.
+              await query.upsert(payload, { onConflict: "id", ignoreDuplicates: true })
+            : await query.upsert(payload, { onConflict: "id" })
+          : await query.insert(payload);
         if (error) throw error;
       }
       return { status: "synced" };

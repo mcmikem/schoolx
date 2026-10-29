@@ -10,18 +10,71 @@
  *   npm run check:ci -- --watch   # poll every 15s until done
  *
  * Env vars (optional):
- *   GITHUB_TOKEN   – required for private repos
- *   VERCEL_TOKEN   – required for Vercel deployment checks
+ *   GITHUB_TOKEN   – falls back to `gh auth token`
+ *   VERCEL_TOKEN   – falls back to the Vercel CLI auth file
+ *
+ * Exit codes: 0 pass, 1 failure, 2 still running, 3 blocked before it could
+ * run (for example, GitHub Actions locked for a billing issue).
  */
 
 import { execSync } from "child_process";
 import { readFileSync, existsSync } from "fs";
+import { homedir } from "os";
+import { join } from "path";
 
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
 const REPO_OWNER = process.env.REPO_OWNER || "mcmikem";
 const REPO_NAME = process.env.REPO_NAME || "schoolx";
+
+/**
+ * Tokens should not have to be exported twice.
+ *
+ * The developer is already signed in to both CLIs locally, so fall back to the
+ * `gh` credential store and the Vercel CLI's auth file when the environment
+ * does not carry a token. CI still passes real tokens explicitly; this is for
+ * `npm run check:ci` on a workstation.
+ */
+function resolveGitHubToken() {
+  if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
+  try {
+    const token = execSync("gh auth token", {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    return token || null;
+  } catch {
+    return null;
+  }
+}
+
+function resolveVercelToken() {
+  if (process.env.VERCEL_TOKEN) return process.env.VERCEL_TOKEN;
+
+  const candidates = [
+    process.env.VERCEL_AUTH_FILE,
+    join(homedir(), "Library", "Application Support", "com.vercel.cli", "auth.json"),
+    join(homedir(), ".local", "share", "com.vercel.cli", "auth.json"),
+    join(homedir(), ".config", "com.vercel.cli", "auth.json"),
+    join(homedir(), ".vercel", "auth.json"),
+  ].filter(Boolean);
+
+  for (const file of candidates) {
+    try {
+      if (!existsSync(file)) continue;
+      const parsed = JSON.parse(readFileSync(file, "utf8"));
+      if (typeof parsed?.token === "string" && parsed.token) return parsed.token;
+    } catch {
+      // Try the next location.
+    }
+  }
+  return null;
+}
+
+const GITHUB_TOKEN = resolveGitHubToken();
+const VERCEL_TOKEN = resolveVercelToken();
+
 function getLinkedVercelProjectInfo() {
   try {
     const filePath = ".vercel/project.json";
@@ -105,7 +158,7 @@ function getGitInfo() {
 // GitHub Actions
 // ---------------------------------------------------------------------------
 async function fetchGitHubCheckRuns(sha) {
-  const token = process.env.GITHUB_TOKEN;
+  const token = GITHUB_TOKEN;
   const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/commits/${sha}/check-runs`;
   const res = await fetch(url, {
     headers: {
@@ -122,7 +175,7 @@ async function fetchGitHubCheckRuns(sha) {
 }
 
 async function fetchGitHubWorkflowRuns(sha) {
-  const token = process.env.GITHUB_TOKEN;
+  const token = GITHUB_TOKEN;
   const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?head_sha=${sha}&per_page=10`;
   const res = await fetch(url, {
     headers: {
@@ -138,6 +191,20 @@ async function fetchGitHubWorkflowRuns(sha) {
   return res.json();
 }
 
+async function fetchCheckAnnotations(checkRunId) {
+  if (!GITHUB_TOKEN) return [];
+  const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/check-runs/${checkRunId}/annotations`;
+  const res = await fetch(url, {
+    headers: {
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      Authorization: `Bearer ${GITHUB_TOKEN}`,
+    },
+  });
+  if (!res.ok) return [];
+  return res.json();
+}
+
 async function checkGitHub(gitInfo) {
   header("GitHub Actions");
 
@@ -150,10 +217,27 @@ async function checkGitHub(gitInfo) {
     const checks = checksData.check_runs || [];
     const runs = runsData.workflow_runs || [];
 
+    // A billing lock fails every job in about a second without running a
+    // single step. Reporting that as "CI failed" sends the reader looking for
+    // a code defect that is not there, so read the annotation and say what
+    // actually happened.
+    const failedChecks = checks.filter(
+      (check) => check.conclusion === "failure" || check.conclusion === "action_required",
+    );
+    let billingLocked = false;
+    if (failedChecks.length > 0) {
+      const annotations = await Promise.all(
+        failedChecks.slice(0, 5).map((check) => fetchCheckAnnotations(check.id).catch(() => [])),
+      );
+      billingLocked = annotations
+        .flat()
+        .some((annotation) => /account is locked due to a billing issue/i.test(annotation.message || ""));
+    }
+
     if (checks.length === 0 && runs.length === 0) {
       print(`  ${C.yellow}⚠ No CI runs found for ${gitInfo.shortSha}${C.reset}`);
       print(`      ${C.dim}Pushed recently? CI may still be queuing.${C.reset}`);
-      if (!process.env.GITHUB_TOKEN) {
+      if (!GITHUB_TOKEN) {
         print(`      ${C.dim}Private repo? Set GITHUB_TOKEN env var.${C.reset}`);
       }
       return "unknown";
@@ -185,10 +269,18 @@ async function checkGitHub(gitInfo) {
       }
     }
 
+    if (billingLocked) {
+      print(`\n  ${C.red}✗ GitHub Actions is blocked by a GitHub billing lock.${C.reset}`);
+      print(`      ${C.dim}The job was not started, so this is not a code failure.${C.reset}`);
+      print(`      ${C.dim}Fix billing: https://github.com/settings/billing${C.reset}`);
+      print(`      ${C.dim}Until then, run the gates locally: npm run lint && npm run typecheck && npm test${C.reset}`);
+      return "blocked";
+    }
+
     return overall;
   } catch (err) {
     print(`  ${C.red}✗ Failed to fetch GitHub status:${C.reset} ${err.message}`);
-    if (!process.env.GITHUB_TOKEN) {
+    if (!GITHUB_TOKEN) {
       print(`      ${C.dim}Tip: export GITHUB_TOKEN=<your-token> for private repos${C.reset}`);
     }
     return "unknown";
@@ -227,7 +319,7 @@ async function resolveVercelProjectId(token) {
 }
 
 async function fetchVercelDeployments(gitInfo) {
-  const token = process.env.VERCEL_TOKEN;
+  const token = VERCEL_TOKEN;
   if (!token) return null;
 
   const projectId = await resolveVercelProjectId(token);
@@ -259,7 +351,7 @@ async function fetchVercelDeployments(gitInfo) {
 async function checkVercel(gitInfo) {
   header("Vercel Build");
 
-  if (!process.env.VERCEL_TOKEN) {
+  if (!VERCEL_TOKEN) {
     print(`  ${C.yellow}⚠ Skipped${C.reset} — set VERCEL_TOKEN env var to check builds.`);
     print(`      ${C.dim}Get token: https://vercel.com/account/tokens${C.reset}`);
     print(`      ${C.dim}Optional: set VERCEL_PROJECT_ID / VERCEL_PROJECT_NAME / VERCEL_TEAM_ID${C.reset}`);
@@ -303,35 +395,42 @@ async function runOnce() {
   const gitInfo = getGitInfo();
   if (!gitInfo) {
     print(`${C.red}✗ Not a git repository or no commits.${C.reset}`);
-    process.exit(1);
+    return 1;
   }
 
   print(`\n${C.bold}Branch:${C.reset}  ${C.cyan}${gitInfo.branch}${C.reset}`);
   print(`${C.bold}Commit:${C.reset}  ${C.dim}${gitInfo.shortSha}${C.reset}`);
 
-  const [ghState, vercelState] = await Promise.all([
-    checkGitHub(gitInfo),
-    checkVercel(gitInfo),
-  ]);
+  // Sequential so each section's output stays under its own heading. The two
+  // calls are a couple of HTTP requests; running them in parallel only
+  // interleaved the report.
+  const ghState = await checkGitHub(gitInfo);
+  const vercelState = await checkVercel(gitInfo);
 
   print("");
   if (ghState === "failure" || vercelState === "failure") {
     print(`${C.red}${C.bold}✗ Some checks failed.${C.reset} Review URLs above.`);
-    process.exit(1);
+    return 1;
   }
   if (ghState === "pending" || vercelState === "pending") {
     print(`${C.yellow}${C.bold}⟳ Some checks are still running.${C.reset}`);
-    process.exit(2); // distinct code for "still running"
+    return 2; // distinct code for "still running"
+  }
+  if (ghState === "blocked" || vercelState === "blocked") {
+    print(
+      `${C.yellow}${C.bold}⚠ CI could not run, but the deployment checks completed.${C.reset} ` +
+        `Fix the GitHub billing lock, then re-run.`,
+    );
+    return 3; // distinct code for "blocked before it could run"
   }
   print(`${C.green}${C.bold}✓ All checks passed.${C.reset}`);
-  process.exit(0);
+  return 0;
 }
 
 async function runWatch() {
   const isWatch = process.argv.includes("--watch") || process.argv.includes("-w");
   if (!isWatch) {
-    await runOnce();
-    return;
+    process.exit(await runOnce());
   }
 
   print(`\n${C.dim}Polling every ${POLL_INTERVAL_MS / 1000}s. Press Ctrl+C to stop.${C.reset}\n`);
@@ -339,13 +438,11 @@ async function runWatch() {
   while (true) {
     console.clear();
     try {
-      await runOnce();
-      const code = process.exitCode || 0;
-      if (code === 0 || code === 1) break; // done (pass or fail)
+      const code = await runOnce();
+      if (code === 0 || code === 1 || code === 3) process.exit(code);
     } catch {
       print(`${C.red}Unexpected error during check.${C.reset}`);
     }
-    process.exitCode = undefined;
     print(`\n${C.dim}Waiting ${POLL_INTERVAL_MS / 1000}s...${C.reset}`);
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
