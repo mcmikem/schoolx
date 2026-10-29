@@ -1,4 +1,4 @@
-import { storeOptions } from "@/lib/offline";
+import { findPendingWrite, mergeOfflineRecord, storeOptions } from "@/lib/offline";
 
 /**
  * Regression tests for the offline write pipeline.
@@ -63,5 +63,48 @@ describe("offline store key configuration", () => {
     expect(storeOptions("students").autoIncrement).toBeUndefined();
     expect(storeOptions("grades").autoIncrement).toBeUndefined();
     expect(storeOptions("attendance").autoIncrement).toBeUndefined();
+  });
+});
+
+describe("offline edits", () => {
+  it("keeps the cached student fields when saving a partial offline edit", () => {
+    const record = mergeOfflineRecord(
+      {
+        id: "student-1",
+        school_id: "school-1",
+        first_name: "Amina",
+        class_id: "class-1",
+        parent_phone: "0700000000",
+      },
+      { id: "student-1", parent_phone: "0711111111" },
+      "student-1",
+      "2026-10-29T08:00:00.000Z",
+    );
+
+    expect(record).toEqual({
+      id: "student-1",
+      school_id: "school-1",
+      first_name: "Amina",
+      class_id: "class-1",
+      parent_phone: "0711111111",
+      updated_at: "2026-10-29T08:00:00.000Z",
+    });
+  });
+
+  it("coalesces edits into a pending create or update for the same row only", () => {
+    const create = {
+      id: 1,
+      table: "students",
+      data: { id: "student-1" },
+      action: "create" as const,
+      timestamp: 1,
+      synced: false,
+      attempts: 0,
+    };
+    const synced = { ...create, id: 2, synced: true };
+    const otherRow = { ...create, id: 3, data: { id: "student-2" } };
+
+    expect(findPendingWrite([synced, otherRow, create], "students", "student-1")).toBe(create);
+    expect(findPendingWrite([create], "grades", "student-1")).toBeUndefined();
   });
 });

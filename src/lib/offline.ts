@@ -88,7 +88,7 @@ function announceQueueChange() {
 }
 
 interface OfflineRecord {
-  id?: string;
+  id?: string | number;
   table: string;
   data: Record<string, unknown>;
   action: "create" | "update" | "delete";
@@ -96,6 +96,23 @@ interface OfflineRecord {
   synced: boolean;
   attempts: number;
   reason?: string;
+}
+
+/** Merge a partial offline edit over the existing local copy. */
+export function mergeOfflineRecord(
+  existing: Record<string, unknown> | undefined,
+  incoming: Record<string, unknown>,
+  id: string,
+  updatedAt = new Date().toISOString(),
+): Record<string, unknown> {
+  return { ...(existing || {}), ...incoming, id, updated_at: updatedAt };
+}
+
+/** Find an unsent write for this same row so repeated edits coalesce. */
+export function findPendingWrite(queue: OfflineRecord[], table: string, recordId: string): OfflineRecord | undefined {
+  return queue.find(
+    (item) => item.table === table && item.data?.id === recordId && !item.synced && item.action !== "delete",
+  );
 }
 
 const MAX_RETRY_ATTEMPTS = 3;
@@ -361,40 +378,56 @@ class OfflineDB {
   // Save data locally and queue for sync
   async save(table: string, data: Record<string, unknown>): Promise<Record<string, unknown>> {
     const db = await this.ensureDb();
+    const id = String(data.id || newOfflineId());
+    const updatedAt = new Date().toISOString();
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([table, "sync_queue"], "readwrite");
       const store = transaction.objectStore(table);
       const syncStore = transaction.objectStore("sync_queue");
+      const existingRequest = store.get(id);
+      let savedRecord: Record<string, unknown> | undefined;
 
-      const record = {
-        ...data,
-        id: data.id || newOfflineId(),
-        updated_at: new Date().toISOString(),
+      existingRequest.onsuccess = () => {
+        savedRecord = mergeOfflineRecord(
+          existingRequest.result as Record<string, unknown> | undefined,
+          data,
+          id,
+          updatedAt,
+        );
+        store.put(savedRecord);
+
+        const queueRequest = syncStore.getAll();
+        queueRequest.onsuccess = () => {
+          const pending = findPendingWrite(queueRequest.result as OfflineRecord[], table, id);
+          if (pending) {
+            const updatedPending: OfflineRecord = {
+              ...pending,
+              data: savedRecord!,
+              attempts: 0,
+            };
+            delete updatedPending.reason;
+            syncStore.put(updatedPending);
+            return;
+          }
+
+          // Keep only the latest snapshot for repeated edits made before the
+          // connection returns. Preserve `create` when the row itself is new.
+          syncStore.add({
+            table,
+            data: savedRecord!,
+            action: data.id ? "update" : "create",
+            timestamp: Date.now(),
+            synced: false,
+            attempts: 0,
+          });
+        };
       };
-
-      store.put(record);
-
-      // The local table write above is the durable one — a queue failure must
-      // never reject it. (With autoIncrement on sync_queue the add can no
-      // longer throw the v9 DataError; this guard covers quota/abort cases.)
-      try {
-        syncStore.add({
-          table,
-          data: record,
-          action: data.id ? "update" : "create",
-          timestamp: Date.now(),
-          synced: false,
-          attempts: 0,
-        });
-      } catch (queueErr) {
-        logger.warn("Failed to enqueue offline record for sync", { table, queueErr });
-      }
 
       transaction.oncomplete = () => {
         this.queueSync().catch(() => {});
         announceQueueChange();
-        resolve(record);
+        resolve(savedRecord || mergeOfflineRecord(undefined, data, id, updatedAt));
       };
       transaction.onerror = () => reject(transaction.error);
     });
