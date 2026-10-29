@@ -320,3 +320,57 @@ describe("navigation deadline never races a stale cached page", () => {
     expect(sw).toMatch(/catch \(err\) \{\s*if \(cachedPage\) return cachedPage;/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Offline cold start — a dead token refresh must not sign the user out
+// ---------------------------------------------------------------------------
+
+describe("offline cold start keeps the signed-in profile", () => {
+  const src = readFileSync(join(__dirname, "..", "lib", "auth-context.tsx"), "utf8");
+
+  it("paints the cached profile before asking Supabase for a session", () => {
+    // With no signal getSession() can wait out a token-refresh fetch timeout.
+    // The cached profile has to be restored first, not after that wait.
+    const checkUserStart = src.indexOf("const checkUser = useCallback");
+    const offlineRestore = src.indexOf("!navigator.onLine && restoreCachedProfile()", checkUserStart);
+    const getSession = src.indexOf("supabase!.auth.getSession()", checkUserStart);
+
+    expect(checkUserStart).toBeGreaterThan(-1);
+    expect(offlineRestore).toBeGreaterThan(checkUserStart);
+    expect(getSession).toBeGreaterThan(checkUserStart);
+    expect(offlineRestore).toBeLessThan(getSession);
+  });
+
+  it("does not sign out when the session read times out", () => {
+    expect(src).toMatch(
+      /getUser failed in auth state handler:[\s\S]{0,400}restoreCachedProfile\(\)[\s\S]{0,200}return;/,
+    );
+  });
+
+  it("restores the cache when INITIAL_SESSION reports no session offline", () => {
+    const branch = src.indexOf('if (event === "INITIAL_SESSION" && !session)');
+    const restore = src.indexOf("restoreCachedProfile()", branch);
+    const clear = src.indexOf("setUser(null);", branch);
+
+    expect(branch).toBeGreaterThan(-1);
+    expect(restore).toBeGreaterThan(branch);
+    expect(restore).toBeLessThan(clear);
+  });
+
+  it("distinguishes a failed offline refresh from a deliberate sign-out", () => {
+    const signOutStart = src.indexOf("const signOut = useCallback");
+    const mark = src.indexOf("explicitSignOutRef.current = true", signOutStart);
+    const call = src.indexOf('supabase!.auth.signOut({ scope: "local" })', signOutStart);
+
+    expect(signOutStart).toBeGreaterThan(-1);
+    expect(mark).toBeGreaterThan(signOutStart);
+    expect(mark).toBeLessThan(call);
+    expect(src).toMatch(/SIGNED_OUT[\s\S]{0,400}explicitSignOutRef\.current/);
+  });
+
+  it("never client-redirects an offline dashboard to /login", () => {
+    const layout = readFileSync(join(__dirname, "..", "app", "dashboard", "layout.tsx"), "utf8");
+    expect(layout).toMatch(/!navigator\.onLine[\s\S]{0,600}localStorage\.getItem\(OFFLINE_USER_KEY\)/);
+    expect(layout).toContain('window.location.replace("/login")');
+  });
+});

@@ -37,6 +37,7 @@ import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { MinimalLoadingScreen, StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import { readDemoStorage } from "@/lib/auth-demo";
+import { OFFLINE_USER_KEY } from "@/lib/auth-context-types";
 import { useSchoolColors } from "@/lib/useSchoolColors";
 import { useSessionTimeout } from "@/lib/useSessionTimeout";
 
@@ -197,6 +198,24 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     // to a demo user, so ask it directly instead of inferring from state that
     // is still settling.
     if (readDemoStorage() !== null) return;
+
+    // Offline: a session read cannot succeed, and a client-side replace()
+    // fails its RSC fetch and leaves a blank page. The auth provider restores
+    // the cached profile itself; wait for it. Without a cache there is no one
+    // signed in, so do a real document navigation (the service worker serves
+    // the cached /login page or offline.html).
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      let hasCachedProfile = false;
+      try {
+        hasCachedProfile = localStorage.getItem(OFFLINE_USER_KEY) !== null;
+      } catch {
+        hasCachedProfile = false;
+      }
+      if (hasCachedProfile) return;
+      hasRedirectedRef.current = true;
+      window.location.replace("/login");
+      return;
+    }
 
     let cancelled = false;
     const timer = setTimeout(async () => {

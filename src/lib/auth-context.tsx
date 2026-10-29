@@ -195,6 +195,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const authFetchAborted = useRef(false);
   const authCheckedRef = useRef(false);
   const degradedUserIdRef = useRef<string | null>(null);
+  const explicitSignOutRef = useRef(false);
+
+  // Restore the last signed-in profile from localStorage without touching the
+  // network. Used when the device is offline (or a session read times out):
+  // auth-js cannot refresh an expired token without signal, so it reports no
+  // session and the old code signed the user out mid-lesson. The cache is
+  // cleared by signOut(), so its presence still means "signed in".
+  const restoreCachedProfile = useCallback(() => {
+    try {
+      const cachedUser = localStorage.getItem(OFFLINE_USER_KEY);
+      if (!cachedUser) return false;
+      const parsedUser = JSON.parse(cachedUser) as User;
+      const cachedSchool = localStorage.getItem(OFFLINE_SCHOOL_KEY);
+      setUser(parsedUser);
+      setSchool(cachedSchool ? (JSON.parse(cachedSchool) as School) : null);
+      setIsDemo(false);
+      setLoading(false);
+      setAuthInitialized(true);
+      return true;
+    } catch (error) {
+      logger.warn("Failed to restore cached profile:", error);
+      return false;
+    }
+  }, []);
 
   const clearAuthState = useCallback(() => {
     setUser(null);
@@ -529,6 +553,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (supabase?.auth) {
+        // Offline fast path: paint the cached profile before asking Supabase
+        // anything. getSession() may try to refresh an expired token first,
+        // which on a phone with no signal means waiting out a fetch timeout
+        // before the dashboard can open.
+        if (typeof navigator !== "undefined" && !navigator.onLine && restoreCachedProfile()) {
+          return;
+        }
+
         try {
           const {
             data: { session },
@@ -659,6 +691,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setAuthInitialized(true);
         } catch (err) {
           logger.error("[Auth] getUser failed in auth state handler:", err);
+          // A timed-out session read is a connectivity problem, not a sign-out.
+          // Keep the cached profile so the classroom keeps working offline.
+          if (restoreCachedProfile()) return;
           setUser(null);
           setSchool(null);
           setIsDemo(false);
@@ -677,7 +712,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(safetyTimer);
       setAuthInitialized(true);
     }
-  }, [applyDegradedUser, fetchUserData, clearAuthState]);
+  }, [applyDegradedUser, fetchUserData, clearAuthState, restoreCachedProfile]);
 
   useEffect(() => {
     // Reset the abort flag on (re)mount — React StrictMode unmounts/remounts
@@ -765,8 +800,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           if (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") {
+            if (event === "SIGNED_IN") explicitSignOutRef.current = false;
             // Fast path: no session means no user — skip getUser() entirely.
             if (event === "INITIAL_SESSION" && !session) {
+              // Offline cold start: auth-js cannot refresh an expired token
+              // without signal and reports no session. The cached profile is
+              // still the signed-in user; keep them on the dashboard instead
+              // of bouncing to /login (which, uncached, is offline.html).
+              if (typeof navigator !== "undefined" && !navigator.onLine && restoreCachedProfile()) {
+                return;
+              }
               setUser(null);
               setSchool(null);
               setIsDemo(false);
@@ -861,6 +904,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               clearTimeout(handlerSafetyTimer);
             }
           } else if (event === "SIGNED_OUT") {
+            // A failed token refresh while offline also emits SIGNED_OUT.
+            // Only a deliberate sign-out should clear the cached profile.
+            if (
+              !explicitSignOutRef.current &&
+              typeof navigator !== "undefined" &&
+              !navigator.onLine &&
+              restoreCachedProfile()
+            ) {
+              return;
+            }
             setUser(null);
             setSchool(null);
             setIsDemo(false);
@@ -1434,6 +1487,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = useCallback(async () => {
+    // Mark deliberate: a SIGNED_OUT event from this call must clear the
+    // offline cache even if the browser is offline at the time.
+    explicitSignOutRef.current = true;
     try {
       await supabase!.auth.signOut({ scope: "local" });
     } catch (e) {
