@@ -498,6 +498,29 @@ self.addEventListener('message', (event) => {
     );
   }
 
+  // The app's warmer persists a "done" list, but the browser can evict the
+  // PAGE cache at any time and a new deploy wipes it on activate. Asking the
+  // cache what it actually holds is the only way to know what still needs
+  // downloading -- otherwise the app skips every route forever and offline
+  // opens fall through to offline.html with only the signed-out pages.
+  if (event.data && event.data.type === 'CHECK_ROUTES') {
+    const routes = Array.isArray(event.data.routes) ? event.data.routes : [];
+    const responsePort = event.ports && event.ports[0];
+    event.waitUntil(
+      (async () => {
+        const pageCache = await caches.open(PAGE_CACHE);
+        const cached = [];
+        for (const route of routes) {
+          if (typeof route !== 'string' || !route.startsWith('/')) continue;
+          if (await pageCache.match(route)) cached.push(route);
+        }
+        if (responsePort) {
+          responsePort.postMessage({ type: 'CHECK_ROUTES_RESULT', version: CACHE_VERSION, cached });
+        }
+      })()
+    );
+  }
+
   if (event.data && event.data.type === 'CACHE_DATA') {
     const { key, data } = event.data;
     caches.open(PAGE_CACHE).then((cache) => {

@@ -207,7 +207,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       let hasCachedProfile = false;
       try {
-        hasCachedProfile = localStorage.getItem(OFFLINE_USER_KEY) !== null;
+        const cached = localStorage.getItem(OFFLINE_USER_KEY);
+        hasCachedProfile = !!cached && !!JSON.parse(cached)?.id;
       } catch {
         hasCachedProfile = false;
       }

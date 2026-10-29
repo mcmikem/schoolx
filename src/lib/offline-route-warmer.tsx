@@ -10,10 +10,11 @@ import { safeLocalStorage } from "@/lib/safe-storage";
 // v2 invalidates old records: v1 marked a route complete before the service
 // worker confirmed that it had actually cached the document.
 const DONE_KEY = "skoolmate_offline_routes_done_v2";
-const START_DELAY_MS = 8_000;
+const START_DELAY_MS = 4_000;
 const BATCH_DELAY_MS = 250;
 const BATCH_DELAY_SLOW_MS = 1_000;
 const ROUTE_CACHE_TIMEOUT_MS = 15_000;
+const CACHE_CHECK_TIMEOUT_MS = 5_000;
 
 const PRIORITY_ROUTES = [
   "/dashboard/",
@@ -82,6 +83,39 @@ function isSlowConnection(): boolean {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+interface RouteCacheState {
+  version: string;
+  cached: string[];
+}
+
+function checkRoutesWithWorker(worker: ServiceWorker, routes: string[]): Promise<RouteCacheState | null> {
+  if (typeof MessageChannel === "undefined") return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    const timeout = setTimeout(() => {
+      channel.port1.close();
+      resolve(null);
+    }, CACHE_CHECK_TIMEOUT_MS);
+    channel.port1.onmessage = (event: MessageEvent<{ type?: string; version?: string; cached?: string[] }>) => {
+      clearTimeout(timeout);
+      channel.port1.close();
+      const data = event.data;
+      if (data?.type === "CHECK_ROUTES_RESULT" && Array.isArray(data.cached)) {
+        resolve({ version: typeof data.version === "string" ? data.version : "unknown", cached: data.cached });
+      } else {
+        resolve(null);
+      }
+    };
+    try {
+      worker.postMessage({ type: "CHECK_ROUTES", routes }, [channel.port2]);
+    } catch {
+      clearTimeout(timeout);
+      channel.port1.close();
+      resolve(null);
+    }
+  });
 }
 
 function cacheRouteWithWorker(worker: ServiceWorker, route: string): Promise<boolean> {
@@ -162,11 +196,6 @@ export function OfflineRouteWarmer() {
       // On Data Saver / weak mobile data, prepare the pages teachers and
       // bursars need first. Leave the rest pending for a better connection.
       const routes = slow ? PRIORITY_ROUTES.filter((route) => roleRoutes.includes(route)) : roleRoutes;
-      const done = readDone(manifest.version);
-      const pending = routes.filter((route) => !done.has(route));
-      if (pending.length === 0) return;
-
-      const wait = slow ? BATCH_DELAY_SLOW_MS : BATCH_DELAY_MS;
 
       let controller: ServiceWorker | null = null;
       if ("serviceWorker" in navigator) {
@@ -178,6 +207,27 @@ export function OfflineRouteWarmer() {
         }
       }
 
+      // The stored "done" list can outlive the cache it describes: a new
+      // deploy wipes the PAGE cache on activate, and the browser may evict it
+      // under storage pressure. Ask the worker what it really holds, and only
+      // fall back to the stored list when the worker cannot answer (older
+      // worker, no MessageChannel).
+      let doneKey = manifest.version;
+      let done = readDone(doneKey);
+      if (controller) {
+        const cacheState = await checkRoutesWithWorker(controller, routes);
+        if (cacheState) {
+          doneKey = `${manifest.version}:${cacheState.version}`;
+          done = new Set(cacheState.cached);
+          writeDone(doneKey, done);
+        }
+      }
+
+      const pending = routes.filter((route) => !done.has(route));
+      if (pending.length === 0) return;
+
+      const wait = slow ? BATCH_DELAY_SLOW_MS : BATCH_DELAY_MS;
+
       for (const route of pending) {
         if (cancelled || !navigator.onLine) break;
         try {
@@ -188,7 +238,7 @@ export function OfflineRouteWarmer() {
           const cached = controller ? await cacheRouteWithWorker(controller, route) : false;
           if (cached) {
             done.add(route);
-            writeDone(manifest.version, done);
+            writeDone(doneKey, done);
           } else {
             logger.debug("[offline] route was not confirmed in page cache; will retry", route);
           }

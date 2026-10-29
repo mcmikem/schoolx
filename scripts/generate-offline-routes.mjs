@@ -48,7 +48,12 @@ const routes = walk(APP_DIR)
   })
   .sort();
 
-const version = createHash("sha256").update(routes.join("\n")).digest("hex").slice(0, 12);
+// The service worker deletes the PAGE cache whenever CACHE_VERSION changes,
+// so the warmer's "done" list must be scoped to the deploy that filled it.
+// Including the commit lets every new deployment re-check (and refill) the
+// pages instead of trusting a list whose cache no longer exists.
+const buildId = process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || "";
+const version = createHash("sha256").update(`${routes.join("\n")}:${buildId}`).digest("hex").slice(0, 12);
 const payload = {
   version,
   generatedAt: new Date().toISOString(),

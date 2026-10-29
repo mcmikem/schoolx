@@ -87,3 +87,26 @@ describe("offline background warmers", () => {
     expect(warmer).toContain("PRIORITY_ROUTES.filter((route) => roleRoutes.includes(route))");
   });
 });
+
+describe("offline warm-up survives cache eviction and new deploys", () => {
+  const sw = read("public/sw.js");
+  const warmer = read("src/lib/offline-route-warmer.tsx");
+
+  it("asks the worker which routes are actually in the page cache", () => {
+    expect(sw).toContain("CHECK_ROUTES_RESULT");
+    expect(sw).toContain("pageCache.match(route)");
+    expect(warmer).toContain("checkRoutesWithWorker");
+    expect(warmer).toContain("new Set(cacheState.cached)");
+  });
+
+  it("scopes the done list to the deployed cache generation", () => {
+    expect(warmer).toContain("`${manifest.version}:${cacheState.version}`");
+    const generator = read("scripts/generate-offline-routes.mjs");
+    expect(generator).toContain("VERCEL_GIT_COMMIT_SHA");
+  });
+
+  it("starts filling the cache sooner after sign-in", () => {
+    const startDelay = Number(warmer.match(/START_DELAY_MS = (\d+)/)?.[1]);
+    expect(startDelay).toBeLessThanOrEqual(5_000);
+  });
+});
