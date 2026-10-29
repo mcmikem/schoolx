@@ -59,6 +59,26 @@ describe("bucketUgandaSubject", () => {
     expect(result).toMatchObject({ mid: null, end: null, avg: 75, grade: "D2", agg: 2 });
   });
 
+  it("exposes progressive columns for schools recording only one exam type", () => {
+    expect(
+      bucketUgandaSubject([{ assessment_type: "holiday_package", score: 70, max_score: 100 }], {
+        types: ["holiday_package"],
+      }).assessmentBreakdown,
+    ).toEqual([
+      { type: "holiday_package", label: "HPG", score: 70 },
+      { type: "final_average", label: "Final Average", score: 70 },
+    ]);
+    expect(
+      bucketUgandaSubject([{ assessment_type: "mid_term", score: 62, max_score: 100 }], {
+        types: ["holiday_package", "mid_term"],
+      }).assessmentBreakdown,
+    ).toEqual([
+      { type: "holiday_package", label: "HPG", score: null },
+      { type: "mid_term", label: "Midterm / Mock", score: 62 },
+      { type: "final_average", label: "Final Average", score: 62 },
+    ]);
+  });
+
   it("returns nulls — never zeros — for a subject with no rows", () => {
     expect(bucketUgandaSubject([])).toEqual({ mid: null, mot: null, end: null, avg: null, agg: null, grade: "—" });
   });
@@ -240,22 +260,16 @@ describe("generateUgandaPrimaryHTML", () => {
       }
     });
 
-    it("can print only the midterm or end-of-term assessment", () => {
-      const midterm = generateUgandaPrimaryBody({ ...baseInput, assessmentView: "midterm" });
-      expect(midterm).toContain(">MOT<");
-      expect(midterm).not.toContain(">BOT<");
-      expect(midterm).not.toContain(">EOT<");
-      expect(midterm).not.toContain(">AVG %<");
-
-      const endTerm = generateUgandaPrimaryBody({ ...baseInput, assessmentView: "end_term" });
-      expect(endTerm).toContain(">EOT<");
-      expect(endTerm).not.toContain(">BOT<");
-      expect(endTerm).not.toContain(">MOT<");
-      expect(endTerm).not.toContain(">AVG %<");
+    it("can print any selected combination of assessment columns", () => {
+      const html = generateUgandaPrimaryBody({ ...baseInput, assessmentColumns: ["bot", "eot"] });
+      expect(html).toContain(">BOT<");
+      expect(html).toContain(">EOT<");
+      expect(html).not.toContain(">MOT<");
+      expect(html).not.toContain(">AVG %<");
     });
 
     it("can print averages and grades without individual exam columns", () => {
-      const html = generateUgandaPrimaryBody({ ...baseInput, assessmentView: "averages" });
+      const html = generateUgandaPrimaryBody({ ...baseInput, assessmentColumns: ["avg", "agg", "grade"] });
       expect(html).toContain(">AVG %<");
       expect(html).toContain(">AGG<");
       expect(html).not.toContain(">BOT<");

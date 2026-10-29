@@ -222,13 +222,14 @@ export function bucketUgandaSubject(rows: UgandaGradeRow[], basis?: TermGradeBas
     avg = maxSum > 0 ? Math.round((total / maxSum) * 100) : null;
   }
 
-  const holidayMidtermMode =
-    (holiday !== null || basis?.types.includes("holiday_package")) &&
-    (mot !== null || basis?.types.includes("mid_term"));
-  const assessmentBreakdown = holidayMidtermMode
+  const hasHolidayAssessment = holiday !== null || Boolean(basis?.types.includes("holiday_package"));
+  const hasMidtermAssessment = mot !== null || Boolean(basis?.types.includes("mid_term"));
+  const hasProgressiveAssessment =
+    (hasHolidayAssessment && hasMidtermAssessment) || Boolean(basis?.types.includes("holiday_package"));
+  const assessmentBreakdown = hasProgressiveAssessment
     ? [
-        { type: "holiday_package", label: "HPG", score: holiday },
-        { type: "mid_term", label: "Midterm / Mock", score: mot },
+        ...(hasHolidayAssessment ? [{ type: "holiday_package", label: "HPG", score: holiday }] : []),
+        ...(hasMidtermAssessment ? [{ type: "mid_term", label: "Midterm / Mock", score: mot }] : []),
         { type: "final_average", label: "Final Average", score: avg },
       ]
     : undefined;

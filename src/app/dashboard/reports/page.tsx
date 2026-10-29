@@ -35,7 +35,50 @@ export default function ReportsPage() {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [reportData, setReportData] = useState<ReportCardType | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
-  const [assessmentView, setAssessmentView] = useState<"all" | "midterm" | "end_term" | "averages">("all");
+  const [assessmentColumns, setAssessmentColumns] = useState<string[] | null>(null);
+  const reportSubjects = ((reportData as any)?.subjects || []) as any[];
+  const assessmentModel = (reportData as any)?.assessmentModel as string | undefined;
+  const progressiveAssessmentOptions = new Map<string, string>();
+  reportSubjects.forEach((subject) =>
+    (subject.assessmentBreakdown || []).forEach((item: any) => progressiveAssessmentOptions.set(item.type, item.label)),
+  );
+  const assessmentOptions: Array<{ key: string; label: string }> =
+    assessmentModel === "uganda_primary"
+      ? [
+          { key: "bot", label: "BOT" },
+          { key: "mot", label: "MOT" },
+          { key: "eot", label: "EOT" },
+          { key: "avg", label: "Average" },
+          { key: "agg", label: "Aggregate" },
+          { key: "grade", label: "Grade" },
+          { key: "remarks", label: "Remarks" },
+        ]
+      : assessmentModel === "secondary_progressive"
+        ? [
+            ...Array.from(progressiveAssessmentOptions.entries()).map(([key, label]) => ({ key, label })),
+            { key: "grade", label: "Grade" },
+            { key: "descriptor", label: "Grade descriptor" },
+            { key: "remark", label: "Teacher remark" },
+          ]
+        : assessmentModel === "weighted"
+          ? [
+              { key: "ca1", label: "CA1" },
+              { key: "ca2", label: "CA2" },
+              { key: "ca3", label: "CA3" },
+              { key: "ca4", label: "CA4" },
+              { key: "project", label: "Project" },
+              { key: "totalCA", label: "CA Average" },
+              { key: "exam", label: "Exam" },
+              { key: "finalScore", label: "Final total" },
+              { key: "grade", label: "Grade" },
+            ]
+          : [];
+  const isAssessmentColumnVisible = (key: string) => assessmentColumns == null || assessmentColumns.includes(key);
+  const showOverallSummary =
+    assessmentColumns == null ||
+    assessmentColumns.some((key) =>
+      ["avg", "average", "agg", "aggregatePoints", "final_average", "finalScore"].includes(key),
+    );
 
   useEffect(() => {
     refreshSchoolFromAPI?.().catch((err) => logger.warn("[reports] refreshSchoolFromAPI failed", err));
@@ -314,7 +357,7 @@ export default function ReportsPage() {
                 aggSum: report.overall?.aggregate ?? totals.aggSum,
                 division: report.overall?.division || totals.division,
               },
-              assessmentView,
+              assessmentColumns,
               comments: { classTeacher: "", hm: "" },
               position: report.overall?.position,
               feeBalance: null,
@@ -330,18 +373,26 @@ export default function ReportsPage() {
                 .replace(/>/g, "&gt;")
                 .replace(/\"/g, "&quot;")
                 .replace(/'/g, "&#039;");
+            const reportAssessmentColumns = Array.from(
+              new Set<string>(
+                (report.subjects || []).flatMap((subject: any) =>
+                  (subject.assessmentBreakdown || []).map((item: any) => String(item.type)),
+                ),
+              ),
+            );
+            const progressiveKeys = [...reportAssessmentColumns, "grade", "descriptor", "remark"].filter(
+              isAssessmentColumnVisible,
+            );
+            const progressiveLabels: Record<string, string> = {};
+            (report.subjects || []).forEach((subject: any) =>
+              (subject.assessmentBreakdown || []).forEach((item: any) => {
+                progressiveLabels[String(item.type)] = String(item.label || item.type);
+              }),
+            );
             const progressiveSubjects = (report.subjects || [])
               .map((subject: any) => {
                 const values = subject.assessmentBreakdown || [];
                 const score = (type: string) => values.find((value: any) => value.type === type)?.score;
-                const cols =
-                  assessmentView === "all"
-                    ? ["holiday_package", "mid_term", "final_average", "grade", "descriptor", "remark"]
-                    : assessmentView === "midterm"
-                      ? ["mid_term"]
-                      : assessmentView === "end_term"
-                        ? ["final_average"]
-                        : ["final_average", "grade", "descriptor", "remark"];
                 const valuesByKey: Record<string, string> = {
                   holiday_package: score("holiday_package") ?? "—",
                   mid_term: score("mid_term") ?? "—",
@@ -350,17 +401,15 @@ export default function ReportsPage() {
                   descriptor: h(subject.gradeDescriptor || "—"),
                   remark: h(subject.teacherRemark || ""),
                 };
-                return `<tr><td>${h(subject.name)}</td>${cols.map((key) => `<td class="num">${["grade", "final_average"].includes(key) ? `<strong>${valuesByKey[key]}</strong>` : valuesByKey[key]}</td>`).join("")}</tr>`;
+                return `<tr><td>${h(subject.name)}</td>${progressiveKeys.map((key) => `<td class="num">${["grade", "final_average"].includes(key) ? `<strong>${valuesByKey[key]}</strong>` : valuesByKey[key]}</td>`).join("")}</tr>`;
               })
               .join("");
-            const progressiveColumns =
-              assessmentView === "all"
-                ? ["HPG (%)", "Midterm / Mock (%)", "Final (%)", "Grade", "Grade descriptor", "TR"]
-                : assessmentView === "midterm"
-                  ? ["Midterm / Mock (%)"]
-                  : assessmentView === "end_term"
-                    ? ["Final (%)"]
-                    : ["Final (%)", "Grade", "Grade descriptor", "TR"];
+            const progressiveColumns = progressiveKeys.map(
+              (key) =>
+                progressiveLabels[key] ||
+                ({ grade: "Grade", descriptor: "Grade descriptor", remark: "TR" } as Record<string, string>)[key] ||
+                key,
+            );
             return `<article class="progressive-report"><header class="progressive-header">
               ${report.school?.logo_url || logoUrl ? `<img class="logo" src="${h(report.school?.logo_url || logoUrl)}" alt="School logo">` : ""}
               ${report.student?.photo_url ? `<img class="photo" src="${h(report.student.photo_url)}" alt="${h(studentName)}">` : ""}
@@ -375,11 +424,18 @@ export default function ReportsPage() {
               <div><small>Term</small><strong>${h(report.term)} · ${h(report.academicYear)}</strong></div>
               <div><small>Position</small><strong>${h(report.overall?.position || "—")}</strong></div></section>
               <table class="progressive-table"><thead><tr><th>Subject</th>${progressiveColumns.map((column) => `<th>${column}</th>`).join("")}</tr></thead><tbody>${progressiveSubjects}</tbody></table>
-              ${["all", "averages"].includes(assessmentView) ? `<div class="progressive-summary"><span>Overall average: <strong>${report.overall?.average == null ? "—" : `${h(report.overall.average)}%`}</strong></span><span>Points (A=5 to E=1): <strong>${h(report.overall?.points ?? "—")}</strong></span><span>Division: <strong>—</strong></span></div>` : ""}
+              ${showOverallSummary ? `<div class="progressive-summary"><span>Overall average: <strong>${report.overall?.average == null ? "—" : `${h(report.overall.average)}%`}</strong></span><span>Points (A=5 to E=1): <strong>${h(report.overall?.points ?? "—")}</strong></span><span>Division: <strong>—</strong></span></div>` : ""}
               <div class="progressive-remark"><strong>Class teacher’s remarks</strong><br>${h(report.overall?.classTeacherRemark || "")}</div>
               <div class="progressive-remark"><strong>Headteacher’s remarks</strong><br>${h(report.overall?.headTeacherRemark || "")}</div>
               <div class="progressive-note">HPG = Holiday Package · Midterm / Mock = the school’s mid-term assessment. Final uses this school’s configured assessment basis. Grade bands: A 85–100 · B 75–84 · C 65–74 · D 50–64 · E below 50.</div></article>`;
           }
+          const weightedKeys = ["totalCA", "exam", "finalScore", "grade"].filter(isAssessmentColumnVisible);
+          const weightedLabels: Record<string, string> = {
+            totalCA: "CA Average",
+            exam: "Exam",
+            finalScore: "Final total",
+            grade: "Grade",
+          };
           return `
         <div class="report-card">
           <div class="header">
@@ -404,7 +460,7 @@ export default function ReportsPage() {
            <table>
             <thead>
               <tr>
-                <th>Subject</th>${(assessmentView === "all" ? ["CA Avg", "Exam", "Total", "Grade"] : assessmentView === "midterm" ? ["CA / Midterm"] : assessmentView === "end_term" ? ["Exam / EOT"] : ["Average", "Grade"]).map((label) => `<th>${label}</th>`).join("")}
+                <th>Subject</th>${weightedKeys.map((key) => `<th>${weightedLabels[key]}</th>`).join("")}
               </tr>
             </thead>
             <tbody>
@@ -413,7 +469,7 @@ export default function ReportsPage() {
                   (s: any) => `
                 <tr>
                   <td>${s.name}</td>
-                  ${(assessmentView === "all" ? [Math.round(s.totalCA || 0), s.exam || 0, Math.round(s.finalScore || 0), s.grade || "F9"] : assessmentView === "midterm" ? [Math.round(s.totalCA || 0)] : assessmentView === "end_term" ? [s.exam || 0] : [Math.round(s.finalScore || 0), s.grade || "F9"]).map((value) => `<td>${value}</td>`).join("")}
+                  ${weightedKeys.map((key) => `<td>${key === "totalCA" ? Math.round(s.totalCA || 0) : key === "exam" ? s.exam || 0 : key === "finalScore" ? Math.round(s.finalScore || 0) : s.grade || "F9"}</td>`).join("")}
                 </tr>
               `,
                 )
@@ -421,7 +477,7 @@ export default function ReportsPage() {
             </tbody>
           </table>
           ${
-            ["all", "averages"].includes(assessmentView)
+            showOverallSummary
               ? `<div class="summary">
             <div class="summary-grid">
               <div class="summary-item">
@@ -470,7 +526,7 @@ export default function ReportsPage() {
     } finally {
       setLoadingReport(false);
     }
-  }, [filteredStudents, school, currentTerm, academicYear, toast, assessmentView]);
+  }, [filteredStudents, school, currentTerm, academicYear, toast, assessmentColumns, showOverallSummary]);
 
   const handleGenerateReport = useCallback(
     async (studentId: string) => {
@@ -618,91 +674,68 @@ export default function ReportsPage() {
         doc.text(`Class: ${reportDataForPDF.student.classes?.name || "N/A"}`, 120, studentY);
         doc.text(`Student No: ${reportDataForPDF.student.student_number}`, 14, studentY + 7);
 
-        const tableData = reportDataForPDF.subjects.map((s: any) => [
-          ...(reportDataForPDF.assessmentModel === "secondary_progressive"
-            ? [
-                s.name,
-                ...(assessmentView === "all"
-                  ? ["holiday_package", "mid_term", "final_average"]
-                      .map((type) => s.assessmentBreakdown?.find((item: any) => item.type === type)?.score ?? "—")
-                      .concat([s.grade || "—", s.gradeDescriptor || "—", s.teacherRemark || ""])
-                  : assessmentView === "midterm"
-                    ? [s.assessmentBreakdown?.find((item: any) => item.type === "mid_term")?.score ?? "—"]
-                    : assessmentView === "end_term"
-                      ? [s.assessmentBreakdown?.find((item: any) => item.type === "final_average")?.score ?? "—"]
-                      : [
-                          s.assessmentBreakdown?.find((item: any) => item.type === "final_average")?.score ?? "—",
-                          s.grade || "—",
-                          s.gradeDescriptor || "—",
-                          s.teacherRemark || "",
-                        ]),
-              ]
-            : reportDataForPDF.assessmentModel === "uganda_primary"
-              ? [
-                  s.name,
-                  ...(assessmentView === "all"
-                    ? [s.bot ?? "—", s.mot ?? "—", s.eot ?? "—", s.average ?? "—", s.grade]
-                    : assessmentView === "midterm"
-                      ? [s.mot ?? "—"]
-                      : assessmentView === "end_term"
-                        ? [s.eot ?? "—"]
-                        : [s.average ?? "—", s.aggregatePoints ?? "—", s.grade]),
-                ]
-              : [
-                  s.name,
-                  ...(assessmentView === "all"
-                    ? [Math.round(s.totalCA || 0), s.exam, Math.round(s.finalScore || 0), s.grade]
-                    : assessmentView === "midterm"
-                      ? [Math.round(s.totalCA || 0)]
-                      : assessmentView === "end_term"
-                        ? [s.exam]
-                        : [Math.round(s.finalScore || 0), s.grade]),
-                ]),
+        const isSelectedColumn = (key: string) => assessmentColumns == null || assessmentColumns.includes(key);
+        const pdfSubjects = reportDataForPDF.subjects as any[];
+        let pdfColumns: Array<{ key: string; label: string; value: (subject: any) => unknown }>;
+        if (reportDataForPDF.assessmentModel === "secondary_progressive") {
+          const types = Array.from(
+            new Set(
+              pdfSubjects.flatMap((subject) => (subject.assessmentBreakdown || []).map((item: any) => item.type)),
+            ),
+          );
+          const labels = Object.fromEntries(
+            pdfSubjects.flatMap((subject) =>
+              (subject.assessmentBreakdown || []).map((item: any) => [item.type, item.label]),
+            ),
+          ) as Record<string, string>;
+          pdfColumns = [
+            ...types.map((type) => ({
+              key: type,
+              label: labels[type] || type,
+              value: (subject: any) =>
+                subject.assessmentBreakdown?.find((item: any) => item.type === type)?.score ?? "—",
+            })),
+            { key: "grade", label: "Grade", value: (subject: any) => subject.grade || "—" },
+            { key: "descriptor", label: "Grade descriptor", value: (subject: any) => subject.gradeDescriptor || "—" },
+            { key: "remark", label: "Teacher remark", value: (subject: any) => subject.teacherRemark || "" },
+          ].filter((column) => isSelectedColumn(column.key));
+        } else if (reportDataForPDF.assessmentModel === "uganda_primary") {
+          pdfColumns = [
+            { key: "bot", label: "BOT /100", value: (subject: any) => subject.bot ?? "—" },
+            { key: "mot", label: "MOT /100", value: (subject: any) => subject.mot ?? "—" },
+            { key: "eot", label: "EOT /100", value: (subject: any) => subject.eot ?? "—" },
+            { key: "avg", label: "Average", value: (subject: any) => subject.average ?? "—" },
+            { key: "agg", label: "Aggregate", value: (subject: any) => subject.aggregatePoints ?? "—" },
+            { key: "grade", label: "Grade", value: (subject: any) => subject.grade || "—" },
+          ].filter((column) => isSelectedColumn(column.key));
+        } else {
+          pdfColumns = [
+            { key: "ca1", label: "CA1", value: (subject: any) => subject.ca1 ?? "—" },
+            { key: "ca2", label: "CA2", value: (subject: any) => subject.ca2 ?? "—" },
+            { key: "ca3", label: "CA3", value: (subject: any) => subject.ca3 ?? "—" },
+            { key: "ca4", label: "CA4", value: (subject: any) => subject.ca4 ?? "—" },
+            { key: "project", label: "Project", value: (subject: any) => subject.project ?? "—" },
+            { key: "totalCA", label: "CA Average", value: (subject: any) => Math.round(subject.totalCA || 0) },
+            { key: "exam", label: "Exam", value: (subject: any) => subject.exam ?? "—" },
+            { key: "finalScore", label: "Final total", value: (subject: any) => Math.round(subject.finalScore || 0) },
+            { key: "grade", label: "Grade", value: (subject: any) => subject.grade || "—" },
+          ].filter((column) => isSelectedColumn(column.key));
+        }
+        const tableData = pdfSubjects.map((subject) => [
+          subject.name,
+          ...pdfColumns.map((column) => column.value(subject)),
         ]);
 
         autoTable(doc, {
           startY: 65,
-          head: [
-            reportDataForPDF.assessmentModel === "secondary_progressive"
-              ? [
-                  "Subject",
-                  ...(assessmentView === "all"
-                    ? ["HPG", "Midterm / Mock", "Final", "Grade", "Descriptor", "Teacher remark"]
-                    : assessmentView === "midterm"
-                      ? ["Midterm / Mock"]
-                      : assessmentView === "end_term"
-                        ? ["Final"]
-                        : ["Final", "Grade", "Descriptor", "Teacher remark"]),
-                ]
-              : reportDataForPDF.assessmentModel === "uganda_primary"
-                ? [
-                    "Subject",
-                    ...(assessmentView === "all"
-                      ? ["BOT /100", "MOT /100", "EOT /100", "Average", "Grade"]
-                      : assessmentView === "midterm"
-                        ? ["MOT /100"]
-                        : assessmentView === "end_term"
-                          ? ["EOT /100"]
-                          : ["Average", "Aggregate", "Grade"]),
-                  ]
-                : [
-                    "Subject",
-                    ...(assessmentView === "all"
-                      ? ["CA Avg", "Exam", "Total", "Grade"]
-                      : assessmentView === "midterm"
-                        ? ["CA / Midterm"]
-                        : assessmentView === "end_term"
-                          ? ["Exam / EOT"]
-                          : ["Average", "Grade"]),
-                  ],
-          ],
+          head: [["Subject", ...pdfColumns.map((column) => column.label)]],
           body: tableData,
           styles: { fontSize: 8, cellPadding: 2 },
           headStyles: { fillColor: [pc.r, pc.g, pc.b], textColor: 255 },
         });
 
         const summaryY = (doc as any).lastAutoTable.finalY + 10;
-        if (["all", "averages"].includes(assessmentView)) {
+        if (showOverallSummary) {
           doc.setFontSize(11);
           doc.setFont("helvetica", "bold");
           doc.text(
@@ -731,7 +764,7 @@ export default function ReportsPage() {
         toast.error(err instanceof Error ? err.message : "Failed to generate report PDF");
       }
     },
-    [school, currentTerm, academicYear, toast, assessmentView],
+    [school, currentTerm, academicYear, toast, assessmentColumns, showOverallSummary],
   );
 
   return (
@@ -806,43 +839,45 @@ export default function ReportsPage() {
         <Card className="p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="font-semibold text-[var(--t1)]">Report assessment view</h2>
+              <h2 className="font-semibold text-[var(--t1)]">Report columns</h2>
               <p className="text-sm text-[var(--t3)]">
-                Choose which assessment results appear on the report and printout.
+                Turn individual assessment and result columns on or off. Choose any combination for this report.
               </p>
             </div>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Report assessment view">
-              {(
-                [
-                  ["all", "All results"],
-                  ["midterm", "Midterm only"],
-                  ["end_term", "End of term only"],
-                  ["averages", "Averages"],
-                ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={assessmentView === value}
-                  onClick={() => setAssessmentView(value)}
-                  className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                    assessmentView === value
-                      ? "border-[var(--primary)] bg-[var(--primary)] text-white"
-                      : "border-[var(--border)] text-[var(--t2)] hover:bg-[var(--surface-container)]"
-                  }`}
-                >
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setAssessmentColumns(null)}
+              disabled={!reportData}
+            >
+              Show all columns
+            </Button>
+          </div>
+          {assessmentOptions.length > 0 ? (
+            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-3" role="group" aria-label="Choose report columns">
+              {assessmentOptions.map(({ key, label }) => (
+                <label key={key} className="inline-flex cursor-pointer items-center gap-2 text-sm text-[var(--t2)]">
+                  <input
+                    type="checkbox"
+                    checked={isAssessmentColumnVisible(key)}
+                    onChange={(event) => {
+                      setAssessmentColumns((current) => {
+                        const selected = new Set(current ?? assessmentOptions.map((option) => option.key));
+                        if (event.target.checked) selected.add(key);
+                        else selected.delete(key);
+                        return Array.from(selected);
+                      });
+                    }}
+                    className="h-4 w-4 accent-[var(--primary)]"
+                  />
                   {label}
-                </button>
+                </label>
               ))}
             </div>
-          </div>
-          {assessmentView !== "all" && (
+          ) : (
             <p className="mt-3 text-xs text-[var(--t3)]">
-              {assessmentView === "midterm"
-                ? "Shows the midterm result only (MOT for primary; midterm / mock for progressive classes)."
-                : assessmentView === "end_term"
-                  ? "Shows the end-of-term result only (EOT for primary; final result for other classes)."
-                  : "Shows average results, aggregates and grades without individual exam marks."}
+              Select a student to load the assessment columns used by their school.
             </p>
           )}
         </Card>
@@ -926,7 +961,7 @@ export default function ReportsPage() {
                 <TableSkeleton rows={3} />
               </Card>
             ) : reportData ? (
-              <ReportCard report={reportData} assessmentView={assessmentView} />
+              <ReportCard report={reportData} assessmentColumns={assessmentColumns} />
             ) : (
               <Card className="p-12 flex flex-col items-center justify-center text-center">
                 <EmptyState

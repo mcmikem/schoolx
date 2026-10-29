@@ -80,8 +80,8 @@ export interface UgandaPrintInput {
    * reads as "the teacher did not record it".
    */
   showBot?: boolean;
-  /** Limit the academic table to a school's preferred exam/result view. */
-  assessmentView?: "all" | "midterm" | "end_term" | "averages";
+  /** Visible assessment/result columns. Null or omitted keeps the full report. */
+  assessmentColumns?: string[] | null;
   position?: number | null;
   feeBalance: number | null;
   nextTermBegins: string | null;
@@ -168,18 +168,11 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
   // wrapped the cell. Only add the prefix when it is not already there.
   // Column count drives every colspan below, so it is derived once here.
   const showBot = input.showBot !== false;
-  const view = input.assessmentView ?? "all";
-  const markKeys =
-    view === "all"
-      ? [...(showBot ? ["bot"] : []), "mot", "eot"]
-      : view === "midterm"
-        ? ["mot"]
-        : view === "end_term"
-          ? ["eot"]
-          : [];
-  const summaryKeys =
-    view === "all" ? ["avg", "agg", "grade", "remarks"] : view === "averages" ? ["avg", "agg", "grade"] : [];
-  const leadColspan = view === "all" ? 1 + markKeys.length : 1;
+  const selectedColumns = input.assessmentColumns == null ? null : new Set(input.assessmentColumns);
+  const isSelected = (key: string) => selectedColumns === null || selectedColumns.has(key);
+  const markKeys = [...(showBot ? ["bot"] : []), "mot", "eot"].filter(isSelected);
+  const summaryKeys = ["avg", "agg", "grade", "remarks"].filter(isSelected);
+  const leadColspan = summaryKeys.length > 0 ? 1 + markKeys.length : 1;
 
   const brand = brandPalette(school.primaryColor);
 
@@ -202,7 +195,6 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
   const subjectRows = subjects
     .map((s) => {
       const markValues: Record<string, number | null> = { bot: s.bot, mot: s.mot, eot: s.eot };
-      const markLabels: Record<string, string> = { bot: "BOT", mot: "MOT", eot: "EOT" };
       const markCells = markKeys.map((key) => td(cell(markValues[key]), "text-align:center;")).join("");
       const summaryCells = summaryKeys
         .map((key) => {
@@ -222,7 +214,7 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
     grade: "GRADE",
     remarks: "REMARKS / COMPETENCY",
   };
-  const totalLabels = (view === "all" || view === "averages" ? summaryKeys : markKeys).map(
+  const totalLabels = (summaryKeys.length > 0 ? summaryKeys : markKeys).map(
     (key) => markLabel[key] || summaryLabel[key],
   );
   const recordedMotMarks = subjects.map((subject) => subject.mot).filter((value): value is number => value !== null);

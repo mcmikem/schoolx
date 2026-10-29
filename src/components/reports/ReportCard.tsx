@@ -8,7 +8,7 @@ import { generateUgandaPrimaryBody } from "@/components/reports/ugandaPrimaryRep
 import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print-window";
 
 interface ReportCardProps {
-  assessmentView?: "all" | "midterm" | "end_term" | "averages";
+  assessmentColumns?: string[] | null;
   report: {
     assessmentModel?: "uganda_primary" | "weighted" | "secondary_progressive";
     student: {
@@ -124,7 +124,7 @@ const CONDUCT_RATINGS: Record<number, string> = {
   5: "Excellent",
 };
 
-export default function ReportCard({ report, onCustomize, assessmentView = "all" }: ReportCardProps) {
+export default function ReportCard({ report, onCustomize, assessmentColumns = null }: ReportCardProps) {
   const reportRef = useRef<HTMLDivElement>(null);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -141,22 +141,22 @@ export default function ReportCard({ report, onCustomize, assessmentView = "all"
   const template = school.report_template || "default";
   const isUgandaPrimary = report.assessmentModel === "uganda_primary";
   const isSecondaryProgressive = report.assessmentModel === "secondary_progressive";
-  const progressiveColumns =
-    assessmentView === "all"
-      ? ["holiday_package", "mid_term", "final_average", "grade", "descriptor", "remark"]
-      : assessmentView === "midterm"
-        ? ["mid_term"]
-        : assessmentView === "end_term"
-          ? ["final_average"]
-          : ["final_average", "grade", "descriptor", "remark"];
-  const weightedColumns =
-    assessmentView === "all"
-      ? ["ca1", "ca2", "ca3", "ca4", "project", "totalCA", "exam", "finalScore", "grade"]
-      : assessmentView === "midterm"
-        ? ["totalCA"]
-        : assessmentView === "end_term"
-          ? ["exam"]
-          : ["finalScore", "grade"];
+  const isColumnVisible = (key: string) => assessmentColumns == null || assessmentColumns.includes(key);
+  const progressiveAssessmentTypes = Array.from(
+    new Set(report.subjects.flatMap((subject) => (subject.assessmentBreakdown || []).map((item) => item.type))),
+  );
+  const progressiveLabels = Object.fromEntries(
+    report.subjects.flatMap((subject) => (subject.assessmentBreakdown || []).map((item) => [item.type, item.label])),
+  ) as Record<string, string>;
+  const progressiveColumns = [...progressiveAssessmentTypes, "grade", "descriptor", "remark"].filter(isColumnVisible);
+  const weightedColumns = ["ca1", "ca2", "ca3", "ca4", "project", "totalCA", "exam", "finalScore", "grade"].filter(
+    isColumnVisible,
+  );
+  const showOverallSummary =
+    assessmentColumns == null ||
+    assessmentColumns.some((key) =>
+      ["avg", "average", "agg", "aggregatePoints", "final_average", "finalScore"].includes(key),
+    );
   const weightedLabels: Record<string, string> = {
     ca1: "CA1",
     ca2: "CA2",
@@ -207,7 +207,7 @@ export default function ReportCard({ report, onCustomize, assessmentView = "all"
           grade: subject.grade || "—",
           remarks: "",
         })),
-        assessmentView,
+        assessmentColumns,
         totals: {
           ...sumUgandaTotals(
             report.subjects.map((subject) => ({
@@ -390,13 +390,17 @@ export default function ReportCard({ report, onCustomize, assessmentView = "all"
       isUgandaPrimary
         ? [
             subject.name,
-            ...(assessmentView === "all"
-              ? [subject.bot ?? "—", subject.mot ?? "—", subject.eot ?? "—", subject.average ?? "—", subject.grade]
-              : assessmentView === "midterm"
-                ? [subject.mot ?? "—"]
-                : assessmentView === "end_term"
-                  ? [subject.eot ?? "—"]
-                  : [subject.average ?? "—", subject.aggregatePoints ?? "—", subject.grade]),
+            ...["bot", "mot", "eot", "avg", "agg", "grade"].filter(isColumnVisible).map((key) => {
+              const values: Record<string, unknown> = {
+                bot: subject.bot ?? "—",
+                mot: subject.mot ?? "—",
+                eot: subject.eot ?? "—",
+                avg: subject.average ?? "—",
+                agg: subject.aggregatePoints ?? "—",
+                grade: subject.grade,
+              };
+              return values[key];
+            }),
           ]
         : [subject.name, ...weightedColumns.map((key) => weightedValue(subject, key))],
     );
@@ -407,13 +411,16 @@ export default function ReportCard({ report, onCustomize, assessmentView = "all"
         isUgandaPrimary
           ? [
               "Subject",
-              ...(assessmentView === "all"
-                ? ["BOT /100", "MOT /100", "EOT /100", "Average", "Grade"]
-                : assessmentView === "midterm"
-                  ? ["MOT /100"]
-                  : assessmentView === "end_term"
-                    ? ["EOT /100"]
-                    : ["Average", "Aggregate", "Grade"]),
+              ...[
+                ["bot", "BOT /100"],
+                ["mot", "MOT /100"],
+                ["eot", "EOT /100"],
+                ["avg", "Average"],
+                ["agg", "Aggregate"],
+                ["grade", "Grade"],
+              ]
+                .filter(([key]) => isColumnVisible(key))
+                .map(([, label]) => label),
             ]
           : ["Subject", ...weightedColumns.map((key) => weightedLabels[key])],
       ],
@@ -459,7 +466,7 @@ export default function ReportCard({ report, onCustomize, assessmentView = "all"
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
-    if (assessmentView === "all" || assessmentView === "averages") {
+    if (showOverallSummary) {
       doc.text(`Overall Average: ${report.overall.average == null ? "—" : `${report.overall.average}%`}`, 14, summaryY);
       doc.text(`Grade: ${report.overall.grade}`, 80, summaryY);
       doc.text(`Division: ${report.overall.division}`, 140, summaryY);
@@ -713,16 +720,12 @@ export default function ReportCard({ report, onCustomize, assessmentView = "all"
                   <>
                     <th className="text-left px-3 py-2 text-white font-semibold">Subject</th>
                     {progressiveColumns.map((key) => {
-                      const label = (
-                        {
-                          holiday_package: "HPG (%)",
-                          mid_term: "Midterm / Mock (%)",
-                          final_average: "Final (%)",
-                          grade: "Grade",
-                          descriptor: "Grade descriptor",
-                          remark: "TR",
-                        } as Record<string, string>
-                      )[key];
+                      const label =
+                        progressiveLabels[key] ||
+                        ({ grade: "Grade", descriptor: "Grade descriptor", remark: "TR" } as Record<string, string>)[
+                          key
+                        ] ||
+                        key;
                       return (
                         <th key={key} className="text-center px-2 py-2 text-white font-semibold">
                           {label}
@@ -733,32 +736,24 @@ export default function ReportCard({ report, onCustomize, assessmentView = "all"
                 ) : isUgandaPrimary ? (
                   <>
                     <th className="text-left px-3 py-2 text-white font-semibold">Subject</th>
-                    {(assessmentView === "all"
-                      ? [
-                          ["BOT /100", "bot"],
-                          ["MOT /100", "mot"],
-                          ["EOT /100", "eot"],
-                          ["Average", "average"],
-                          ["Grade", "grade"],
-                        ]
-                      : assessmentView === "midterm"
-                        ? [["MOT /100", "mot"]]
-                        : assessmentView === "end_term"
-                          ? [["EOT /100", "eot"]]
-                          : [
-                              ["Average", "average"],
-                              ["Aggregate", "aggregatePoints"],
-                              ["Grade", "grade"],
-                            ]
-                    ).map(([label, key]) => (
-                      <th
-                        key={key}
-                        className="text-center px-2 py-2 text-white font-semibold"
-                        style={{ borderColor: primaryColor }}
-                      >
-                        {label}
-                      </th>
-                    ))}
+                    {[
+                      ["bot", "BOT /100"],
+                      ["mot", "MOT /100"],
+                      ["eot", "EOT /100"],
+                      ["avg", "Average"],
+                      ["agg", "Aggregate"],
+                      ["grade", "Grade"],
+                    ]
+                      .filter(([key]) => isColumnVisible(key))
+                      .map(([key, label]) => (
+                        <th
+                          key={key}
+                          className="text-center px-2 py-2 text-white font-semibold"
+                          style={{ borderColor: primaryColor }}
+                        >
+                          {label}
+                        </th>
+                      ))}
                   </>
                 ) : (
                   <>
@@ -806,18 +801,13 @@ export default function ReportCard({ report, onCustomize, assessmentView = "all"
                     </>
                   ) : isUgandaPrimary ? (
                     <>
-                      {(assessmentView === "all"
-                        ? ["bot", "mot", "eot", "average", "grade"]
-                        : assessmentView === "midterm"
-                          ? ["mot"]
-                          : assessmentView === "end_term"
-                            ? ["eot"]
-                            : ["average", "aggregatePoints", "grade"]
-                      ).map((key) => (
+                      {["bot", "mot", "eot", "avg", "agg", "grade"].filter(isColumnVisible).map((key) => (
                         <td key={key} className="text-center px-2 py-2 font-semibold">
-                          {key === "aggregatePoints"
-                            ? (subject.aggregatePoints ?? "—")
-                            : ((subject as any)[key] ?? "—")}
+                          {key === "avg"
+                            ? (subject.average ?? "—")
+                            : key === "agg"
+                              ? (subject.aggregatePoints ?? "—")
+                              : ((subject as any)[key] ?? "—")}
                         </td>
                       ))}
                     </>
@@ -865,7 +855,7 @@ export default function ReportCard({ report, onCustomize, assessmentView = "all"
 
         {/* Summary */}
         <div className="p-4 border-t-2" style={{ borderColor: primaryColor }}>
-          {(assessmentView === "all" || assessmentView === "averages") && (
+          {showOverallSummary && (
             <div>
               <div className={`grid gap-3 mb-4 ${showPosition ? "grid-cols-4" : "grid-cols-3"}`}>
                 <div
