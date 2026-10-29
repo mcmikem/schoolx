@@ -12,6 +12,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { OwlyHelpLink } from "@/components/owly/OwlyHelpLink";
 import { logger } from "@/lib/logger";
+import { formatStorageSize } from "@/lib/storage-health";
+import { useStorageHealth } from "@/lib/useStorageHealth";
 
 interface PendingItem {
   id: number;
@@ -55,7 +57,11 @@ function shortId(item: PendingItem): string {
 const TABLE_WORDS: Record<string, string> = {
   attendance: "Attendance register",
   students: "Student records",
+  classes: "Classes",
+  subjects: "Subjects",
+  staff: "Staff records",
   grades: "Marks",
+  report_cards: "Report cards",
   fee_payments: "Fee payments",
   fee_structure: "Fee structure",
   fee_adjustments: "Fee adjustments",
@@ -66,6 +72,7 @@ const TABLE_WORDS: Record<string, string> = {
   events: "Calendar events",
   canteen_sales: "Canteen sales",
   messages: "Messages",
+  audit_log: "Activity log",
 };
 
 const ACTION_WORDS: Record<string, string> = {
@@ -84,10 +91,11 @@ function humanAction(action: string): string {
 
 export default function SyncCenterPage() {
   const isOnline = useOnlineStatus();
+  const { health: storageHealth } = useStorageHealth();
   const [pending, setPending] = useState<PendingItem[]>([]);
   const [failed, setFailed] = useState<PendingItem[]>([]);
   const [serverRows, setServerRows] = useState<Record<string, ServerRow | null>>({});
-  const [metadata, setMetadata] = useState<SyncMetadata[]>([]);
+  const [cacheSummary, setCacheSummary] = useState<SyncMetadata[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [syncResult, setSyncResult] = useState<{
@@ -100,17 +108,11 @@ export default function SyncCenterPage() {
     try {
       const pendingItems = (await offlineDB.getPendingSync()) as unknown as PendingItem[];
       const failedItems = (await offlineDB.getFailedSync()) as unknown as PendingItem[];
-      const meta = await offlineDB.getAllLastSynced();
+      const summary = await offlineDB.getCacheSummary();
 
       setPending(pendingItems);
       setFailed(failedItems);
-
-      const metaList: SyncMetadata[] = Object.entries(meta).map(([table, timestamp]) => ({
-        table,
-        last_synced: timestamp,
-        record_count: 0,
-      }));
-      setMetadata(metaList);
+      setCacheSummary(summary);
 
       const conflicts = failedItems.filter(isConflict);
       if (conflicts.length === 0) {
@@ -204,7 +206,8 @@ export default function SyncCenterPage() {
 
   const conflicts = failed.filter(isConflict);
   const otherFailed = failed.filter((item) => !isConflict(item));
-  const lastSynced = metadata.reduce((latest, entry) => Math.max(latest, entry.last_synced), 0);
+  const lastSynced = cacheSummary.reduce((latest, entry) => Math.max(latest, entry.last_synced), 0);
+  const cachedRecordCount = cacheSummary.reduce((total, entry) => total + entry.record_count, 0);
 
   const pendingColumns: DataColumn<PendingItem>[] = [
     {
@@ -251,6 +254,37 @@ export default function SyncCenterPage() {
       ),
     },
   ];
+
+  const cacheColumns: DataColumn<SyncMetadata>[] = [
+    {
+      key: "table",
+      header: "What is saved",
+      sortValue: (entry) => entry.table,
+      render: (entry) => <span className="font-medium">{whatIsIt(entry.table)}</span>,
+    },
+    {
+      key: "records",
+      header: "Records",
+      align: "right",
+      sortValue: (entry) => entry.record_count,
+      render: (entry) => <span className="tabular-nums">{entry.record_count.toLocaleString()}</span>,
+    },
+    {
+      key: "last",
+      header: "Last updated",
+      sortValue: (entry) => entry.last_synced,
+      render: (entry) => (
+        <span className="text-xs text-[var(--t3)]">
+          {entry.last_synced ? formatTime(entry.last_synced) : "Saved on this phone"}
+        </span>
+      ),
+    },
+  ];
+
+  const storageSummary =
+    storageHealth.usage !== null && storageHealth.quota !== null
+      ? `${formatStorageSize(storageHealth.usage)} of ${formatStorageSize(storageHealth.quota)} used`
+      : "Storage usage unavailable";
 
   return (
     <PageErrorBoundary>
@@ -340,6 +374,38 @@ export default function SyncCenterPage() {
             </CardBody>
           </Card>
         )}
+
+        <section className="space-y-2">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h2 className="text-sm font-semibold text-[var(--t1)]">On this phone</h2>
+              <p className="text-xs text-[var(--t3)]">
+                {cachedRecordCount.toLocaleString()} records downloaded or queued · {storageSummary}
+                {storageHealth.persisted === true
+                  ? " · protected from cleanup"
+                  : storageHealth.persisted === false
+                    ? " · may be cleared if the phone needs space"
+                    : ""}
+              </p>
+            </div>
+            {(storageHealth.level === "low" || storageHealth.level === "critical") && (
+              <Badge variant="warning">Low storage — {formatStorageSize(storageHealth.free)} left</Badge>
+            )}
+          </div>
+          {cacheSummary.length > 0 ? (
+            <DataTable
+              caption="What is saved on this phone"
+              columns={cacheColumns}
+              rows={cacheSummary}
+              getRowId={(entry) => entry.table}
+              initialSort={{ key: "last", dir: "desc" }}
+            />
+          ) : (
+            <p className="rounded-xl border border-dashed border-[var(--border)] px-4 py-6 text-center text-xs text-[var(--t3)]">
+              Nothing downloaded yet. Pages you open and changes you save will appear here.
+            </p>
+          )}
+        </section>
 
         {conflicts.length > 0 && (
           <section className="space-y-3">

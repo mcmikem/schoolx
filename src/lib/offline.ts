@@ -668,6 +668,58 @@ class OfflineDB {
     });
   }
 
+  /**
+   * What is actually saved on this phone, table by table.
+   *
+   * Counting the stores (rather than trusting the last batch size written to
+   * sync_metadata) is what makes the sync centre honest: an offline payment
+   * queued but never fetched from the server still counts as saved work.
+   */
+  async getCacheSummary(): Promise<Array<{ table: string; last_synced: number; record_count: number }>> {
+    const db = await this.ensureDb();
+
+    const metadata = await new Promise<Array<{ table?: string; last_synced?: number }>>((resolve, reject) => {
+      const transaction = db.transaction(["sync_metadata"], "readonly");
+      const request = transaction.objectStore("sync_metadata").getAll();
+      request.onsuccess = () => resolve((request.result || []) as Array<{ table?: string; last_synced?: number }>);
+      request.onerror = () => reject(request.error);
+    });
+
+    const lastSyncedByTable = new Map<string, number>();
+    for (const entry of metadata) {
+      if (typeof entry.table === "string" && typeof entry.last_synced === "number") {
+        lastSyncedByTable.set(entry.table, entry.last_synced);
+      }
+    }
+
+    const tables = Array.from(db.objectStoreNames).filter((name) => name !== "sync_queue" && name !== "sync_metadata");
+
+    const counts = await Promise.all(
+      tables.map(
+        (table) =>
+          new Promise<number>((resolve) => {
+            try {
+              const transaction = db.transaction([table], "readonly");
+              const request = transaction.objectStore(table).count();
+              request.onsuccess = () => resolve(request.result || 0);
+              request.onerror = () => resolve(0);
+            } catch {
+              resolve(0);
+            }
+          }),
+      ),
+    );
+
+    return tables
+      .map((table, index) => ({
+        table,
+        last_synced: lastSyncedByTable.get(table) ?? 0,
+        record_count: counts[index],
+      }))
+      .filter((entry) => entry.record_count > 0 || entry.last_synced > 0)
+      .sort((a, b) => b.last_synced - a.last_synced || b.record_count - a.record_count);
+  }
+
   // Get pending sync items
   async getPendingSync(): Promise<OfflineRecord[]> {
     const db = await this.ensureDb();

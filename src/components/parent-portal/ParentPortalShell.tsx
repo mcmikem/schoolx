@@ -5,6 +5,7 @@ import Link from "next/link";
 import SidebarShell from "@/components/dashboard/SidebarShell";
 import TopBar from "@/components/dashboard/TopBar";
 import { OfflineModeBanner } from "@/components/OfflineModeBanner";
+import { StorageWarning } from "@/components/StorageWarning";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
@@ -41,6 +42,7 @@ function ParentPortalShellContent({ children, pageTitle }: { children: React.Rea
       >
         <TopBar pageTitle={pageTitle} onSignOut={handleSignOut} />
         <OfflineModeBanner />
+        <StorageWarning />
         <div className="parent-portal-shell flex-1 flex flex-col relative overflow-hidden">
           <div className="parent-portal-atmosphere" aria-hidden="true" />
           <div className="content-layer flex-1 flex flex-col">{children}</div>
