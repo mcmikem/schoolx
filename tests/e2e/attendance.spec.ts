@@ -5,7 +5,7 @@ test.describe("Attendance flow", () => {
   test.beforeEach(async ({ page }) => {
     await seedDemoSession(page, "headmaster");
     await page.goto("/dashboard/attendance");
-    await page.waitForLoadState("networkidle");
+    await expect(page.locator("#class-select, select").first()).toBeVisible({ timeout: 15_000 });
   });
 
   async function selectFirstClass(page: any) {
@@ -51,7 +51,6 @@ test.describe("Attendance flow", () => {
 
   test("attendance history page loads", async ({ page }) => {
     await page.goto("/dashboard/attendance/history");
-    await page.waitForLoadState("networkidle");
 
     // Verify the page loaded
     await expect(page.getByRole("heading", { name: /attendance history/i })).toBeVisible({ timeout: 10000 });

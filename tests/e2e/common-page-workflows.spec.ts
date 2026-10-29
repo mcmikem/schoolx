@@ -13,22 +13,32 @@ test("headmaster can search generated report cards, clear empty results, and edi
     await page.goto("/dashboard/report-cards/");
     await page.getByLabel("Select Class", { exact: true }).selectOption("4");
     await page.getByRole("button", { name: "Generate Now", exact: true }).click();
+    // The table becomes visible before report persistence finishes. Wait for
+    // the demo confirmation before capturing the count used by the filter
+    // assertions, otherwise the late result update looks like a broken clear.
+    await expect(page.getByRole("status").filter({ hasText: /Demo preview generated for \d+ students/ })).toBeVisible();
     const search = page.getByRole("searchbox", { name: "Search report cards" });
     await expect(search).toBeVisible();
     const results = page.getByRole("region", { name: "Report card results" });
     await expect(results).toBeVisible();
-    const count = await results.locator("tbody tr").count();
-    expect(count).toBeGreaterThan(0);
+    const visibleCount = await results.locator("tbody tr").count();
+    expect(visibleCount).toBeGreaterThan(0);
+    const summary = await page.getByRole("status").filter({ hasText: /^Showing / }).innerText();
+    const totalCount = Number(summary.match(/of (\d+) report cards/)?.[1]);
+    expect(totalCount).toBeGreaterThanOrEqual(visibleCount);
     await search.fill("no matching learner");
     await expect(page.getByRole("heading", { name: "No matching report cards" })).toBeVisible();
     await expect(search).toBeVisible();
     await page.getByRole("button", { name: "Clear report filters", exact: true }).click();
-    await expect(results.locator("tbody tr")).toHaveCount(count);
+    // Clearing also removes the default fee hold, so there can be more visible
+    // rows than before the search. Compare against the full count in the
+    // results summary, not the initially filtered subset.
+    await expect(results.locator("tbody tr")).toHaveCount(totalCount);
     const number = await results.locator("tbody tr").first().locator("td").first().locator(".font-mono").innerText();
     await search.fill(number);
     await expect(results.locator("tbody tr")).toHaveCount(1);
     await page.getByRole("button", { name: "Clear search report cards", exact: true }).click();
-    await expect(results.locator("tbody tr")).toHaveCount(count);
+    await expect(results.locator("tbody tr")).toHaveCount(totalCount);
     await results.getByLabel("Class Teacher", { exact: true }).first().fill("Making steady progress.");
     await expect(results.getByLabel("Class Teacher", { exact: true }).first()).toHaveValue("Making steady progress.");
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);

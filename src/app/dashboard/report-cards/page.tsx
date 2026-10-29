@@ -2509,7 +2509,7 @@ export default function ReportCardsPage() {
                             </td>
                             <td className="col-span-2 min-w-0 md:px-4 md:py-4">
                               <div className="space-y-2 md:max-w-[260px]">
-                                <fieldset className="rounded-xl border border-[var(--border)] p-2">
+                                <fieldset className="min-w-0 rounded-xl border border-[var(--border)] p-1 sm:p-2">
                                   <legend className="px-1 text-xs font-semibold text-[var(--t3)]">
                                     Behaviour (1–5)
                                   </legend>
@@ -2517,12 +2517,17 @@ export default function ReportCardsPage() {
                                     {BEHAVIOUR_SKILLS.map((skill) => {
                                       const current = behaviour[report.studentId]?.[skill] ?? null;
                                       return (
-                                        <div key={skill} className="flex items-center gap-1.5">
-                                          <span className="flex-1 truncate text-xs text-[var(--t2)]">{skill}</span>
+                                        <div
+                                          key={skill}
+                                          className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-1.5"
+                                        >
+                                          <span className="min-w-0 text-xs text-[var(--t2)] sm:flex-1 sm:truncate">
+                                            {skill}
+                                          </span>
                                           <div
                                             role="radiogroup"
                                             aria-label={`${skill} rating for ${report.name}`}
-                                            className="flex gap-0.5"
+                                            className="grid grid-cols-3 gap-1 sm:flex sm:gap-0.5"
                                           >
                                             {[1, 2, 3, 4, 5].map((value) => (
                                               <button
@@ -2535,7 +2540,7 @@ export default function ReportCardsPage() {
                                                 onClick={() =>
                                                   handleRate(report.studentId, skill, current === value ? null : value)
                                                 }
-                                                className={`h-8 w-8 rounded-md text-xs font-bold transition-colors ${
+                                                className={`h-11 w-11 rounded-md text-xs font-bold transition-colors sm:h-8 sm:w-8 ${
                                                   current === value
                                                     ? "bg-[var(--primary)] text-white"
                                                     : "bg-[var(--surface-container-low)] text-[var(--t3)] hover:bg-[var(--navy-soft)]"
