@@ -3,6 +3,7 @@ export interface CBCLearningOutcome {
   u1Score: number | null;
   u2Score: number | null;
   identifierScore?: number | null;
+  scoreLabel?: string;
 }
 
 export interface CBCSubjectEntry {
@@ -19,6 +20,9 @@ export interface CBCSubjectEntry {
   summativeScore: number | null;
   totalMark: number | null;
   grade: string;
+  /** Evidence columns; shown when a school records these assessment types. */
+  projectScore?: number | null;
+  continuousAssessmentScore?: number | null;
 }
 
 export interface CBCReportData {
@@ -165,6 +169,22 @@ export function calculateCBCSubject(rows: CBCAssessmentRow[]) {
   const summativeScore = eotScore === null ? null : calculateSummativeScore(eotScore);
   const totalMark =
     formativeScore === null || summativeScore === null ? null : Math.round(formativeScore + summativeScore);
+  const percentageAverage = (items: CBCAssessmentRow[]) => {
+    const percentages = items
+      .map((row) => {
+        const score = Number(row.score);
+        const max = Number(row.max_score ?? 100);
+        return Number.isFinite(score) && Number.isFinite(max) && max > 0 && score >= 0 && score <= max
+          ? (score / max) * 100
+          : null;
+      })
+      .filter((value): value is number => value !== null);
+    return percentages.length ? Math.round((percentages.reduce((sum, value) => sum + value, 0) / percentages.length) * 10) / 10 : null;
+  };
+  const projectScore = percentageAverage(rows.filter((row) => row.assessment_type === "project"));
+  const continuousAssessmentScore = percentageAverage(
+    rows.filter((row) => ["ca1", "ca2", "ca3", "ca4", "class_test", "saturday"].includes(row.assessment_type)),
+  );
   return {
     u1Average,
     u2Average,
@@ -174,13 +194,21 @@ export function calculateCBCSubject(rows: CBCAssessmentRow[]) {
     summativeScore,
     totalMark,
     grade: totalMark === null ? "—" : getCBCGrade(totalMark),
+    projectScore,
+    continuousAssessmentScore,
   };
 }
 
 export function summarizeCBCSubjects(
   subjects: Pick<
     CBCSubjectEntry,
-    "averageIdentifier" | "formativeScore" | "eotScore" | "summativeScore" | "totalMark"
+    | "averageIdentifier"
+    | "formativeScore"
+    | "eotScore"
+    | "summativeScore"
+    | "totalMark"
+    | "projectScore"
+    | "continuousAssessmentScore"
   >[],
 ) {
   const recorded = subjects.filter((subject) => subject.totalMark !== null && Number.isFinite(subject.totalMark));
@@ -199,6 +227,12 @@ export function summarizeCBCSubjects(
     ? identifiers.reduce((total, value) => total + value, 0) / identifiers.length
     : null;
   const isComplete = subjects.length > 0 && recorded.length === subjects.length;
+  const averageEvidence = (key: "projectScore" | "continuousAssessmentScore") => {
+    const values = subjects
+      .map((subject) => subject[key])
+      .filter((value): value is number => value != null && Number.isFinite(value));
+    return values.length ? Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 10) / 10 : null;
+  };
   return {
     totalIdentifier: sum("averageIdentifier"),
     totalFormative: sum("formativeScore"),
@@ -208,6 +242,8 @@ export function summarizeCBCSubjects(
     overallAverage,
     overallIdentifier,
     recordedSubjects: recorded.length,
+    projectAverage: averageEvidence("projectScore"),
+    continuousAssessmentAverage: averageEvidence("continuousAssessmentScore"),
     isComplete,
     averageGrade: !isComplete ? "Incomplete" : getCBCGrade(overallAverage!),
   };
@@ -274,7 +310,7 @@ export function generateCBCReportHTML(data: CBCReportData): string {
           (lo) => `
       <div class="cbc-outcome">
         <span class="cbc-outcome-num">${escapeHtml(lo.description)}</span>
-        <span class="cbc-outcome-score">${lo.identifierScore !== undefined ? `Identifier: ${cbcMark(lo.identifierScore)}` : `U1: ${cbcMark(lo.u1Score)} · U2: ${cbcMark(lo.u2Score)}`}</span>
+        <span class="cbc-outcome-score">${lo.identifierScore !== undefined ? `${escapeHtml(lo.scoreLabel || "Identifier")}: ${cbcMark(lo.identifierScore)}` : `U1: ${cbcMark(lo.u1Score)} · U2: ${cbcMark(lo.u2Score)}`}</span>
       </div>
     `,
         )
@@ -288,6 +324,9 @@ export function generateCBCReportHTML(data: CBCReportData): string {
         </div>
         <div class="cbc-teacher-remark">${escapeHtml(subj.teacherRemark)}</div>
         ${outcomesHtml}
+        ${subj.projectScore != null || subj.continuousAssessmentScore != null
+          ? `<div class="cbc-evidence">Project: ${cbcMark(subj.projectScore ?? null)}% &nbsp; · &nbsp; Continuous assessment: ${cbcMark(subj.continuousAssessmentScore ?? null)}%</div>`
+          : ""}
         <div class="cbc-mark-outof"><strong>Mark Out of 20:</strong> ${cbcMark(subj.formativeScore)}</div>
       </div>
     `;
@@ -304,6 +343,8 @@ export function generateCBCReportHTML(data: CBCReportData): string {
         <td>${cbcMark(subj.u1Average)}</td>
         <td>${cbcMark(subj.u2Average)}</td>
         <td>${cbcMark(subj.averageIdentifier)}</td>
+        <td>${cbcMark(subj.projectScore ?? null)}</td>
+        <td>${cbcMark(subj.continuousAssessmentScore ?? null)}</td>
         <td>${cbcMark(subj.formativeScore)}</td>
         <td>${cbcMark(subj.eotScore, 0)}</td>
         <td>${cbcMark(subj.summativeScore, 0)}</td>
@@ -332,6 +373,8 @@ export function generateCBCReportHTML(data: CBCReportData): string {
             <th>U1</th>
             <th>U2</th>
             <th>AVE</th>
+            <th>Project<br/>%</th>
+            <th>CA<br/>%</th>
             <th>Total<br/>out of 20</th>
             <th>EOT<br/>100%</th>
             <th>Total<br/>out of 80</th>
@@ -349,6 +392,8 @@ export function generateCBCReportHTML(data: CBCReportData): string {
             <td></td>
             <td></td>
             <td><strong>${cbcMark(summary.overallIdentifier)}</strong></td>
+            <td><strong>${cbcMark(summary.projectAverage)}</strong></td>
+            <td><strong>${cbcMark(summary.continuousAssessmentAverage)}</strong></td>
             <td><strong>${cbcMark(summary.totalFormative)}</strong></td>
             <td><strong>${cbcMark(summary.totalEot)}</strong></td>
             <td><strong>${cbcMark(summary.totalSummative)}</strong></td>
@@ -467,7 +512,8 @@ export function generateCBCReportHTML(data: CBCReportData): string {
     .cbc-teacher-remark { font-size: 6.5pt; font-style: italic; color: #333; margin: 0 0 1px 0; }
     .cbc-outcome { display: flex; justify-content: space-between; font-size: 6.5pt; padding: 0 0 0 8px; line-height: 1.3; }
     .cbc-outcome-num { flex: 1; }
-    .cbc-outcome-score { font-weight: bold; width: 20px; text-align: right; }
+    .cbc-outcome-score { font-weight: bold; min-width: 72px; text-align: right; }
+    .cbc-evidence { font-size: 6.5pt; text-align: right; color: #333; }
     .cbc-mark-outof { font-size: 7pt; text-align: right; margin-top: 1px; color: ${pc}; }
 
     .cbc-section-title { font-size: 9pt; font-weight: bold; text-align: center; color: ${pc}; margin: 4px 0 2px; border-top: 2px solid ${pc}; padding-top: 3px; }

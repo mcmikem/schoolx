@@ -17,6 +17,8 @@ describe("reportGradeColor", () => {
 
 describe("competencyBadge", () => {
   it.each([
+    ["emerging", "Emerging", "○"],
+    ["secure", "Secure", "⭐⭐⭐"],
     ["mastered", "Mastered", "⭐⭐⭐"],
     ["demonstrates", "Demonstrates", "⭐⭐"],
     ["developing", "Developing", "⭐"],
@@ -25,6 +27,12 @@ describe("competencyBadge", () => {
     const badge = competencyBadge(level);
     expect(badge.label).toBe(label);
     expect(badge.emoji).toBe(emoji);
+  });
+
+  it("recognizes nursery-friendly descriptive ratings", () => {
+    expect(competencyBadge("Very Good").label).toBe("Very Good");
+    expect(competencyBadge("Fair").label).toBe("Fair");
+    expect(competencyBadge("Beginning").label).toBe("Beginning");
   });
 
   it("falls back to Not Started", () => {

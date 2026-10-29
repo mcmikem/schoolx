@@ -90,6 +90,16 @@ describe("CBC calculation and print consistency", () => {
     ).toMatchObject({ totalMark: 80, grade: "A" });
   });
 
+  it("includes project and continuous-assessment evidence without including those display fields in the total", () => {
+    const result = calculateCBCSubject([
+      { assessment_type: "project", score: 30, max_score: 40 },
+      { assessment_type: "ca1", score: 15, max_score: 20 },
+      { assessment_type: "ca2", score: 18, max_score: 20 },
+      ...completeRows,
+    ]);
+    expect(result).toMatchObject({ projectScore: 75, continuousAssessmentScore: 82.5, totalMark: 80 });
+  });
+
   it("does not turn missing identifiers or an absent exam into a zero or a fail grade", () => {
     expect(calculateCBCSubject([])).toMatchObject({ totalMark: null, grade: "—", u1Average: null, u2Average: null });
     expect(
@@ -159,11 +169,11 @@ describe("CBC calculation and print consistency", () => {
     expect(container.querySelector(".cbc-overall-average")).toHaveTextContent("—");
     expect(container.querySelector(".cbc-provisional")).toHaveTextContent("Provisional");
     const table = container.querySelector(".cbc-summary-table")!;
-    expect(table.querySelectorAll("thead th")).toHaveLength(10);
-    expect(table.querySelectorAll("tbody tr:first-child td")).toHaveLength(10);
-    expect(table.querySelectorAll("tfoot td")).toHaveLength(10);
-    expect(table.querySelector("tbody tr")!.children[7]).toHaveTextContent("—");
-    expect(table.querySelector("tbody tr")!.children[8]).toHaveTextContent("—");
+    expect(table.querySelectorAll("thead th")).toHaveLength(12);
+    expect(table.querySelectorAll("tbody tr:first-child td")).toHaveLength(12);
+    expect(table.querySelectorAll("tfoot td")).toHaveLength(12);
+    expect(table.querySelector("tbody tr")!.children[9]).toHaveTextContent("—");
+    expect(table.querySelector("tbody tr")!.children[10]).toHaveTextContent("—");
     expect(html).not.toContain("NaN");
   });
 
@@ -182,6 +192,23 @@ describe("CBC calculation and print consistency", () => {
     expect(summary.overallAverage).toBe(40);
     expect(container.querySelector(".cbc-overall-average")).toHaveTextContent("40.0%");
     expect(container.querySelector(".cbc-provisional")).toBeNull();
-    expect(container.querySelectorAll(".cbc-summary-table tbody tr")[1].children[7]).toHaveTextContent("0");
+    expect(container.querySelectorAll(".cbc-summary-table tbody tr")[1].children[9]).toHaveTextContent("0");
+  });
+
+  it("prints project and continuous-assessment columns plus AOI labels", () => {
+    const evidence = subject([
+      { assessment_type: "aoi", score: 2 },
+      { assessment_type: "project", score: 75, max_score: 100 },
+      { assessment_type: "ca1", score: 80, max_score: 100 },
+      ...completeRows,
+    ]);
+    evidence.learningOutcomes = [{ description: "Activity 1", u1Score: null, u2Score: null, identifierScore: 2, scoreLabel: "AOI level" }];
+    const container = document.createElement("div");
+    container.innerHTML = generateCBCReportHTML(reportData([evidence]));
+    expect(container.querySelector(".cbc-summary-table thead")).toHaveTextContent("Project");
+    expect(container.querySelector(".cbc-summary-table thead")).toHaveTextContent("CA");
+    expect(container.querySelector(".cbc-outcome-score")).toHaveTextContent("AOI level: 2.0");
+    expect(container.querySelector(".cbc-evidence")).toHaveTextContent("Project: 75.0%");
+    expect(container.querySelector(".cbc-evidence")).toHaveTextContent("Continuous assessment: 80.0%");
   });
 });

@@ -277,6 +277,19 @@ export default function ReportCardsPage() {
   const selectedClassName = selectedClassObj
     ? `${selectedClassObj.name}${selectedClassObj.stream ? ` ${selectedClassObj.stream}` : ""}`
     : "";
+  const selectedClassStage = detectLevelFromClass(selectedClassName);
+  const selectedForm = Number(selectedClassName.match(/(?:S\.?\s*)(\d+)/i)?.[1] || 0);
+  const reportFormatGuidance = selectedClassStage === "nursery"
+    ? "Nursery: Competency format is recommended. It shows learning areas, ratings, teacher observations and a rating key without percentages or class positions."
+    : selectedClassStage === "secondary" && selectedForm >= 1 && selectedForm <= 4
+      ? "Lower secondary: CBC/NCDC format can show AOI or identifier evidence, continuous assessment, projects and end-of-term results with a grading key."
+      : selectedClassStage === "secondary" && selectedForm >= 5
+        ? "Upper secondary: use the numerical format for principal and subsidiary subjects, or add competency notes where your school records them."
+        : selectedClassStage === "primary" && /P\.?\s*[1-3]/i.test(selectedClassName)
+          ? "Lower primary: choose competency ratings for thematic learning areas, or use Combined when your school reports both ratings and marks."
+          : selectedClassStage === "primary"
+            ? "Upper primary: Numerical format supports subject marks and grades; use the competency or combined formats when those ratings are recorded."
+            : "Choose a format that matches the assessments and ratings recorded for this class.";
 
   // What stands between this class and cards going home. One strip, not a
   // scavenger scroll: the headmaster shouldn't have to find the two pupils
@@ -549,6 +562,7 @@ export default function ReportCardsPage() {
     );
     const secondaryProgressive =
       detectLevelFromClass(className) === "secondary" && classHasHolidayPackage && classHasMidterm;
+    const competencyOnly = reportFormat === "competency";
 
     const reportList: StudentReport[] = students.map((student) => {
       const subjScores = studentSubjectScores[student.id] || {};
@@ -564,7 +578,7 @@ export default function ReportCardsPage() {
           gradeColor: reportGradeColor(result.grade),
           competencyLevel: comp?.level,
           competencyNotes: comp?.notes,
-          isMissing: result.isMissing,
+          isMissing: competencyOnly ? !comp : reportFormat === "both" ? result.isMissing || !comp : result.isMissing,
           teacherRemark: data.rows.find((row) => row.teacher_remark?.trim())?.teacher_remark?.trim() || "",
           uganda: result.uganda,
         };
@@ -579,8 +593,9 @@ export default function ReportCardsPage() {
             score: 0,
             grade: "M.M",
             gradeColor: "text-amber-500",
-            competencyLevel: "not_started",
-            isMissing: true,
+            competencyLevel: studentComp[sub.id]?.level || "not_started",
+            competencyNotes: studentComp[sub.id]?.notes || "",
+            isMissing: competencyOnly ? !studentComp[sub.id] : true,
             uganda: bucketUgandaSubject([]),
           }
         );
@@ -590,9 +605,24 @@ export default function ReportCardsPage() {
       // studies on a P.2 card) fold together here; ungrouped subjects keep
       // their own lines. No configuration → unchanged ladder.
       const classLevel = classes.find((c: any) => c.id === classId)?.level as string | undefined;
-      const cardSubjects = groupSubjectDetails(allSubjectDetails, resolveReportRows(reportRows, classLevel));
+      const cardSubjects = competencyOnly
+        ? allSubjectDetails
+        : groupSubjectDetails(allSubjectDetails, resolveReportRows(reportRows, classLevel));
 
-      const summary = summarizeClassicReport(cardSubjects, className);
+      const numericalSummary = summarizeClassicReport(cardSubjects, className);
+      const competencyRecorded = cardSubjects.filter((subject) => !subject.isMissing).length;
+      const summary = competencyOnly
+        ? {
+            totalMarks: 0,
+            maxMarks: 0,
+            average: 0,
+            recordedSubjects: competencyRecorded,
+            isComplete: cardSubjects.length > 0 && competencyRecorded === cardSubjects.length,
+            isRankable: false,
+            aggregate: null,
+            division: "Not applicable",
+          }
+        : numericalSummary;
 
       return {
         studentId: student.id,
@@ -620,13 +650,15 @@ export default function ReportCardsPage() {
       };
     });
 
-    const rankedReports = rankCompleteReports(reportList);
+    const rankedReports = competencyOnly
+      ? reportList.map((report) => ({ ...report, position: 0 }))
+      : rankCompleteReports(reportList);
     // Pre-filled from the pupil's own results, not from a position band. The
     // head-teacher line is left for the head teacher to write -- it is their
     // signature, and auto-filling it with a generated sentence put words in a
     // head teacher's mouth on every report in the school.
     rankedReports.forEach((r) => {
-      r.classTeacherComment = suggestClassTeacherRemark(remarkFactsFor(r));
+      r.classTeacherComment = competencyOnly ? "" : suggestClassTeacherRemark(remarkFactsFor(r));
       r.hmComment = "";
     });
 
@@ -645,7 +677,7 @@ export default function ReportCardsPage() {
     // One cached-or-live fetch, split client-side (was 3 round-trips).
     const fetched = isDemo
       ? { rows: [], offline: false }
-      : await fetchReportGrades(classId, ["u1", "u2", "eot", "exam", "competency", "identifier_score", "aoi"]);
+      : await fetchReportGrades(classId, ["u1", "u2", "eot", "exam", "competency", "identifier_score", "aoi", "project", "ca1", "ca2", "ca3", "ca4", "class_test", "saturday"]);
 
     const reportList: StudentReport[] = students.map((student) => {
       const studentRows = fetched.rows.filter((row: any) => row.student_id === student.id);
@@ -672,6 +704,7 @@ export default function ReportCardsPage() {
             u1Score: null,
             u2Score: null,
             identifierScore: cbcIdentifierValue(row),
+            scoreLabel: row.assessment_type === "aoi" ? "AOI level" : "Identifier level",
           });
         }
 
@@ -689,7 +722,7 @@ export default function ReportCardsPage() {
                   : "text-red-500",
           isMissing: calculation.totalMark === null,
           teacherName: u1ForSubj[0]?.teacher_remark ? "Subject Teacher" : "Subject Teacher",
-          teacherRemark: u1ForSubj[0]?.teacher_remark || "",
+          teacherRemark: rows.find((row: any) => row.teacher_remark?.trim())?.teacher_remark?.trim() || "",
           teacherInitials: "",
           learningOutcomes,
         };
@@ -759,6 +792,8 @@ export default function ReportCardsPage() {
               formativeScore: (s as any).formativeScore ?? null,
               eotScore: (s as any).eotScore ?? null,
               summativeScore: (s as any).summativeScore ?? null,
+              projectScore: (s as any).projectScore ?? null,
+              continuousAssessmentScore: (s as any).continuousAssessmentScore ?? null,
               learningOutcomes: (s as any).learningOutcomes ?? [],
             }
           : {}),
@@ -1657,7 +1692,18 @@ export default function ReportCardsPage() {
     const schoolAddress = (school as any)?.address || "";
     const reportHeader = (school as any)?.report_header_text || (school as any)?.report_header || "";
     const reportFooter = (school as any)?.report_footer_text || (school as any)?.report_footer || "";
-    const isSecondaryProgressive = report.assessmentModel === "secondary_progressive";
+    const isSecondaryProgressive = report.assessmentModel === "secondary_progressive" && reportFormat !== "competency";
+    const reportForm = Number(report.className.match(/(?:S\.?\s*)(\d+)/i)?.[1] || 0);
+    const isLowerSecondaryCompetency = detectLevelFromClass(report.className) === "secondary" && reportForm >= 1 && reportForm <= 4;
+    const competencyLabelForReport = (level: string | undefined) => {
+      const label = competencyBadge(level).label;
+      if (!isLowerSecondaryCompetency) return label;
+      return ({
+        Emerging: "1 · Below expectation",
+        Developing: "2 · Approaching / achieving",
+        Secure: "3 · Exceeding expectations",
+      } as Record<string, string>)[label] || label;
+    };
     const escapeHtml = (s: string) =>
       String(s)
         .replace(/&/g, "&amp;")
@@ -1668,10 +1714,12 @@ export default function ReportCardsPage() {
 
     const subjectRows = report.subjects
       .map((s) => {
-        const compCell =
-          reportFormat !== "numerical" && s.competencyLevel
-            ? `<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">${competencyBadge(s.competencyLevel).emoji}</td>`
-            : "";
+        const compCell = reportFormat !== "numerical"
+          ? `<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">${escapeHtml(competencyLabelForReport(s.competencyLevel))}</td>`
+          : "";
+        const competencyNoteCell = reportFormat !== "numerical"
+          ? `<td style="padding:6px 10px;border:1px solid #ddd">${escapeHtml(s.competencyNotes || "")}</td>`
+          : "";
         if (isSecondaryProgressive) {
           const assessments = s.uganda?.assessmentBreakdown || [];
           const valueFor = (type: string) => assessments.find((item) => item.type === type)?.score;
@@ -1697,6 +1745,7 @@ export default function ReportCardsPage() {
               : ""
           }
           ${compCell}
+          ${competencyNoteCell}
         </tr>`;
       })
       .join("");
@@ -1740,6 +1789,7 @@ export default function ReportCardsPage() {
       .summary-card{border:1px solid #cbd5e1;padding:8px;text-align:center}
       .summary-value{font-size:20px;font-weight:bold;color:${schoolColor}}
       .summary-label{font-size:10px;color:#888;text-transform:uppercase}
+      .competency-key{border:1px solid #cbd5e1;padding:8px 10px;margin:10px 0;font-size:10px;line-height:1.5;background:#f8fafc}
       .comment-box{border:1px solid #cbd5e1;padding:8px;margin:7px 0;min-height:48px}
       .comment-label{font-size:11px;font-weight:bold;text-transform:uppercase;color:#888;margin-bottom:4px}
       .notes{font-size:9px;color:#475569;border-top:1px solid #cbd5e1;padding-top:6px;margin-top:8px;line-height:1.4}
@@ -1754,7 +1804,7 @@ export default function ReportCardsPage() {
         ${schoolMotto ? `<div class="school-motto">“${escapeHtml(schoolMotto)}”</div>` : ""}
         ${schoolAddress ? `<div class="school-info">${escapeHtml(schoolAddress)}</div>` : ""}
         <div class="school-info">Tel: ${escapeHtml(school?.phone || "")} | Email: ${escapeHtml(school?.email || "")}</div>
-        <div class="report-title">${escapeHtml(reportHeader || (isSecondaryProgressive ? "TERM PROGRESSIVE REPORT" : "STUDENT REPORT CARD"))}</div>
+        <div class="report-title">${escapeHtml(reportHeader || (isSecondaryProgressive ? "TERM PROGRESSIVE REPORT" : reportFormat === "competency" ? "COMPETENCY PROGRESS REPORT" : "STUDENT REPORT CARD"))}</div>
         <div class="school-info">Term ${currentTerm}, ${academicYear} · ${new Date().toLocaleDateString("en-GB")}</div>
       </div>
       <div class="info-grid">
@@ -1763,29 +1813,32 @@ export default function ReportCardsPage() {
         <div><span class="info-label">Class</span><span class="info-value">${escapeHtml(report.className)}</span></div>
         <div><span class="info-label">Gender</span><span class="info-value">${report.gender === "M" ? "Male" : report.gender === "F" ? "Female" : escapeHtml(report.gender)}</span></div>
         <div><span class="info-label">Term</span><span class="info-value">${currentTerm} · ${academicYear}</span></div>
-        <div><span class="info-label">Class position</span><span class="info-value">${report.position || "—"} of ${filteredStudents.length}</span></div>
+        ${reportFormat !== "competency" ? `<div><span class="info-label">Class position</span><span class="info-value">${report.position || "—"} of ${filteredStudents.length}</span></div>` : ""}
       </div>
       <table>
         <thead>
           <tr>${
             isSecondaryProgressive
               ? '<th>Subject</th><th style="text-align:center">HPG (%)</th><th style="text-align:center">Midterm / Mock (%)</th><th style="text-align:center">Final (%)</th><th style="text-align:center">Grade</th><th>Grade descriptor</th><th>Teacher remark</th>'
-              : `<th>Subject</th>${reportFormat !== "competency" ? '<th style="text-align:center">Score</th><th style="text-align:center">Grade</th>' : ""}${reportFormat !== "numerical" ? '<th style="text-align:center">Competency</th>' : ""}`
+              : `<th>Learning area / subject</th>${reportFormat !== "competency" ? '<th style="text-align:center">Score</th><th style="text-align:center">Grade</th>' : ""}${reportFormat !== "numerical" ? '<th style="text-align:center">Competency rating</th><th>Teacher observation</th>' : ""}`
           }</tr>
         </thead>
         <tbody>${subjectRows}</tbody>
       </table>
-      <div class="summary">
-        ${
-          isSecondaryProgressive
-            ? `<div class="summary-card"><div class="summary-value">${report.maxMarks ? `${report.average}%` : "—"}</div><div class="summary-label">Overall average</div></div>
-             <div class="summary-card"><div class="summary-value">${report.secondaryPoints ?? "—"}</div><div class="summary-label">Points (A=5 to E=1)</div></div>`
-            : `<div class="summary-card"><div class="summary-value">${report.maxMarks ? `${report.totalMarks}/${report.maxMarks}` : "—"}</div><div class="summary-label">Total</div></div>
-             <div class="summary-card"><div class="summary-value">${report.maxMarks ? `${report.average}%` : "—"}</div><div class="summary-label">Average (recorded subjects)</div></div>`
-        }
-        <div class="summary-card"><div class="summary-value">${report.position || "—"}</div><div class="summary-label">Position</div></div>
-        <div class="summary-card"><div class="summary-value">${escapeHtml(report.division)}</div><div class="summary-label">Division</div></div>
-      </div>
+      ${reportFormat === "competency"
+        ? ""
+        : `<div class="summary">
+            ${isSecondaryProgressive
+              ? `<div class="summary-card"><div class="summary-value">${report.maxMarks ? `${report.average}%` : "—"}</div><div class="summary-label">Overall average</div></div>
+                 <div class="summary-card"><div class="summary-value">${report.secondaryPoints ?? "—"}</div><div class="summary-label">Points (A=5 to E=1)</div></div>`
+              : `<div class="summary-card"><div class="summary-value">${report.maxMarks ? `${report.totalMarks}/${report.maxMarks}` : "—"}</div><div class="summary-label">Total</div></div>
+                 <div class="summary-card"><div class="summary-value">${report.maxMarks ? `${report.average}%` : "—"}</div><div class="summary-label">Average (recorded subjects)</div></div>`}
+            <div class="summary-card"><div class="summary-value">${report.position || "—"}</div><div class="summary-label">Position</div></div>
+            <div class="summary-card"><div class="summary-value">${escapeHtml(report.division)}</div><div class="summary-label">Division</div></div>
+          </div>`}
+      ${reportFormat !== "numerical" ? `<div class="competency-key"><strong>Competency key:</strong> ${isLowerSecondaryCompetency
+        ? "1 Below expectation · 2 Approaching / achieving expectation · 3 Exceeding expectations."
+        : "1 Emerging — needs substantial support · 2 Developing — progressing but not yet secure · 3 Secure — demonstrates the expected competency."}</div>` : ""}
       <div class="comment-box">
         <div class="comment-label">Class Teacher's Comment</div>
         <div>${escapeHtml(studentComment.classTeacher || report.classTeacherComment)}</div>
@@ -2311,6 +2364,7 @@ export default function ReportCardsPage() {
                   <option value="both">Combined (Marks + Competency)</option>
                   <option value="cbc">CBC/NCDC Report (A4)</option>
                 </select>
+                <p className="mt-2 text-xs leading-relaxed text-[var(--t3)]">{reportFormatGuidance}</p>
               </div>
             </div>
           </CardBody>
@@ -2322,8 +2376,9 @@ export default function ReportCardsPage() {
             <div>
               <div className="font-semibold text-amber-800">Incomplete Data Detected</div>
               <div className="text-sm text-amber-700">
-                Averages use recorded subjects only. Missing or invalid marks show as —. Incomplete reports are
-                provisional: they are not ranked, sent by SMS, or saved as official results.
+                {reportFormat === "competency"
+                  ? "Missing competency ratings show as Not Started. Incomplete reports are provisional and are not saved as official results."
+                  : "Averages use recorded subjects only. Missing or invalid marks show as —. Incomplete reports are provisional: they are not ranked, sent by SMS, or saved as official results."}
               </div>
               <OwlyHelpLink
                 question="Why are some marks missing from this report card?"
