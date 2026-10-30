@@ -161,9 +161,15 @@ export default function ForcePasswordChangeGate() {
       window.location.reload();
     } catch (err) {
       logger.error("[ForcePasswordChange] update failed:", err);
-      const message = err instanceof Error ? err.message : "";
-      if (/session/i.test(message)) {
+      const message = err instanceof Error ? err.message : String(err || "");
+      if (/session|jwt|token/i.test(message)) {
         setSessionMissing(true);
+      } else if (/same password|different from/i.test(message)) {
+        setError("Your new password must be different from the temporary one. Choose another.");
+      } else if (/weak|short|uppercase|number|lowercase/i.test(message)) {
+        setError(`Password rejected: ${message}. ${PASSWORD_RULES}`);
+      } else if (/network|fetch|timeout/i.test(message)) {
+        setError("Network problem while saving. Check your connection and try again.");
       } else {
         setError(message || "Failed to update the password. Please try again.");
       }
@@ -216,12 +222,29 @@ export default function ForcePasswordChangeGate() {
           <p className="text-xs text-gray-500 dark:text-gray-400">{PASSWORD_RULES}</p>
 
           {error && (
-            <p
-              className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-700"
-              role="alert"
-            >
-              {error}
-            </p>
+            <div role="alert" className="space-y-2">
+              <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-700">
+                {error}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                If this keeps happening, tap &quot;Sign in again&quot; below and retry. Your temporary password is still
+                valid.
+              </p>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await supabase?.auth.signOut();
+                  } catch {
+                    // ignore
+                  }
+                  window.location.href = "/login/";
+                }}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                Sign in again
+              </button>
+            </div>
           )}
 
           <button
