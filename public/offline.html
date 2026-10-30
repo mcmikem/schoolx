@@ -230,6 +230,7 @@
           <a class="button primary" href="/dashboard/">Open dashboard</a>
           <a class="button secondary" href="/dashboard/sync-center/">Sync center</a>
           <button class="secondary" id="retry-btn" type="button">Try again</button>
+          <button class="secondary" id="back-btn" type="button">Go back</button>
         </div>
         <p class="note">
           Registers, marks, fees, students and other supported screens keep working offline. Anything that cannot be
@@ -349,8 +350,26 @@
         }
 
         retry.onclick = function () {
-          location.reload();
+          if (navigator.onLine) {
+            location.reload();
+          } else {
+            retry.textContent = "Still offline";
+            setTimeout(function () {
+              retry.textContent = "Try again";
+            }, 2000);
+          }
         };
+
+        var backBtn = document.getElementById("back-btn");
+        if (backBtn) {
+          backBtn.onclick = function () {
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              location.href = "/dashboard/";
+            }
+          };
+        }
 
         updateStatus(navigator.onLine);
         window.addEventListener("online", function () {
