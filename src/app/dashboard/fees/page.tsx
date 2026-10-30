@@ -863,8 +863,9 @@ export default function FinanceHubPage() {
   // filter is only a fallback for before a pupil is chosen.
   const paymentStudent = students.find((s) => s.id === newPayment.student_id);
   const adjustmentStudent = students.find((s) => s.id === newAdjustment.student_id);
+  const adjustmentBalance = studentBalances.find((s) => s.id === newAdjustment.student_id);
   const paymentClassId = paymentStudent?.class_id || selectedClass;
-  const adjustmentClassId = adjustmentStudent?.class_id || selectedClass;
+  const adjustmentClassId = adjustmentStudent?.class_id || adjustmentBalance?.class_id || selectedClass;
   const paymentBoarding = paymentStudent?.boarding_status || "";
   const paymentTakesMeals = paymentStudent?.takes_meals ?? null;
   const paymentIsNewAdmission = paymentStudent?.is_new_admission ?? null;
@@ -2608,6 +2609,8 @@ export default function FinanceHubPage() {
           onSubmit={handleCreateAdjustment}
           newAdjustment={newAdjustment}
           onAdjustmentChange={handleAdjustmentChange}
+          fees={adjustmentFees}
+          defaultFeeId={adjustmentDefaultFeeId}
           saving={saving}
         />
 
