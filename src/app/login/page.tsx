@@ -401,8 +401,10 @@ export default function LoginPage() {
             >
               <p className="font-semibold">You are offline.</p>
               <p className="mt-1">
-                Signing in needs an internet connection. If you have signed in on this device before, close this page
-                and reopen SkoolMate from your home screen — your saved session will open the dashboard.
+                Signing in needs an internet connection the first time. If you have signed in on this device before,
+                close this tab and reopen SkoolMate from your home-screen icon (or your browser&apos;s saved bookmark) —
+                your saved session will open the dashboard without internet. Once inside, attendance, grades and other
+                saved records keep working offline.
               </p>
             </div>
           )}
