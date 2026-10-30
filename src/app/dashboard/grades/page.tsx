@@ -93,6 +93,8 @@ const ASSESSMENT_TYPES = [
   "project",
   "exam",
   "holiday_package",
+  "aoi",
+  "identifier_score",
   "competency",
   "u1",
   "u2",
@@ -110,6 +112,9 @@ async function saveGrade(grade: {
   assessment_type: string;
   score: number;
   max_score?: number;
+  identifier_score?: number;
+  competency_level?: string;
+  topic_name?: string;
   term: number;
   academic_year: string;
   recorded_by?: string;
@@ -126,7 +131,20 @@ async function saveGrade(grade: {
   // columns and PostgREST rejects unknown keys with PGRST204. Strip them
   // before any payload reaches the queue or the online upsert.
   const { isDemo, schoolId, ...rest } = grade;
-  const payload = { ...rest, max_score: maxScore };
+  const payload = {
+    ...rest,
+    max_score: maxScore,
+    ...(grade.assessment_type === "competency"
+      ? { competency_level: grade.competency_level || getCompetencyLabel(grade.score as CompetencyValue) }
+      : {}),
+    ...(grade.assessment_type === "aoi" ||
+    grade.assessment_type === "identifier_score" ||
+    grade.assessment_type === "u1" ||
+    grade.assessment_type === "u2"
+      ? { identifier_score: grade.identifier_score ?? grade.score }
+      : {}),
+    ...(grade.assessment_type === "aoi" && !grade.topic_name ? { topic_name: "Activity of Integration" } : {}),
+  };
 
   if (isDemo) {
     return { ...payload, id: `demo-grade-${Date.now()}`, created_at: new Date().toISOString() };
@@ -303,7 +321,23 @@ export default function GradesPage() {
     };
   }, [school?.id, isDemo]);
 
-  const track = resolveTrackForClass(classes.find((item) => item.id === selectedClass)?.name, schoolSettings);
+  const selectedClassForAssessment = classes.find((item) => item.id === selectedClass);
+  const selectedClassForAssessmentName = selectedClassForAssessment?.name || "";
+  const selectedClassFormMatch = selectedClassForAssessmentName.match(/(?:S\.?\s*|Senior\s*|Form\s*)(\d+)/i);
+  const selectedClassForm = Number(selectedClassFormMatch?.[1] || 0);
+  const selectedClassLevel = String(selectedClassForAssessment?.level || "").toLowerCase();
+  const isNurseryClass =
+    selectedClassLevel === "nursery" || /\b(baby|middle|top)\b/i.test(selectedClassForAssessmentName);
+  const isSecondaryClass =
+    selectedClassLevel.includes("secondary") ||
+    /\b(s\.?\s*\d+|senior\s*\d+|form\s*\d+)\b/i.test(selectedClassForAssessmentName);
+  const isLowerSecondaryClass = isSecondaryClass && selectedClassForm >= 1 && selectedClassForm <= 4;
+  const isUpperSecondaryClass = isSecondaryClass && selectedClassForm >= 5 && selectedClassForm <= 6;
+  const isLowerPrimaryClass =
+    selectedClassLevel === "primary" && /(?:P\.?\s*([1-3])|Primary\s*([1-3]))/i.test(selectedClassForAssessmentName);
+  const isUpperPrimaryClass =
+    selectedClassLevel === "primary" && /(?:P\.?\s*([4-7])|Primary\s*([4-7]))/i.test(selectedClassForAssessmentName);
+  const track = resolveTrackForClass(selectedClassForAssessmentName, schoolSettings);
   const gradeBasis = useMemo(() => parseTermGradeBasis(schoolSettings[TERM_GRADE_BASIS_KEY]), [schoolSettings]);
   const assessmentMaximums = useMemo(
     () => parseAssessmentMaxScores(schoolSettings[ASSESSMENT_MAX_SCORES_KEY]),
@@ -315,6 +349,16 @@ export default function GradesPage() {
     () => (track.startsWith("secondary") && gradeBasis?.types.includes("holiday_package") ? ["holiday_package"] : []),
     [track, gradeBasis],
   );
+  const classEvidenceAssessmentTypes = useMemo(() => {
+    if (isLowerSecondaryClass) {
+      return ["aoi", "identifier_score", "u1", "u2", "ca1", "ca2", "ca3", "ca4", "project", "exam"];
+    }
+    if (isUpperSecondaryClass) return ["ca1", "ca2", "project", "exam"];
+    if (isUpperPrimaryClass) {
+      return ["ca1", "ca2", "ca3", "ca4", "project"];
+    }
+    return [];
+  }, [isLowerSecondaryClass, isUpperSecondaryClass, isUpperPrimaryClass]);
   // A school that does not run a beginning-of-term test gets no BOT column at
   // all. Showing an empty one invites a stray mark, and BOT is weighed into
   // MID, so one accidental entry shifts every average for that pupil.
@@ -326,6 +370,14 @@ export default function GradesPage() {
       mid_term: { label: "MOT", explain: `Mid Term · /${getAssessmentMaximum("mid_term")}` },
       eot: { label: "EOT", explain: `End of Term · /${getAssessmentMaximum("eot")}` },
       holiday_package: { label: "HPG", explain: `Holiday package · /${getAssessmentMaximum("holiday_package")}` },
+      aoi: { label: "AOI", explain: `Activity of Integration · /${getAssessmentMaximum("aoi")}` },
+      identifier_score: {
+        label: "Identifier",
+        explain: `Competency identifier · /${getAssessmentMaximum("identifier_score")}`,
+      },
+      u1: { label: "U1", explain: `Unit 1 formative evidence · /${getAssessmentMaximum("u1")}` },
+      u2: { label: "U2", explain: `Unit 2 formative evidence · /${getAssessmentMaximum("u2")}` },
+      project: { label: "Project", explain: `Project assessment · /${getAssessmentMaximum("project")}` },
     };
     for (const column of GRADING_TRACKS[track].columns) {
       for (const key of column.keys)
@@ -875,13 +927,28 @@ export default function GradesPage() {
   // no input boxes at all -- while the on-page guidance said "type the score in
   // the box under CA1". The guidance described a UI that did not exist on
   // first use, which is why teachers could not work out where to type.
+  const gradingTotalAssessmentTypes = useMemo(
+    () => [...assessmentTypesFor(false, useBotEnabled), ...additionalAssessmentTypes],
+    [useBotEnabled, additionalAssessmentTypes],
+  );
   const activeAssessmentTypes = useMemo(
     () =>
       competencyMode
         ? [...assessmentTypesFor(true, useBotEnabled)]
-        : [...assessmentTypesFor(false, useBotEnabled), ...additionalAssessmentTypes],
-    [competencyMode, useBotEnabled, additionalAssessmentTypes],
+        : [...gradingTotalAssessmentTypes, ...classEvidenceAssessmentTypes],
+    [competencyMode, useBotEnabled, gradingTotalAssessmentTypes, classEvidenceAssessmentTypes],
   );
+  useEffect(() => {
+    if (!selectedClass) return;
+    setShowAllAssessmentColumns(false);
+    if (isNurseryClass) {
+      setCompetencyMode(true);
+    } else {
+      setCompetencyMode(false);
+      if (isLowerSecondaryClass) setEntryAssessment("aoi");
+      else if (isUpperSecondaryClass) setEntryAssessment("exam");
+    }
+  }, [selectedClass, isNurseryClass, isLowerSecondaryClass, isUpperSecondaryClass]);
   const currentEntryAssessment = activeAssessmentTypes.includes(entryAssessment)
     ? entryAssessment
     : activeAssessmentTypes[0] || "mid_term";
@@ -960,7 +1027,7 @@ export default function GradesPage() {
       });
       return gradeBasisAvg(rows, gradeBasis);
     }
-    const scores = activeAssessmentTypes.flatMap((type) => {
+    const scores = gradingTotalAssessmentTypes.flatMap((type) => {
       const key = `${studentId}_${type}`;
       const score = getMark(studentId, type);
       return score === null ? [] : [(score / (markMaxScores[key] ?? getAssessmentMaximum(type))) * 100];
@@ -2103,6 +2170,52 @@ export default function GradesPage() {
                   })}
                 </div>
               </section>
+            )}
+            {isNurseryClass && (
+              <div
+                role="note"
+                className="rounded-xl border border-[var(--border)] bg-[var(--surface-container)] px-3 py-2 text-xs text-[var(--t2)]"
+              >
+                Nursery uses observations and competency ratings rather than exam totals. This class opens in competency
+                mode: 1 Emerging, 2 Developing, 3 Secure. Add the teacher observation on the report card.
+              </div>
+            )}
+            {isLowerPrimaryClass && (
+              <div
+                role="note"
+                className="rounded-xl border border-[var(--border)] bg-[var(--surface-container)] px-3 py-2 text-xs text-[var(--t2)]"
+              >
+                P1–P3 may use thematic competency ratings or marks. Switch on Competency for observation-based ratings;
+                use the assessment tabs when this school records numeric tests.
+              </div>
+            )}
+            {isUpperPrimaryClass && (
+              <div
+                role="note"
+                className="rounded-xl border border-[var(--border)] bg-[var(--surface-container)] px-3 py-2 text-xs text-[var(--t2)]"
+              >
+                P4–P7 use subject marks and grades. At P7, English, Mathematics, Science and Social Studies form the PLE
+                aggregate; the report card uses the school&apos;s configured assessment recipe.
+              </div>
+            )}
+            {isLowerSecondaryClass && (
+              <div
+                role="note"
+                className="rounded-xl border border-[var(--border)] bg-[var(--surface-container)] px-3 py-2 text-xs text-[var(--t2)]"
+              >
+                S1–S4 evidence is entered separately: AOI and Identifier are out of 3 (1 below, 2 approaching/achieving,
+                3 exceeding); U1/U2, projects and CA use their shown maximums. These evidence marks do not change the
+                term total unless the school&apos;s grading recipe includes them.
+              </div>
+            )}
+            {isUpperSecondaryClass && (
+              <div
+                role="note"
+                className="rounded-xl border border-[var(--border)] bg-[var(--surface-container)] px-3 py-2 text-xs text-[var(--t2)]"
+              >
+                Enter principal and subsidiary subjects separately. Projects and continuous-assessment marks remain
+                supporting evidence; the school&apos;s grading recipe determines the term total.
+              </div>
             )}
             {/*
                 One progress readout, not four.

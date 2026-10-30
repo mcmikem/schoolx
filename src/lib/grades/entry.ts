@@ -36,6 +36,11 @@ export const KNOWN_ASSESSMENT_TYPES = [
   "ca4",
   "u1",
   "u2",
+  "mock_exam",
+  "mock",
+  "class_test",
+  "saturday",
+  "hpg",
 ] as const;
 
 /**
@@ -75,8 +80,8 @@ export const ASSESSMENT_MAX: Record<string, number> = {
   holiday_package: 100,
   aoi: 3,
   identifier_score: 3,
-  u1: 100,
-  u2: 100,
+  u1: 3,
+  u2: 3,
 };
 
 export const ASSESSMENT_MAX_SCORES_KEY = "assessment_max_scores_v1";
@@ -191,6 +196,8 @@ const DEFAULT_LABELS: Record<string, string> = {
   holiday_package: "Holiday Package (HPG)",
   aoi: "Activity of Integration (AOI)",
   identifier_score: "Identifier Score",
+  u1: "Unit 1 Identifier",
+  u2: "Unit 2 Identifier",
   competency: "Competency Level",
 };
 

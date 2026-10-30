@@ -46,8 +46,9 @@ describe("assessment columns", () => {
 });
 
 describe("school assessment maxima", () => {
-  it("defaults every numeric assessment to 100", () => {
+  it("defaults marks to 100 and competency identifiers to a three-point scale", () => {
     expect(parseAssessmentMaxScores(null)).toEqual(ASSESSMENT_MAX);
+    expect(parseAssessmentMaxScores(null)).toMatchObject({ aoi: 3, identifier_score: 3, u1: 3, u2: 3 });
   });
 
   it("accepts valid school-specific maxima and ignores invalid or unknown values", () => {
