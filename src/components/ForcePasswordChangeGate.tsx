@@ -111,9 +111,19 @@ export default function ForcePasswordChangeGate() {
       // Confirm the session is still there before sending the update, so a
       // stale tab reports something actionable instead of the SDK's
       // "Auth session missing!".
-      const {
+      let {
         data: { session },
       } = await supabase.auth.getSession();
+      if (!session) {
+        // On a slow phone the in-memory session can be gone while the
+        // refresh token is still valid. Try once more before giving up.
+        try {
+          const refreshed = await supabase.auth.refreshSession();
+          session = refreshed.data.session ?? null;
+        } catch {
+          session = null;
+        }
+      }
       if (!session) {
         setBusy(false);
         setSessionMissing(true);
@@ -123,14 +133,15 @@ export default function ForcePasswordChangeGate() {
       // Rewrite password + clear the metadata flag in one auth update. The
       // metadata keys are re-sent explicitly so a replace-semantics GoTrue
       // build cannot drop the role/phone the degraded-login path depends on.
+      const metadata: Record<string, unknown> = {
+        full_name: user.full_name,
+        role: user.role,
+        must_change_password: false,
+      };
+      if (user.phone) metadata.phone = user.phone;
       const { error: authUpdateError } = await supabase.auth.updateUser({
         password,
-        data: {
-          full_name: user.full_name,
-          phone: user.phone,
-          role: user.role,
-          must_change_password: false,
-        },
+        data: metadata,
       });
       if (authUpdateError) throw authUpdateError;
 
