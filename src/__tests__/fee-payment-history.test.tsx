@@ -29,7 +29,7 @@ describe("FeePaymentHistory", () => {
   it("shows a total and readable payment methods", () => {
     render(
       <FeePaymentHistory
-        payments={payments as any}
+        payments={payments}
         students={students}
         formatCurrency={(amount) => `UGX ${amount.toLocaleString()}`}
         onEditPayment={() => {}}

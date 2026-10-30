@@ -108,21 +108,11 @@ interface AttendanceStatusMeta {
 export default function StudentHubPage() {
   const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
-  // Allow teachers to add and correct student details (subject/class teachers included)
-  const canManageStudents = user?.role
-    ? canAccess(user.role as UserRole, "students") ||
-      [
-        "teacher",
-        "dean_of_studies",
-        "head_of_department",
-        "dos",
-        "deputy_head",
-        "headmaster",
-        "school_admin",
-        "admin",
-        "super_admin",
-      ].includes(user.role)
-    : false;
+  // Teachers can register and correct students (RLS limits them to their own classes).
+  // Import, PLE numbering, meals/registration bulk edits and deleting stay with
+  // non-class-scoped staff, matching the database policies.
+  const canManageStudents = user?.role ? canAccess(user.role as UserRole, "students") : false;
+  const canBulkAdmin = !isClassScopedRole(user?.role);
   const canExportStudents = user?.role ? canAccess(user.role as UserRole, "export") : false;
   const toast = useToast();
   const searchParams = useSearchParams();
@@ -665,7 +655,7 @@ export default function StudentHubPage() {
                   Register Student
                 </button>
               )}
-              {canManageStudents && (
+              {canBulkAdmin && (
                 <button
                   type="button"
                   onClick={() => setShowBulkImportModal(true)}
@@ -675,7 +665,7 @@ export default function StudentHubPage() {
                   Import CSV
                 </button>
               )}
-              {canManageStudents && (
+              {canBulkAdmin && (
                 <div className="relative">
                   <button
                     type="button"
@@ -872,6 +862,8 @@ export default function StudentHubPage() {
             onDeleteStudent={(id) => setDeleteConfirm({ open: true, studentId: id })}
             onBulkUpdateStudents={handleBulkUpdateStudents}
             canManage={canManageStudents}
+            canDelete={canBulkAdmin}
+            canBulkAdmin={canBulkAdmin}
           />
 
           <StudentDetailPanel

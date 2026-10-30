@@ -92,7 +92,7 @@ export default function PaymentModal({
     }
     const editableBalance = selectedStudent ? selectedStudent.balance + (isEditing ? editingAmount : 0) : 0;
     if (selectedStudent && Number(newPayment.amount_paid) > editableBalance && !newPayment.allow_overpayment) {
-      errs.amount_paid = `Amount exceeds remaining student balance of ${formatCurrency(editableBalance)}`;
+      errs.amount_paid = `Amount exceeds student balance of ${formatCurrency(editableBalance)}`;
     }
     if (newPayment.payment_method === "mobile_money" && !newPayment.momo_transaction_id.trim()) {
       errs.momo_transaction_id = "Transaction ID is required for mobile money";

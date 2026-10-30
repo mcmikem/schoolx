@@ -31,26 +31,35 @@ function isMissingFeePaymentsColumnError(error: unknown, columnName: string) {
   return code === "42703" && message.includes(`fee_payments.${columnName}`);
 }
 
+let feePaymentsAuditSupported: boolean | null = null;
+
+function feePaymentsSelect(withClass: boolean, withAudit: boolean) {
+  const audit = withAudit ? "updated_at, updated_by," : "";
+  const student = withClass
+    ? "students!inner (id, first_name, last_name, student_number, class_id, school_id, classes (name))"
+    : "students!inner (id, first_name, last_name, student_number, class_id, school_id)";
+  return `
+    id, student_id, fee_id, amount_paid, payment_method, payment_reference,
+    paid_by, notes, payment_date, created_at, recorded_by, ${audit}
+    ${student},
+    fee_structure (name)
+  `;
+}
+
 async function fetchFeePaymentsWithFallback(options: { schoolId: string; page: number; limit: number }) {
-  const selectWithClass = `
-    id, student_id, fee_id, amount_paid, payment_method, payment_reference,
-    paid_by, notes, payment_date, created_at, updated_at, recorded_by, updated_by,
-    students!inner (id, first_name, last_name, student_number, class_id, school_id, classes (name)),
-    fee_structure (name)
-  `;
-
-  const selectWithoutClass = `
-    id, student_id, fee_id, amount_paid, payment_method, payment_reference,
-    paid_by, notes, payment_date, created_at, updated_at, recorded_by, updated_by,
-    students!inner (id, first_name, last_name, student_number, class_id, school_id),
-    fee_structure (name)
-  `;
-
-  const joins = [selectWithClass, selectWithoutClass];
+  // The audit columns (updated_at/updated_by) come from a newer migration. Until
+  // it is applied, the list falls back to the older select instead of failing.
+  const attempts = [
+    { withClass: true, withAudit: true },
+    { withClass: false, withAudit: true },
+    { withClass: true, withAudit: false },
+    { withClass: false, withAudit: false },
+  ].filter((a) => a.withAudit === false || feePaymentsAuditSupported !== false);
 
   let lastError: unknown = null;
 
-  for (const fields of joins) {
+  for (const attempt of attempts) {
+    const fields = feePaymentsSelect(attempt.withClass, attempt.withAudit);
     const includeDeletedAtFilter = feePaymentsDeletedAtSupported !== false;
 
     let query = supabase
@@ -72,6 +81,15 @@ async function fetchFeePaymentsWithFallback(options: { schoolId: string; page: n
 
     if (isMissingFeePaymentsColumnError(result.error, "deleted_at")) {
       feePaymentsDeletedAtSupported = false;
+      continue;
+    }
+
+    if (
+      attempt.withAudit &&
+      (isMissingFeePaymentsColumnError(result.error, "updated_at") ||
+        isMissingFeePaymentsColumnError(result.error, "updated_by"))
+    ) {
+      feePaymentsAuditSupported = false;
       continue;
     }
 

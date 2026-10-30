@@ -436,21 +436,8 @@ export default function StudentProfilePage() {
 
   // Teachers have students:true (read) but not settings/messages. Editing a
   // student and messaging parents are admin concerns, so gate both.
-  const canEditStudent = user?.role
-    ? canAccess(user.role as UserRole, "settings") ||
-      canAccess(user.role as UserRole, "students") ||
-      [
-        "teacher",
-        "dean_of_studies",
-        "head_of_department",
-        "dos",
-        "deputy_head",
-        "headmaster",
-        "school_admin",
-        "admin",
-        "super_admin",
-      ].includes(user.role)
-    : false;
+  const canEditStudent = user?.role ? canAccess(user.role as UserRole, "settings") : false;
+  const canEditDetails = user?.role ? canAccess(user.role as UserRole, "students") : false;
   const canSmsParent = user?.role ? canAccess(user.role as UserRole, "messages") : false;
   // A pupil's fee position is financial data about a family. Teachers hold
   // students:true so they reach this page, but they do not hold fees — so the
@@ -802,7 +789,7 @@ export default function StudentProfilePage() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 sm:justify-end">
-                  {canEditStudent && (
+                  {canEditDetails && (
                     <button
                       onClick={() => setShowEdit(true)}
                       className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
@@ -1025,7 +1012,7 @@ export default function StudentProfilePage() {
                     </div>
                     <div className="flex items-center justify-between gap-4 sm:col-span-2">
                       <dt>Home address</dt>
-                      <dd className="font-semibold text-right">{(student as any).home_address || "N/A"}</dd>
+                      <dd className="font-semibold text-right">{student.address || "N/A"}</dd>
                     </div>
                   </dl>
                 </div>

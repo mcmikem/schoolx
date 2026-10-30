@@ -162,6 +162,10 @@ interface StudentRegistryPanelProps {
   /** False for class-scoped roles: the registry is read-only for them (RLS
    * already refuses the writes; this just stops offering the buttons). */
   canManage?: boolean;
+  /** Delete a pupil. Teachers add and edit but cannot remove (RLS refuses). */
+  canDelete?: boolean;
+  /** Bulk admin tools: CSV import, meals/registration bulk edit. */
+  canBulkAdmin?: boolean;
 }
 
 export default function StudentRegistryPanel({
@@ -213,6 +217,8 @@ export default function StudentRegistryPanel({
   onDeleteStudent,
   onBulkUpdateStudents,
   canManage = true,
+  canDelete = canManage,
+  canBulkAdmin = canManage,
 }: StudentRegistryPanelProps) {
   const { user } = useAuth();
   const canExport = user?.role ? canAccess(user.role as UserRole, "export") : false;
@@ -536,7 +542,7 @@ export default function StudentRegistryPanel({
 
       {(canManage || lowBandwidthMode) && (
         <section className="mb-4 border-b border-[var(--border)] pb-4">
-          {canManage && (
+          {canBulkAdmin && (
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <div className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--navy)] mb-2">
@@ -569,7 +575,7 @@ export default function StudentRegistryPanel({
               </button>
             </div>
           )}
-          {canManage && (showQuickImport || shouldForceShowQuickImport) && (
+          {canBulkAdmin && (showQuickImport || shouldForceShowQuickImport) && (
             <div className="mt-4 space-y-3 border-t border-[var(--border)] pt-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-semibold text-[var(--t1)]">Upload student list</div>
@@ -911,7 +917,7 @@ export default function StudentRegistryPanel({
             style={{ borderBottom: "1px solid var(--border)", background: "var(--navy-soft)" }}
           >
             <span className="text-xs font-bold text-[var(--navy)]">{selectedIds.size} selected on this page</span>
-            {canManage && (
+            {canBulkAdmin && (
               <button
                 type="button"
                 onClick={() => {
@@ -1188,25 +1194,27 @@ export default function StudentRegistryPanel({
                                 >
                                   <MaterialIcon style={{ fontSize: 18, color: "var(--t3)" }}>edit</MaterialIcon>
                                 </button>
-                                <button
-                                  onClick={() => onDeleteStudent(student.id)}
-                                  title="Remove student"
-                                  aria-label={`Remove ${student.first_name} ${student.last_name}`}
-                                  style={{
-                                    background: "none",
-                                    border: "none",
-                                    cursor: "pointer",
-                                    padding: 0,
-                                    width: 44,
-                                    height: 44,
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    borderRadius: 8,
-                                  }}
-                                >
-                                  <MaterialIcon style={{ fontSize: 18, color: "var(--t3)" }}>delete</MaterialIcon>
-                                </button>
+                                {canDelete && (
+                                  <button
+                                    onClick={() => onDeleteStudent(student.id)}
+                                    title="Remove student"
+                                    aria-label={`Remove ${student.first_name} ${student.last_name}`}
+                                    style={{
+                                      background: "none",
+                                      border: "none",
+                                      cursor: "pointer",
+                                      padding: 0,
+                                      width: 44,
+                                      height: 44,
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      borderRadius: 8,
+                                    }}
+                                  >
+                                    <MaterialIcon style={{ fontSize: 18, color: "var(--t3)" }}>delete</MaterialIcon>
+                                  </button>
+                                )}
                               </>
                             )}
                           </div>
@@ -1351,15 +1359,17 @@ export default function StudentRegistryPanel({
                             <MaterialIcon style={{ fontSize: 16 }}>edit</MaterialIcon>
                             Edit
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => onDeleteStudent(student.id)}
-                            aria-label={`Delete ${student.first_name} ${student.last_name}`}
-                            className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--red-soft)] bg-[var(--red-soft)] text-[13px] font-semibold text-[var(--red-ink)] transition-transform active:scale-[0.98]"
-                          >
-                            <MaterialIcon style={{ fontSize: 16 }}>delete</MaterialIcon>
-                            Delete
-                          </button>
+                          {canDelete && (
+                            <button
+                              type="button"
+                              onClick={() => onDeleteStudent(student.id)}
+                              aria-label={`Delete ${student.first_name} ${student.last_name}`}
+                              className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--red-soft)] bg-[var(--red-soft)] text-[13px] font-semibold text-[var(--red-ink)] transition-transform active:scale-[0.98]"
+                            >
+                              <MaterialIcon style={{ fontSize: 16 }}>delete</MaterialIcon>
+                              Delete
+                            </button>
+                          )}
                         </>
                       )}
                     </div>

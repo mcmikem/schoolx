@@ -111,6 +111,18 @@ type PaymentClaimRow = {
 
 type FinanceTab = "balances" | "payment-plans" | "invoices" | "cashbook" | "claims";
 
+type EditablePayment = {
+  id: string;
+  student_id: string;
+  amount_paid: number | string;
+  payment_method: string;
+  payment_reference?: string | null;
+  payment_date: string;
+  paid_by?: string | null;
+  notes?: string | null;
+  fee_id?: string | null;
+};
+
 /**
  * The single tab row. Balances/Payments/Structure all live under the
  * `balances` FinanceTab; the first three entries select that tab and a
@@ -289,7 +301,7 @@ export default function FinanceHubPage() {
     }
   };
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [editingPayment, setEditingPayment] = useState<(typeof payments)[number] | null>(null);
+  const [editingPayment, setEditingPayment] = useState<EditablePayment | null>(null);
   const isOnline = useOnlineStatus();
 
   /**
@@ -326,8 +338,8 @@ export default function FinanceHubPage() {
     setShowPaymentModal(true);
   };
 
-  const openEditPaymentModal = (payment: (typeof payments)[number]) => {
-    setEditingPayment(payment as (typeof payments)[number]);
+  const openEditPaymentModal = (payment: EditablePayment) => {
+    setEditingPayment(payment);
     setNewPayment({
       student_id: payment.student_id,
       amount_paid: String(payment.amount_paid ?? ""),
@@ -2364,11 +2376,11 @@ export default function FinanceHubPage() {
             {balanceSubTab === "payments" && (
               <>
                 <FeePaymentHistory
-                  payments={payments as any}
+                  payments={payments}
                   students={students}
                   formatCurrency={formatCurrency}
                   recordedByName={recordedByName}
-                  onEditPayment={openEditPaymentModal as any}
+                  onEditPayment={openEditPaymentModal}
                   onDeletePayment={handleDeletePayment}
                   onRecordPayment={() => openPaymentModal()}
                 />
