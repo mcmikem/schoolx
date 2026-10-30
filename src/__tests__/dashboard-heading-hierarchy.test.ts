@@ -36,7 +36,7 @@ const CASES: Array<{ role: string; file: string; h1: H1Source }> = [
   { role: "secretary", file: "src/app/dashboard/DashboardRouter.tsx", h1: "roleheader" },
   { role: "dorm_master", file: "src/app/dashboard/DashboardRouter.tsx", h1: "roleheader" },
   { role: "marketer", file: "src/app/dashboard/dashboards/MarketerDashboard.tsx", h1: "own" },
-  { role: "super_admin", file: "src/app/dashboard/dashboards/SuperAdminDashboard.tsx", h1: "own" },
+  { role: "super_admin", file: "src/app/dashboard/dashboards/SuperAdminDashboard.tsx", h1: "pageheader" },
 ];
 
 describe("every role dashboard has exactly one page h1", () => {

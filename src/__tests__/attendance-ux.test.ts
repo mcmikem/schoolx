@@ -159,8 +159,10 @@ describe("register adapts without losing desktop density", () => {
 
 describe("attendance desktop workspace stays flat", () => {
   it("uses one compact class/date rail instead of a selector card", () => {
-    expect(page).toContain('className="border-y border-[var(--border)] py-3"');
-    expect(page).toContain('className="input !h-10 !py-0 text-sm font-semibold"');
+    expect(page).toContain(
+      'className="flex flex-col gap-3 border-b border-[var(--border)] py-3 sm:flex-row sm:items-end"',
+    );
+    expect(page).toContain('className="input h-10 text-sm"');
     expect(page).toContain('id="attendance-student-search"');
   });
 
