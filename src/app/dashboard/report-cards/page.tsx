@@ -29,14 +29,19 @@ import {
 import { DEMO_GRADES, DEMO_SUBJECTS } from "@/lib/demo-data";
 import { computeFeeClearance, type FeeClearance } from "@/lib/fee-clearance";
 import { type ReportLayoutId, detectLevelFromClass, resolveUseBot, SETTING_KEYS } from "@/lib/grading-tracks";
-import { useClasses, useFeeAdjustments, useFeePayments, useFeeStructure, useStudents, useSubjects } from "@/lib/hooks";
+import { useClasses, useFeeAdjustments, useFeePayments, useFeeStructure, useStaff, useStudents, useSubjects } from "@/lib/hooks";
 import { isTimeoutResult, timeoutFallback, withTimeout } from "@/lib/hooks/utils";
 import { logger } from "@/lib/logger";
 import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print-window";
 import { writeAnalysisRemark } from "@/lib/report-analysis";
 import { competencyBadge, reportGradeColor } from "@/lib/report-card-presentation";
 import { searchReportList } from "@/lib/report-list";
-import { suggestClassTeacherRemark, suggestHeadTeacherRemark } from "@/lib/report-remarks";
+import {
+  suggestClassTeacherRemark,
+  suggestCompetencyClassTeacherRemark,
+  suggestCompetencyHeadTeacherRemark,
+  suggestHeadTeacherRemark,
+} from "@/lib/report-remarks";
 import { classicReportSubject, rankCompleteReports, summarizeClassicReport } from "@/lib/report-summary";
 import {
   REPORT_ROWS_KEY,
@@ -61,9 +66,11 @@ interface StudentReport {
   studentId: string;
   name: string;
   studentNumber: string;
+  pleIndexNumber?: string;
   gender: string;
   photoUrl?: string;
   className: string;
+  classTeacherName?: string;
   subjects: {
     name: string;
     score: number;
@@ -72,6 +79,7 @@ interface StudentReport {
     competencyLevel?: string;
     competencyNotes?: string;
     teacherRemark?: string;
+    teacherInitials?: string;
     isMissing?: boolean;
     /** MID/END/AVG/AGG breakdown for the Uganda print layout (additive). */
     uganda?: UgandaSubjectResult;
@@ -95,6 +103,7 @@ function buildSecondaryProgressMarkup(
   report: StudentReport,
   options: {
     schoolName: string;
+    schoolCode: string;
     schoolColor: string;
     logoUrl: string;
     photoUrl: string;
@@ -102,6 +111,16 @@ function buildSecondaryProgressMarkup(
     address: string;
     phone: string;
     email: string;
+    classTeacherName: string;
+    headTeacherName: string;
+    classTeacherSignatureUrl: string;
+    headTeacherSignatureUrl: string;
+    showMinistryLine: boolean;
+    showConduct: boolean;
+    behaviour: Record<string, number | null>;
+    feeBalance: number | null;
+    gradingNote: string;
+    assessmentColumns: string[] | null;
     term: number;
     year: string;
     classSize: number;
@@ -116,83 +135,147 @@ function buildSecondaryProgressMarkup(
       .replace(/>/g, "&gt;")
       .replace(/\"/g, "&quot;")
       .replace(/'/g, "&#039;");
-  const rows = report.subjects
-    .map((subject) => {
-      const values = subject.uganda?.assessmentBreakdown || [];
-      const valueFor = (type: string) => values.find((value) => value.type === type)?.score;
-      const hpg = valueFor("holiday_package");
-      const midterm = valueFor("mid_term");
-      const final = valueFor("final_average");
-      return `<tr>
-        <td>${esc(subject.name)}</td><td class="numeric">${hpg == null ? "—" : hpg}</td>
-        <td class="numeric">${midterm == null ? "—" : midterm}</td>
-        <td class="numeric emphasis">${final == null ? "—" : final}</td>
-        <td class="numeric emphasis">${esc(subject.grade || "—")}</td>
-        <td>${esc(subject.uganda?.gradeDescriptor || "—")}</td>
-        <td>${esc(subject.teacherRemark || "")}</td>
-      </tr>`;
-    })
-    .join("");
+  const remarkFacts = {
+    pupilName: report.name,
+    className: report.className,
+    position: report.position > 0 ? report.position : null,
+    classSize: options.classSize,
+    average: report.maxMarks > 0 ? report.average : null,
+    division: report.division,
+    subjects: report.subjects.map((subject) => ({
+      name: subject.name,
+      avg: subject.uganda?.avg ?? null,
+      grade: subject.uganda?.grade ?? subject.grade,
+    })),
+  };
+  const classRemark = options.classRemark.trim() || report.classTeacherComment.trim() || suggestClassTeacherRemark(remarkFacts);
+  const headRemark = options.headRemark.trim() || report.hmComment.trim() || suggestHeadTeacherRemark(remarkFacts);
+  const romanTerm = ({ 1: "I", 2: "II", 3: "III" } as Record<number, string>)[options.term] || String(options.term);
   const date = new Date().toLocaleDateString("en-GB");
+  const feeBalance = options.feeBalance == null
+    ? "Not recorded"
+    : options.feeBalance > 0
+      ? `UGX ${options.feeBalance.toLocaleString()}`
+      : "Cleared";
+  const conductRows = Object.entries(options.behaviour)
+    .filter(([, rating]) => rating != null)
+    .map(([skill, rating]) => `<div class="conduct-item"><span>${esc(skill)}</span><strong>${rating}/5</strong></div>`)
+    .join("");
+  const conductHtml = options.showConduct
+    ? `<section class="conduct-section"><h2>Behaviour &amp; Co-curricular</h2>${conductRows || `<p>Not recorded this term.</p>`}</section>`
+    : "";
+  const assessmentTypes = Array.from(
+    new Set(report.subjects.flatMap((subject) => (subject.uganda?.assessmentBreakdown || []).map((column) => column.type))),
+  );
+  const allColumnKeys = [...assessmentTypes, "grade", "descriptor", "teacherInitials"];
+  const visibleColumnKeys = options.assessmentColumns == null
+    ? allColumnKeys
+    : allColumnKeys.filter((key) => options.assessmentColumns?.includes(key));
+  const showsFinalResult = visibleColumnKeys.includes("final_average") || visibleColumnKeys.includes("grade");
+  const footerNotes = [
+    ...(visibleColumnKeys.includes("holiday_package") ? ["HPG = Holiday Package."] : []),
+    ...(visibleColumnKeys.includes("mid_term") ? ["Mock = Mock Examination."] : []),
+    ...(visibleColumnKeys.includes("teacherInitials") ? ["TR = subject teacher initials."] : []),
+    ...(showsFinalResult ? ["Grades: A 85–100 · B 75–84 · C 65–74 · D 50–64 · E below 50. Points: A=5, B=4, C=3, D=2, E=1.", options.gradingNote] : []),
+  ].filter(Boolean);
+  const columnLabels: Record<string, string> = Object.fromEntries(
+    report.subjects.flatMap((subject) => (subject.uganda?.assessmentBreakdown || []).map((column) => [column.type, `${column.label} (%)`])),
+  );
+  Object.assign(columnLabels, { grade: "Grade", descriptor: "Grade descriptor", teacherInitials: "TR" });
+  const subjectRows = report.subjects.map((subject) => {
+    const values = subject.uganda?.assessmentBreakdown || [];
+    const cells = visibleColumnKeys.map((key) => {
+      const value = key === "grade"
+        ? subject.grade || "—"
+        : key === "descriptor"
+          ? subject.uganda?.gradeDescriptor || "—"
+          : key === "teacherInitials"
+            ? subject.teacherInitials || "—"
+            : values.find((item) => item.type === key)?.score ?? "—";
+      const emphasis = ["grade", "final_average"].includes(key) ? " emphasis" : "";
+      const numeric = !["descriptor", "teacherInitials"].includes(key) ? " numeric" : "";
+      return `<td class="${numeric}${emphasis}">${esc(value)}</td>`;
+    }).join("");
+    return `<tr><td>${esc(subject.name)}</td>${cells}</tr>`;
+  }).join("");
   return `<article class="secondary-progress-report" style="--school-color:${esc(options.schoolColor)}">
     <header class="report-header">
-      ${options.logoUrl ? `<img class="school-logo" src="${esc(options.logoUrl)}" alt="${esc(options.schoolName)} logo">` : ""}
-      ${options.photoUrl ? `<img class="student-photo" src="${esc(options.photoUrl)}" alt="${esc(report.name)}">` : ""}
-      <div class="school-name">${esc(options.schoolName)}</div>
-      ${options.motto ? `<div class="motto">“${esc(options.motto)}”</div>` : ""}
-      ${options.address ? `<div class="school-details">${esc(options.address)}</div>` : ""}
-      <div class="school-details">${options.phone ? `Tel: ${esc(options.phone)}` : ""}${options.phone && options.email ? " · " : ""}${options.email ? esc(options.email) : ""}</div>
-      <h1>TERM ${options.term} PROGRESSIVE REPORT</h1>
-      <div class="school-details">${options.year} · ${date}</div>
+      <div class="header-logo">${options.logoUrl ? `<img class="school-logo" src="${esc(options.logoUrl)}" alt="${esc(options.schoolName)} logo">` : ""}</div>
+      <div class="header-copy">
+        <div class="school-name">${esc(options.schoolName)}</div>
+        ${options.motto ? `<div class="motto">“${esc(options.motto)}”</div>` : ""}
+        ${options.showMinistryLine ? `<div class="ministry">MINISTRY OF EDUCATION AND SPORTS</div>` : ""}
+        <div class="school-details">${options.schoolCode ? `SCH. ID: ${esc(options.schoolCode)} · ` : ""}${options.phone ? `TEL: ${esc(options.phone)}` : ""}${options.phone && options.email ? " · " : ""}${options.email ? esc(options.email) : ""}</div>
+        ${options.address ? `<div class="school-details">${esc(options.address)}</div>` : ""}
+        <h1>TERM ${romanTerm} PROGRESSIVE REPORT</h1>
+      </div>
+      <div class="header-photo">${options.photoUrl ? `<img class="student-photo" src="${esc(options.photoUrl)}" alt="${esc(report.name)}">` : ""}</div>
     </header>
     <section class="student-details">
-      <div><small>Student name</small><strong>${esc(report.name)}</strong></div>
+      <div><small>Name</small><strong>${esc(report.name)}</strong></div>
+      <div><small>Term</small><strong>${romanTerm} · ${esc(options.year)}</strong></div>
+      <div><small>Date</small><strong>${date}</strong></div>
       <div><small>Learner ID</small><strong>${esc(report.studentNumber)}</strong></div>
       <div><small>Class</small><strong>${esc(report.className)}</strong></div>
       <div><small>Gender</small><strong>${report.gender === "M" ? "Male" : report.gender === "F" ? "Female" : esc(report.gender)}</strong></div>
-      <div><small>Term</small><strong>${options.term} · ${esc(options.year)}</strong></div>
-      <div><small>Class position</small><strong>${report.position || "—"} of ${options.classSize}</strong></div>
+      <div><small>LIN / AMIS No.</small><strong>${esc(report.pleIndexNumber || "—")}</strong></div>
+      <div class="student-position"><small>Position</small><strong>${report.position > 0 ? `Class: ${report.position} out of ${options.classSize}` : "Class position: —"}</strong></div>
     </section>
     <table class="grades-table"><thead><tr>
-      <th>Subject</th><th>HPG (%)</th><th>Midterm / Mock (%)</th><th>Final (%)</th><th>Grade</th><th>Grade descriptor</th><th>TR</th>
-    </tr></thead><tbody>${rows}</tbody></table>
-    <div class="summary-row">
-      <div><small>Overall average</small><strong>${report.maxMarks ? `${report.average}%` : "—"}</strong></div>
-      <div><small>Points (A=5 to E=1)</small><strong>${report.secondaryPoints ?? "—"}</strong></div>
-      <div><small>Class position</small><strong>${report.position || "—"} / ${options.classSize}</strong></div>
-      <div><small>Subjects recorded</small><strong>${report.recordedSubjects ?? report.subjects.filter((subject) => !subject.isMissing).length} / ${report.subjects.length}</strong></div>
-    </div>
-    <section class="remark"><strong>Class teacher’s remarks</strong><p>${esc(options.classRemark || report.classTeacherComment || "")}</p></section>
-    <section class="remark"><strong>Headteacher’s remarks</strong><p>${esc(options.headRemark || report.hmComment || "")}</p></section>
-    <footer>HPG = Holiday Package · Midterm / Mock = the school’s mid-term examination · Final uses the assessment basis configured for this school.<br>Grade bands: A 85–100 · B 75–84 · C 65–74 · D 50–64 · E below 50.</footer>
+      <th>Subject</th>${visibleColumnKeys.map((key) => `<th>${esc(columnLabels[key] || key)}</th>`).join("")}
+    </tr></thead><tbody>${subjectRows}</tbody></table>
+    ${showsFinalResult ? `<div class="points-row"><strong>POINTS</strong><strong>${report.secondaryPoints ?? "—"} POINTS</strong></div>` : ""}
+    <section class="remark"><strong>Class teacher’s remarks${options.classTeacherName ? ` · ${esc(options.classTeacherName)}` : ""}</strong><p>${esc(classRemark)}</p></section>
+    <section class="remark"><strong>Headteacher’s remarks</strong><p>${esc(headRemark)}</p></section>
+    ${conductHtml}
+    <section class="report-bottom">
+      <div class="fees-balance"><strong>Fees balance:</strong> ${esc(feeBalance)}</div>
+      <div class="stamp-box"><strong>SCHOOL STAMP</strong></div>
+      <div class="signature-row">
+        <div class="signature">${options.classTeacherSignatureUrl ? `<img src="${esc(options.classTeacherSignatureUrl)}" alt="School-authorized class-teacher signatory">` : `<span class="signature-line"></span>`}<small>${options.classTeacherSignatureUrl ? "School-authorized signatory" : "Class teacher"}</small><strong>${options.classTeacherName ? `Assigned: ${esc(options.classTeacherName)}` : ""}</strong></div>
+        <div class="signature">${options.headTeacherSignatureUrl ? `<img src="${esc(options.headTeacherSignatureUrl)}" alt="Headteacher signature">` : `<span class="signature-line"></span>`}<small>Headteacher</small><strong>${esc(options.headTeacherName || "Headteacher")}</strong></div>
+      </div>
+    </section>
+    ${footerNotes.length ? `<footer>${footerNotes.map((note) => esc(note)).join("<br>")}</footer>` : ""}
   </article>`;
 }
 
 const SECONDARY_PROGRESS_STYLES = (schoolColor: string) => `
-  @page{size:A4 portrait;margin:12mm}
+  @page{size:A4 portrait;margin:8mm}
   *{box-sizing:border-box}
-  body{font:10px Arial,sans-serif;color:#1f2937;margin:0}
-  .secondary-progress-report{--school-color:${schoolColor};max-width:900px;margin:0 auto;padding:10px}
-  .report-header{position:relative;text-align:center;min-height:100px;border:1px solid #cbd5e1;padding:10px 78px 8px}
-  .school-logo{position:absolute;left:8px;top:8px;max-width:58px;max-height:55px;object-fit:contain}
-  .student-photo{position:absolute;right:8px;top:6px;width:58px;height:72px;object-fit:cover;border:1px solid #cbd5e1}
+  html{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  body{font:10px Arial,sans-serif;color:#1f2937;margin:0;width:194mm}
+  .secondary-progress-report{--school-color:${schoolColor};width:194mm;margin:0 auto;padding:0;break-after:page}
+  .secondary-progress-report:last-child{break-after:auto}
+  .report-header{display:grid;grid-template-columns:62px minmax(0,1fr) 62px;align-items:start;gap:8px;min-height:78px;border:1px solid #cbd5e1;padding:7px 8px;text-align:center}
+  .header-logo,.header-photo{display:flex;justify-content:center;align-items:flex-start;min-height:58px}
+  .school-logo{max-width:58px;max-height:55px;object-fit:contain}
+  .student-photo{width:58px;height:72px;object-fit:cover;border:1px solid #cbd5e1}
   .school-name{font-size:19px;font-weight:bold;color:var(--school-color)}
   .motto{font-style:italic;margin:2px 0}
-  .school-details{font-size:9px;color:#475569;margin:2px 0}
-  .report-header h1{font-size:14px;margin:5px 0 2px;color:var(--school-color)}
-  .student-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px 12px;margin:8px 0;padding:7px 9px;border:1px solid #cbd5e1}
-  .student-details small,.summary-row small{display:block;color:#64748b;font-size:8px;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px}
+  .ministry{font-size:9px;font-weight:bold;letter-spacing:.3px;margin:2px 0}
+  .school-details{font-size:8px;color:#475569;margin:2px 0}
+  .report-header h1{font-size:13px;margin:4px 0 1px;color:var(--school-color);text-decoration:underline}
+  .student-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:7px 0;padding:0;border:1px solid #cbd5e1}
+  .student-details>div{min-height:30px;padding:4px 6px;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0}
+  .student-details>div:nth-child(3n){border-right:0}
+  .student-position{grid-column:span 3}
+  .student-details small{display:block;color:#64748b;font-size:8px;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px}
   .student-details strong{font-size:10px}
-  .grades-table{width:100%;border-collapse:collapse;margin:8px 0;font-size:9px}
-  .grades-table th{background:var(--school-color);color:white;text-align:left;padding:6px 4px;font-size:8px;text-transform:uppercase;border:1px solid var(--school-color)}
-  .grades-table td{border:1px solid #cbd5e1;padding:5px 4px;vertical-align:middle}
+  .grades-table{width:100%;table-layout:fixed;border-collapse:collapse;margin:7px 0;font-size:8px}
+  .grades-table th{background:var(--school-color);color:white;text-align:left;padding:5px 3px;font-size:7px;text-transform:uppercase;border:1px solid var(--school-color)}
+  .grades-table th:nth-child(1){width:22%}.grades-table th:nth-child(2){width:9%}.grades-table th:nth-child(3){width:10%}.grades-table th:nth-child(4){width:9%}.grades-table th:nth-child(5){width:7%}.grades-table th:nth-child(6){width:33%}.grades-table th:nth-child(7){width:10%}
+  .grades-table td{border:1px solid #cbd5e1;padding:4px 3px;vertical-align:middle;overflow-wrap:anywhere}
   .grades-table tbody tr:nth-child(even){background:#f8fafc}
-  .numeric{text-align:center;white-space:nowrap}.emphasis{font-weight:bold}
-  .summary-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:8px 0}
-  .summary-row>div{border:1px solid #cbd5e1;padding:6px;text-align:center}.summary-row strong{font-size:16px;color:var(--school-color)}
-  .remark{border:1px solid #cbd5e1;padding:7px 9px;margin:6px 0;min-height:42px}.remark strong{font-size:9px;text-transform:uppercase;color:#475569}.remark p{margin:5px 0 0;min-height:16px}
-  footer{border-top:1px solid #cbd5e1;margin-top:7px;padding-top:6px;font-size:8px;color:#475569;line-height:1.45}
-  @media print{.secondary-progress-report{break-after:page}.secondary-progress-report:last-child{break-after:auto}}
+  .numeric{text-align:center;white-space:nowrap}.emphasis{font-weight:bold}.teacher-initials{text-align:center;font-weight:bold;white-space:nowrap}
+  .points-row{display:flex;gap:32px;align-items:center;border:1px solid #cbd5e1;padding:5px 8px;margin:5px 0;font-size:10px}
+  .remark{border:1px solid #cbd5e1;padding:6px 8px;margin:5px 0;min-height:36px}.remark strong{font-size:8px;text-transform:uppercase;color:#475569}.remark p{margin:4px 0 0;min-height:14px}
+  .conduct-section{border:1px solid #cbd5e1;padding:5px 8px;margin:5px 0}.conduct-section h2{font-size:8px;text-transform:uppercase;margin:0 0 4px}.conduct-section p{margin:0;font-size:8px;color:#475569}.conduct-item{display:inline-flex;gap:6px;min-width:130px;margin:2px 10px 2px 0;font-size:8px}
+  .report-bottom{display:grid;grid-template-columns:1fr 70px 2fr;gap:8px;align-items:center;margin-top:5px;min-height:48px}
+  .fees-balance{font-size:9px}.stamp-box{height:45px;border:1px dashed #64748b;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:7px;letter-spacing:.3px}
+  .signature-row{display:flex;gap:12px;justify-content:space-between}.signature{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-width:90px;flex:1;font-size:7px}.signature img{height:24px;max-width:90px;object-fit:contain}.signature-line{width:100%;height:23px;border-bottom:1px solid #475569}.signature small{margin-top:2px;color:#475569;text-transform:uppercase}.signature strong{font-size:7px}
+  footer{border-top:1px solid #cbd5e1;margin-top:5px;padding-top:4px;font-size:7px;color:#475569;line-height:1.35}
+  @media print{body{width:auto}.secondary-progress-report{width:100%;break-after:page}.secondary-progress-report:last-child{break-after:auto}}
 `;
 
 export default function ReportCardsPage() {
@@ -203,17 +286,54 @@ export default function ReportCardsPage() {
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
   const { classes } = useClasses(school?.id);
+  const { staff } = useStaff(school?.id);
   const { subjects } = useSubjects(school?.id);
   const { students: classStudents } = useStudents(school?.id, { limit: 1000 });
+  const [subjectTeachers, setSubjectTeachers] = useState<Record<string, Record<string, string[]>>>({});
   const { payments } = useFeePayments(school?.id, 1, 5000, true);
   const { feeStructure } = useFeeStructure(school?.id);
   const { adjustments } = useFeeAdjustments(school?.id);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!school?.id || isDemo || classes.length === 0) {
+      setSubjectTeachers({});
+      return;
+    }
+    void (async () => {
+      try {
+        const { supabase: sb } = await import("@/lib/supabase");
+        const result = await withTimeout(
+          sb.from("teacher_subjects").select("class_id, subject_id, teacher_id").in("class_id", classes.map((entry) => entry.id)),
+          10000,
+          { data: [], error: null } as any,
+        );
+        if (result?.error) throw result.error;
+        const next: Record<string, Record<string, string[]>> = {};
+        for (const assignment of (result?.data || []) as Array<{ class_id: string; subject_id: string; teacher_id: string }>) {
+          const classMap = (next[assignment.class_id] ||= {});
+          classMap[assignment.subject_id] ||= [];
+          if (!classMap[assignment.subject_id].includes(assignment.teacher_id)) {
+            classMap[assignment.subject_id].push(assignment.teacher_id);
+          }
+        }
+        if (!cancelled) setSubjectTeachers(next);
+      } catch (error) {
+        logger.warn("Could not load subject teacher assignments for report initials:", error);
+        if (!cancelled) setSubjectTeachers({});
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [school?.id, isDemo, classes]);
 
   const [selectedClass, setSelectedClass] = useState("");
   const [reportFormat, setReportFormat] = useState<"numerical" | "competency" | "both" | "cbc">("numerical");
   const [generated, setGenerated] = useState(false);
   const [hideWithFees, setHideWithFees] = useState(true);
   const [reports, setReports] = useState<StudentReport[]>([]);
+  const [progressiveVisibleColumns, setProgressiveVisibleColumns] = useState<string[] | null>(null);
   const [comments, setComments] = useState<Record<string, { classTeacher: string; hm: string }>>({});
   // Remarks that were saved for this class, loaded from report_cards. The
   // comments map above is what the teacher sees; this is what is on the
@@ -277,6 +397,34 @@ export default function ReportCardsPage() {
   const selectedClassName = selectedClassObj
     ? `${selectedClassObj.name}${selectedClassObj.stream ? ` ${selectedClassObj.stream}` : ""}`
     : "";
+  const staffNameById = useMemo(
+    () => new Map((staff as Array<{ id: string; full_name: string }>).map((member) => [member.id, member.full_name])),
+    [staff],
+  );
+  const initialsForName = (name: string | undefined) =>
+    (name || "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .filter((_, index, words) => index === 0 || index === words.length - 1)
+      .map((part) => part[0]?.toUpperCase() || "")
+      .join("");
+  const classTeacherNameFor = (classId: string) => {
+    const classTeacherId = classes.find((entry) => entry.id === classId)?.class_teacher_id;
+    return classTeacherId ? staffNameById.get(classTeacherId) || "" : "";
+  };
+  const subjectTeacherInitialsFor = (
+    classId: string,
+    subjectId: string,
+    gradeRows: Array<{ recorded_by?: string | null }>,
+  ) => {
+    const assignedIds = subjectTeachers[classId]?.[subjectId] || [];
+    const teacherIds = assignedIds.length > 0 ? assignedIds : gradeRows.map((row) => row.recorded_by).filter(Boolean) as string[];
+    return [...new Set(teacherIds)]
+      .map((teacherId) => initialsForName(staffNameById.get(teacherId)))
+      .filter(Boolean)
+      .join(", ");
+  };
   const selectedClassStage = detectLevelFromClass(selectedClassName);
   const selectedForm = Number(selectedClassName.match(/(?:S\.?\s*)(\d+)/i)?.[1] || 0);
   const reportFormatGuidance = selectedClassStage === "nursery"
@@ -351,6 +499,23 @@ export default function ReportCardsPage() {
     const eligible = hideWithFees ? reports.filter((r) => getStudentFeeBalance(r.studentId) === 0) : reports;
     return searchReportList(eligible, searchQuery);
   }, [reports, hideWithFees, getStudentFeeBalance, searchQuery]);
+
+  const progressiveColumnOptions = useMemo(() => {
+    const labels = new Map<string, string>();
+    for (const report of reports) {
+      if (report.assessmentModel !== "secondary_progressive") continue;
+      for (const subject of report.subjects) {
+        for (const column of subject.uganda?.assessmentBreakdown || []) labels.set(column.type, column.label);
+      }
+    }
+    if (labels.size === 0) return [];
+    return [
+      ...Array.from(labels, ([key, label]) => ({ key, label: `${label} (%)` })),
+      { key: "grade", label: "Grade" },
+      { key: "descriptor", label: "Grade descriptor" },
+      { key: "teacherInitials", label: "Teacher initials (TR)" },
+    ];
+  }, [reports]);
 
   const [reportLayout, setReportLayout] = useState<ReportLayoutId>("uganda_classic");
   // Whether the school runs a beginning-of-term test. Drives whether the printed
@@ -513,6 +678,7 @@ export default function ReportCardsPage() {
             score: number;
             max_score?: number | null;
             teacher_remark?: string | null;
+            recorded_by?: string | null;
           }[];
         }
       >
@@ -532,9 +698,10 @@ export default function ReportCardsPage() {
       }
       studentSubjectScores[g.student_id][g.subject_id].rows.push({
         assessment_type: g.assessment_type,
-        score: g.score == null ? Number.NaN : Number(g.score),
-        max_score: g.max_score ?? null,
-        teacher_remark: g.teacher_remark ?? null,
+          score: g.score == null ? Number.NaN : Number(g.score),
+          max_score: g.max_score ?? null,
+          teacher_remark: g.teacher_remark ?? null,
+          recorded_by: g.recorded_by ?? null,
       });
     }
 
@@ -561,8 +728,11 @@ export default function ReportCardsPage() {
       ["mid_term", "mock", "mock_exam"].includes(String(grade.assessment_type).toLowerCase()),
     );
     const secondaryProgressive =
-      detectLevelFromClass(className) === "secondary" && classHasHolidayPackage && classHasMidterm;
+      detectLevelFromClass(className) === "secondary" &&
+      ((classHasHolidayPackage && classHasMidterm) ||
+        Boolean(gradeBasis?.types.some((type) => type === "holiday_package" || type === "mid_term")));
     const competencyOnly = reportFormat === "competency";
+    const classTeacherName = classTeacherNameFor(classId);
 
     const reportList: StudentReport[] = students.map((student) => {
       const subjScores = studentSubjectScores[student.id] || {};
@@ -578,6 +748,7 @@ export default function ReportCardsPage() {
           gradeColor: reportGradeColor(result.grade),
           competencyLevel: comp?.level,
           competencyNotes: comp?.notes,
+          teacherInitials: subjectTeacherInitialsFor(classId, subjId, data.rows),
           isMissing: competencyOnly ? !comp : reportFormat === "both" ? result.isMissing || !comp : result.isMissing,
           teacherRemark: data.rows.find((row) => row.teacher_remark?.trim())?.teacher_remark?.trim() || "",
           uganda: result.uganda,
@@ -595,6 +766,7 @@ export default function ReportCardsPage() {
             gradeColor: "text-amber-500",
             competencyLevel: studentComp[sub.id]?.level || "not_started",
             competencyNotes: studentComp[sub.id]?.notes || "",
+            teacherInitials: subjectTeacherInitialsFor(classId, sub.id, []),
             isMissing: competencyOnly ? !studentComp[sub.id] : true,
             uganda: bucketUgandaSubject([]),
           }
@@ -628,9 +800,11 @@ export default function ReportCardsPage() {
         studentId: student.id,
         name: `${student.first_name} ${student.last_name}`,
         studentNumber: student.student_number || "",
+        pleIndexNumber: student.ple_index_number || "",
         gender: student.gender,
         photoUrl: student.photo_url,
         className,
+        classTeacherName,
         subjects: cardSubjects,
         ...(secondaryProgressive ? { assessmentModel: "secondary_progressive" as const } : {}),
         ...(secondaryProgressive
@@ -653,13 +827,15 @@ export default function ReportCardsPage() {
     const rankedReports = competencyOnly
       ? reportList.map((report) => ({ ...report, position: 0 }))
       : rankCompleteReports(reportList);
-    // Pre-filled from the pupil's own results, not from a position band. The
-    // head-teacher line is left for the head teacher to write -- it is their
-    // signature, and auto-filling it with a generated sentence put words in a
-    // head teacher's mouth on every report in the school.
+    // Suggestions are based on recorded marks/competencies and remain editable;
+    // saved teacher remarks still take precedence when the comments map merges.
     rankedReports.forEach((r) => {
-      r.classTeacherComment = competencyOnly ? "" : suggestClassTeacherRemark(remarkFactsFor(r));
-      r.hmComment = "";
+      r.classTeacherComment = competencyOnly
+        ? suggestCompetencyClassTeacherRemark(competencyRemarkFactsFor(r))
+        : suggestClassTeacherRemark(remarkFactsFor(r));
+      r.hmComment = competencyOnly
+        ? suggestCompetencyHeadTeacherRemark(competencyRemarkFactsFor(r))
+        : suggestHeadTeacherRemark(remarkFactsFor(r));
     });
 
     const missing = reportList.some((r) => r.subjects.some((s: any) => s.isMissing));
@@ -673,6 +849,7 @@ export default function ReportCardsPage() {
     students: any[],
   ): Promise<{ reports: StudentReport[]; missingMarks: boolean; offline: boolean }> {
     if (students.length === 0) return { reports: [], missingMarks: false, offline: false };
+    const classTeacherName = classTeacherNameFor(classId);
 
     // One cached-or-live fetch, split client-side (was 3 round-trips).
     const fetched = isDemo
@@ -723,7 +900,7 @@ export default function ReportCardsPage() {
           isMissing: calculation.totalMark === null,
           teacherName: u1ForSubj[0]?.teacher_remark ? "Subject Teacher" : "Subject Teacher",
           teacherRemark: rows.find((row: any) => row.teacher_remark?.trim())?.teacher_remark?.trim() || "",
-          teacherInitials: "",
+          teacherInitials: subjectTeacherInitialsFor(classId, subject.id, rows),
           learningOutcomes,
         };
       });
@@ -734,9 +911,11 @@ export default function ReportCardsPage() {
         studentId: student.id,
         name: `${student.first_name} ${student.last_name}`,
         studentNumber: student.student_number || "",
+        pleIndexNumber: student.ple_index_number || "",
         gender: student.gender,
         photoUrl: student.photo_url,
         className,
+        classTeacherName,
         subjects: subjectsCBC as any,
         totalMarks: summary.totalMarkSum ?? 0,
         maxMarks: summary.recordedSubjects * 100,
@@ -758,7 +937,7 @@ export default function ReportCardsPage() {
     // head teacher's mouth on every report in the school.
     rankedReports.forEach((r) => {
       r.classTeacherComment = suggestClassTeacherRemark(remarkFactsFor(r));
-      r.hmComment = "";
+      r.hmComment = suggestHeadTeacherRemark(remarkFactsFor(r));
     });
 
     const missing = reportList.some((r) => r.subjects.some((s: any) => s.isMissing));
@@ -1372,7 +1551,7 @@ export default function ReportCardsPage() {
     pupilName: report.name,
     className: report.className,
     position: typeof report.position === "number" && report.position > 0 ? report.position : null,
-    classSize: null as number | null,
+    classSize: filteredStudents.length,
     average: typeof report.average === "number" && report.average > 0 ? report.average : null,
     division: report.division || null,
     subjects: (report.subjects ?? [])
@@ -1382,6 +1561,14 @@ export default function ReportCardsPage() {
         avg: subject.uganda?.avg ?? null,
         grade: subject.uganda?.grade ?? subject.grade,
       })),
+  });
+  const competencyRemarkFactsFor = (report: StudentReport) => ({
+    pupilName: report.name,
+    learningAreas: report.subjects.map((subject) => ({
+      name: subject.name,
+      level: subject.competencyLevel,
+      observation: subject.competencyNotes,
+    })),
   });
 
   /**
@@ -1564,6 +1751,21 @@ export default function ReportCardsPage() {
     ctx: { byStudent: Map<string, { present: number; total: number }>; nextTermBegins: string | null },
   ): Promise<string> => {
     const studentComment = comments[report.studentId] || { classTeacher: "", hm: "" };
+    const remarkFacts = {
+      pupilName: report.name,
+      className: report.className,
+      position: report.position > 0 ? report.position : null,
+      classSize: filteredStudents.length,
+      average: report.maxMarks > 0 ? report.average : null,
+      division: report.division,
+      subjects: report.subjects.map((subject) => ({
+        name: subject.name,
+        avg: subject.uganda?.avg ?? null,
+        grade: subject.uganda?.grade ?? subject.grade,
+      })),
+    };
+    const classTeacherComment = studentComment.classTeacher.trim() || report.classTeacherComment.trim() || suggestClassTeacherRemark(remarkFacts);
+    const headTeacherComment = studentComment.hm.trim() || report.hmComment.trim() || suggestHeadTeacherRemark(remarkFacts);
     const raw = report.subjects.map((s) => ({
       name: s.name,
       bot: s.uganda?.mid ?? null,
@@ -1610,7 +1812,7 @@ export default function ReportCardsPage() {
         report.recordedSubjects === undefined
           ? totals
           : { ...totals, aggSum: report.aggregate ?? null, division: report.division },
-      comments: { classTeacher: studentComment.classTeacher, hm: studentComment.hm },
+      comments: { classTeacher: classTeacherComment, hm: headTeacherComment },
       behaviour: BEHAVIOUR_SKILLS.map((skill) => ({
         skill,
         rating: behaviour[report.studentId]?.[skill] ?? null,
@@ -1648,33 +1850,69 @@ export default function ReportCardsPage() {
     await openUgandaPrintWindow(`Progress Report - ${report.name}`, await buildUgandaBody(report, ctx));
   };
 
+  const progressivePrintOptions = (
+    report: StudentReport,
+    classRemark: string,
+    headRemark: string,
+    classSize: number,
+  ) => {
+    const basisLabels: Record<string, string> = {
+      bot: "BOT",
+      mid_term: "Mock / Midterm",
+      eot: "EOT",
+      ca: "Continuous assessment",
+      holiday_package: "HPG",
+    };
+    const gradingNote = gradeBasis?.types.length
+      ? `Configured final basis: ${gradeBasis.types.map((type) => {
+          const weight = gradeBasis.weights?.[type];
+          return `${basisLabels[type] || type}${weight ? ` ${weight}%` : ""}`;
+        }).join(" + ")}.`
+      : "Final mark follows the school's recorded assessments.";
+    return {
+      schoolName: school?.name || "School Name",
+      schoolCode: (school as any)?.school_code || "",
+      schoolColor: school?.primary_color || "#002045",
+      logoUrl: school?.logo_url || "",
+      photoUrl: report.photoUrl || "",
+      motto: (school as any)?.school_motto || (school as any)?.motto || "",
+      address: (school as any)?.address || "",
+      phone: school?.phone || "",
+      email: school?.email || "",
+      term: currentTerm,
+      year: academicYear,
+      classSize,
+      classRemark,
+      headRemark,
+      classTeacherName: report.classTeacherName || classTeacherNameFor(selectedClass),
+      headTeacherName: (school as any)?.principal_name || (school as any)?.headteacher_name || "Headteacher",
+      classTeacherSignatureUrl: (school as any)?.signature_class_teacher_url || "",
+      headTeacherSignatureUrl: (school as any)?.signature_headteacher_url || "",
+      showMinistryLine: true,
+      showConduct: (school as any)?.show_conduct_in_report !== false,
+      behaviour: behaviour[report.studentId] || {},
+      feeBalance: report.feeBalance,
+      gradingNote,
+      assessmentColumns: progressiveVisibleColumns,
+    };
+  };
+
   const handlePrintReport = (report: StudentReport) => {
     if (reportFormat === "cbc") {
       handlePrintCBCReport(report);
       return;
     }
-    if (report.assessmentModel === "secondary_progressive") {
+    if (report.assessmentModel === "secondary_progressive" && reportFormat !== "competency") {
       const printWindow = openPrintWindow();
       if (!printWindow) {
         toast.error("Your browser blocked the print window. Allow pop-ups for this site and try again.");
         return;
       }
       const studentComment = comments[report.studentId] || { classTeacher: "", hm: "" };
-      const body = buildSecondaryProgressMarkup(report, {
-        schoolName: school?.name || "School Name",
-        schoolColor: school?.primary_color || "#002045",
-        logoUrl: school?.logo_url || "",
-        photoUrl: report.photoUrl || "",
-        motto: (school as any)?.school_motto || (school as any)?.motto || "",
-        address: (school as any)?.address || "",
-        phone: school?.phone || "",
-        email: school?.email || "",
-        term: currentTerm,
-        year: academicYear,
-        classSize: filteredStudents.length,
-        classRemark: studentComment.classTeacher,
-        headRemark: studentComment.hm,
-      });
+      const body = buildSecondaryProgressMarkup(
+        report,
+        progressivePrintOptions(report, studentComment.classTeacher, studentComment.hm, filteredStudents.length),
+      );
       writePrintDocument(printWindow, `Progress Report - ${report.name}`, body, {
         styles: SECONDARY_PROGRESS_STYLES(school?.primary_color || "#002045"),
       });
@@ -1704,6 +1942,14 @@ export default function ReportCardsPage() {
         Secure: "3 · Exceeding expectations",
       } as Record<string, string>)[label] || label;
     };
+    const generatedClassRemark = reportFormat === "competency"
+      ? suggestCompetencyClassTeacherRemark(competencyRemarkFactsFor(report))
+      : suggestClassTeacherRemark(remarkFactsFor(report));
+    const generatedHeadRemark = reportFormat === "competency"
+      ? suggestCompetencyHeadTeacherRemark(competencyRemarkFactsFor(report))
+      : suggestHeadTeacherRemark(remarkFactsFor(report));
+    const classTeacherRemark = studentComment.classTeacher.trim() || report.classTeacherComment.trim() || generatedClassRemark;
+    const headTeacherRemark = studentComment.hm.trim() || report.hmComment.trim() || generatedHeadRemark;
     const escapeHtml = (s: string) =>
       String(s)
         .replace(/&/g, "&amp;")
@@ -1841,11 +2087,11 @@ export default function ReportCardsPage() {
         : "1 Emerging — needs substantial support · 2 Developing — progressing but not yet secure · 3 Secure — demonstrates the expected competency."}</div>` : ""}
       <div class="comment-box">
         <div class="comment-label">Class Teacher's Comment</div>
-        <div>${escapeHtml(studentComment.classTeacher || report.classTeacherComment)}</div>
+        <div>${escapeHtml(classTeacherRemark)}</div>
       </div>
       <div class="comment-box">
         <div class="comment-label">Headteacher's Comment</div>
-        <div>${escapeHtml(studentComment.hm || report.hmComment)}</div>
+        <div>${escapeHtml(headTeacherRemark)}</div>
       </div>
       ${isSecondaryProgressive ? `<div class="notes">HPG = Holiday Package. Midterm / Mock = the school's mid-term examination. Final mark uses the assessment basis configured for this school. Grade bands: A 85–100, B 75–84, C 65–74, D 50–64, E below 50.</div>` : ""}
       ${feeBlock}
@@ -1866,8 +2112,10 @@ export default function ReportCardsPage() {
   const handlePrintCBCReport = (report: StudentReport) => {
     const student = classStudents.find((s) => s.id === report.studentId);
     if (!student) return;
-    const classTeacherName = (selectedClassObj as any)?.class_teacher_name || "Class Teacher";
+    const classTeacherName = report.classTeacherName || classTeacherNameFor(selectedClass);
     const studentComment = comments[report.studentId] || { classTeacher: "", hm: "" };
+    const classTeacherComment = studentComment.classTeacher.trim() || report.classTeacherComment.trim() || suggestClassTeacherRemark(remarkFactsFor(report));
+    const headTeacherComment = studentComment.hm.trim() || report.hmComment.trim() || suggestHeadTeacherRemark(remarkFactsFor(report));
     const cbcSubjects: CBCSubjectEntry[] = report.subjects.map((subject) => {
       const details = subject as typeof subject & Partial<CBCSubjectEntry>;
       return {
@@ -1938,8 +2186,8 @@ export default function ReportCardsPage() {
           max: 1.49,
         },
       ],
-      classTeacher: { name: classTeacherName, comment: studentComment.classTeacher },
-      headTeacher: { name: (school as any)?.principal_name || "Headteacher", comment: studentComment.hm },
+      classTeacher: { name: classTeacherName || "Class Teacher", comment: classTeacherComment },
+      headTeacher: { name: (school as any)?.principal_name || "Headteacher", comment: headTeacherComment },
       nextTermOpens: "—",
       dateOfIssue: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
     };
@@ -1963,7 +2211,7 @@ export default function ReportCardsPage() {
       return;
     }
 
-    if (displayedReports.every((report) => report.assessmentModel === "secondary_progressive")) {
+    if (reportFormat !== "competency" && displayedReports.every((report) => report.assessmentModel === "secondary_progressive")) {
       const printWindow = openPrintWindow();
       if (!printWindow) {
         toast.error("Your browser blocked the print window. Allow pop-ups for this site and try again.");
@@ -1972,21 +2220,10 @@ export default function ReportCardsPage() {
       const pages = displayedReports
         .map((report) => {
           const remarks = comments[report.studentId] || { classTeacher: "", hm: "" };
-          return buildSecondaryProgressMarkup(report, {
-            schoolName: school?.name || "School Name",
-            schoolColor: school?.primary_color || "#002045",
-            logoUrl: school?.logo_url || "",
-            photoUrl: report.photoUrl || "",
-            motto: (school as any)?.school_motto || (school as any)?.motto || "",
-            address: (school as any)?.address || "",
-            phone: school?.phone || "",
-            email: school?.email || "",
-            term: currentTerm,
-            year: academicYear,
-            classSize: filteredStudents.length,
-            classRemark: remarks.classTeacher,
-            headRemark: remarks.hm,
-          });
+          return buildSecondaryProgressMarkup(
+            report,
+            progressivePrintOptions(report, remarks.classTeacher, remarks.hm, filteredStudents.length),
+          );
         })
         .join("");
       writePrintDocument(printWindow, `Progress Reports - ${selectedClassName} (${displayedReports.length})`, pages, {
@@ -2314,6 +2551,7 @@ export default function ReportCardsPage() {
                     value={selectedClass}
                     onChange={(e) => {
                       setSelectedClass(e.target.value);
+                      setProgressiveVisibleColumns(null);
                       setGenerated(false);
                       setReports([]);
                       setSearchQuery("");
@@ -2355,6 +2593,7 @@ export default function ReportCardsPage() {
                     setGenerated(false);
                     setReports([]);
                     setComments({});
+                    setProgressiveVisibleColumns(null);
                     setSearchQuery("");
                   }}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
@@ -2369,6 +2608,42 @@ export default function ReportCardsPage() {
             </div>
           </CardBody>
         </Card>
+
+        {generated && reportFormat !== "competency" && progressiveColumnOptions.length > 0 && (
+          <Card>
+            <CardBody>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-semibold text-[var(--on-surface)]">Progressive report columns</h2>
+                  <p className="text-xs text-[var(--t3)]">Choose any combination of the school’s recorded assessments.</p>
+                </div>
+                <Button variant="secondary" size="sm" onClick={() => setProgressiveVisibleColumns(null)}>
+                  Show all
+                </Button>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-3">
+                {progressiveColumnOptions.map(({ key, label }) => (
+                  <label key={key} className="inline-flex cursor-pointer items-center gap-2 text-sm text-[var(--on-surface)]">
+                    <input
+                      type="checkbox"
+                      checked={progressiveVisibleColumns == null || progressiveVisibleColumns.includes(key)}
+                      onChange={(event) => {
+                        setProgressiveVisibleColumns((current) => {
+                          const selected = new Set(current ?? progressiveColumnOptions.map((column) => column.key));
+                          if (event.target.checked) selected.add(key);
+                          else selected.delete(key);
+                          return Array.from(selected);
+                        });
+                      }}
+                      className="h-4 w-4 accent-[var(--primary)]"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </CardBody>
+          </Card>
+        )}
 
         {generated && hasMissingMarks && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 flex items-center gap-3">

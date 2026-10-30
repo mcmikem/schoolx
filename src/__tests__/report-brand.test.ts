@@ -1,5 +1,10 @@
 import { brandPalette, normalizeHexColor } from "@/lib/report-brand";
-import { suggestClassTeacherRemark, suggestHeadTeacherRemark } from "@/lib/report-remarks";
+import {
+  suggestClassTeacherRemark,
+  suggestCompetencyClassTeacherRemark,
+  suggestCompetencyHeadTeacherRemark,
+  suggestHeadTeacherRemark,
+} from "@/lib/report-remarks";
 
 /**
  * schools.primary_color is typed by a headmaster and interpolated straight into
@@ -143,5 +148,31 @@ describe("suggestHeadTeacherRemark", () => {
     expect(head).not.toBe(teacher);
     expect(head).toContain("60 of 62 days");
     expect(head.length).toBeLessThan(teacher.length);
+  });
+});
+
+describe("competency report remarks", () => {
+  const facts = {
+    pupilName: "Amina Nakato",
+    learningAreas: [
+      { name: "Language", level: "Secure" },
+      { name: "Numeracy", level: "Developing" },
+      { name: "Creative Arts", level: "Emerging" },
+    ],
+  };
+
+  it("uses recorded competency levels to suggest a class teacher remark", () => {
+    const remark = suggestCompetencyClassTeacherRemark(facts);
+    expect(remark).toContain("Amina");
+    expect(remark).toContain("Language");
+    expect(remark).toContain("Numeracy");
+    expect(remark).toContain("Creative Arts");
+  });
+
+  it("gives a supportive headteacher remark and does not invent levels", () => {
+    const remark = suggestCompetencyHeadTeacherRemark(facts);
+    expect(remark).toContain("Amina");
+    expect(remark).toContain("Creative Arts");
+    expect(suggestCompetencyHeadTeacherRemark({ pupilName: "Kato", learningAreas: [] })).toContain("more recorded observations");
   });
 });

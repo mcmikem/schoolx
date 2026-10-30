@@ -33,6 +33,11 @@ export interface RemarkFacts {
   previousAverage?: number | null;
 }
 
+export interface CompetencyRemarkFacts {
+  pupilName: string;
+  learningAreas: Array<{ name: string; level?: string | null; observation?: string | null }>;
+}
+
 const firstName = (full: string): string => full.trim().split(/\s+/)[0] || full;
 
 /** "Namata" is the Ugandan plural sense of "good at". */
@@ -140,6 +145,39 @@ export function suggestHeadTeacherRemark(facts: RemarkFacts): string {
   }
 
   return parts.join(" ");
+}
+
+function competencyBand(level: string | null | undefined): "secure" | "developing" | "emerging" | null {
+  const normalized = (level || "").trim().toLowerCase();
+  if (["secure", "achieved", "mastered", "excellent", "very good", "very_good"].includes(normalized)) return "secure";
+  if (["developing", "demonstrates", "good"].includes(normalized)) return "developing";
+  if (["emerging", "beginning", "fair"].includes(normalized)) return "emerging";
+  return null;
+}
+
+/** Remarks for competency-only cards; statements are based only on recorded ratings. */
+export function suggestCompetencyClassTeacherRemark(facts: CompetencyRemarkFacts): string {
+  const who = firstName(facts.pupilName);
+  const secure = facts.learningAreas.filter((area) => competencyBand(area.level) === "secure");
+  const developing = facts.learningAreas.filter((area) => competencyBand(area.level) === "developing");
+  const emerging = facts.learningAreas.filter((area) => competencyBand(area.level) === "emerging");
+  const parts: string[] = [];
+  if (secure.length) parts.push(`${who} is demonstrating secure competency in ${listSubjects(secure.map((area) => area.name))}.`);
+  if (developing.length) parts.push(`Continue guided practice in ${listSubjects(developing.map((area) => area.name))}.`);
+  if (emerging.length) parts.push(`${listSubjects(emerging.map((area) => area.name))} will benefit from regular, supported practice.`);
+  const observation = facts.learningAreas.find((area) => area.observation?.trim())?.observation?.trim();
+  if (observation) parts.push(observation);
+  return parts.join(" ") || `${who} needs more competency observations recorded for a useful progress comment.`;
+}
+
+/** Short school-wide tone, without inventing an achievement where no rating exists. */
+export function suggestCompetencyHeadTeacherRemark(facts: CompetencyRemarkFacts): string {
+  const who = firstName(facts.pupilName);
+  const rated = facts.learningAreas.filter((area) => competencyBand(area.level) !== null);
+  const emerging = facts.learningAreas.filter((area) => competencyBand(area.level) === "emerging");
+  if (rated.length === 0) return `${who} needs more recorded observations before progress can be assessed.`;
+  if (emerging.length) return `We will continue supporting ${who} to build confidence in ${listSubjects(emerging.map((area) => area.name))}.`;
+  return `${who} is making progress across the recorded learning areas. Keep encouraging regular participation and practice.`;
 }
 
 function listSubjects(names: string[]): string {

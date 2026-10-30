@@ -313,7 +313,8 @@ export async function POST(request: NextRequest) {
     );
     const isSecondaryProgressive =
       classLevel === "secondary" &&
-      ((classHasHolidayPackage && classHasMidterm) || gradeBasis?.types.includes("holiday_package"));
+      ((classHasHolidayPackage && classHasMidterm) ||
+        Boolean(gradeBasis?.types.some((type) => type === "holiday_package" || type === "mid_term")));
     const reportData = Object.values(subjectGrades).map((subject: any) => {
       if (isUgandaPrimary || isSecondaryProgressive) {
         const result = bucketUgandaSubject(subject.rows, gradeBasis);

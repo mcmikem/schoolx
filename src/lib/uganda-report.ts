@@ -225,7 +225,9 @@ export function bucketUgandaSubject(rows: UgandaGradeRow[], basis?: TermGradeBas
   const hasHolidayAssessment = holiday !== null || Boolean(basis?.types.includes("holiday_package"));
   const hasMidtermAssessment = mot !== null || Boolean(basis?.types.includes("mid_term"));
   const hasProgressiveAssessment =
-    (hasHolidayAssessment && hasMidtermAssessment) || Boolean(basis?.types.includes("holiday_package"));
+    (hasHolidayAssessment && hasMidtermAssessment) ||
+    Boolean(basis?.types.includes("holiday_package")) ||
+    Boolean(basis?.types.includes("mid_term"));
   const assessmentBreakdown = hasProgressiveAssessment
     ? [
         ...(hasHolidayAssessment ? [{ type: "holiday_package", label: "HPG", score: holiday }] : []),
