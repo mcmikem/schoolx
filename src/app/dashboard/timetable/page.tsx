@@ -898,6 +898,16 @@ export default function TimetablePage() {
           ]}
         />
 
+        {slots.length > 0 && (slots[slots.length - 1]?.end_time ?? "") < "15:00" && canAutoGenerate && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
+            This school still uses the old short day (ends around {slots[slots.length - 1]?.end_time}). Ugandan schools
+            run 08:00–17:00 with 8 lessons.{" "}
+            <button type="button" onClick={() => setShowDaySetup(true)} className="font-semibold underline">
+              Update to the Ugandan school day
+            </button>
+          </div>
+        )}
+
         {/* Main tabs: Class Timetable vs Term Calendar */}
         <div className="border-b border-[var(--border)] overflow-x-auto no-scrollbar">
           <Tabs tabs={mainTabs} activeTab={mainTab} onChange={(id) => setMainTab(id as "timetable" | "calendar")} />
