@@ -176,9 +176,9 @@ export function formatTimeOfDay(iso?: string | null): string | null {
  * or a row imported without a user. So each case says what it actually is.
  */
 export function describeWho(recordedBy: string | null | undefined, names?: Map<string, string>): string {
-  if (!recordedBy) return "Parent portal or an uncredited import";
+  if (!recordedBy) return "Not recorded";
   const name = names?.get(recordedBy);
-  return name || "a staff member no longer on the account";
+  return name || "Staff (unknown)";
 }
 
 function FeeProgressBar({ percentage, amount, total }: { percentage: number; amount: number; total: number }) {

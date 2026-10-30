@@ -1661,7 +1661,7 @@ describe("Exam timetable and setup wizard are role-gated", () => {
       require("path").join(process.cwd(), "src/app/dashboard/students/[id]/page.tsx"),
       "utf8",
     );
-    expect(src).toContain("{canEditStudent && (");
+    expect(src).toContain("{canEditDetails && (");
     expect(src).toContain("{canSmsParent && (");
   });
 
