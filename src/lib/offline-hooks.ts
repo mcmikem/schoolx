@@ -262,6 +262,7 @@ export function useOfflineFees(schoolId?: string, options?: OfflineHookOptions &
                     count: "exact",
                   })
                   .eq("students.school_id", schoolId)
+                  .is("deleted_at", null)
                   .order("payment_date", { ascending: false })
                   .range(offset, offset + limit - 1),
                 OFFLINE_READ_TIMEOUT_MS,
@@ -283,9 +284,10 @@ export function useOfflineFees(schoolId?: string, options?: OfflineHookOptions &
         : null;
 
     const cached = await cachePromise;
-    if (cached && cached.length > 0) {
-      setData(cached as unknown as (FeePayment & { fee_structure?: FeeStructure })[]);
-      setTotalCount(cached.length);
+    const visibleCached = (cached || []).filter((r: any) => !r?.deleted_at);
+    if (visibleCached.length > 0) {
+      setData(visibleCached as unknown as (FeePayment & { fee_structure?: FeeStructure })[]);
+      setTotalCount(visibleCached.length);
       setIsFromCache(true);
       setLoading(false);
     }
