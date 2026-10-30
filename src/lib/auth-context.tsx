@@ -299,7 +299,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // timeoutSignal, not AbortSignal.timeout: the latter is Chrome 88+ and
         // throws on old Android WebViews before any request is made.
-        const { signal: meSignal, cancel: cancelMeSignal } = timeoutSignal(getConnectionTimeout(15000));
+        const { signal: meSignal, cancel: cancelMeSignal } = timeoutSignal(getConnectionTimeout(30000));
         const res = await fetch("/api/auth/me/", {
           headers: { authorization: `Bearer ${token}` },
           // Generous timeout for /api/auth/me/: on a cold-started Supabase the
@@ -1067,7 +1067,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // swallowed by the in-flight guard. The deadline covers the whole
     // exchange (headers and body), and the caller can also abort it the
     // moment a direct sign-in wins.
-    const timeout = setTimeout(() => controller.abort(), getConnectionTimeout(15000));
+    const timeout = setTimeout(() => controller.abort(), getConnectionTimeout(30000));
     try {
       const res = await fetch("/api/auth/signin/", {
         method: "POST",

@@ -51,7 +51,10 @@ export function TeacherDashboardContent() {
   const [markedClassIds, setMarkedClassIds] = useState<Set<string> | null>(null);
   const [todaySlots, setTodaySlots] = useState<TodaySlot[] | null>(null);
   const [classSearch, setClassSearch] = useState("");
-  const dataLoading = !rosterReady || classesLoading || subjectsLoading || statsLoading;
+  // Only the essentials block the first paint: classes and subjects. The
+  // roster and dashboard stats stream in afterwards so a slow phone shows
+  // something useful instead of a spinner for the whole load.
+  const dataLoading = classesLoading || subjectsLoading;
 
   useEffect(() => {
     if (!dataLoading) {

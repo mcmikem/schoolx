@@ -135,7 +135,7 @@ export default function LoginPage() {
       setLoading(false);
       setShowSlowMessage(false);
       submitInFlightRef.current = false;
-    }, 12000);
+    }, 60000);
     return () => clearTimeout(timer);
   }, [waitingForProfile, toast]);
 
