@@ -60,7 +60,7 @@ export function TeacherDashboardContent() {
     }
     const timer = window.setTimeout(() => {
       setLoadingTimedOut(true);
-    }, 3000);
+    }, 15000);
     return () => window.clearTimeout(timer);
   }, [dataLoading]);
 
@@ -232,7 +232,7 @@ export function TeacherDashboardContent() {
             <p className="mt-4 text-sm text-[var(--t3)]">Loading your dashboard...</p>
           </div>
         </div>
-        <StuckLoadingOverlay />
+        <StuckLoadingOverlay delay={60000} />
       </div>
     );
   }
@@ -266,7 +266,7 @@ export function TeacherDashboardContent() {
         <div className="mt-5">
           <SchoolCalendar schoolId={school?.id} userId={user?.id} />
         </div>
-        <StuckLoadingOverlay />
+        <StuckLoadingOverlay delay={60000} />
       </div>
     );
   }
@@ -541,7 +541,7 @@ export function TeacherDashboardContent() {
           <SchoolCalendar schoolId={school?.id} userId={user?.id} />
         </div>
       </div>
-      <StuckLoadingOverlay />
+      <StuckLoadingOverlay delay={60000} />
     </div>
   );
 }

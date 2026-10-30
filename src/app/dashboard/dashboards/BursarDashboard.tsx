@@ -66,7 +66,7 @@ function BursarDashboardContent() {
     }
     const timer = window.setTimeout(() => {
       setLoadingTimedOut(true);
-    }, 3000);
+    }, 15000);
     return () => window.clearTimeout(timer);
   }, [dataLoading]);
 
@@ -314,7 +314,7 @@ function BursarDashboardContent() {
             <p className="mt-4 text-sm text-[var(--t3)]">Loading your dashboard...</p>
           </div>
         </div>
-        <StuckLoadingOverlay />
+        <StuckLoadingOverlay delay={60000} />
       </div>
     );
   }
