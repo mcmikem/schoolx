@@ -1678,10 +1678,6 @@ export default function FinanceHubPage() {
   };
 
   const handleDeleteAdjustment = async (adjustmentId: string) => {
-    if (user?.role === "bursar") {
-      toast.error("Bursars cannot delete adjustments. Please contact the Headmaster.");
-      return;
-    }
     setConfirmDelete({ type: "adjustment", id: adjustmentId });
   };
 
