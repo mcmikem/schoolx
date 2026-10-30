@@ -383,6 +383,17 @@ export default function LoginPage() {
     setOtpCode("");
   };
 
+  if (!authInitialized) {
+    return (
+      <div className="min-h-screen bg-[#f0f5fc] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent" />
+          <p className="text-sm text-slate-600">Restoring your session…</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <PageErrorBoundary>
       <div className="min-h-screen bg-[#f0f5fc] flex items-center justify-center px-4 py-10">
@@ -522,19 +533,6 @@ export default function LoginPage() {
               Keep me signed in on this device
             </label>
 
-            {!authInitialized && (
-              <div className="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 text-center">
-                Checking your session… if this takes more than a few seconds,{" "}
-                <button
-                  type="button"
-                  onClick={() => window.location.reload()}
-                  className="font-semibold underline hover:text-slate-900"
-                >
-                  refresh to retry
-                </button>
-                .
-              </div>
-            )}
             {waitingForProfile && (
               <div
                 role="status"
