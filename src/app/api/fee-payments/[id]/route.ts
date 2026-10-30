@@ -19,11 +19,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params;
     const body = await request.json();
-    const { schoolId, ...updates } = body;
+    const { schoolId, ...updates } = body as Record<string, unknown>;
+
+    const resolvedSchoolId = (schoolId as string) || auth.context.schoolId;
 
     const scope = assertSchoolScopeOrDeny({
       userSchoolId: auth.context.schoolId,
-      requestedSchoolId: schoolId,
+      requestedSchoolId: resolvedSchoolId,
     });
     if (!scope.ok) return scope.response;
 
@@ -33,8 +35,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     });
     if (!roleCheck.ok) return roleCheck.response;
 
-    if (updates.amount_paid) {
-      const parsedAmount = parseFloat(updates.amount_paid);
+    if (updates.amount_paid !== undefined && updates.amount_paid !== null) {
+      const parsedAmount = parseFloat(String(updates.amount_paid));
       if (isNaN(parsedAmount) || parsedAmount <= 0) {
         return apiError("Payment amount must be a positive number", 400);
       }
@@ -59,23 +61,29 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         sanitized[key] = updates[key];
       }
     }
+    sanitized.updated_at = new Date().toISOString();
+    sanitized.updated_by = auth.context.user.id;
 
     const { data, error } = await supabase
       .from("fee_payments")
       .update(sanitized)
       .eq("id", id)
-      .eq("school_id", schoolId)
+      .eq("school_id", resolvedSchoolId)
       .select("id")
-      .single();
+      .maybeSingle();
+    if (!data && !error) {
+      const { data: existing } = await supabase.from("fee_payments").select("id").eq("id", id).maybeSingle();
+      if (!existing) return apiError("Payment not found", 404);
+    }
 
     if (error) {
       logger.error("[API FeePayments] Update failed:", error);
       return apiError(error.message, 500);
     }
 
-    logger.info(`Updated fee payment ${id} in school ${schoolId}`);
+    logger.info(`Updated fee payment ${id} in school ${resolvedSchoolId}`);
 
-    return apiSuccess({ id: data.id }, "Payment updated successfully");
+    return apiSuccess({ id: data?.id || id }, "Payment updated successfully");
   } catch (error) {
     return handleApiError(error);
   }

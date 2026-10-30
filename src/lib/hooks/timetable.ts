@@ -132,7 +132,10 @@ export function useTimetableManager(schoolId?: string) {
   const [slots, setSlots] = useState<TimetableSlot[]>([]);
   const [constraints, setConstraints] = useState<TimetableConstraint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
   const { isDemo } = useAuth();
+
+  const refetch = () => setReloadKey((key) => key + 1);
 
   useEffect(() => {
     async function fetchData() {
@@ -227,7 +230,7 @@ export function useTimetableManager(schoolId?: string) {
     }
 
     fetchData();
-  }, [schoolId, isDemo]);
+  }, [schoolId, isDemo, reloadKey]);
 
-  return { slots, constraints, loading };
+  return { slots, constraints, loading, refetch };
 }

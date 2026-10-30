@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaterialIcon from "@/components/MaterialIcon";
+import { ActionLinks } from "@/components/ui/ActionLinks";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { StatStrip } from "@/components/ui/StatStrip";
 import { APP_NAME } from "@/lib/app-name";
 import { useAuth } from "@/lib/auth-context";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
@@ -69,6 +72,17 @@ const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> 
   canceled: { bg: "var(--surface-container-low)", text: "var(--slate-ink)", label: "Canceled" },
 };
 
+const QUICK_ACTIONS = [
+  { label: "Manage schools", href: "/dashboard/schools", icon: "domain" },
+  { label: "System users", href: "/dashboard/users", icon: "manage_accounts" },
+  { label: "Support tickets", href: "/dashboard/feedback", icon: "support_agent" },
+  { label: "Audit logs", href: "/dashboard/audit", icon: "fact_check" },
+  { label: "Platform settings", href: "/dashboard/settings", icon: "tune" },
+  { label: "Subscriptions", href: "/dashboard/schools", icon: "credit_card" },
+  { label: "Register school", href: "/dashboard/schools", icon: "add_business" },
+  { label: "Analytics", href: "/dashboard/analytics", icon: "bar_chart" },
+];
+
 function timeSince(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const days = Math.floor(diff / 86_400_000);
@@ -77,103 +91,6 @@ function timeSince(dateStr: string) {
   if (days < 7) return `${days}d ago`;
   if (days < 30) return `${Math.floor(days / 7)}w ago`;
   return `${Math.floor(days / 30)}mo ago`;
-}
-
-/* ── Big Number Card ─────────────────────────────────────── */
-function BigStatCard({
-  label,
-  value,
-  sub,
-  icon,
-  color,
-  href,
-}: {
-  label: string;
-  value: string | number;
-  sub?: string;
-  icon: string;
-  color: string;
-  href?: string;
-}) {
-  const Wrapper = href ? Link : "div";
-  return (
-    <Wrapper href={href as string} className={`stat-card group ${href ? "cursor-pointer" : ""}`}>
-      <div className="stat-accent" style={{ background: color }} />
-      <div className="stat-inner">
-        <div className="stat-meta">
-          <div className="stat-label">{label}</div>
-          <div
-            className="stat-icon-box"
-            style={{
-              background: `color-mix(in srgb, ${color} 10%, transparent)`,
-              color,
-            }}
-          >
-            <MaterialIcon icon={icon} style={{ fontSize: 20 }} />
-          </div>
-        </div>
-        <div className="stat-val" style={{ color }}>
-          {value}
-        </div>
-        {sub && <div className="text-[12px] font-medium mt-2 text-[var(--t3)]">{sub}</div>}
-      </div>
-      {href && (
-        <div className="stat-footer">
-          <span className="stat-foot-label">View details</span>
-          <MaterialIcon icon="arrow_forward" style={{ fontSize: 14, color: "var(--t3)" }} />
-        </div>
-      )}
-    </Wrapper>
-  );
-}
-
-/* ── Quick Action Card ──────────────────────────────────── */
-function ActionCard({
-  label,
-  desc,
-  icon,
-  color,
-  href,
-}: {
-  label: string;
-  desc: string;
-  icon: string;
-  color: string;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group relative bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5 flex gap-4 items-start transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(15,23,42,0.10)] hover:border-[var(--border2)]"
-    >
-      <div
-        className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-        style={{ background: `color-mix(in srgb, ${color} 10%, transparent)`, color }}
-      >
-        <MaterialIcon icon={icon} style={{ fontSize: 22 }} />
-      </div>
-      <div>
-        <div className="font-['Sora'] text-[14px] font-bold text-[var(--t1)] group-hover:text-[var(--navy)] transition-colors">
-          {label}
-        </div>
-        <div className="text-[12px] text-[var(--t3)] mt-0.5 leading-5">{desc}</div>
-      </div>
-      <MaterialIcon
-        icon="arrow_forward"
-        style={{
-          fontSize: 16,
-          color: "var(--t4)",
-          position: "absolute",
-          right: 16,
-          top: "50%",
-          transform: "translateY(-50%)",
-          opacity: 0,
-          transition: "opacity 0.15s",
-        }}
-        className="group-hover:!opacity-100"
-      />
-    </Link>
-  );
 }
 
 /* ── Main Component ─────────────────────────────────────── */
@@ -316,141 +233,131 @@ function SuperAdminDashboardContent() {
   const maxPlan = Math.max(...planBreakdown.map((p) => p.count), 1);
 
   return (
-    <div className="content">
-      {/* ── Header ─────────────────────────────────────────── */}
-      <div className="mb-7 flex items-center gap-4">
-        <div
-          className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md border border-[var(--border)]"
-          style={{ background: "var(--navy)" }}
-        >
-          <MaterialIcon icon="shield" style={{ fontSize: 28, color: "white" }} />
-        </div>
-        <div>
-          <h1 className="font-['Sora'] text-xl sm:text-2xl font-bold text-[var(--t1)] tracking-tight">
-            {greeting}, {firstName}
-          </h1>
-          <p className="text-[13px] text-[var(--t3)] mt-1">
-            {APP_NAME} · Platform Administration ·{" "}
-            {new Date().toLocaleDateString("en-UG", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
-          </p>
-        </div>
-        <button
-          onClick={fetchData}
-          className="tap-44 ml-auto p-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--bg)] text-[var(--t3)] transition-colors"
-          title="Refresh"
-        >
-          <MaterialIcon icon="refresh" style={{ fontSize: 18 }} />
-        </button>
-      </div>
+    <div className="content !gap-6 min-w-0">
+      <PageHeader
+        title={`${greeting}, ${firstName}`}
+        subtitle={`${APP_NAME} · Platform Administration · ${new Date().toLocaleDateString("en-UG", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })}`}
+        actions={
+          <button type="button" onClick={fetchData} className="btn-pill btn-secondary" title="Refresh">
+            <MaterialIcon icon="refresh" className="text-lg" />
+            Refresh
+          </button>
+        }
+      />
 
-      {/* ── Config warning ──────────────────────────────────── */}
       {configWarning && (
-        <div className="mb-6 rounded-xl border border-[var(--amber-border)] bg-[var(--amber-soft)] px-4 py-3 flex items-start gap-3">
-          <MaterialIcon icon="warning" style={{ fontSize: 18, color: "var(--amber)" }} />
-          <p className="text-[13px] text-[var(--t1)]">{configWarning}</p>
+        <div className="flex items-start gap-3 rounded-xl border border-[var(--amber-border)] bg-[var(--amber-soft)] px-4 py-3">
+          <MaterialIcon icon="warning" className="mt-0.5 text-lg text-[var(--amber)]" />
+          <p className="text-sm text-[var(--t1)]">{configWarning}</p>
         </div>
       )}
 
-      {/* ── 4 Big Numbers ───────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <BigStatCard
-          label="Total Schools"
-          value={loading ? "…" : stats.totalSchools}
-          sub={`${stats.activeSchools} active · ${stats.trialSchools} trial`}
-          icon="school"
-          color="var(--navy)"
-          href="/dashboard/schools"
-        />
-        <BigStatCard
-          label="Students (all)"
-          value={loading ? "…" : stats.totalStudents.toLocaleString()}
-          sub="Across all schools"
-          icon="groups"
-          color="var(--green)"
-        />
-        <BigStatCard
-          label="System Users"
-          value={loading ? "…" : stats.totalUsers.toLocaleString()}
-          sub="Staff + admin accounts"
-          icon="manage_accounts"
-          color="var(--violet)"
-          href="/dashboard/users"
-        />
-        <BigStatCard
-          label="New This Month"
-          value={loading ? "…" : stats.newThisMonth}
-          sub="School registrations"
-          icon="add_business"
-          color="var(--amber)"
-        />
-      </div>
+      <StatStrip
+        variant="flat"
+        columns={4}
+        items={[
+          {
+            label: "Total Schools",
+            value: loading ? "…" : stats.totalSchools,
+            hint: `${stats.activeSchools} active · ${stats.trialSchools} trial`,
+          },
+          {
+            label: "Students (all)",
+            value: loading ? "…" : stats.totalStudents.toLocaleString(),
+            hint: "Across all schools",
+          },
+          {
+            label: "System Users",
+            value: loading ? "…" : stats.totalUsers.toLocaleString(),
+            hint: "Staff + admin accounts",
+            tone: "info",
+          },
+          {
+            label: "New This Month",
+            value: loading ? "…" : stats.newThisMonth,
+            hint: "School registrations",
+            tone: "positive",
+          },
+        ]}
+      />
 
-      {/* ── Alerts ──────────────────────────────────────────── */}
+      <ActionLinks items={QUICK_ACTIONS} columns={4} label="Super admin quick actions" />
+
       {alerts.length > 0 && (
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <MaterialIcon icon="warning" style={{ fontSize: 16, color: "var(--amber)" }} />
-            <span className="text-[13px] font-bold text-[var(--t1)]">Needs Attention</span>
-            <span className="ml-1 px-2 py-0.5 rounded-full bg-[var(--amber-soft)] text-[var(--amber-ink)] text-xs font-bold">
+        <section aria-labelledby="needs-attention-title" className="min-w-0 border-t border-[var(--border)] pt-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2
+              id="needs-attention-title"
+              className="flex items-center gap-2 font-heading text-base font-bold text-[var(--t1)]"
+            >
+              <MaterialIcon icon="warning" className="text-lg text-[var(--amber)]" />
+              Needs attention
+            </h2>
+            <span className="rounded-full bg-[var(--amber-soft)] px-2 py-0.5 text-xs font-semibold text-[var(--amber-ink)]">
               {alerts.length}
             </span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
+          <div className="mt-1 divide-y divide-[var(--border)]">
             {alerts.map((a) => (
               <Link
                 key={a.id}
                 href={a.href}
-                className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 hover:bg-[var(--bg)] transition-colors"
+                className="flex min-h-14 items-center gap-3 py-2.5 transition-colors hover:text-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--primary)]"
               >
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
                   style={{ background: `color-mix(in srgb, ${a.color} 10%, transparent)`, color: a.color }}
+                  aria-hidden="true"
                 >
                   <MaterialIcon
                     icon={a.type === "expiring" ? "error" : a.type === "trial" ? "schedule" : "block"}
-                    style={{ fontSize: 16 }}
+                    className="text-base"
                   />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[13px] font-semibold text-[var(--t1)] truncate">{a.label}</div>
-                  <div className="text-xs text-[var(--t3)] truncate">{a.sub}</div>
-                </div>
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-[var(--t1)]">{a.label}</span>
+                  <span className="block truncate text-xs text-[var(--t3)]">{a.sub}</span>
+                </span>
+                <MaterialIcon icon="arrow_forward" className="shrink-0 text-base text-[var(--t3)]" />
               </Link>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* ── Main grid: Schools list + Plan breakdown ────────── */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6">
-        {/* Recent Schools */}
-        <div className="xl:col-span-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+      <div className="grid min-w-0 gap-6 xl:grid-cols-3">
+        <section
+          aria-labelledby="recent-schools-title"
+          className="min-w-0 border-t border-[var(--border)] pt-5 xl:col-span-2"
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
             <div>
-              <div className="font-['Sora'] text-[14px] font-bold text-[var(--t1)]">Recent Schools</div>
-              <div className="text-xs text-[var(--t3)] mt-0.5">Latest registrations on the platform</div>
+              <h2 id="recent-schools-title" className="font-heading text-base font-bold text-[var(--t1)]">
+                Recent schools
+              </h2>
+              <p className="mt-1 text-xs text-[var(--t3)]">Latest registrations on the platform</p>
             </div>
             <Link
               href="/dashboard/schools"
-              className="text-[12px] font-semibold text-[var(--navy)] hover:underline flex items-center gap-1"
+              className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[var(--primary)]"
             >
               View all
-              <MaterialIcon icon="arrow_forward" style={{ fontSize: 14 }} />
+              <MaterialIcon icon="arrow_forward" className="text-base" />
             </Link>
           </div>
-          <div className="divide-y divide-[var(--border)]">
+          <div className="mt-2 divide-y divide-[var(--border)]">
             {loading
               ? Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="flex items-center gap-3 px-5 py-3 animate-pulse">
-                    <div className="w-9 h-9 rounded-xl bg-[var(--bg)] flex-shrink-0" />
+                  <div key={i} className="flex items-center gap-3 py-3 animate-pulse">
+                    <div className="h-9 w-9 shrink-0 rounded-xl bg-[var(--surface-container-low)]" />
                     <div className="flex-1">
-                      <div className="h-3 w-36 bg-[var(--bg)] rounded mb-1" />
-                      <div className="h-2.5 w-20 bg-[var(--bg)] rounded" />
+                      <div className="mb-1 h-3 w-36 rounded bg-[var(--surface-container-low)]" />
+                      <div className="h-2.5 w-20 rounded bg-[var(--surface-container-low)]" />
                     </div>
                   </div>
                 ))
@@ -460,11 +367,10 @@ function SuperAdminDashboardContent() {
                     <Link
                       key={s.id}
                       href="/dashboard/schools"
-                      className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--bg)] transition-colors group"
+                      className="group flex min-h-14 items-center gap-3 py-2.5 transition-colors hover:text-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--primary)]"
                     >
-                      {/* School badge/logo */}
-                      <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-white text-[13px] font-bold overflow-hidden"
+                      <span
+                        className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl text-[13px] font-bold text-white"
                         style={{ background: s.primary_color || "var(--navy)" }}
                       >
                         {s.logo_url ? (
@@ -473,33 +379,28 @@ function SuperAdminDashboardContent() {
                             alt={s.name}
                             width={36}
                             height={36}
-                            className="w-full h-full object-cover"
+                            className="h-full w-full object-cover"
                           />
                         ) : (
                           s.name.slice(0, 2).toUpperCase()
                         )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-semibold text-[var(--t1)] truncate group-hover:text-[var(--navy)]">
-                          {s.name}
-                        </div>
-                        <div className="text-xs text-[var(--t3)]">
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-[var(--t1)]">{s.name}</span>
+                        <span className="block truncate text-xs text-[var(--t3)]">
                           {s.district} · {s.school_type}
                           {s.student_count ? ` · ${s.student_count} students` : ""}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                        </span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2">
                         <span
-                          className="px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide"
-                          style={{
-                            background: badge.bg,
-                            color: badge.text,
-                          }}
+                          className="rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide"
+                          style={{ background: badge.bg, color: badge.text }}
                         >
                           {badge.label}
                         </span>
                         <span
-                          className="px-2 py-0.5 rounded-full text-xs font-bold uppercase"
+                          className="rounded-full px-2 py-0.5 text-xs font-semibold uppercase"
                           style={{
                             background: `color-mix(in srgb, ${PLAN_COLORS[s.subscription_plan] || "var(--slate-ink)"} 10%, transparent)`,
                             color: PLAN_COLORS[s.subscription_plan] || "var(--slate-ink)",
@@ -507,35 +408,35 @@ function SuperAdminDashboardContent() {
                         >
                           {PLAN_LABELS[s.subscription_plan] || s.subscription_plan}
                         </span>
-                      </div>
-                      <div className="text-xs text-[var(--t4)] flex-shrink-0 ml-1">{timeSince(s.created_at)}</div>
+                      </span>
+                      <span className="ml-1 shrink-0 text-xs text-[var(--t4)]">{timeSince(s.created_at)}</span>
                     </Link>
                   );
                 })}
           </div>
-        </div>
+        </section>
 
-        {/* Right column: Plan Breakdown + Status */}
-        <div className="flex flex-col gap-4">
-          {/* Subscription mix */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-            <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] mb-4">Subscription Mix</div>
+        <div className="min-w-0 space-y-6">
+          <section aria-labelledby="subscription-mix-title" className="min-w-0 border-t border-[var(--border)] pt-5">
+            <h2 id="subscription-mix-title" className="font-heading text-base font-bold text-[var(--t1)]">
+              Subscription mix
+            </h2>
             {planBreakdown.length === 0 && !loading ? (
-              <p className="text-[12px] text-[var(--t3)]">No data yet</p>
+              <p className="mt-2 text-sm text-[var(--t3)]">No data yet</p>
             ) : (
-              <div className="space-y-3">
+              <div className="mt-4 space-y-3">
                 {planBreakdown.map(({ plan, count }) => (
                   <div key={plan}>
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="mb-1 flex items-center justify-between">
                       <span
-                        className="text-[12px] font-semibold"
+                        className="text-xs font-semibold"
                         style={{ color: PLAN_COLORS[plan] || "var(--slate-ink)" }}
                       >
                         {PLAN_LABELS[plan] || plan}
                       </span>
-                      <span className="text-[12px] font-bold text-[var(--t1)]">{count}</span>
+                      <span className="text-xs font-bold tabular-nums text-[var(--t1)]">{count}</span>
                     </div>
-                    <div className="h-2 rounded-full bg-[var(--bg)] overflow-hidden">
+                    <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-container-low)]">
                       <div
                         className="h-full rounded-full transition-all duration-700"
                         style={{
@@ -548,120 +449,48 @@ function SuperAdminDashboardContent() {
                 ))}
               </div>
             )}
-          </div>
+          </section>
 
-          {/* Status summary */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-            <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] mb-4">School Status</div>
-            <div className="space-y-2.5">
+          <section aria-labelledby="school-status-title" className="min-w-0 border-t border-[var(--border)] pt-5">
+            <h2 id="school-status-title" className="font-heading text-base font-bold text-[var(--t1)]">
+              School status
+            </h2>
+            <dl className="mt-2 divide-y divide-[var(--border)]">
               {[
                 {
                   label: "Active",
                   value: stats.activeSchools,
                   color: "var(--secondary-600)",
-                  bg: "var(--secondary-100)",
                   icon: "check_circle",
                 },
                 {
                   label: "On Trial",
                   value: stats.trialSchools,
                   color: "var(--primary-700)",
-                  bg: "var(--primary-50)",
                   icon: "schedule",
                 },
                 {
                   label: "Expired / Suspended",
                   value: stats.expiredSchools,
                   color: "var(--red-ink)",
-                  bg: "var(--red-soft)",
                   icon: "error",
                 },
               ].map((item) => (
-                <div
-                  key={item.label}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2.5"
-                  style={{ background: item.bg }}
-                >
-                  <MaterialIcon icon={item.icon} style={{ fontSize: 16, color: item.color, flexShrink: 0 }} />
-                  <span className="text-[12px] font-semibold flex-1" style={{ color: item.color }}>
-                    {item.label}
-                  </span>
-                  <span className="text-[15px] font-extrabold font-['Sora']" style={{ color: item.color }}>
+                <div key={item.label} className="flex items-center gap-3 py-3">
+                  <MaterialIcon icon={item.icon} className="shrink-0 text-base" style={{ color: item.color }} />
+                  <dt className="flex-1 text-sm font-semibold text-[var(--t2)]">{item.label}</dt>
+                  <dd className="text-lg font-bold tabular-nums" style={{ color: item.color }}>
                     {loading ? "…" : item.value}
-                  </span>
+                  </dd>
                 </div>
               ))}
-            </div>
-          </div>
+            </dl>
+          </section>
         </div>
       </div>
 
-      {/* ── Quick Actions ──────────────────────────────────── */}
-      <div className="mb-6">
-        <div className="text-[13px] font-bold text-[var(--t1)] mb-3">Quick Actions</div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-          <ActionCard
-            label="Manage Schools"
-            desc="View, edit, suspend, or provision schools"
-            icon="domain"
-            color="var(--navy)"
-            href="/dashboard/schools"
-          />
-          <ActionCard
-            label="System Users"
-            desc="All users, roles, and access control"
-            icon="manage_accounts"
-            color="var(--violet)"
-            href="/dashboard/users"
-          />
-          <ActionCard
-            label="Support Tickets"
-            desc="Open requests and onboarding help"
-            icon="support_agent"
-            color="var(--amber)"
-            href="/dashboard/feedback"
-          />
-          <ActionCard
-            label="Audit Logs"
-            desc="Full activity trail across the platform"
-            icon="fact_check"
-            color="var(--green)"
-            href="/dashboard/audit"
-          />
-          <ActionCard
-            label="Platform Settings"
-            desc="Global config, SMS quotas, feature flags"
-            icon="tune"
-            color="var(--primary)"
-            href="/dashboard/settings"
-          />
-          <ActionCard
-            label="Subscriptions"
-            desc="Billing plans, renewals, and upgrades"
-            icon="credit_card"
-            color="var(--red-ink)"
-            href="/dashboard/schools"
-          />
-          <ActionCard
-            label="Register School"
-            desc="Create and provision a new school account"
-            icon="add_business"
-            color="var(--green-ink)"
-            href="/dashboard/schools"
-          />
-          <ActionCard
-            label="Analytics"
-            desc="Platform growth, usage, and retention"
-            icon="bar_chart"
-            color="var(--amber-ink)"
-            href="/dashboard/analytics"
-          />
-        </div>
-      </div>
-
-      {/* ── Footer note ──────────────────────────────────────── */}
-      <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[12px] text-[var(--t3)]">
-        <MaterialIcon icon="info" style={{ fontSize: 16, color: "var(--green)" }} />
+      <div className="flex items-center gap-2 border-t border-[var(--border)] pt-4 text-xs text-[var(--t3)]">
+        <MaterialIcon icon="info" className="text-base text-[var(--green)]" />
         Logged in as <strong className="text-[var(--t1)]">{user?.full_name}</strong> · Super Admin · Full platform
         access
       </div>

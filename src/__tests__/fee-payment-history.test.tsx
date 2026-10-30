@@ -29,9 +29,10 @@ describe("FeePaymentHistory", () => {
   it("shows a total and readable payment methods", () => {
     render(
       <FeePaymentHistory
-        payments={payments}
+        payments={payments as any}
         students={students}
         formatCurrency={(amount) => `UGX ${amount.toLocaleString()}`}
+        onEditPayment={() => {}}
         onDeletePayment={() => {}}
         onRecordPayment={() => {}}
       />,
@@ -49,6 +50,7 @@ describe("FeePaymentHistory", () => {
         payments={[]}
         students={students}
         formatCurrency={(amount) => `UGX ${amount}`}
+        onEditPayment={() => {}}
         onDeletePayment={() => {}}
         onRecordPayment={() => {}}
       />,

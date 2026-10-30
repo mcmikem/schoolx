@@ -34,14 +34,14 @@ function isMissingFeePaymentsColumnError(error: unknown, columnName: string) {
 async function fetchFeePaymentsWithFallback(options: { schoolId: string; page: number; limit: number }) {
   const selectWithClass = `
     id, student_id, fee_id, amount_paid, payment_method, payment_reference,
-    paid_by, notes, payment_date, created_at,
+    paid_by, notes, payment_date, created_at, updated_at, recorded_by, updated_by,
     students!inner (id, first_name, last_name, student_number, class_id, school_id, classes (name)),
     fee_structure (name)
   `;
 
   const selectWithoutClass = `
     id, student_id, fee_id, amount_paid, payment_method, payment_reference,
-    paid_by, notes, payment_date, created_at,
+    paid_by, notes, payment_date, created_at, updated_at, recorded_by, updated_by,
     students!inner (id, first_name, last_name, student_number, class_id, school_id),
     fee_structure (name)
   `;
@@ -372,6 +372,62 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit?: numb
     }
   }, [schoolId, isDemo, isOnline, cacheKey, page, effectiveLimit, fetchAll]);
 
+  const updatePayment = async (
+    id: string,
+    updates: Partial<CreatePaymentInput> & { payment_date?: string; fee_id?: string | null },
+  ) => {
+    if (isDemo || isDemoSchool(schoolId)) {
+      setPayments((prev) => prev.map((p) => (p.id === id ? ({ ...p, ...updates } as FeePayment) : p)));
+      return { id } as FeePayment;
+    }
+    try {
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo);
+      const body = { ...updates, schoolId: querySchoolId };
+      const res = await fetch(`/api/fee-payments/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to update payment" }));
+        throw new Error(err.error || "Failed to update payment");
+      }
+      const data = await res.json();
+      const updated = data?.data || data;
+      setPayments((prev) =>
+        prev.map((p) =>
+          p.id === id
+            ? ({ ...p, ...(updates as Partial<FeePayment>), updated_at: new Date().toISOString() } as FeePayment)
+            : p,
+        ),
+      );
+      invalidateCache(cacheKey);
+      if (school?.id && user?.id) {
+        await logAuditEventWithOfflineSupport(
+          true,
+          school.id,
+          user.id,
+          user.full_name,
+          "update",
+          "fees",
+          "Updated fee payment",
+          id,
+          undefined,
+          updates as unknown as Record<string, unknown>,
+        );
+      }
+      return updated as FeePayment;
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : err && typeof err === "object" && "message" in err
+            ? String((err as { message: unknown }).message)
+            : "Database error updating payment";
+      throw new Error(message);
+    }
+  };
+
   const createPayment = async (payment: CreatePaymentInput) => {
     const normalizedPayment = normalizePaymentInput({
       ...payment,
@@ -661,6 +717,7 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit?: numb
     error,
     totalCount,
     createPayment,
+    updatePayment,
     deletePayment,
     refetch: () => {
       invalidateCache(cacheKey);

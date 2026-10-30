@@ -126,13 +126,20 @@ describe("school setup defaults", () => {
     expect(inferClassLevel("S.3", "secondary")).toBe("S.3");
 
     const slots = buildDefaultTimetableSlots("school-1");
-    expect(slots).toHaveLength(9);
+    // Assembly + eight lessons + break + lunch + games = the Ugandan school day.
+    expect(slots.filter((slot) => slot.is_lesson)).toHaveLength(8);
     expect(slots[0]).toMatchObject({
       school_id: "school-1",
-      name: "Period 1",
+      name: "Assembly",
+      is_lesson: false,
+      start_time: "08:00",
+    });
+    expect(slots.find((slot) => slot.name === "Period 1")).toMatchObject({
       is_lesson: true,
-      order_number: 1,
+      start_time: "08:15",
     });
     expect(slots.some((slot) => slot.name === "Break" && !slot.is_lesson)).toBe(true);
+    expect(slots.some((slot) => slot.name === "Lunch")).toBe(true);
+    expect(slots.some((slot) => slot.name === "Games / Clubs")).toBe(true);
   });
 });

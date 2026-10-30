@@ -108,10 +108,21 @@ interface AttendanceStatusMeta {
 export default function StudentHubPage() {
   const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
-  // Teachers (and class teachers) get a read-only registry: RLS already
-  // refuses their inserts, updates and deletes — the UI just stops offering
-  // actions that would fail.
-  const canManageStudents = !isClassScopedRole(user?.role);
+  // Allow teachers to add and correct student details (subject/class teachers included)
+  const canManageStudents = user?.role
+    ? canAccess(user.role as UserRole, "students") ||
+      [
+        "teacher",
+        "dean_of_studies",
+        "head_of_department",
+        "dos",
+        "deputy_head",
+        "headmaster",
+        "school_admin",
+        "admin",
+        "super_admin",
+      ].includes(user.role)
+    : false;
   const canExportStudents = user?.role ? canAccess(user.role as UserRole, "export") : false;
   const toast = useToast();
   const searchParams = useSearchParams();

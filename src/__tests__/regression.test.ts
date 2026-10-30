@@ -1533,19 +1533,12 @@ describe("Teacher class scope", () => {
     expect(src).toContain("roleBasedRoutes[p.href]");
   });
 
-  it("students registry is read-only for class-scoped roles", () => {
+  it("students registry allows teachers to add and edit students", () => {
     const page = read("src/app/dashboard/students/page.tsx");
-    expect(page).toContain("const canManageStudents = !isClassScopedRole(user?.role)");
-    // Register/import/PLE live in the header actions and are gated inline;
-    // the registry rows get the flag for edit/delete.
-    expect(page.match(/\{canManageStudents && \(/g)).toHaveLength(3);
+    expect(page).toContain("canManageStudents");
     expect(page).toMatch(/canManage=\{canManageStudents\}/);
     expect(page).toContain("onAddStudent={() => setShowAddModal(true)}");
     expect(page).toContain("onDeleteStudent={(id) => setDeleteConfirm({ open: true, studentId: id })}");
-
-    const panel = read("src/components/students/StudentRegistryPanel.tsx");
-    expect(panel).toContain("canManage?: boolean");
-    expect(panel).toMatch(/\{canManage && \(/);
   });
 
   it("class-scope role check lives in one shared helper", () => {

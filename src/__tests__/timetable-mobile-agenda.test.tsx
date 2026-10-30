@@ -25,6 +25,7 @@ jest.mock("@/lib/hooks", () => ({
       { id: "break-1", name: "Break", start_time: "08:40", end_time: "09:00", order_number: 2, is_break: true },
     ],
     loading: false,
+    refetch: jest.fn(),
   }),
   useStaff: () => ({ staff: [] }),
 }));

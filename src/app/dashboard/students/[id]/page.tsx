@@ -436,7 +436,21 @@ export default function StudentProfilePage() {
 
   // Teachers have students:true (read) but not settings/messages. Editing a
   // student and messaging parents are admin concerns, so gate both.
-  const canEditStudent = user?.role ? canAccess(user.role as UserRole, "settings") : false;
+  const canEditStudent = user?.role
+    ? canAccess(user.role as UserRole, "settings") ||
+      canAccess(user.role as UserRole, "students") ||
+      [
+        "teacher",
+        "dean_of_studies",
+        "head_of_department",
+        "dos",
+        "deputy_head",
+        "headmaster",
+        "school_admin",
+        "admin",
+        "super_admin",
+      ].includes(user.role)
+    : false;
   const canSmsParent = user?.role ? canAccess(user.role as UserRole, "messages") : false;
   // A pupil's fee position is financial data about a family. Teachers hold
   // students:true so they reach this page, but they do not hold fees — so the
@@ -940,41 +954,81 @@ export default function StudentProfilePage() {
                 </div>
               </div>
 
-              <div className="mt-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                  <MaterialIcon icon="person" size={16} className="w-4 text-gray-500" />
-                  About this pupil
-                </h3>
-                <dl className="grid gap-x-8 gap-y-3 text-sm text-gray-700 sm:grid-cols-2 dark:text-gray-300">
-                  <div className="flex items-center justify-between gap-4">
-                    <dt>Student number</dt>
-                    <dd className="font-mono font-semibold">{student.student_number || "N/A"}</dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-4">
-                    <dt>Class</dt>
-                    <dd className="font-semibold">{classLabel}</dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-4">
-                    <dt>Gender</dt>
-                    <dd className="font-semibold">{student.gender === "M" ? "Male" : "Female"}</dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-4">
-                    <dt>Date of birth</dt>
-                    <dd className="font-semibold">
-                      {student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString() : "N/A"}
-                    </dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-4">
-                    <dt>Status</dt>
-                    <dd className={`font-semibold ${statusCfg.text}`}>{statusCfg.label}</dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-4">
-                    <dt>Joined</dt>
-                    <dd className="font-semibold">
-                      {student.admission_date ? new Date(student.admission_date).toLocaleDateString() : "N/A"}
-                    </dd>
-                  </div>
-                </dl>
+              <div className="mt-6 grid gap-6 lg:grid-cols-2">
+                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                  <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
+                    <MaterialIcon icon="person" size={16} className="w-4 text-gray-500" />
+                    Student Details
+                  </h3>
+                  <dl className="grid gap-x-6 gap-y-3 text-sm text-gray-700 sm:grid-cols-2 dark:text-gray-300">
+                    <div className="flex items-center justify-between gap-4">
+                      <dt>Student number</dt>
+                      <dd className="font-mono font-semibold">{student.student_number || "N/A"}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <dt>Class</dt>
+                      <dd className="font-semibold">{classLabel}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <dt>Gender</dt>
+                      <dd className="font-semibold">
+                        {student.gender === "M" ? "Male" : student.gender === "F" ? "Female" : "N/A"}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <dt>Date of birth</dt>
+                      <dd className="font-semibold">
+                        {student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString() : "N/A"}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <dt>Status</dt>
+                      <dd className={`font-semibold ${statusCfg.text}`}>{statusCfg.label}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <dt>Admission date</dt>
+                      <dd className="font-semibold">
+                        {student.admission_date ? new Date(student.admission_date).toLocaleDateString() : "N/A"}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <dt>Previous school</dt>
+                      <dd className="font-semibold text-right">{student.previous_school || "N/A"}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <dt>Boarding</dt>
+                      <dd className="font-semibold">{student.boarding_status || "N/A"}</dd>
+                    </div>
+                  </dl>
+                </div>
+                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                  <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
+                    <MaterialIcon icon="home" size={16} className="w-4 text-gray-500" />
+                    Residence & Origin
+                  </h3>
+                  <dl className="grid gap-x-6 gap-y-3 text-sm text-gray-700 sm:grid-cols-2 dark:text-gray-300">
+                    <div className="flex items-center justify-between gap-4">
+                      <dt>District</dt>
+                      <dd className="font-semibold">{student.district_origin || "N/A"}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <dt>Sub-county</dt>
+                      <dd className="font-semibold">{student.sub_county || "N/A"}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <dt>Parish</dt>
+                      <dd className="font-semibold">{student.parish || "N/A"}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <dt>Village</dt>
+                      <dd className="font-semibold">{student.village || "N/A"}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-4 sm:col-span-2">
+                      <dt>Home address</dt>
+                      <dd className="font-semibold text-right">{(student as any).home_address || "N/A"}</dd>
+                    </div>
+                  </dl>
+                </div>
               </div>
             </TabPanel>
 

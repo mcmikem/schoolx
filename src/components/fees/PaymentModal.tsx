@@ -25,6 +25,8 @@ interface PaymentData {
 
 interface PaymentModalProps {
   isOpen: boolean;
+  isEditing?: boolean;
+  editingAmount?: number;
   onClose: () => void;
   students: PaymentStudentOption[];
   /**
@@ -50,6 +52,8 @@ interface PaymentModalProps {
 
 export default function PaymentModal({
   isOpen,
+  isEditing = false,
+  editingAmount = 0,
   onClose,
   students,
   parentNamesByStudent,
@@ -86,8 +90,9 @@ export default function PaymentModal({
     ) {
       errs.amount_paid = "Amount must be greater than 0";
     }
-    if (selectedStudent && Number(newPayment.amount_paid) > selectedStudent.balance && !newPayment.allow_overpayment) {
-      errs.amount_paid = `Amount exceeds student balance of ${formatCurrency(selectedStudent.balance)}`;
+    const editableBalance = selectedStudent ? selectedStudent.balance + (isEditing ? editingAmount : 0) : 0;
+    if (selectedStudent && Number(newPayment.amount_paid) > editableBalance && !newPayment.allow_overpayment) {
+      errs.amount_paid = `Amount exceeds remaining student balance of ${formatCurrency(editableBalance)}`;
     }
     if (newPayment.payment_method === "mobile_money" && !newPayment.momo_transaction_id.trim()) {
       errs.momo_transaction_id = "Transaction ID is required for mobile money";
@@ -101,10 +106,10 @@ export default function PaymentModal({
     // is nothing to preselect and nothing picked is this an error.
     if (!newPayment.fee_id && !defaultFeeId) errs.fee_id = "Choose which fee this payment is for";
     return errs;
-  }, [newPayment, selectedStudent, defaultFeeId]);
+  }, [newPayment, selectedStudent, defaultFeeId, isEditing, editingAmount]);
   const overpaymentAmount =
-    selectedStudent && Number(newPayment.amount_paid) > selectedStudent.balance
-      ? Number(newPayment.amount_paid) - selectedStudent.balance
+    selectedStudent && Number(newPayment.amount_paid) > selectedStudent.balance + (isEditing ? editingAmount : 0)
+      ? Number(newPayment.amount_paid) - selectedStudent.balance - (isEditing ? editingAmount : 0)
       : 0;
 
   const step1Valid = !errors.student_id && !errors.amount_paid && !errors.fee_id;
@@ -164,7 +169,9 @@ export default function PaymentModal({
   if (!isOpen) return null;
 
   const amountNum = Number(newPayment.amount_paid) || 0;
-  const balanceAfter = selectedStudent ? Math.max(0, selectedStudent.balance - amountNum) : null;
+  const balanceAfter = selectedStudent
+    ? Math.max(0, selectedStudent.balance + (isEditing ? editingAmount : 0) - amountNum)
+    : null;
   const presetOptions = selectedStudent
     ? [
         { label: "Full", value: selectedStudent.balance },
@@ -201,7 +208,7 @@ export default function PaymentModal({
     focus on close and locks background scroll while a payment is being taken.
   */
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Record Payment" size="md">
+    <Modal isOpen={isOpen} onClose={handleClose} title={isEditing ? "Edit Payment" : "Record Payment"} size="md">
       <div className="-mt-2">
         {selectedStudent && (
           <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-4 py-3">
@@ -269,7 +276,7 @@ export default function PaymentModal({
                 value={newPayment.student_id}
                 onChange={(studentId) => onPaymentChange({ student_id: studentId, allow_overpayment: false })}
                 error={fieldError("student_id")}
-                disabled={saving}
+                disabled={saving || isEditing}
               />
             )}
             <div>
@@ -583,7 +590,13 @@ export default function PaymentModal({
                 disabled={saving || Boolean(submitDisabledReason)}
                 className="flex-[2] min-h-[48px] py-3 bg-[var(--primary)] text-[var(--on-primary)] font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform tabular-nums"
               >
-                {saving ? "Saving..." : amountNum > 0 ? `Record ${formatCurrency(amountNum)}` : "Record Payment"}
+                {saving
+                  ? "Saving..."
+                  : isEditing
+                    ? "Save Changes"
+                    : amountNum > 0
+                      ? `Record ${formatCurrency(amountNum)}`
+                      : "Record Payment"}
               </button>
             </div>
             {submitDisabledReason && <p className="text-xs text-[var(--t3)] text-right">{submitDisabledReason}</p>}

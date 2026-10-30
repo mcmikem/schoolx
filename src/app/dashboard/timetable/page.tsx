@@ -17,6 +17,14 @@ import { logger } from "@/lib/logger";
 import { getLocalDateString } from "@/lib/hooks/utils";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import GenerateTimetableModal from "@/components/timetable/GenerateTimetableModal";
+import SchoolDaySetupModal from "@/components/timetable/SchoolDaySetupModal";
+import {
+  SCHOOL_DAY_PRESETS,
+  buildSchoolDay,
+  matchWeeklyTarget,
+  schoolLevelFromClassName,
+  weeklyPeriodTargets,
+} from "@/lib/timetable/uganda-day";
 import type { Class, Subject, TimetableSlot } from "@/types";
 import { DEMO_SUBJECTS, DEMO_TIMETABLE } from "@/lib/demo-data";
 import { buildDefaultTimetableSlots } from "@/lib/school-setup";
@@ -507,7 +515,7 @@ export default function TimetablePage() {
   const toast = useToast();
   const { classes } = useClasses(school?.id);
   const { subjects } = useSubjects(school?.id);
-  const { slots, loading: loadingSlots } = useTimetableManager(school?.id);
+  const { slots, loading: loadingSlots, refetch: refetchSlots } = useTimetableManager(school?.id);
   const { staff } = useStaff(school?.id);
 
   // Only show teaching staff in the dropdown
@@ -532,6 +540,7 @@ export default function TimetablePage() {
   const [roomValue, setRoomValue] = useState("");
   const [pendingDeleteEntryId, setPendingDeleteEntryId] = useState<string | null>(null);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [showDaySetup, setShowDaySetup] = useState(false);
   const TIMETABLE_EDIT_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "dean_of_studies"];
   const canAutoGenerate = !!user && TIMETABLE_EDIT_ROLES.includes(user.role);
   // Adding/removing lessons is a school-wide structural change, not a teacher's
@@ -830,87 +839,46 @@ export default function TimetablePage() {
     );
   }
 
-  // If slots failed to load (empty after loading), show a usable empty timetable
-  // rather than a broken UI
+  // If slots failed to load (empty after loading), show a usable empty
+  // timetable rather than a broken UI. Use the Ugandan lower-secondary
+  // standard so the fallback is not the old six-period day.
   const effectiveSlots: Slot[] =
     slots.length > 0
       ? slots
-      : [
-          {
-            id: "p1",
-            name: "Period 1",
-            start_time: "08:00",
-            end_time: "08:40",
-            order_number: 1,
-            is_break: false,
-            is_lesson: true,
-          },
-          {
-            id: "p2",
-            name: "Period 2",
-            start_time: "08:40",
-            end_time: "09:20",
-            order_number: 2,
-            is_break: false,
-            is_lesson: true,
-          },
-          {
-            id: "p3",
-            name: "Break",
-            start_time: "09:20",
-            end_time: "09:40",
-            order_number: 3,
-            is_break: true,
-            is_lesson: false,
-          },
-          {
-            id: "p4",
-            name: "Period 3",
-            start_time: "09:40",
-            end_time: "10:20",
-            order_number: 4,
-            is_break: false,
-            is_lesson: true,
-          },
-          {
-            id: "p5",
-            name: "Period 4",
-            start_time: "10:20",
-            end_time: "11:00",
-            order_number: 5,
-            is_break: false,
-            is_lesson: true,
-          },
-          {
-            id: "p6",
-            name: "Lunch",
-            start_time: "11:00",
-            end_time: "12:00",
-            order_number: 6,
-            is_break: true,
-            is_lesson: false,
-          },
-          {
-            id: "p7",
-            name: "Period 5",
-            start_time: "12:00",
-            end_time: "12:40",
-            order_number: 7,
-            is_break: false,
-            is_lesson: true,
-          },
-          {
-            id: "p8",
-            name: "Period 6",
-            start_time: "12:40",
-            end_time: "13:20",
-            order_number: 8,
-            is_break: false,
-            is_lesson: true,
-          },
-        ];
+      : buildSchoolDay(SCHOOL_DAY_PRESETS.lower_secondary).map((slot) => ({
+          id: `fallback-${slot.order_number}`,
+          name: slot.name,
+          start_time: slot.start_time,
+          end_time: slot.end_time,
+          order_number: slot.order_number,
+          is_break: !slot.is_lesson,
+          is_lesson: slot.is_lesson,
+        }));
 
   const selectedClass = classes.find((classItem) => classItem.id === selectedClassId);
+  const selectedLevel = schoolLevelFromClassName(selectedClass?.name);
+  const seniorClassMatch = (selectedClass?.name ?? "").match(/S\s*\.?\s*([1-6])/i);
+  const seniorClass = seniorClassMatch ? (Number(seniorClassMatch[1]) as 1 | 2 | 3 | 4 | 5 | 6) : undefined;
+  const weeklyTargets = weeklyPeriodTargets(
+    selectedLevel,
+    seniorClass && seniorClass <= 4 ? (seniorClass as 1 | 2 | 3 | 4) : undefined,
+  );
+  // Only compare subjects the school actually offers; the NCDC table lists
+  // alternatives (General Science vs the three separate sciences) that a
+  // given school does not teach side by side.
+  const offeredTargets = weeklyTargets.filter((target) =>
+    subjects.some((subject) => matchWeeklyTarget(subject.name) === target.subject),
+  );
+  const weeklyLoad = (offeredTargets.length > 0 ? offeredTargets : weeklyTargets).map((target) => ({
+    ...target,
+    actual: timetable.filter((entry) => {
+      const subjectName = entry.subjects?.name ?? subjects.find((s) => s.id === entry.subject_id)?.name;
+      return matchWeeklyTarget(subjectName) === target.subject;
+    }).length,
+  }));
+  const weeklyPlanned = weeklyLoad.reduce((sum, row) => sum + row.actual, 0);
+  const weeklyBelow = weeklyLoad.filter((row) => row.actual < row.periods).length;
+
   const selectedDayInfo = DAYS.find((day) => day.value === selectedDay);
   const dayLessonSlots = effectiveSlots.filter((slot) => !(slot.is_break ?? slot.is_lesson === false));
   const scheduledLessons = timetable.filter((entry) => entry.day_of_week === selectedDay).length;
@@ -961,7 +929,7 @@ export default function TimetablePage() {
             </div>
           </div>
           {globalClashes.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
               <div className="flex items-start gap-3">
                 <MaterialIcon icon="error" className="text-red-500 shrink-0 mt-0.5" />
                 <div>
@@ -980,21 +948,68 @@ export default function TimetablePage() {
               </div>
             </div>
           )}
+          {weeklyLoad.length > 0 && selectedClassId && (
+            <div className="mb-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--t3)]">NCDC weekly load</p>
+                  <p className="mt-0.5 text-sm text-[var(--t3)]">
+                    {weeklyPlanned} periods planned for {selectedClass?.name}
+                  </p>
+                </div>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-bold ${
+                    weeklyBelow > 0
+                      ? "bg-[var(--amber-soft)] text-[var(--amber-ink)]"
+                      : "bg-[var(--primary)]/10 text-[var(--primary)]"
+                  }`}
+                >
+                  {weeklyBelow > 0 ? `${weeklyBelow} below NCDC guide` : "All at NCDC guide"}
+                </span>
+              </div>
+              <div className="mt-3 grid gap-x-6 gap-y-2 sm:grid-cols-2">
+                {weeklyLoad.map((row) => {
+                  const pct = Math.min(100, Math.round((row.actual / Math.max(row.periods, 1)) * 100));
+                  const short = row.actual < row.periods;
+                  return (
+                    <div key={row.subject} className="flex items-center gap-3">
+                      <span className="w-40 shrink-0 truncate text-xs font-medium text-[var(--t2)]">{row.subject}</span>
+                      <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-[var(--surface-container)]">
+                        <span
+                          className={`block h-full rounded-full ${short ? "bg-[var(--amber)]" : "bg-[var(--primary)]"}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </span>
+                      <span
+                        className={`w-12 shrink-0 text-right text-xs font-bold tabular-nums ${
+                          short ? "text-[var(--amber-ink)]" : "text-[var(--primary)]"
+                        }`}
+                      >
+                        {row.actual}/{row.periods}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <Card className="overflow-hidden">
-            <div className="flex items-center justify-between px-4 pt-4 pb-2 gap-3 flex-wrap">
+            <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
               {classes.length === 0 ? (
-                <div className="px-4 py-2 bg-[var(--amber-soft)] text-[var(--amber-ink)] text-sm rounded-xl border border-[var(--amber)]/20">
+                <div className="rounded-xl border border-[var(--amber)]/20 bg-[var(--amber-soft)] px-3 py-2 text-sm text-[var(--amber-ink)]">
                   No classes available
                 </div>
               ) : (
-                <label className="block w-full sm:w-auto">
-                  <span className="mb-1.5 block text-xs font-semibold text-[var(--t2)]">Timetable class</span>
+                <label className="block w-full sm:max-w-xs">
+                  <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">
+                    Timetable class
+                  </span>
                   <select
                     value={selectedClassId}
                     onChange={(e) => setSelectedClassId(e.target.value)}
-                    className="min-h-11 w-full px-4 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-[var(--on-surface)] outline-none focus:ring-2 focus:ring-[var(--primary)]/50"
+                    className="input h-10 text-sm font-medium"
                   >
-                    <option value="">Select a Class...</option>
+                    <option value="">Select a class...</option>
                     {classes.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
@@ -1004,11 +1019,21 @@ export default function TimetablePage() {
                 </label>
               )}
               {canAutoGenerate && (
-                <Button size="sm" variant="secondary" onClick={() => setShowGenerateModal(true)}>
-                  <span className="inline-flex items-center gap-2">
-                    <MaterialIcon icon="auto_awesome" className="text-lg" /> Auto-generate
-                  </span>
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowDaySetup(true)}
+                    icon={<MaterialIcon icon="schedule" className="text-lg" />}
+                  >
+                    School day
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => setShowGenerateModal(true)}>
+                    <span className="inline-flex items-center gap-2">
+                      <MaterialIcon icon="auto_awesome" className="text-lg" /> Auto-generate
+                    </span>
+                  </Button>
+                </div>
               )}
             </div>
 
@@ -1210,13 +1235,9 @@ export default function TimetablePage() {
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--t2)]">Subject</label>
-                  <select
-                    name="subject_id"
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-4 py-3 text-[var(--on-surface)]"
-                  >
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">Subject</label>
+                  <select name="subject_id" required className="input">
                     <option value="">Choose subject...</option>
                     {subjects.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -1226,14 +1247,9 @@ export default function TimetablePage() {
                   </select>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--t2)]">Teacher</label>
-                  <select
-                    name="teacher_id"
-                    required
-                    onChange={handleTeacherChange}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-4 py-3 text-[var(--on-surface)]"
-                  >
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">Teacher</label>
+                  <select name="teacher_id" required onChange={handleTeacherChange} className="input">
                     <option value="">Select teacher...</option>
                     {teachers.map((t) => (
                       <option key={t.id} value={t.id}>
@@ -1243,8 +1259,10 @@ export default function TimetablePage() {
                   </select>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--t2)]">Room (optional)</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">
+                    Room (optional)
+                  </label>
                   <input
                     name="room"
                     value={roomValue}
@@ -1265,7 +1283,7 @@ export default function TimetablePage() {
                       }
                     }}
                     placeholder="e.g. Lab 3, Room 12"
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-4 py-3 text-[var(--on-surface)]"
+                    className="input"
                   />
                 </div>
 
@@ -1319,6 +1337,17 @@ export default function TimetablePage() {
           }}
         />
       )}
+      <SchoolDaySetupModal
+        isOpen={showDaySetup}
+        onClose={() => setShowDaySetup(false)}
+        schoolId={school?.id}
+        classIds={classes.map((classItem) => classItem.id)}
+        defaultLevel={selectedLevel}
+        onApplied={() => {
+          refetchSlots();
+          fetchTimetable();
+        }}
+      />
     </PageErrorBoundary>
   );
 }

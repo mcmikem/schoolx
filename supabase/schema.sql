@@ -405,6 +405,8 @@ CREATE TABLE IF NOT EXISTS fee_payments (
     recorded_by UUID REFERENCES users(id),
     deleted_at TIMESTAMPTZ,
     deleted_by UUID REFERENCES users(id),
+    updated_at TIMESTAMPTZ,
+    updated_by UUID REFERENCES users(id),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

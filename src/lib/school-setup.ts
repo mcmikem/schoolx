@@ -1,4 +1,5 @@
 import { NURSERY_TEMPLATE, PRIMARY_TEMPLATE, SECONDARY_TEMPLATE } from "@/lib/curriculum-templates";
+import { SCHOOL_DAY_PRESETS, buildSchoolDay } from "@/lib/timetable/uganda-day";
 
 export type SchoolSetupType = "primary" | "secondary" | "combined";
 
@@ -104,25 +105,20 @@ export function buildNurseryClasses(schoolId: string, academicYear: string) {
   return NURSERY_TEMPLATE.classes.map((cls) => toClassRow(schoolId, academicYear, cls, "primary"));
 }
 
-const DEFAULT_TIMETABLE_SLOTS = [
-  { name: "Period 1", start_time: "08:00", end_time: "08:40", is_lesson: true },
-  { name: "Period 2", start_time: "08:40", end_time: "09:20", is_lesson: true },
-  { name: "Break", start_time: "09:20", end_time: "09:40", is_lesson: false },
-  { name: "Period 3", start_time: "09:40", end_time: "10:20", is_lesson: true },
-  { name: "Period 4", start_time: "10:20", end_time: "11:00", is_lesson: true },
-  { name: "Lunch", start_time: "11:00", end_time: "11:40", is_lesson: false },
-  { name: "Period 5", start_time: "11:40", end_time: "12:20", is_lesson: true },
-  { name: "Period 6", start_time: "12:20", end_time: "13:00", is_lesson: true },
-  { name: "Games / Clubs", start_time: "13:00", end_time: "14:00", is_lesson: true },
-];
-
+/**
+ * Seed a school with a bell schedule that matches the Ugandan school day
+ * (MoES minimum standards + the NCDC lower-secondary framework): assembly,
+ * eight 40-minute lessons, a 20-minute break, an hour for lunch, and games.
+ *
+ * Schools can change every part of it from Timetable → School day.
+ */
 export function buildDefaultTimetableSlots(schoolId: string) {
-  return DEFAULT_TIMETABLE_SLOTS.map((slot, index) => ({
+  return buildSchoolDay(SCHOOL_DAY_PRESETS.lower_secondary).map((slot) => ({
     school_id: schoolId,
     name: slot.name,
     start_time: slot.start_time,
     end_time: slot.end_time,
     is_lesson: slot.is_lesson,
-    order_number: index + 1,
+    order_number: slot.order_number,
   }));
 }

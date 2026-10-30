@@ -195,7 +195,7 @@ export default function FinanceHubPage() {
     return (tuition || mobileFeeOptions[0])?.id || "";
   }, [mobileFeeOptions]);
   const { adjustments, createAdjustment, deleteAdjustment } = useFeeAdjustments(school?.id);
-  const { createPayment, deletePayment } = useFeePayments(school?.id, 1, 50);
+  const { createPayment, updatePayment, deletePayment } = useFeePayments(school?.id, 1, 50);
   const { payments: completePayments, truncated: ledgerTruncated } = useCompleteFeePayments(school?.id);
   // Every transaction carries a recorded_by id. An id is not something a bursar
   // can read, so the ledger resolves them to names once.
@@ -289,6 +289,7 @@ export default function FinanceHubPage() {
     }
   };
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<(typeof payments)[number] | null>(null);
   const isOnline = useOnlineStatus();
 
   /**
@@ -309,6 +310,7 @@ export default function FinanceHubPage() {
    * empty picker one tap away from paying the wrong child.
    */
   const openPaymentModal = (studentId?: string) => {
+    setEditingPayment(null);
     setNewPayment((prev) => ({
       ...prev,
       student_id: studentId || "",
@@ -319,7 +321,26 @@ export default function FinanceHubPage() {
       momo_transaction_id: "",
       paid_by: "",
       notes: "",
+      allow_overpayment: false,
     }));
+    setShowPaymentModal(true);
+  };
+
+  const openEditPaymentModal = (payment: (typeof payments)[number]) => {
+    setEditingPayment(payment as (typeof payments)[number]);
+    setNewPayment({
+      student_id: payment.student_id,
+      amount_paid: String(payment.amount_paid ?? ""),
+      payment_date: payment.payment_date || getLocalDateString(),
+      payment_method: (payment.payment_method as typeof newPayment.payment_method) || "cash",
+      payment_reference: payment.payment_reference || "",
+      fee_id: payment.fee_id || "",
+      momo_provider: "mtn",
+      momo_transaction_id: "",
+      paid_by: payment.paid_by || "",
+      notes: payment.notes || "",
+      allow_overpayment: false,
+    });
     setShowPaymentModal(true);
   };
 
@@ -2343,9 +2364,11 @@ export default function FinanceHubPage() {
             {balanceSubTab === "payments" && (
               <>
                 <FeePaymentHistory
-                  payments={payments}
+                  payments={payments as any}
                   students={students}
                   formatCurrency={formatCurrency}
+                  recordedByName={recordedByName}
+                  onEditPayment={openEditPaymentModal as any}
                   onDeletePayment={handleDeletePayment}
                   onRecordPayment={() => openPaymentModal()}
                 />
@@ -2467,7 +2490,12 @@ export default function FinanceHubPage() {
 
         <PaymentModal
           isOpen={showPaymentModal}
-          onClose={() => setShowPaymentModal(false)}
+          isEditing={Boolean(editingPayment)}
+          editingAmount={editingPayment ? Number(editingPayment.amount_paid || 0) : 0}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setEditingPayment(null);
+          }}
           students={studentBalances.map((s) => ({
             id: s.id,
             name: s.name,
@@ -2635,9 +2663,9 @@ export default function FinanceHubPage() {
           isOpen={confirmDelete?.type === "payment"}
           onClose={() => setConfirmDelete(null)}
           onConfirm={() => confirmDelete && executeDeletePayment(confirmDelete.id)}
-          title="Delete Payment"
-          message="Are you sure you want to delete this payment? This action can be undone."
-          confirmLabel="Delete"
+          title="Void Payment"
+          message="Are you sure you want to void this payment? It will be removed from balances. This action can be undone shortly."
+          confirmLabel="Void"
           loading={deleting}
           variant="danger"
         />

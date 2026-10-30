@@ -154,6 +154,10 @@ CREATE TABLE IF NOT EXISTS fee_payments (
   notes TEXT,
   payment_date DATE DEFAULT CURRENT_DATE,
   recorded_by UUID,
+  deleted_at TIMESTAMPTZ,
+  deleted_by UUID,
+  updated_at TIMESTAMPTZ,
+  updated_by UUID,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

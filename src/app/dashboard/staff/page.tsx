@@ -15,11 +15,11 @@ import {
   type TeachingAssignment,
 } from "@/components/staff/TeachingAssignmentsEditor";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Tabs, TabPanel } from "@/components/ui/Tabs";
+import { TabPanel } from "@/components/ui/Tabs";
 import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
+import SearchField from "@/components/ui/SearchField";
 import { EmptyState } from "@/components/EmptyState";
-import { Card, CardBody } from "@/components/ui/Card";
 import { DEMO_STAFF, DEMO_CLASSES, DEMO_SCHOOL_ID } from "@/lib/demo-data";
 import { useStaff, useStaffReviews, useDashboardStats } from "@/lib/hooks";
 import { logger } from "@/lib/logger";
@@ -182,6 +182,58 @@ const LEAVE_TYPES = [
   { value: "other", label: "Other" },
 ];
 
+interface StaffTabItem {
+  id: string;
+  label: string;
+  count?: number;
+  icon?: string;
+}
+
+function StaffTabRail({
+  tabs,
+  activeTab,
+  onChange,
+  className = "",
+}: {
+  tabs: StaffTabItem[];
+  activeTab: string;
+  onChange: (id: string) => void;
+  className?: string;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Tab navigation"
+      className={`flex overflow-x-auto no-scrollbar border-b border-[var(--border)] ${className}`}
+    >
+      {tabs.map((tab) => {
+        const active = tab.id === activeTab;
+        return (
+          <button
+            key={tab.id}
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(tab.id)}
+            className={`relative flex min-h-11 shrink-0 items-center gap-2 border-b-2 px-3 text-sm transition-colors ${
+              active
+                ? "border-[var(--primary)] font-bold text-[var(--primary)]"
+                : "border-transparent font-medium text-[var(--t2)] hover:text-[var(--t1)]"
+            }`}
+          >
+            {tab.icon && <MaterialIcon icon={tab.icon} size={16} />}
+            {tab.label}
+            {tab.count !== undefined && (
+              <span className={`text-xs tabular-nums ${active ? "text-[var(--primary)]" : "text-[var(--t3)]"}`}>
+                {tab.count}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function StaffHubPage() {
   const { school, user, isDemo } = useAuth();
   const toast = useToast();
@@ -202,19 +254,15 @@ export default function StaffHubPage() {
   return (
     <PageErrorBoundary>
       <div className="content">
-        <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="ph-title truncate !text-3xl">Staff Hub</h1>
-              <div className="ph-sub truncate !text-sm">
-                {school?.name} • Personnel Management & Academic Supervision
-              </div>
-            </div>
-            <div className="ph-actions">
+        <PageHeader
+          title="Staff Hub"
+          subtitle={`${school?.name ?? "Personnel"} • Personnel Management & Academic Supervision`}
+          actions={
+            <>
               <button
                 onClick={() => setActiveMainTab("directory")}
                 aria-pressed={activeMainTab === "directory"}
-                className={`shadow-sm ${activeMainTab === "directory" ? "btn btn-primary" : "btn btn-ghost"}`}
+                className={activeMainTab === "directory" ? "btn btn-primary" : "btn btn-ghost"}
               >
                 <MaterialIcon icon="groups" style={{ fontSize: "16px" }} />
                 <span>Staff Directory</span>
@@ -222,18 +270,18 @@ export default function StaffHubPage() {
               <button
                 onClick={() => setActiveMainTab("leave")}
                 aria-pressed={activeMainTab === "leave"}
-                className={`shadow-md ${activeMainTab === "leave" ? "btn btn-primary" : "btn btn-ghost"}`}
+                className={activeMainTab === "leave" ? "btn btn-primary" : "btn btn-ghost"}
               >
                 <MaterialIcon icon="event_busy" style={{ fontSize: "16px" }} />
                 <span>Leave Requests</span>
               </button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         <SmartAdvisor stats={stats || {}} collectionRate={0} attendanceRate={attendanceRate} role="dean" />
 
-        <Tabs tabs={mainTabs} activeTab={activeMainTab} onChange={setActiveMainTab} className="mb-6" />
+        <StaffTabRail tabs={mainTabs} activeTab={activeMainTab} onChange={setActiveMainTab} className="mb-6" />
 
         <TabPanel activeTab={activeMainTab} tabId="directory">
           <DirectoryTab school={school} isDemo={isDemo} toast={toast} />
@@ -1500,7 +1548,7 @@ function DirectoryTab({
     }
 
     return (
-      <div className="rounded-[22px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--sh1)] divide-y divide-[var(--border)]">
+      <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
         {filteredStaff.map((member) => {
           const menuOpen = menuOpenId === member.id;
           const closeMenu = () => setMenuOpenId(null);
@@ -1629,9 +1677,9 @@ function DirectoryTab({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-xl font-semibold text-[var(--on-surface)]">
+          <h2 className="text-base font-semibold text-[var(--t1)]">
             {activeTab === "parents" ? "Parent Accounts" : "Staff Directory"}
           </h2>
           <p className="text-sm text-[var(--t3)]">
@@ -1670,19 +1718,16 @@ function DirectoryTab({
 
       <OwlyTrigger guideId="staff" label="How do I manage staff?" className="mb-4" />
 
-      <div className="flex flex-col sm:flex-row gap-4 mb-4">
-        <div className="relative flex-1 max-w-sm">
-          <MaterialIcon icon="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
-          <input
-            value={staffSearch}
-            onChange={(e) => setStaffSearch(e.target.value)}
-            placeholder="Search by name, role, or email…"
-            className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-slate-100 w-full"
-          />
-        </div>
+      <div className="mb-4 max-w-sm">
+        <SearchField
+          label="Search staff"
+          value={staffSearch}
+          onChange={setStaffSearch}
+          placeholder="Search by name, role, or email…"
+        />
       </div>
 
-      <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} className="mb-6" />
+      <StaffTabRail tabs={tabs} activeTab={activeTab} onChange={setActiveTab} className="mb-6" />
 
       <TabPanel activeTab={activeTab} tabId="all">
         {renderContent()}
@@ -2381,9 +2426,9 @@ function ReviewsTab({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-xl font-semibold text-[var(--on-surface)]">Staff Performance</h2>
+          <h2 className="text-base font-semibold text-[var(--t1)]">Staff Performance</h2>
           <p className="text-sm text-[var(--t3)]">Conduct and manage staff performance reviews</p>
         </div>
         <Button
@@ -2397,69 +2442,54 @@ function ReviewsTab({
       </div>
 
       {reviews.length === 0 ? (
-        <Card>
-          <CardBody>
-            <EmptyState
-              icon="rate_review"
-              title="No performance reviews"
-              description="Start conducting performance reviews for your staff"
-              action={{
-                label: "New Review",
-                onClick: () => setShowReviewModal(true),
-              }}
-            />
-          </CardBody>
-        </Card>
+        <div className="border-y border-[var(--border)] px-4 py-12 text-center">
+          <MaterialIcon className="mb-2 text-2xl text-[var(--t3)]">rate_review</MaterialIcon>
+          <div className="text-sm font-semibold text-[var(--t1)]">No performance reviews</div>
+          <p className="mt-1 text-xs text-[var(--t3)]">Start conducting performance reviews for your staff</p>
+          <Button className="mt-4" onClick={() => setShowReviewModal(true)}>
+            New Review
+          </Button>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
           {reviews.map((review: StaffReview) => (
-            <Card key={review.id} className="flex flex-col">
-              <CardBody className="flex flex-col h-full">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[var(--primary-soft)] flex items-center justify-center text-[var(--primary)] font-bold">
-                      {review.staff?.full_name?.[0] || "S"}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-[var(--on-surface)]">
-                        {review.staff?.full_name || "Demo Staff"}
-                      </p>
-                      <p className="text-xs text-[var(--t3)]">{review.review_date}</p>
-                    </div>
+            <div key={review.id} className="py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--primary-soft)] font-bold text-[var(--primary)]">
+                    {review.staff?.full_name?.[0] || "S"}
                   </div>
-                  <div className="flex items-center gap-1 text-[var(--amber)]">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-[var(--t1)]">{review.staff?.full_name || "Demo Staff"}</p>
+                    <p className="text-xs text-[var(--t3)]">{review.review_date}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1 text-[var(--amber)]" aria-label={`${review.rating} out of 5`}>
                     {[...Array(5)].map((_, i) => (
                       <MaterialIcon
                         key={i}
                         icon="star"
-                        className={`text-lg ${i < review.rating ? "fill-current" : "opacity-20"}`}
+                        className={`text-base ${i < review.rating ? "fill-current" : "opacity-20"}`}
                       />
                     ))}
                   </div>
-                </div>
-
-                <div className="space-y-4 flex-grow">
-                  <div>
-                    <p className="text-xs font-semibold text-[var(--primary)] uppercase tracking-wider mb-1">
-                      Strengths
-                    </p>
-                    <p className="text-sm text-[var(--t2)] line-clamp-2">{review.strengths}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-[var(--navy)] uppercase tracking-wider mb-1">
-                      Upcoming Goals
-                    </p>
-                    <p className="text-sm text-[var(--t2)] line-clamp-2">{review.goals}</p>
-                  </div>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-[var(--border)] flex items-center justify-between">
-                  <span className="text-xs px-2 py-1 rounded-full bg-[var(--green-soft)] text-[var(--green-ink)] font-medium capitalize">
+                  <span className="rounded-full bg-[var(--green-soft)] px-2 py-1 text-xs font-medium capitalize text-[var(--green-ink)]">
                     {review.status}
                   </span>
                 </div>
-              </CardBody>
-            </Card>
+              </div>
+              <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">Strengths</dt>
+                  <dd className="mt-1 line-clamp-2 text-[var(--t2)]">{review.strengths}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">Upcoming Goals</dt>
+                  <dd className="mt-1 line-clamp-2 text-[var(--t2)]">{review.goals}</dd>
+                </div>
+              </dl>
+            </div>
           ))}
         </div>
       )}
@@ -2828,9 +2858,9 @@ function LeaveTab({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-xl font-semibold text-[var(--on-surface)]">
+          <h2 className="text-base font-semibold text-[var(--t1)]">
             {isHM || isDOS ? "Leave Management" : "My Leave Requests"}
           </h2>
           <p className="text-sm text-[var(--t3)]">
@@ -2843,94 +2873,79 @@ function LeaveTab({
         </Button>
       </div>
 
-      <Tabs tabs={tabs} activeTab={filter} onChange={(id) => setFilter(id as typeof filter)} className="mb-6" />
+      <StaffTabRail tabs={tabs} activeTab={filter} onChange={(id) => setFilter(id as typeof filter)} className="mb-6" />
       <p className="-mt-3 mb-6 text-sm text-[var(--t3)]">{leaveFilterHints[filter]}</p>
 
       {loading ? (
-        <Card>
-          <CardBody>
-            <TableSkeleton rows={3} />
-          </CardBody>
-        </Card>
+        <div className="border-y border-[var(--border)] py-6">
+          <TableSkeleton rows={3} />
+        </div>
       ) : filteredRequests.length === 0 ? (
-        <Card>
-          <CardBody>
-            <EmptyState
-              icon="event_busy"
-              title="No leave requests"
-              description="Submit a request when you need time off"
-              action={{
-                label: "Request Leave",
-                onClick: () => setShowModal(true),
-              }}
-            />
-          </CardBody>
-        </Card>
+        <div className="border-y border-[var(--border)] px-4 py-12 text-center">
+          <MaterialIcon className="mb-2 text-2xl text-[var(--t3)]">event_busy</MaterialIcon>
+          <div className="text-sm font-semibold text-[var(--t1)]">No leave requests</div>
+          <p className="mt-1 text-xs text-[var(--t3)]">Submit a request when you need time off</p>
+          <Button className="mt-4" onClick={() => setShowModal(true)}>
+            Request Leave
+          </Button>
+        </div>
       ) : (
-        <div className="space-y-3">
+        <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
           {filteredRequests.map((req) => (
-            <Card key={req.id}>
-              <CardBody>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-[var(--on-surface)]">{getLeaveTypeLabel(req.leave_type)}</span>
-                      {getStatusBadge(req.status)}
-                    </div>
-                    <div className="text-sm text-[var(--t3)] mt-1">
-                      {new Date(req.start_date).toLocaleDateString()} – {new Date(req.end_date).toLocaleDateString()} (
-                      {req.days_count} day{req.days_count !== 1 ? "s" : ""})
-                    </div>
-                    {req.reason && <div className="text-sm text-[var(--t3)] mt-1">{req.reason}</div>}
-                    {req.substitute_suggestion && (
-                      <div className="text-sm text-[var(--t3)] mt-1">
-                        <MaterialIcon icon="person" className="text-xs align-middle" /> Suggested substitute:{" "}
-                        {req.substitute_suggestion}
-                      </div>
-                    )}
+            <div key={req.id} className="py-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-[var(--t1)]">{getLeaveTypeLabel(req.leave_type)}</span>
+                    {getStatusBadge(req.status)}
                   </div>
-                  <span className="text-xs text-[var(--t3)]">{new Date(req.created_at).toLocaleDateString()}</span>
+                  <div className="mt-1 text-sm text-[var(--t3)]">
+                    {new Date(req.start_date).toLocaleDateString()} – {new Date(req.end_date).toLocaleDateString()} (
+                    {req.days_count} day{req.days_count !== 1 ? "s" : ""})
+                  </div>
+                  {req.reason && <div className="mt-1 text-sm text-[var(--t3)]">{req.reason}</div>}
+                  {req.substitute_suggestion && (
+                    <div className="mt-1 text-sm text-[var(--t3)]">
+                      <MaterialIcon icon="person" className="align-middle text-xs" /> Suggested substitute:{" "}
+                      {req.substitute_suggestion}
+                    </div>
+                  )}
                 </div>
-                {req.status === "pending" && req.days_count > 3 && (
-                  <div className="mt-2 text-xs text-[var(--t3)] bg-[var(--surface-container)] rounded-lg p-2">
-                    Requires DOS approval → HM final approval
-                  </div>
-                )}
-                {req.status === "pending" && req.days_count <= 3 && (
-                  <div className="mt-2 text-xs text-[var(--t3)] bg-[var(--surface-container)] rounded-lg p-2">
-                    DOS can approve directly (≤ 3 days)
-                  </div>
-                )}
-                {req.status === "dos_approved" && (
-                  <div className="mt-2 text-xs text-[var(--t3)] bg-[var(--navy-soft)] rounded-lg p-2">
-                    Awaiting Headmaster final approval
-                  </div>
-                )}
-                {canApprove(req) && (
-                  <div className="mt-3 flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => handleApproval(req.id, "approved")}
-                      disabled={processing === req.id}
-                      className="bg-[var(--green)] text-white hover:bg-[var(--green)]/90"
-                    >
-                      <MaterialIcon icon="check" className="text-sm" />
-                      {processing === req.id ? "Processing..." : "Approve"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleApproval(req.id, "rejected")}
-                      disabled={processing === req.id}
-                      className="text-[var(--red-ink)] border-[var(--red)]/30 hover:bg-[var(--red-soft)]"
-                    >
-                      <MaterialIcon icon="close" className="text-sm" />
-                      Reject
-                    </Button>
-                  </div>
-                )}
-              </CardBody>
-            </Card>
+                <span className="text-xs text-[var(--t3)]">{new Date(req.created_at).toLocaleDateString()}</span>
+              </div>
+              {req.status === "pending" && req.days_count > 3 && (
+                <div className="mt-2 text-xs text-[var(--t3)]">Requires DOS approval → HM final approval</div>
+              )}
+              {req.status === "pending" && req.days_count <= 3 && (
+                <div className="mt-2 text-xs text-[var(--t3)]">DOS can approve directly (≤ 3 days)</div>
+              )}
+              {req.status === "dos_approved" && (
+                <div className="mt-2 text-xs text-[var(--t3)]">Awaiting Headmaster final approval</div>
+              )}
+              {canApprove(req) && (
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => handleApproval(req.id, "approved")}
+                    disabled={processing === req.id}
+                    className="bg-[var(--green)] text-white hover:bg-[var(--green)]/90"
+                  >
+                    <MaterialIcon icon="check" className="text-sm" />
+                    {processing === req.id ? "Processing..." : "Approve"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleApproval(req.id, "rejected")}
+                    disabled={processing === req.id}
+                    className="text-[var(--red-ink)] border-[var(--red)]/30 hover:bg-[var(--red-soft)]"
+                  >
+                    <MaterialIcon icon="close" className="text-sm" />
+                    Reject
+                  </Button>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}
