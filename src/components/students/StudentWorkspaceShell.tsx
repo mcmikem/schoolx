@@ -78,67 +78,57 @@ export default function StudentWorkspaceShell({
   ];
 
   return (
-    <div className="space-y-4">
-      <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div>
+      <section aria-label="Student totals" className="grid grid-cols-2 border-y border-[var(--border)] sm:grid-cols-4">
         {stats.map((s) => (
-          <div key={s.label} className="card p-4">
-            <div className="flex items-center justify-between gap-2">
-              <div className="text-xs font-bold uppercase tracking-widest text-[var(--t3)]">{s.label}</div>
-              <span className="w-7 h-7 rounded-lg bg-[var(--surface-container-low)] flex items-center justify-center shrink-0">
-                <MaterialIcon style={{ fontSize: 15, color: s.color }}>{s.icon}</MaterialIcon>
-              </span>
+          <div key={s.label} className="px-3 py-3 sm:px-4">
+            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-[var(--t3)]">
+              <MaterialIcon style={{ fontSize: 14, color: s.color }}>{s.icon}</MaterialIcon>
+              {s.label}
             </div>
-            <div className="mt-2 text-2xl font-extrabold" style={{ color: s.color, fontFamily: "Sora, sans-serif" }}>
+            <div className="mt-1 text-xl font-extrabold tabular-nums" style={{ color: s.color }}>
               {s.value}
             </div>
           </div>
         ))}
       </section>
 
-      <section className="card overflow-hidden">
-        <div className="border-b border-[var(--border)] px-2 pt-2">
-          <div className="relative">
-            <div
-              ref={tabsScrollerRef}
-              className="flex gap-1 overflow-x-auto no-scrollbar px-1 pb-1 snap-x snap-mandatory"
-              aria-label="Student workflow tabs"
+      <div
+        ref={tabsScrollerRef}
+        className="flex overflow-x-auto no-scrollbar border-b border-[var(--border)]"
+        aria-label="Student workflow tabs"
+      >
+        {WORKFLOW_TABS.map((tab) => {
+          const isActive = activeTab === tab.id;
+          const count = workflowCounts[tab.id];
+          return (
+            <button
+              key={tab.id}
+              data-tab-id={tab.id}
+              onClick={() => onTabChange(tab.id)}
+              className={`relative flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 text-sm transition-colors ${
+                isActive
+                  ? "border-[var(--primary)] font-bold text-[var(--primary)]"
+                  : "border-transparent font-medium text-[var(--t2)] hover:text-[var(--t1)]"
+              }`}
             >
-              {WORKFLOW_TABS.map((tab) => {
-                const isActive = activeTab === tab.id;
-                const count = workflowCounts[tab.id];
-                return (
-                  <button
-                    key={tab.id}
-                    data-tab-id={tab.id}
-                    onClick={() => onTabChange(tab.id)}
-                    className={`flex shrink-0 snap-start items-center gap-2 px-4 py-3 rounded-t-xl text-[13px] font-semibold whitespace-nowrap border-b-2 transition-all ${
-                      isActive
-                        ? "border-[var(--primary)] text-[var(--primary)] bg-[var(--navy-soft)]"
-                        : "border-transparent text-[var(--t3)] hover:text-[var(--t1)] hover:bg-[var(--bg)]"
-                    }`}
-                  >
-                    <MaterialIcon icon={tab.icon} size={16} />
-                    {tab.label}
-                    {count > 0 && (
-                      <span
-                        className={`rounded-full px-1.5 py-0.5 text-xs font-bold ${isActive ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-container)] text-[var(--t3)]"}`}
-                      >
-                        {count}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          {showTabsOverflowHint && (
-            <div className="sm:hidden px-2 pb-2 text-xs text-[var(--t3)] flex items-center gap-1">
-              <MaterialIcon icon="swipe" size={14} />
-              Swipe left or right to see all tabs
-            </div>
-          )}
+              <MaterialIcon icon={tab.icon} size={16} />
+              {tab.label}
+              {count > 0 && (
+                <span className={`text-xs tabular-nums ${isActive ? "text-[var(--primary)]" : "text-[var(--t3)]"}`}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      {showTabsOverflowHint && (
+        <div className="flex items-center gap-1 pl-1 pt-2 text-xs text-[var(--t3)] sm:hidden">
+          <MaterialIcon icon="swipe" size={14} />
+          Swipe left or right to see all tabs
         </div>
-      </section>
+      )}
     </div>
   );
 }

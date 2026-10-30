@@ -535,7 +535,7 @@ export default function StudentRegistryPanel({
       {canManage && totalStudents === 0 && !loading && <OnboardingTips schoolId={schoolId} />}
 
       {(canManage || lowBandwidthMode) && (
-        <div className="dashboard-surface p-5 sm:p-6 mb-5">
+        <section className="mb-4 border-b border-[var(--border)] pb-4">
           {canManage && (
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -570,7 +570,7 @@ export default function StudentRegistryPanel({
             </div>
           )}
           {canManage && (showQuickImport || shouldForceShowQuickImport) && (
-            <div className="mt-5 rounded-[20px] border border-[var(--border)] bg-[var(--surface)]/60 p-4 space-y-3">
+            <div className="mt-4 space-y-3 border-t border-[var(--border)] pt-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-semibold text-[var(--t1)]">Upload student list</div>
                 <button type="button" className="btn btn-ghost btn-sm" onClick={downloadStudentTemplate}>
@@ -637,7 +637,7 @@ export default function StudentRegistryPanel({
                 </div>
               )}
               {importSummary?.errors?.length ? (
-                <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--bg)]/80 p-3">
+                <div className="mt-3 border border-[var(--border)] p-3">
                   <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--t3)] mb-2">
                     Import issues
                   </div>
@@ -652,7 +652,7 @@ export default function StudentRegistryPanel({
                 </div>
               ) : null}
               {templatePreviewRows.length > 0 && (
-                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)]/70 p-3">
+                <div className="border border-[var(--border)] p-3">
                   <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--t3)] mb-2">
                     Parsed preview ({templatePreviewRows.length} row
                     {templatePreviewRows.length === 1 ? "" : "s"})
@@ -688,10 +688,10 @@ export default function StudentRegistryPanel({
               )}
             </div>
           )}
-        </div>
+        </section>
       )}
 
-      <div className="card mb-5" style={{ padding: 0 }}>
+      <section className="mb-5">
         <div
           style={{
             padding: 14,
@@ -704,9 +704,7 @@ export default function StudentRegistryPanel({
             position: "sticky",
             top: 0,
             zIndex: 10,
-            background: "var(--surface)",
-            borderTopLeftRadius: 22,
-            borderTopRightRadius: 22,
+            background: "var(--bg)",
           }}
         >
           <div className="w-full min-w-0 sm:w-auto sm:flex-1">
@@ -722,7 +720,7 @@ export default function StudentRegistryPanel({
             value={selectedClass}
             onChange={(e) => onSelectedClassChange(e.target.value)}
             aria-label="Filter by class"
-            className="min-h-11 max-w-full cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-xs font-semibold text-[var(--t1)]"
+            className="input !h-10 !w-auto max-w-full !py-0 text-sm font-semibold"
           >
             <option value="all">All Classes</option>
             {classes.map((classItem) => (
@@ -740,7 +738,7 @@ export default function StudentRegistryPanel({
               aria-expanded={filtersOpen}
               aria-haspopup="dialog"
               aria-controls={filtersOpen ? filtersPanelId : undefined}
-              className="flex min-h-11 cursor-pointer items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-xs font-semibold text-[var(--t1)] hover:bg-[var(--surface-container)]"
+              className="flex min-h-10 cursor-pointer items-center gap-1.5 border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--t1)] hover:bg-[var(--surface-container)]"
             >
               <MaterialIcon size={16}>filter_list</MaterialIcon>
               Filters
@@ -858,7 +856,7 @@ export default function StudentRegistryPanel({
               value={sortBy}
               onChange={(e) => onSortByChange(e.target.value as "name" | "number" | "class")}
               aria-label="Sort students"
-              className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-xs font-semibold text-[var(--t1)]"
+              className="input !h-10 !w-auto !py-0 text-sm font-semibold"
             >
               <option value="name">Sort by Name</option>
               <option value="number">Sort by Number</option>
@@ -869,7 +867,7 @@ export default function StudentRegistryPanel({
               onClick={() => onSortDirChange(sortDir === "asc" ? "desc" : "asc")}
               aria-label={sortDir === "asc" ? "Reverse to descending order" : "Reverse to ascending order"}
               title={sortDir === "asc" ? "Ascending" : "Descending"}
-              className="flex h-full min-h-10 items-center rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-2.5 text-[var(--t2)] hover:bg-[var(--surface-container)]"
+              className="flex min-h-10 items-center border border-[var(--border)] bg-[var(--surface)] px-2.5 text-[var(--t2)] hover:bg-[var(--surface-container)]"
             >
               <MaterialIcon size={18}>{sortDir === "asc" ? "arrow_upward" : "arrow_downward"}</MaterialIcon>
             </button>
@@ -880,10 +878,7 @@ export default function StudentRegistryPanel({
         </div>
 
         {activeFilterChips.length > 0 && (
-          <div
-            className="flex flex-wrap items-center gap-2 px-4 py-2.5"
-            style={{ borderBottom: "1px solid var(--border)", background: "var(--surface-container-lowest)" }}
-          >
+          <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] px-4 py-2.5">
             {activeFilterChips.map((chip) => (
               <span
                 key={chip.key}
@@ -948,32 +943,10 @@ export default function StudentRegistryPanel({
         {loading ? (
           <TableSkeleton rows={8} />
         ) : filteredCount === 0 ? (
-          <div style={{ padding: 40, textAlign: "center" }}>
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 12,
-                background: "var(--bg)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 12px",
-              }}
-            >
-              <MaterialIcon style={{ fontSize: 24, color: "var(--t3)" }}>group</MaterialIcon>
-            </div>
-            <div
-              style={{
-                fontSize: 14,
-                fontWeight: 600,
-                color: "var(--t1)",
-                marginBottom: 4,
-              }}
-            >
-              No students found
-            </div>
-            <div style={{ fontSize: 12, color: "var(--t3)" }}>
+          <div className="border-b border-[var(--border)] px-4 py-12 text-center">
+            <MaterialIcon className="mb-2 text-2xl text-[var(--t3)]">group</MaterialIcon>
+            <div className="mb-1 text-sm font-semibold text-[var(--t1)]">No students found</div>
+            <div className="text-xs text-[var(--t3)]">
               {searchTerm
                 ? "Try a different search term"
                 : filtersActive
@@ -983,14 +956,14 @@ export default function StudentRegistryPanel({
                     : "No students are visible to your account yet"}
             </div>
             {filtersActive ? (
-              <button onClick={clearFilters} className="btn btn-secondary" style={{ marginTop: 16 }}>
+              <button onClick={clearFilters} className="btn btn-secondary mt-4">
                 <MaterialIcon icon="filter_alt_off" style={{ fontSize: "16px" }} />
                 Clear filters
               </button>
             ) : (
               !searchTerm &&
               canManage && (
-                <button onClick={onAddStudent} className="btn btn-primary" style={{ marginTop: 16 }}>
+                <button onClick={onAddStudent} className="btn btn-primary mt-4">
                   <MaterialIcon icon="person_add" style={{ fontSize: "16px" }} />
                   Add Student
                 </button>
@@ -1245,17 +1218,14 @@ export default function StudentRegistryPanel({
               </table>
             </div>
 
-            <div className="space-y-3 md:hidden">
+            <div className="md:hidden">
               {paginatedStudents.map((student) => {
                 const house = resolveHouse(student);
                 const statusMeta = attendanceStatusMap[student.id];
                 const leader = leadershipLabel(student);
 
                 return (
-                  <div
-                    key={student.id}
-                    className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--sh1)]"
-                  >
+                  <div key={student.id} className="border-b border-[var(--border)] px-1 py-4">
                     <div className="flex items-start gap-3">
                       <input
                         type="checkbox"
@@ -1413,7 +1383,7 @@ export default function StudentRegistryPanel({
               <button
                 onClick={onPreviousPage}
                 disabled={currentPage === 1}
-                className="min-h-11 px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--t2)] text-xs disabled:opacity-40 hover:bg-[var(--bg)] transition-colors"
+                className="min-h-10 border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--t2)] transition-colors hover:bg-[var(--surface-container)] disabled:opacity-40"
               >
                 Previous
               </button>
@@ -1423,14 +1393,14 @@ export default function StudentRegistryPanel({
               <button
                 onClick={onNextPage}
                 disabled={currentPage === totalPages}
-                className="min-h-11 px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--t2)] text-xs disabled:opacity-40 hover:bg-[var(--bg)] transition-colors"
+                className="min-h-10 border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--t2)] transition-colors hover:bg-[var(--surface-container)] disabled:opacity-40"
               >
                 Next
               </button>
             </div>
           </div>
         )}
-      </div>
+      </section>
 
       <NotifyParentsModal
         open={showNotifyParents}

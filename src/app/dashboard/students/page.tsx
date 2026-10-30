@@ -629,7 +629,7 @@ export default function StudentHubPage() {
 
   return (
     <PageErrorBoundary>
-      <div className="space-y-6 p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-8">
+      <div className="content min-w-0 pb-28 lg:pb-20">
         <PageHeader
           title="Student Hub"
           subtitle={
@@ -642,7 +642,6 @@ export default function StudentHubPage() {
               `${totalCount} students enrolled in ${academicYear} (${boysCount} Boys / ${girlsCount} Girls)`
             )
           }
-          variant="premium"
           actions={
             <>
               {canManageStudents && (
