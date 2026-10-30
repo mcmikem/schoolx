@@ -1646,12 +1646,14 @@ export default function FinanceHubPage() {
     }
     try {
       setSaving(true);
+      let feeId = newAdjustment.fee_id || adjustmentDefaultFeeId;
+      if (!feeId && adjustmentFees.length > 0) feeId = adjustmentFees[0].id;
       await createAdjustment({
         student_id: newAdjustment.student_id,
         adjustment_type: newAdjustment.adjustment_type,
         amount: Number(newAdjustment.amount),
         description: newAdjustment.description.trim(),
-        fee_id: newAdjustment.fee_id || adjustmentDefaultFeeId || undefined,
+        fee_id: feeId || undefined,
       });
       toast.success("Adjustment recorded");
       setShowAdjustmentModal(false);

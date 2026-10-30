@@ -2,6 +2,7 @@
 import FeePicker, { type FeeOption } from "@/components/fees/FeePicker";
 import StudentPicker from "@/components/students/StudentPicker";
 import { Modal } from "@/components/ui/Modal";
+import { useEffect } from "react";
 
 interface AdjustmentData {
   student_id: string;
@@ -37,17 +38,26 @@ export default function AdjustmentModal({
   saving,
 }: AdjustmentModalProps) {
   const parsedAmount = Number(newAdjustment.amount);
+
+  // Auto-commit a sensible default fee once fees load, so the form is never
+  // blocked on a value the picker is already showing.
+  useEffect(() => {
+    if (newAdjustment.fee_id) return;
+    const live = (fees ?? []).filter((f) => !f.retired);
+    const candidate = defaultFeeId || (live.length === 1 ? live[0].id : "");
+    if (candidate) onAdjustmentChange({ fee_id: candidate });
+  }, [fees, defaultFeeId, newAdjustment.fee_id, onAdjustmentChange]);
   // Mirrors the payment form: the shown default counts as chosen, so an
   // untouched form is not blocked by a fee it is already displaying.
-  const missingFee = !newAdjustment.fee_id && !defaultFeeId;
+  const hasFees = (fees ?? []).some((f) => !f.retired);
   const adjustmentValidationError =
     !newAdjustment.student_id || !newAdjustment.amount || !newAdjustment.description.trim()
       ? "Select a student, amount, and reason to continue."
-      : missingFee
-        ? "Choose which fee this applies to."
-      : Number.isNaN(parsedAmount) || parsedAmount <= 0
-        ? "Adjustment amount must be greater than 0."
-        : "";
+      : !hasFees
+        ? "This class has no fees set up. Add them under Fee Structure first."
+        : Number.isNaN(parsedAmount) || parsedAmount <= 0
+          ? "Adjustment amount must be greater than 0."
+          : "";
 
   if (!isOpen) return null;
 
