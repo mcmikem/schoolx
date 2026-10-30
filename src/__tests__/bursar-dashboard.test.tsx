@@ -125,7 +125,7 @@ describe("bursar dashboard data states", () => {
       (useStudents as jest.Mock).mockReturnValue({ students: [], loading: true, error: null });
       (useFeePayments as jest.Mock).mockReturnValue({ payments: [], loading: true, error: null, refetch: jest.fn() });
       render(<BursarDashboard />);
-      act(() => jest.advanceTimersByTime(3000));
+      act(() => jest.advanceTimersByTime(15000));
       const summary = screen.getByRole("region", { name: "Fee summary" });
       expect(within(summary).getByText("Loading summary…")).toBeInTheDocument();
       expect(summary).not.toHaveTextContent("UGX 0");
