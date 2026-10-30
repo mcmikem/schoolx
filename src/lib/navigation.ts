@@ -410,7 +410,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
       items: [
         { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
         {
-          href: "/dashboard/reports",
+          href: "/dashboard/money",
           label: "Financial Reports",
           icon: "analytics",
         },
