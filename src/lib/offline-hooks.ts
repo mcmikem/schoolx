@@ -12,7 +12,7 @@ interface OfflineHookOptions {
   skipCache?: boolean;
 }
 
-const OFFLINE_READ_TIMEOUT_MS = 12000;
+const OFFLINE_READ_TIMEOUT_MS = 30000;
 
 /**
  * Say what a failed read means, in the words of the person waiting for it.
@@ -116,6 +116,22 @@ export function useOfflineData<T>(
     // and the user is not blocked -- so only complain when there is nothing
     // to look at.
     if (!cached || cached.length === 0) {
+      // One automatic retry on a slow link before giving up. Many phones
+      // drop the first request and succeed on the second.
+      if (isOnline && !skipCache) {
+        try {
+          const retry = await withTimeout(fetcherRef.current(), OFFLINE_READ_TIMEOUT_MS, null as unknown as T[]);
+          if (retry) {
+            setData(retry);
+            setIsFromCache(false);
+            await offlineDB.cacheFromServer(cacheKey, retry as Record<string, unknown>[]);
+            setLoading(false);
+            return;
+          }
+        } catch {
+          // fall through to the error below
+        }
+      }
       setError(describeReadFailure(table, networkError ?? cacheError));
     }
     setLoading(false);
