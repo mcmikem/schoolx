@@ -929,11 +929,7 @@ export default function StudentRegistryPanel({
                 Meals &amp; registration
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => setShowNotifyParents(true)}
-              className="btn btn-primary btn-sm"
-            >
+            <button type="button" onClick={() => setShowNotifyParents(true)} className="btn btn-primary btn-sm">
               <MaterialIcon style={{ fontSize: 16 }}>chat</MaterialIcon>
               WhatsApp parents
             </button>

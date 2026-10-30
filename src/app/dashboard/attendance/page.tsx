@@ -1270,30 +1270,30 @@ export default function AttendancePage() {
           )}
 
           {canManageSmsAutomation && showSmsSettings && (
-            <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] py-3">
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-sm">
               <div className="flex items-center gap-3 min-w-0">
                 <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${absenteeAlertEnabled ? "bg-error-container" : "bg-surface-container-high"}`}
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${absenteeAlertEnabled ? "bg-red-50" : "bg-surface-container-high"}`}
                 >
                   <MaterialIcon
                     icon={absenteeAlertEnabled ? "notifications_active" : "notifications_off"}
-                    className={absenteeAlertEnabled ? "text-error" : "text-on-surface-variant"}
+                    className={absenteeAlertEnabled ? "text-red-600" : "text-[var(--t3)]"}
                   />
                 </div>
                 <div className="min-w-0">
-                  <div className="font-semibold text-on-surface text-sm flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-[var(--t1)]">
                     Absentee SMS Alerts
                     {loadingAutomation ? (
-                      <span className="text-xs text-on-surface-variant">Loading...</span>
+                      <span className="text-xs text-[var(--t3)]">Loading...</span>
                     ) : (
                       <span
-                        className={`text-xs font-bold px-2 py-0.5 rounded-full ${absenteeAlertEnabled ? "bg-error-container text-error" : "bg-surface-container-high text-on-surface-variant"}`}
+                        className={`rounded-full px-2 py-0.5 text-xs font-bold ${absenteeAlertEnabled ? "bg-red-50 text-red-700" : "bg-surface-container-high text-[var(--t3)]"}`}
                       >
                         {absenteeAlertEnabled ? "ON" : "OFF"}
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-on-surface-variant mt-0.5">
+                  <div className="mt-0.5 text-xs text-[var(--t3)]">
                     Auto-SMS parents when students are marked absent
                   </div>
                 </div>
@@ -1302,78 +1302,68 @@ export default function AttendancePage() {
                 onClick={handleToggleAbsenteeAlert}
                 disabled={loadingAutomation}
                 title={absenteeAlertEnabled ? "Disable absentee SMS alerts" : "Enable absentee SMS alerts"}
-                className={`relative w-14 h-8 rounded-full transition-colors duration-200 min-w-[56px] shrink-0 ${absenteeAlertEnabled ? "bg-error" : "bg-surface-container-highest"}`}
+                className={`relative h-8 w-14 min-w-[56px] shrink-0 rounded-full transition-colors duration-200 ${absenteeAlertEnabled ? "bg-red-600" : "bg-surface-container-highest"}`}
                 role="switch"
                 aria-checked={absenteeAlertEnabled}
                 aria-label="Toggle absentee SMS alerts"
               >
                 <div
-                  className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow transition-transform duration-200 ${absenteeAlertEnabled ? "translate-x-7" : "translate-x-1"}`}
+                  className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-transform duration-200 ${absenteeAlertEnabled ? "translate-x-7" : "translate-x-1"}`}
                 />
               </button>
             </div>
           )}
 
-          <div className="border-y border-[var(--border)] py-3">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-sm">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1.4fr)_200px] sm:items-end">
               <div className="flex-1">
-                <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-[var(--t3)]">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">
                   Class
                   {isClassTeacher && !isAdmin && (
-                    <span className="ml-2 normal-case font-medium text-primary">(your classes)</span>
+                    <span className="ml-2 normal-case font-medium text-[var(--primary)]">(your classes)</span>
                   )}
                 </label>
                 {classesLoading ? (
-                  <div className="bg-[var(--navy-soft)] border border-[rgba(0,31,63,0.12)] rounded-xl p-4">
-                    <p className="text-[var(--t1)] text-sm font-medium">Loading classes...</p>
-                    <p className="text-[var(--t3)] text-xs mt-1">
-                      The class list is still being fetched for this school.
-                    </p>
+                  <div className="rounded-xl border border-[rgba(0,31,63,0.12)] bg-[var(--navy-soft)] p-3">
+                    <p className="text-sm font-medium text-[var(--t1)]">Loading classes...</p>
                   </div>
                 ) : classes.length === 0 ? (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
                     {isClassTeacher && !isAdmin ? (
-                      <>
-                        <p className="text-amber-800 text-sm font-medium">No classes assigned yet</p>
-                        <p className="text-amber-600 text-xs mt-1">
-                          Your administrator hasn&apos;t assigned you to a class or subject yet.
-                        </p>
-                      </>
+                      <p className="text-sm text-amber-800">
+                        No classes assigned yet. Ask your administrator to assign you a class.
+                      </p>
                     ) : (
-                      <>
-                        <p className="text-amber-800 text-sm font-medium">No classes found</p>
-                        <p className="text-amber-600 text-xs mt-1">
-                          Classes are created automatically when you register a school. If you are seeing this, please
-                          contact support or re-register.
-                        </p>
-                      </>
+                      <p className="text-sm text-amber-800">No classes found. Add classes from School Settings.</p>
                     )}
                   </div>
                 ) : (
                   <select
                     value={selectedClass || ""}
                     onChange={(e) => setSelectedClass(e.target.value || null)}
-                    className="input !h-10 !py-0 text-sm font-semibold"
+                    className="input h-10 text-sm font-medium"
                   >
                     <option value="">Select a class</option>
                     {filteredClasses.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
-                        {c.stream ? ` ${c.stream}` : ""} ({c.level})
+                        {c.stream ? ` ${c.stream}` : ""} · {c.level}
                       </option>
                     ))}
                   </select>
                 )}
               </div>
               <div className="flex items-end gap-2">
-                <div>
-                  <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-[var(--t3)]">Date</label>
+                <div className="w-full">
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">
+                    Date
+                  </label>
                   <input
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
                     disabled={bulkMode}
-                    className="input !h-10 !py-0 text-sm font-semibold disabled:opacity-40"
+                    className="input h-10 text-sm font-medium disabled:opacity-40"
                   />
                 </div>
               </div>
@@ -1642,8 +1632,8 @@ export default function AttendancePage() {
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] py-2">
                 <div className="flex items-center gap-3">
                   <h2 className="text-sm font-bold text-[var(--t1)]">Register</h2>
-                  <span className="text-xs text-[var(--t3)] font-medium">
-                    {presentCount} present · {absentCount} absent
+                  <span className="text-xs font-medium text-[var(--t3)]">
+                    {presentCount} present · {absentCount} absent · {lateCount} late · {excusedCount} excused
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -1670,7 +1660,7 @@ export default function AttendancePage() {
                 <div className="min-w-[220px] flex-1">
                   <label
                     htmlFor="attendance-student-search"
-                    className="mb-1 block text-xs font-semibold text-[var(--t3)]"
+                    className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--t3)]"
                   >
                     Find a pupil
                   </label>
@@ -1678,7 +1668,7 @@ export default function AttendancePage() {
                     id="attendance-student-search"
                     type="search"
                     placeholder="Name or student number"
-                    className="input !h-10 !py-0 text-sm"
+                    className="input h-10 text-sm"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
