@@ -299,7 +299,7 @@ function BursarDashboardContent() {
       value: totalFeesExpected > 0 ? `${collectionRate}%` : "—",
       exact: totalFeesExpected > 0 ? `${collectionRate}%` : "No expected fees",
       hint: "of fees expected",
-      href: "/dashboard/reports",
+      href: "/dashboard/money",
       tone: "text-[var(--primary)]",
     },
   ];
@@ -326,7 +326,7 @@ function BursarDashboardContent() {
         subtitle={[school?.name, todayLabel, `Term ${currentTerm}, ${academicYear}`].filter(Boolean).join(" · ")}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Link href="/dashboard/reports" className="btn-pill btn-secondary">
+            <Link href="/dashboard/money" className="btn-pill btn-secondary">
               <MaterialIcon icon="analytics" className="text-lg" />
               Report
             </Link>
