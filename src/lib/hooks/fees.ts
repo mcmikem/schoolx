@@ -191,18 +191,14 @@ export function useCompleteFeePayments(schoolId?: string) {
   const [truncated, setTruncated] = useState(false);
   const { isDemo } = useAuth();
 
-  useEffect(() => {
+  const fetchAll = useCallback(async () => {
     if (!schoolId || isDemo || isDemoSchool(schoolId)) {
-      // Demo workspace: the ledger runs from the bundled demo payments so the
-      // collected/cleared headline stats are populated instead of reading zero.
       setPayments(
         DEMO_FEE_PAYMENTS.map((p) => ({
           id: String(p.id),
           student_id: String(p.student_id),
           amount_paid: p.amount_paid,
           fee_id: p.fee_id ? String(p.fee_id) : null,
-          // Demo fee rows are authored against the 2025 academic year; shift
-          // payment dates forward so they land in the school's current year.
           payment_date: typeof p.payment_date === "string" ? p.payment_date.replace("2025-", "2026-") : p.payment_date,
           payment_method: String(p.payment_method),
           payment_reference: p.payment_reference ?? null,
@@ -220,58 +216,46 @@ export function useCompleteFeePayments(schoolId?: string) {
       setLoading(false);
       return;
     }
-
-    let cancelled = false;
-    // A guard, not a design limit. If a school really does reach this, the
-    // flag tells the bursar the totals are incomplete instead of quietly
-    // showing them a wrong balance.
-    const CAP = 20000;
-
-    void (async () => {
-      setLoading(true);
-      try {
-        const result = (await withTimeout(
-          supabase
-            .from("fee_payments")
-            .select("id, student_id, amount_paid, fee_id, payment_date, payment_method, payment_reference")
-            .eq("school_id", schoolId)
-            .is("deleted_at", null)
-            .order("id", { ascending: true })
-            .limit(CAP),
-          20000,
-          null,
-        )) as PostgrestSingleResponse<
-          {
-            id: string;
-            student_id: string;
-            amount_paid: number;
-            fee_id: string | null;
-            payment_date: string;
-            payment_method: string;
-            payment_reference: string | null;
-          }[]
-        >;
-        if (cancelled) return;
-        if (result.error) throw result.error;
-        const data = result.data;
-        setPayments((data ?? []) as typeof payments);
-        setTruncated((data?.length ?? 0) >= CAP);
-      } catch (e) {
-        if (!cancelled) {
-          logger.error("Could not load the full payment ledger:", e);
-          setPayments([]);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+    setLoading(true);
+    try {
+      const result = (await withTimeout(
+        supabase
+          .from("fee_payments")
+          .select("id, student_id, amount_paid, fee_id, payment_date, payment_method, payment_reference")
+          .eq("school_id", schoolId)
+          .is("deleted_at", null)
+          .order("id", { ascending: true })
+          .limit(20000),
+        20000,
+        null,
+      )) as PostgrestSingleResponse<
+        {
+          id: string;
+          student_id: string;
+          amount_paid: number;
+          fee_id: string | null;
+          payment_date: string;
+          payment_method: string;
+          payment_reference: string | null;
+        }[]
+      >;
+      if (result.error) throw result.error;
+      const data = result.data;
+      setPayments((data ?? []) as typeof payments);
+      setTruncated((data?.length ?? 0) >= 20000);
+    } catch (e) {
+      logger.error("Could not load the full payment ledger:", e);
+      setPayments([]);
+    } finally {
+      setLoading(false);
+    }
   }, [schoolId, isDemo]);
 
-  return { payments, loading, truncated };
+  useEffect(() => {
+    void fetchAll();
+  }, [fetchAll]);
+
+  return { payments, loading, truncated, refetch: fetchAll };
 }
 
 export function useFeePayments(schoolId?: string, page: number = 1, limit?: number, all?: boolean) {

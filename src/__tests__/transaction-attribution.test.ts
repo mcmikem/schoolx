@@ -41,11 +41,10 @@ describe("describeWho", () => {
   });
 
   it("never prints a bare Unknown", () => {
-    // "Unknown" reads as suspicion, and is usually a parent-portal claim or an
-    // uncredited import. Say what it actually is.
+    // Records without a recorder are not attributed to any staff member.
     const said = describeWho(null, names);
     expect(said).not.toMatch(/unknown/i);
-    expect(said).toMatch(/parent portal|import/i);
+    expect(said).toMatch(/not recorded/i);
   });
 
   it("says so when the staff member has left", () => {

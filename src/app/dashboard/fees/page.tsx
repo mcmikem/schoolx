@@ -208,7 +208,11 @@ export default function FinanceHubPage() {
   }, [mobileFeeOptions]);
   const { adjustments, createAdjustment, deleteAdjustment } = useFeeAdjustments(school?.id);
   const { createPayment, updatePayment, deletePayment } = useFeePayments(school?.id, 1, 50);
-  const { payments: completePayments, truncated: ledgerTruncated } = useCompleteFeePayments(school?.id);
+  const {
+    payments: completePayments,
+    truncated: ledgerTruncated,
+    refetch: refetchCompletePayments,
+  } = useCompleteFeePayments(school?.id);
   // Every transaction carries a recorded_by id. An id is not something a bursar
   // can read, so the ledger resolves them to names once.
   const recordedByName = useTransactionRecorders(school?.id);
@@ -1261,6 +1265,8 @@ export default function FinanceHubPage() {
       await undo.executeWithUndo(
         async () => {
           await deletePayment(paymentId);
+          await refetchPayments();
+          await refetchCompletePayments();
         },
         async () => {
           toast.error("Undo not available after page refresh");

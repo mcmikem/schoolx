@@ -1,6 +1,6 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
@@ -429,6 +429,50 @@ function getStatusConfig(status: string) {
   };
 }
 
+function fmtDate(value?: string | null): string | null {
+  return value ? new Date(value).toLocaleDateString() : null;
+}
+
+function InfoCard({
+  title,
+  icon,
+  action,
+  className = "",
+  children,
+}: {
+  title: string;
+  icon: string;
+  action?: ReactNode;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm ${className}`}>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="flex items-center gap-2 font-semibold text-[var(--t1)]">
+          <MaterialIcon icon={icon} size={16} className="w-4 text-[var(--t3)]" />
+          {title}
+        </h3>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function DetailRow({ label, value, mono = false }: { label: string; value?: string | null; mono?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--t3)]">{label}</dt>
+      <dd
+        className={`mt-0.5 truncate text-sm ${value ? "font-semibold text-[var(--t1)]" : "italic text-[var(--t3)]"} ${mono ? "font-mono" : ""}`}
+      >
+        {value || "Not recorded"}
+      </dd>
+    </div>
+  );
+}
+
 export default function StudentProfilePage() {
   const params = useParams<{ id: string }>();
   const studentId = params?.id || "";
@@ -700,9 +744,20 @@ export default function StudentProfilePage() {
 
   const profileTabs = [
     { id: "overview", label: "Overview" },
+    { id: "academics", label: "Academics", count: subjectScores.length > 0 ? subjectScores.length : undefined },
+    ...(canSeeFeePosition ? [{ id: "fees", label: "Fees" }] : []),
     { id: "guardians", label: "Guardians", count: guardians.length > 0 ? guardians.length : undefined },
     { id: "messages", label: "Messages", count: smsHistory.length > 0 ? smsHistory.length : undefined },
   ];
+
+  const fullName = `${student.first_name || ""} ${student.last_name || ""}`.trim() || "Unnamed student";
+  const initials = `${student.first_name?.[0] || "?"}${student.last_name?.[0] || ""}`;
+  const genderLabel = student.gender === "M" ? "Male" : student.gender === "F" ? "Female" : null;
+  const leadershipRoles = [
+    student.prefect_role,
+    student.student_council_role,
+    student.is_class_monitor ? "Class monitor" : null,
+  ].filter(Boolean) as string[];
 
   return (
     <PageErrorBoundary>
@@ -718,504 +773,475 @@ export default function StudentProfilePage() {
           </div>
         )}
 
-        <div className="grid items-start gap-5 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[340px_minmax(0,1fr)]">
-          <aside className="lg:sticky lg:top-6">
-            <div className="rounded-[var(--r2)] border border-[var(--border)] bg-motif p-3 sm:p-4">
-              <div className="relative aspect-[3/4] max-h-[360px] w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-container-low)] sm:max-h-[440px] lg:max-h-none">
-                {student.photo_url ? (
-                  <Image
-                    src={student.photo_url}
-                    alt={`${student.first_name || "Student"} ${student.last_name || ""}`}
-                    width={480}
-                    height={640}
-                    unoptimized
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-[var(--navy-soft)]">
-                    <span className="text-6xl font-bold text-[var(--navy)]">
-                      {student.first_name?.[0] || "?"}
-                      {student.last_name?.[0] || "?"}
-                    </span>
-                    <span className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--navy)] opacity-70">
-                      No photo
-                    </span>
-                  </div>
-                )}
-                <span
-                  className={`absolute bottom-3 right-3 h-4 w-4 rounded-full border-2 border-[var(--surface)] ${statusCfg.dot}`}
-                  title={statusCfg.label}
-                />
-              </div>
-              <div className="mt-3 flex items-center justify-between gap-2 px-1">
-                <span className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--t3)]">Student photo</span>
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}
-                >
-                  <span className={`h-1.5 w-1.5 rounded-full ${statusCfg.dot}`} />
-                  {statusCfg.label}
-                </span>
-              </div>
-            </div>
-          </aside>
-
-          <div className="min-w-0 space-y-6">
-            <div className="relative overflow-hidden rounded-[var(--r2)] border border-[var(--border)] bg-motif p-5 sm:p-6">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-4 min-w-0 flex-1">
-                  <Link
-                    href="/dashboard/students"
-                    aria-label="Back to students"
-                    className="shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-2 transition-colors hover:bg-[var(--surface-container-low)]"
-                  >
-                    <MaterialIcon icon="arrow_back" size={20} className="w-5 text-[var(--t2)]" />
-                  </Link>
-                  <div className="min-w-0">
-                    <h1 className="truncate text-2xl font-bold text-[var(--t1)]">
-                      {student.first_name || "Unknown"} {student.last_name || "Student"}
-                    </h1>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--surface-container-low)] px-2.5 py-1 text-xs font-medium text-[var(--t2)]">
-                        <MaterialIcon icon="school" size={12} className="w-3" />
-                        {classLabel}
-                      </span>
-                      {student.student_number && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--surface-container-low)] px-2.5 py-1 font-mono text-xs font-medium text-[var(--t2)]">
-                          <MaterialIcon icon="badge" size={12} className="w-3" />
-                          {student.student_number}
-                        </span>
-                      )}
+        <section className="overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+          <div className="h-20 bg-[var(--navy)] opacity-90 sm:h-24" />
+          <div className="px-5 pb-5 sm:px-7">
+            <div className="-mt-10 flex flex-col gap-5 sm:-mt-12 sm:flex-row sm:items-end sm:justify-between">
+              <div className="flex min-w-0 items-end gap-4">
+                <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-4 border-[var(--surface)] bg-[var(--navy-soft)] shadow-md sm:h-28 sm:w-28">
+                  {student.photo_url ? (
+                    <Image
+                      src={student.photo_url}
+                      alt={fullName}
+                      width={224}
+                      height={224}
+                      unoptimized
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-3xl font-bold text-[var(--navy)]">
+                      {initials}
                     </div>
+                  )}
+                  <span
+                    className={`absolute bottom-2 right-2 h-3.5 w-3.5 rounded-full border-2 border-[var(--surface)] ${statusCfg.dot}`}
+                    title={statusCfg.label}
+                  />
+                </div>
+                <div className="min-w-0 pb-1">
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href="/dashboard/students"
+                      aria-label="Back to students"
+                      className="shrink-0 rounded-lg p-1 text-[var(--t3)] hover:bg-[var(--surface-container-low)]"
+                    >
+                      <MaterialIcon icon="arrow_back" size={18} />
+                    </Link>
+                    <h1 className="truncate text-2xl font-bold text-[var(--t1)]">{fullName}</h1>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--surface-container-low)] px-2.5 py-1 text-xs font-medium text-[var(--t2)]">
+                      <MaterialIcon icon="school" size={12} className="w-3" />
+                      {classLabel}
+                    </span>
+                    {student.student_number && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--surface-container-low)] px-2.5 py-1 font-mono text-xs font-medium text-[var(--t2)]">
+                        <MaterialIcon icon="badge" size={12} className="w-3" />
+                        {student.student_number}
+                      </span>
+                    )}
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}
+                    >
+                      <span className={`h-1.5 w-1.5 rounded-full ${statusCfg.dot}`} />
+                      {statusCfg.label}
+                    </span>
+                    {student.repeating && (
+                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                        Repeating
+                      </span>
+                    )}
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2 sm:justify-end">
-                  {canEditDetails && (
-                    <button
-                      onClick={() => setShowEdit(true)}
-                      className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
-                    >
-                      <MaterialIcon icon="edit" size={16} className="w-4" />
-                      Edit
-                    </button>
-                  )}
-                  {canSmsParent && (
-                    <button
-                      onClick={() => setSmsOpen(true)}
-                      className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--t1)] transition-colors hover:bg-[var(--surface-container-low)]"
-                    >
-                      <MaterialIcon icon="chat" size={16} className="w-4" />
-                      SMS Parent
-                    </button>
-                  )}
-                  <Link
-                    href="/dashboard/timetable"
+              </div>
+              <div className="flex flex-wrap gap-2 sm:justify-end">
+                {canEditDetails && (
+                  <button
+                    type="button"
+                    onClick={() => setShowEdit(true)}
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+                  >
+                    <MaterialIcon icon="edit" size={16} className="w-4" />
+                    Edit details
+                  </button>
+                )}
+                {canSmsParent && (
+                  <button
+                    type="button"
+                    onClick={() => setSmsOpen(true)}
                     className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--t1)] transition-colors hover:bg-[var(--surface-container-low)]"
                   >
-                    <MaterialIcon icon="calendar_month" size={16} className="w-4" />
-                    Schedule
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
-              {[
-                {
-                  label: "Attendance",
-                  value: `${attendancePct}%`,
-                  tone: "text-emerald-600 dark:text-emerald-400",
-                  icon: "fact_check",
-                },
-                ...(canSeeFeePosition
-                  ? [
-                      {
-                        label: "Balance",
-                        value: outstandingBalance > 0 ? `UGX ${outstandingBalance.toLocaleString()}` : "Cleared",
-                        tone:
-                          outstandingBalance > 0
-                            ? "text-red-600 dark:text-red-400"
-                            : "text-emerald-600 dark:text-emerald-400",
-                        icon: "payment",
-                      },
-                    ]
-                  : []),
-                {
-                  label: "Average",
-                  value: latestGrade !== null ? `${latestGrade}%` : "No grades",
-                  tone: "text-blue-600 dark:text-blue-400",
-                  icon: "trending_up",
-                },
-                {
-                  label: "Contacts",
-                  value: `${parentContacts} linked`,
-                  tone: "text-gray-900 dark:text-gray-100",
-                  icon: "call",
-                },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800"
-                >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-700/60">
-                    <MaterialIcon icon={item.icon} size={20} className={item.tone} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
-                      {item.label}
-                    </div>
-                    <div className={`mt-0.5 truncate text-base font-bold ${item.tone}`}>{item.value}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <Tabs tabs={profileTabs} activeTab={activeTab} onChange={setActiveTab} className="mb-6" />
-
-            <TabPanel activeTab={activeTab} tabId="overview">
-              <div className="grid gap-6 xl:grid-cols-3">
-                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                  <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                    <MaterialIcon icon="fact_check" size={16} className="w-4 text-emerald-600" />
-                    Attendance
-                  </h3>
-                  {detailsLoading ? (
-                    <Skeleton className="h-48 w-full rounded-2xl" />
-                  ) : (
-                    <>
-                      <AttendanceRing percentage={attendancePct} />
-                      {!isConstrainedNetwork ? (
-                        <div className="mt-4">
-                          <AttendanceHeatmap records={attendanceRecords} isDemo={isDemo} />
-                        </div>
-                      ) : (
-                        <div className="mt-4 rounded-xl bg-gray-50 p-3 text-xs text-gray-600 dark:bg-gray-700/40 dark:text-gray-300">
-                          Heatmap hidden to reduce data and rendering costs on slower connections.
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-
+                    <MaterialIcon icon="chat" size={16} className="w-4" />
+                    SMS parent
+                  </button>
+                )}
                 {canSeeFeePosition && (
-                  <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                    <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                      <MaterialIcon icon="payment" size={16} className="w-4 text-yellow-600" />
-                      Fees
-                    </h3>
-                    {detailsLoading ? (
-                      <Skeleton className="h-48 w-full rounded-2xl" />
-                    ) : (
-                      <>
-                        <FeeProgressBar paid={feePosition.paid} total={feePosition.total} />
-                        <div className="mt-4 rounded-xl bg-gray-50 p-3 text-sm text-gray-700 dark:bg-gray-700/50 dark:text-gray-200">
-                          {outstandingBalance > 0
-                            ? `Outstanding balance: UGX ${outstandingBalance.toLocaleString()}`
-                            : "All fees are cleared."}
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  <Link
+                    href={`/dashboard/fees?pay=${student.id}`}
+                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--t1)] transition-colors hover:bg-[var(--surface-container-low)]"
+                  >
+                    <MaterialIcon icon="payments" size={16} className="w-4" />
+                    Record payment
+                  </Link>
                 )}
-
-                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                  <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                    <MaterialIcon icon="trending_up" size={16} className="w-4 text-blue-600" />
-                    Performance
-                  </h3>
-                  {detailsLoading ? (
-                    <Skeleton className="h-48 w-full rounded-2xl" />
-                  ) : gradeHistory.length > 0 ? (
-                    !isConstrainedNetwork ? (
-                      <GradeSparkline data={gradeHistory} />
-                    ) : (
-                      <div className="rounded-xl bg-blue-50 px-3 py-3 text-sm text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
-                        Current average: {latestGrade}%
-                      </div>
-                    )
-                  ) : (
-                    <p className="text-sm text-[var(--t3)]">No grade history yet.</p>
-                  )}
-                  <div className="mt-4 rounded-xl bg-gray-50 p-3 text-xs text-gray-500 dark:bg-gray-700/50 dark:text-gray-300">
-                    {gradeHistory.length > 0 ? "Last terms average progression" : "Add grades to see trends"}
-                  </div>
-                </div>
               </div>
+            </div>
+          </div>
+        </section>
 
-              <div className="mt-6 grid gap-6 lg:grid-cols-2">
-                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                  <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                    <MaterialIcon icon="person" size={16} className="w-4 text-gray-500" />
-                    Student Details
-                  </h3>
-                  <dl className="grid gap-x-6 gap-y-3 text-sm text-gray-700 sm:grid-cols-2 dark:text-gray-300">
-                    <div className="flex items-center justify-between gap-4">
-                      <dt>Student number</dt>
-                      <dd className="font-mono font-semibold">{student.student_number || "N/A"}</dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <dt>Class</dt>
-                      <dd className="font-semibold">{classLabel}</dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <dt>Gender</dt>
-                      <dd className="font-semibold">
-                        {student.gender === "M" ? "Male" : student.gender === "F" ? "Female" : "N/A"}
-                      </dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <dt>Date of birth</dt>
-                      <dd className="font-semibold">
-                        {student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString() : "N/A"}
-                      </dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <dt>Status</dt>
-                      <dd className={`font-semibold ${statusCfg.text}`}>{statusCfg.label}</dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <dt>Admission date</dt>
-                      <dd className="font-semibold">
-                        {student.admission_date ? new Date(student.admission_date).toLocaleDateString() : "N/A"}
-                      </dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <dt>Previous school</dt>
-                      <dd className="font-semibold text-right">{student.previous_school || "N/A"}</dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <dt>Boarding</dt>
-                      <dd className="font-semibold">{student.boarding_status || "N/A"}</dd>
-                    </div>
-                  </dl>
-                </div>
-                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                  <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                    <MaterialIcon icon="home" size={16} className="w-4 text-gray-500" />
-                    Residence & Origin
-                  </h3>
-                  <dl className="grid gap-x-6 gap-y-3 text-sm text-gray-700 sm:grid-cols-2 dark:text-gray-300">
-                    <div className="flex items-center justify-between gap-4">
-                      <dt>District</dt>
-                      <dd className="font-semibold">{student.district_origin || "N/A"}</dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <dt>Sub-county</dt>
-                      <dd className="font-semibold">{student.sub_county || "N/A"}</dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <dt>Parish</dt>
-                      <dd className="font-semibold">{student.parish || "N/A"}</dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <dt>Village</dt>
-                      <dd className="font-semibold">{student.village || "N/A"}</dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-4 sm:col-span-2">
-                      <dt>Home address</dt>
-                      <dd className="font-semibold text-right">{student.address || "N/A"}</dd>
-                    </div>
-                  </dl>
-                </div>
+        <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
+          {[
+            {
+              label: "Attendance",
+              value: `${attendancePct}%`,
+              tone: "text-emerald-600 dark:text-emerald-400",
+              icon: "fact_check",
+            },
+            ...(canSeeFeePosition
+              ? [
+                  {
+                    label: "Balance",
+                    value: outstandingBalance > 0 ? `UGX ${outstandingBalance.toLocaleString()}` : "Cleared",
+                    tone:
+                      outstandingBalance > 0
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-emerald-600 dark:text-emerald-400",
+                    icon: "payment",
+                  },
+                ]
+              : []),
+            {
+              label: "Average",
+              value: latestGrade !== null ? `${latestGrade}%` : "No grades",
+              tone: "text-blue-600 dark:text-blue-400",
+              icon: "trending_up",
+            },
+            {
+              label: "Contacts",
+              value: `${parentContacts} linked`,
+              tone: "text-[var(--t1)]",
+              icon: "call",
+            },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-container-low)]">
+                <MaterialIcon icon={item.icon} size={20} className={item.tone} />
               </div>
-            </TabPanel>
+              <div className="min-w-0">
+                <div className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--t3)]">{item.label}</div>
+                <div className={`mt-0.5 truncate text-base font-bold ${item.tone}`}>{item.value}</div>
+              </div>
+            </div>
+          ))}
+        </div>
 
-            <TabPanel activeTab={activeTab} tabId="guardians" lazy>
-              <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                    <MaterialIcon icon="call" size={16} className="w-4 text-emerald-600" />
-                    Guardians & contact
-                  </h3>
-                  {canEditStudent && (
-                    <button
-                      onClick={() => setShowGuardianModal(true)}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
-                    >
-                      <MaterialIcon icon="person" size={14} className="w-3.5" />
-                      Add Guardian
-                    </button>
-                  )}
-                </div>
+        <Tabs tabs={profileTabs} activeTab={activeTab} onChange={setActiveTab} className="mb-6" />
 
-                <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
-                  Primary contact
-                </p>
-                <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
-                  <div className="flex items-center gap-2">
-                    <MaterialIcon icon="person" size={16} className="w-4 text-gray-400" />
-                    <span className="font-medium">{student.parent_name || "N/A"}</span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <MaterialIcon icon="call" size={16} className="w-4 text-gray-400" />
-                    <span>{student.parent_phone || "N/A"}</span>
-                    <ContactActions phone={student.parent_phone} name={student.parent_name || undefined} />
-                  </div>
-                  {student.parent_phone2 && (
-                    <div className="flex items-center gap-2">
-                      <MaterialIcon icon="call" size={16} className="w-4 text-gray-400" />
-                      <span>{student.parent_phone2}</span>
-                    </div>
-                  )}
-                  {student.parent_email && (
-                    <div className="flex items-center gap-2 break-all">
-                      <MaterialIcon icon="mail" size={16} className="w-4 text-gray-400" />
-                      <span>{student.parent_email}</span>
-                    </div>
-                  )}
-                  {(student.village || student.parish || student.sub_county || student.district_origin) && (
-                    <div className="flex items-start gap-2">
-                      <MaterialIcon icon="location_on" size={16} className="mt-0.5 w-4 text-gray-400" />
-                      <span>
-                        {[student.village, student.parish, student.sub_county, student.district_origin]
-                          .filter(Boolean)
-                          .join(", ")}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                {canEditStudent && student.parent_phone && (
-                  <div className="mt-4">
-                    <button
-                      onClick={handleCreatePortalAccess}
-                      disabled={creatingPortal}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
-                    >
-                      <MaterialIcon icon="person" size={14} className="w-3.5" />
-                      {creatingPortal ? "Creating..." : "Create Parent Portal Access"}
-                    </button>
-                  </div>
-                )}
-                {portalCreds && (
-                  <div className="mt-3 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800 dark:bg-green-950/40 dark:text-green-200">
-                    <p className="font-medium">{portalCreds.parentName}</p>
-                    <p className="mt-1">Phone: {portalCreds.parentPhone}</p>
-                    {portalCreds.generatedPassword && (
-                      <p className="mt-1 font-mono text-xs">
-                        Password: <span className="font-bold">{portalCreds.generatedPassword}</span>
-                      </p>
-                    )}
-                    {portalCreds.credentialsDelivered ? (
-                      <p className="mt-1 text-green-600">Credentials sent via WhatsApp</p>
-                    ) : (
-                      <p className="mt-1 text-amber-600">Share the password above with the parent</p>
-                    )}
-                  </div>
-                )}
+        <TabPanel activeTab={activeTab} tabId="overview">
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="space-y-6 lg:col-span-2">
+              <InfoCard title="Personal details" icon="person">
+                <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+                  <DetailRow label="Student number" value={student.student_number} mono />
+                  <DetailRow label="Class" value={classLabel} />
+                  <DetailRow label="Gender" value={genderLabel} />
+                  <DetailRow label="Date of birth" value={fmtDate(student.date_of_birth)} />
+                  <DetailRow label="Nationality" value={student.nationality} />
+                  <DetailRow label="Religion" value={student.religion} />
+                  <DetailRow label="Blood type" value={student.blood_type} />
+                  <DetailRow label="National ID (NIN)" value={student.nin} mono />
+                  <DetailRow label="Admission date" value={fmtDate(student.admission_date)} />
+                  <DetailRow label="Previous school" value={student.previous_school} />
+                  <DetailRow label="Boarding" value={student.boarding_status} />
+                  <DetailRow label="Games house" value={student.games_house} />
+                </dl>
+              </InfoCard>
 
-                <div className="my-5 border-t border-gray-100 dark:border-gray-700" />
-                <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
-                  Linked guardians
-                </p>
-                {guardiansLoading ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-12 w-full rounded-xl" />
-                    <Skeleton className="h-12 w-full rounded-xl" />
+              <InfoCard title="Home & origin" icon="home">
+                <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+                  <DetailRow label="District of origin" value={student.district_origin} />
+                  <DetailRow label="Sub-county" value={student.sub_county} />
+                  <DetailRow label="Parish" value={student.parish} />
+                  <DetailRow label="Village" value={student.village} />
+                  <div className="sm:col-span-2">
+                    <DetailRow label="Home address" value={student.address} />
                   </div>
-                ) : guardians.length === 0 ? (
-                  <p className="text-sm text-[var(--t3)]">
-                    No additional guardians linked. The primary contact above is used.
-                  </p>
+                </dl>
+              </InfoCard>
+            </div>
+
+            <div className="space-y-6">
+              <InfoCard title="Attendance" icon="fact_check">
+                {detailsLoading ? (
+                  <Skeleton className="h-48 w-full rounded-2xl" />
                 ) : (
-                  <div className="space-y-2">
-                    {guardians.map((g) => {
-                      const user = g.users || {};
-                      const isPrimary = user.full_name === student.parent_name || user.phone === student.parent_phone;
-                      return (
+                  <>
+                    <AttendanceRing percentage={attendancePct} />
+                    {!isConstrainedNetwork ? (
+                      <div className="mt-4">
+                        <AttendanceHeatmap records={attendanceRecords} isDemo={isDemo} />
+                      </div>
+                    ) : (
+                      <div className="mt-4 rounded-xl bg-[var(--surface-container-low)] p-3 text-xs text-[var(--t2)]">
+                        Heatmap hidden to reduce data and rendering costs on slower connections.
+                      </div>
+                    )}
+                  </>
+                )}
+              </InfoCard>
+
+              <InfoCard title="Leadership & status" icon="star">
+                <dl className="grid gap-4">
+                  <DetailRow label="Roles" value={leadershipRoles.length > 0 ? leadershipRoles.join(" · ") : null} />
+                  <DetailRow label="Status" value={statusCfg.label} />
+                  <DetailRow label="Repeating" value={student.repeating ? "Yes" : "No"} />
+                </dl>
+              </InfoCard>
+
+              <InfoCard title="Primary guardian" icon="call">
+                <div className="space-y-3 text-sm text-[var(--t1)]">
+                  <div className="font-semibold">{student.parent_name || "Not recorded"}</div>
+                  {student.parent_phone ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span>{student.parent_phone}</span>
+                      <ContactActions phone={student.parent_phone} name={student.parent_name || undefined} />
+                    </div>
+                  ) : (
+                    <div className="text-[var(--t3)]">No phone recorded</div>
+                  )}
+                  {student.parent_email && <div className="break-all text-[var(--t2)]">{student.parent_email}</div>}
+                </div>
+              </InfoCard>
+            </div>
+          </div>
+        </TabPanel>
+
+        <TabPanel activeTab={activeTab} tabId="academics" lazy>
+          <div className="grid gap-6 lg:grid-cols-3">
+            <InfoCard title="Performance trend" icon="trending_up">
+              {detailsLoading ? (
+                <Skeleton className="h-24 w-full rounded-2xl" />
+              ) : gradeHistory.length > 0 ? (
+                !isConstrainedNetwork ? (
+                  <GradeSparkline data={gradeHistory} />
+                ) : (
+                  <div className="rounded-xl bg-blue-50 px-3 py-3 text-sm text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
+                    Current average: {latestGrade}%
+                  </div>
+                )
+              ) : (
+                <p className="text-sm text-[var(--t3)]">No grade history yet.</p>
+              )}
+            </InfoCard>
+
+            <InfoCard title="Subject scores" icon="menu_book" className="lg:col-span-2">
+              {detailsLoading ? (
+                <Skeleton className="h-48 w-full rounded-2xl" />
+              ) : subjectScores.length === 0 ? (
+                <p className="text-sm text-[var(--t3)]">No exam scores recorded yet.</p>
+              ) : (
+                <ul className="divide-y divide-[var(--border)]">
+                  {subjectScores.map((s, i) => (
+                    <li key={`${s.subject}-${i}`} className="flex items-center gap-3 py-3">
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--t1)]">{s.subject}</span>
+                      <div className="hidden h-2 w-40 overflow-hidden rounded-full bg-[var(--surface-container-low)] sm:block">
                         <div
-                          key={g.id}
-                          className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-700/30"
-                        >
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">{user.full_name || "Unknown"}</span>
-                              {isPrimary && (
-                                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
-                                  Primary
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-xs text-[var(--t3)]">
-                              {user.phone || ""}
-                              {g.relationship !== "parent" ? ` · ${g.relationship}` : ""}
-                            </div>
-                            <div className="mt-1.5">
-                              <ContactActions phone={user.phone} name={user.full_name || undefined} />
-                            </div>
-                          </div>
-                          {canEditStudent && !isPrimary && (
-                            <button
-                              onClick={() => handleSetPrimaryGuardian(g)}
-                              className="shrink-0 text-xs text-blue-600 hover:underline"
-                              title="Set as primary guardian"
-                            >
-                              Set Primary
-                            </button>
+                          className={`h-full rounded-full ${s.score >= 50 ? "bg-emerald-500" : "bg-red-500"}`}
+                          style={{ width: `${Math.min(100, Math.max(0, s.score))}%` }}
+                        />
+                      </div>
+                      <span className="w-12 text-right text-sm font-bold tabular-nums text-[var(--t1)]">{s.score}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </InfoCard>
+          </div>
+        </TabPanel>
+
+        {canSeeFeePosition && (
+          <TabPanel activeTab={activeTab} tabId="fees" lazy>
+            <InfoCard title="Fee position" icon="payment">
+              {detailsLoading ? (
+                <Skeleton className="h-24 w-full rounded-2xl" />
+              ) : (
+                <div className="space-y-4">
+                  <FeeProgressBar paid={feePosition.paid} total={feePosition.total} />
+                  <div className="rounded-xl bg-[var(--surface-container-low)] p-3 text-sm text-[var(--t2)]">
+                    {outstandingBalance > 0
+                      ? `Outstanding balance: UGX ${outstandingBalance.toLocaleString()}`
+                      : "All fees are cleared."}
+                  </div>
+                </div>
+              )}
+            </InfoCard>
+          </TabPanel>
+        )}
+
+        <TabPanel activeTab={activeTab} tabId="guardians" lazy>
+          <InfoCard
+            title="Guardians & contacts"
+            icon="call"
+            action={
+              canEditStudent ? (
+                <button
+                  type="button"
+                  onClick={() => setShowGuardianModal(true)}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
+                >
+                  <MaterialIcon icon="person" size={14} className="w-3.5" />
+                  Add guardian
+                </button>
+              ) : undefined
+            }
+          >
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[var(--t3)]">Primary contact</p>
+            <div className="space-y-3 text-sm text-[var(--t1)]">
+              <div className="flex items-center gap-2">
+                <MaterialIcon icon="person" size={16} className="w-4 text-[var(--t3)]" />
+                <span className="font-medium">{student.parent_name || "Not recorded"}</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <MaterialIcon icon="call" size={16} className="w-4 text-[var(--t3)]" />
+                <span>{student.parent_phone || "Not recorded"}</span>
+                <ContactActions phone={student.parent_phone} name={student.parent_name || undefined} />
+              </div>
+              {student.parent_phone2 && (
+                <div className="flex items-center gap-2">
+                  <MaterialIcon icon="call" size={16} className="w-4 text-[var(--t3)]" />
+                  <span>{student.parent_phone2}</span>
+                </div>
+              )}
+              {student.parent_email && (
+                <div className="flex items-center gap-2 break-all">
+                  <MaterialIcon icon="mail" size={16} className="w-4 text-[var(--t3)]" />
+                  <span>{student.parent_email}</span>
+                </div>
+              )}
+            </div>
+            {canEditStudent && student.parent_phone && (
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={handleCreatePortalAccess}
+                  disabled={creatingPortal}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                >
+                  <MaterialIcon icon="person" size={14} className="w-3.5" />
+                  {creatingPortal ? "Creating..." : "Create parent portal access"}
+                </button>
+              </div>
+            )}
+            {portalCreds && (
+              <div className="mt-3 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800 dark:bg-green-950/40 dark:text-green-200">
+                <p className="font-medium">{portalCreds.parentName}</p>
+                <p className="mt-1">Phone: {portalCreds.parentPhone}</p>
+                {portalCreds.generatedPassword && (
+                  <p className="mt-1 font-mono text-xs">
+                    Password: <span className="font-bold">{portalCreds.generatedPassword}</span>
+                  </p>
+                )}
+                {portalCreds.credentialsDelivered ? (
+                  <p className="mt-1 text-green-600">Credentials sent via WhatsApp</p>
+                ) : (
+                  <p className="mt-1 text-amber-600">Share the password above with the parent</p>
+                )}
+              </div>
+            )}
+
+            <div className="my-5 border-t border-[var(--border)]" />
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[var(--t3)]">Linked guardians</p>
+            {guardiansLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-12 w-full rounded-xl" />
+                <Skeleton className="h-12 w-full rounded-xl" />
+              </div>
+            ) : guardians.length === 0 ? (
+              <p className="text-sm text-[var(--t3)]">
+                No additional guardians linked. The primary contact above is used.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {guardians.map((g) => {
+                  const guardianUser = g.users || {};
+                  const isPrimary =
+                    guardianUser.full_name === student.parent_name || guardianUser.phone === student.parent_phone;
+                  return (
+                    <div
+                      key={g.id}
+                      className="flex items-center justify-between rounded-xl bg-[var(--surface-container-low)] px-4 py-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">{guardianUser.full_name || "Unknown"}</span>
+                          {isPrimary && (
+                            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                              Primary
+                            </span>
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </TabPanel>
-
-            <TabPanel activeTab={activeTab} tabId="messages" lazy>
-              <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                    <MaterialIcon icon="chat" size={16} className="w-4 text-blue-600" />
-                    SMS History
-                  </h3>
-                  {canSmsParent && (
-                    <button
-                      onClick={() => setSmsOpen(true)}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
-                    >
-                      <MaterialIcon icon="chat" size={14} className="w-3.5" />
-                      SMS Parent
-                    </button>
-                  )}
-                </div>
-                {smsHistoryLoading ? (
-                  <Skeleton className="h-32 w-full rounded-xl" />
-                ) : smsHistory.length === 0 ? (
-                  <p className="text-sm text-[var(--t3)]">
-                    No SMS messages have been sent to this student&apos;s parents.
-                  </p>
-                ) : (
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {smsHistory.map((msg) => (
-                      <div key={msg.id} className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-700/30">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium text-[var(--t3)]">
-                            {msg.sent_at
-                              ? new Date(msg.sent_at).toLocaleString()
-                              : new Date(msg.created_at).toLocaleString()}
-                          </span>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                              msg.status === "sent"
-                                ? "bg-green-100 text-green-700"
-                                : msg.status === "delivered"
-                                  ? "bg-blue-100 text-blue-700"
-                                  : msg.status === "failed"
-                                    ? "bg-red-100 text-red-700"
-                                    : "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            {msg.status}
-                          </span>
+                        <div className="text-xs text-[var(--t3)]">
+                          {guardianUser.phone || ""}
+                          {g.relationship !== "parent" ? ` · ${g.relationship}` : ""}
                         </div>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">{msg.message}</p>
-                        {msg.phone && <p className="text-xs text-[var(--t3)] mt-1">To: {msg.phone}</p>}
+                        <div className="mt-1.5">
+                          <ContactActions phone={guardianUser.phone} name={guardianUser.full_name || undefined} />
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                      {canEditStudent && !isPrimary && (
+                        <button
+                          type="button"
+                          onClick={() => handleSetPrimaryGuardian(g)}
+                          className="shrink-0 text-xs text-blue-600 hover:underline"
+                          title="Set as primary guardian"
+                        >
+                          Set primary
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            </TabPanel>
-          </div>
-        </div>
+            )}
+          </InfoCard>
+        </TabPanel>
+
+        <TabPanel activeTab={activeTab} tabId="messages" lazy>
+          <InfoCard
+            title="SMS history"
+            icon="chat"
+            action={
+              canSmsParent ? (
+                <button
+                  type="button"
+                  onClick={() => setSmsOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
+                >
+                  <MaterialIcon icon="chat" size={14} className="w-3.5" />
+                  SMS parent
+                </button>
+              ) : undefined
+            }
+          >
+            {smsHistoryLoading ? (
+              <Skeleton className="h-32 w-full rounded-xl" />
+            ) : smsHistory.length === 0 ? (
+              <p className="text-sm text-[var(--t3)]">No SMS messages have been sent to this student&apos;s parents.</p>
+            ) : (
+              <div className="max-h-96 space-y-2 overflow-y-auto">
+                {smsHistory.map((msg) => (
+                  <div key={msg.id} className="rounded-xl bg-[var(--surface-container-low)] px-4 py-3">
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-xs font-medium text-[var(--t3)]">
+                        {msg.sent_at
+                          ? new Date(msg.sent_at).toLocaleString()
+                          : new Date(msg.created_at).toLocaleString()}
+                      </span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                          msg.status === "sent"
+                            ? "bg-green-100 text-green-700"
+                            : msg.status === "delivered"
+                              ? "bg-blue-100 text-blue-700"
+                              : msg.status === "failed"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-gray-100 text-gray-600"
+                        }`}
+                      >
+                        {msg.status}
+                      </span>
+                    </div>
+                    <p className="line-clamp-2 text-sm text-[var(--t1)]">{msg.message}</p>
+                    {msg.phone && <p className="mt-1 text-xs text-[var(--t3)]">To: {msg.phone}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </InfoCard>
+        </TabPanel>
 
         <SendSMSModal
           student={{

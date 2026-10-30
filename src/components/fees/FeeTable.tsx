@@ -177,8 +177,9 @@ export function formatTimeOfDay(iso?: string | null): string | null {
  */
 export function describeWho(recordedBy: string | null | undefined, names?: Map<string, string>): string {
   if (!recordedBy) return "Not recorded";
-  const name = names?.get(recordedBy);
-  return name || "Staff (unknown)";
+  if (!names) return "a staff member";
+  const name = names.get(recordedBy);
+  return name || "a staff member no longer on the account";
 }
 
 function FeeProgressBar({ percentage, amount, total }: { percentage: number; amount: number; total: number }) {
