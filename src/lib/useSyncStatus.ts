@@ -149,10 +149,16 @@ function start() {
   const handleServiceWorkerMessage = (event: MessageEvent) => {
     if (event.data?.type === "SYNC_REQUESTED") void syncNow().catch(() => {});
   };
+  const handleVisibility = () => {
+    if (document.visibilityState === "visible" && state.isOnline) {
+      void syncNow().catch(() => {});
+    }
+  };
 
   window.addEventListener("online", handleOnline);
   window.addEventListener("offline", handleOffline);
   window.addEventListener(SYNC_QUEUE_EVENT, handleQueueChanged);
+  document.addEventListener("visibilitychange", handleVisibility);
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.addEventListener("message", handleServiceWorkerMessage);
   }
