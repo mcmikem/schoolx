@@ -26,24 +26,6 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/icons/icon-192x192.svg",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-512x512.svg",
-      "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
       "src": "/icons/icon-192-maskable.png",
       "sizes": "192x192",
       "type": "image/png",
@@ -60,78 +42,55 @@
     {
       "name": "Dashboard",
       "short_name": "Dashboard",
+      "description": "Open the school dashboard",
       "url": "/dashboard/",
       "icons": [
         {
           "src": "/icons/icon-192x192.png",
-          "sizes": "192x192"
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     },
     {
       "name": "Attendance",
       "short_name": "Attendance",
+      "description": "Mark attendance",
       "url": "/dashboard/attendance/",
       "icons": [
         {
           "src": "/icons/icon-192x192.png",
-          "sizes": "192x192"
-        }
-      ]
-    },
-    {
-      "name": "Students",
-      "short_name": "Students",
-      "url": "/dashboard/students/",
-      "icons": [
-        {
-          "src": "/icons/icon-192x192.png",
-          "sizes": "192x192"
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     },
     {
       "name": "Fees",
       "short_name": "Fees",
+      "description": "Collect fees",
       "url": "/dashboard/fees/",
       "icons": [
         {
           "src": "/icons/icon-192x192.png",
-          "sizes": "192x192"
-        }
-      ]
-    },
-    {
-      "name": "Messages",
-      "short_name": "Messages",
-      "url": "/dashboard/messages/",
-      "icons": [
-        {
-          "src": "/icons/icon-192x192.png",
-          "sizes": "192x192"
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     }
   ],
   "screenshots": [
     {
-      "src": "/icons/screenshot-1280x720.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "SkoolMate OS Dashboard overview with attendance, fees, and student analytics"
-    },
-    {
       "src": "/icons/screenshot-720x1280.png",
       "sizes": "720x1280",
       "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Student attendance tracking and grade management on mobile"
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/icons/screenshot-1280x720.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
     }
-  ],
-  "related_applications": [],
-  "prefer_related_applications": false,
-  "launch_handler": {
-    "client_mode": "navigate-existing"
-  }
+  ]
 }
