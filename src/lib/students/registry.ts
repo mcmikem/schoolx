@@ -30,13 +30,29 @@ export interface RegistryFilters {
  * Every word in the search must appear in the pupil's name, parent name or
  * student number, so "nakato p.3" narrows rather than widens.
  */
+import Fuse from "fuse.js";
+
 export function matchesStudentSearch(student: RegistryStudent, search: string): boolean {
   const words = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
   if (words.length === 0) return true;
   const name = `${student.first_name} ${student.last_name}`.toLowerCase();
   const parent = student.parent_name?.toLowerCase() ?? "";
   const number = student.student_number?.toLowerCase() ?? "";
-  return words.every((word) => name.includes(word) || parent.includes(word) || number.includes(word));
+  // Fast path: exact substring match (preserves existing behaviour and tests).
+  if (words.every((word) => name.includes(word) || parent.includes(word) || number.includes(word))) return true;
+  // Fuzzy fallback: tolerates typos on low-end keyboards. Single-student
+  // fuse is cheap and keeps the existing function signature.
+  try {
+    const fuse = new Fuse([student], {
+      keys: ["first_name", "last_name", "parent_name", "student_number"],
+      threshold: 0.3,
+      ignoreLocation: true,
+      minMatchCharLength: 2,
+    });
+    return fuse.search(search.trim()).length > 0;
+  } catch {
+    return false;
+  }
 }
 
 export function filterStudents<T extends RegistryStudent>(students: T[], filters: RegistryFilters = {}): T[] {
