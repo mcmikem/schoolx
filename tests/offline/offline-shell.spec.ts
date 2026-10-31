@@ -42,7 +42,9 @@ test.describe("offline app shell", () => {
       await page.reload({ waitUntil: "load", timeout: 90_000 });
       await expect(page.getByRole("heading", { name: /student hub/i })).toBeVisible({ timeout: 90_000 });
       await expect(page).toHaveURL(/\/dashboard\/students/);
-      await expect(page.getByText(/you are offline|check your internet connection/i)).toHaveCount(0);
+      // The full-page offline.html takeover (or a bare "no connection" screen)
+      // must not appear for a cached page. Owly's small offline toast is fine.
+      await expect(page.getByText(/No app pages have been saved yet/i)).toHaveCount(0);
     } finally {
       await context.setOffline(false);
     }
