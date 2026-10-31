@@ -622,7 +622,7 @@ function InspectionReportContent() {
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr className="bg-gray-50 font-bold">
+                      <tr className="bg-[var(--surface-container-low)] font-bold">
                         <td colSpan={2}>TOTAL</td>
                         <td className="text-blue-600">{reportData.enrollment.male}</td>
                         <td className="text-pink-600">{reportData.enrollment.female}</td>

@@ -264,8 +264,8 @@ export default function AcademicTermsPage() {
         ) : terms.length === 0 ? (
           <div className="text-center py-12">
             <MaterialIcon icon="calendar_today" className="text-5xl text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-700">No terms configured</h3>
-            <p className="text-gray-500 mt-1 mb-4">Add your first academic term to get started</p>
+            <h3 className="text-lg font-medium text-[var(--t2)]">No terms configured</h3>
+            <p className="text-[var(--t3)] mt-1 mb-4">Add your first academic term to get started</p>
             {canManageTerms && (
               <div className="flex items-center justify-center gap-3">
                 <Select
@@ -287,24 +287,29 @@ export default function AcademicTermsPage() {
         ) : (
           <div className="space-y-6">
             {(Object.entries(groupedTerms) as [string, AcademicTerm[]][]).map(([year, yearTerms]) => (
-              <div key={year} className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                  <h3 className="font-semibold text-gray-900">Academic Year {year}</h3>
+              <div key={year} className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] overflow-hidden">
+                <div className="px-6 py-4 bg-[var(--surface-container-low)] border-b border-[var(--border)]">
+                  <h3 className="font-semibold text-[var(--t1)]">Academic Year {year}</h3>
                 </div>
                 <div className="divide-y divide-gray-100">
                   {yearTerms.map((term) => (
-                    <div key={term.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                    <div
+                      key={term.id}
+                      className="p-4 flex items-center justify-between hover:bg-[var(--surface-container-low)]"
+                    >
                       <div className="flex items-center gap-4">
                         <div
                           className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold ${
-                            term.is_current ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                            term.is_current
+                              ? "bg-green-100 text-green-700"
+                              : "bg-[var(--surface-container-low)] text-[var(--t3)]"
                           }`}
                         >
                           T{term.term_number}
                         </div>
                         <div>
-                          <div className="font-medium text-gray-900">{term.name}</div>
-                          <div className="text-sm text-gray-500">
+                          <div className="font-medium text-[var(--t1)]">{term.name}</div>
+                          <div className="text-sm text-[var(--t3)]">
                             {new Date(term.start_date).toLocaleDateString()} -{" "}
                             {new Date(term.end_date).toLocaleDateString()}
                           </div>
@@ -323,7 +328,7 @@ export default function AcademicTermsPage() {
                         </button>
                         <button
                           onClick={() => openModal(term)}
-                          className={`p-2 rounded-lg ${canManageTerms ? "text-gray-600 hover:bg-gray-100" : "text-gray-300 cursor-not-allowed"}`}
+                          className={`p-2 rounded-lg ${canManageTerms ? "text-[var(--t3)] hover:bg-[var(--surface-container-low)]" : "text-gray-300 cursor-not-allowed"}`}
                           disabled={!canManageTerms}
                         >
                           <MaterialIcon icon="edit" />
@@ -353,49 +358,49 @@ export default function AcademicTermsPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Name</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   placeholder="e.g., Term 1"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Code</label>
                 <input
                   type="text"
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   placeholder="e.g., T1"
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Start Date</label>
                 <input
                   type="date"
                   value={formData.start_date}
                   onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1">End Date</label>
                 <input
                   type="date"
                   value={formData.end_date}
                   onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Term Number</label>
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Term Number</label>
                 <select
                   value={formData.term_number}
                   onChange={(e) =>
@@ -404,7 +409,7 @@ export default function AcademicTermsPage() {
                       term_number: parseInt(e.target.value),
                     })
                   }
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 >
                   {[1, 2, 3, 4].map((n) => (
                     <option key={n} value={n}>
@@ -414,12 +419,12 @@ export default function AcademicTermsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Academic Year</label>
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Academic Year</label>
                 <input
                   type="text"
                   value={formData.academic_year}
                   onChange={(e) => setFormData({ ...formData, academic_year: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   placeholder="2024"
                 />
               </div>
@@ -432,7 +437,7 @@ export default function AcademicTermsPage() {
                 onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                 className="w-4 h-4 text-blue-600 rounded"
               />
-              <label htmlFor="is_active" className="text-sm text-gray-700">
+              <label htmlFor="is_active" className="text-sm text-[var(--t2)]">
                 Active
               </label>
             </div>

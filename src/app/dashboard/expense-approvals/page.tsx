@@ -21,8 +21,22 @@ type Expense = {
 };
 
 const DEMO_EXPENSES: Expense[] = [
-  { id: "demo-exp-1", category: "utilities", description: "School electricity bill", amount: 250000, status: "pending", created_at: new Date().toISOString() },
-  { id: "demo-exp-2", category: "supplies", description: "Science lab equipment", amount: 850000, status: "pending", created_at: new Date(Date.now() - 86400000).toISOString() },
+  {
+    id: "demo-exp-1",
+    category: "utilities",
+    description: "School electricity bill",
+    amount: 250000,
+    status: "pending",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "demo-exp-2",
+    category: "supplies",
+    description: "Science lab equipment",
+    amount: 850000,
+    status: "pending",
+    created_at: new Date(Date.now() - 86400000).toISOString(),
+  },
 ];
 
 export default function ExpenseApprovalsPage() {
@@ -43,7 +57,11 @@ export default function ExpenseApprovalsPage() {
     }
     setLoading(true);
     try {
-      let q = supabase.from("expenses").select("*").eq("school_id", school.id).order("created_at", { ascending: false });
+      let q = supabase
+        .from("expenses")
+        .select("*")
+        .eq("school_id", school.id)
+        .order("created_at", { ascending: false });
       if (statusFilter !== "all") q = q.eq("status", statusFilter);
       const { data, error } = await q;
       if (error) throw error;
@@ -59,20 +77,25 @@ export default function ExpenseApprovalsPage() {
     }
   }, [school?.id, statusFilter, toast, isDemo]);
 
-  useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
+  useEffect(() => {
+    fetchExpenses();
+  }, [fetchExpenses]);
 
   const handleApproval = async (id: string, approve: boolean) => {
     if (!user?.id) return;
     setProcessing(id);
     try {
-      const { error } = await supabase.from("expenses").update({
-        status: approve ? "approved" : "rejected",
-        approved_by: user.id,
-        approved_at: new Date().toISOString(),
-      }).eq("id", id);
+      const { error } = await supabase
+        .from("expenses")
+        .update({
+          status: approve ? "approved" : "rejected",
+          approved_by: user.id,
+          approved_at: new Date().toISOString(),
+        })
+        .eq("id", id);
       if (error) throw error;
       toast.success(approve ? "Expense approved" : "Expense rejected");
-      setExpenses(prev => prev.filter(e => e.id !== id));
+      setExpenses((prev) => prev.filter((e) => e.id !== id));
     } catch (err) {
       toast.error(getErrorMessage(err, "Failed to update expense"));
     } finally {
@@ -86,16 +109,19 @@ export default function ExpenseApprovalsPage() {
       approved: "bg-emerald-100 text-emerald-700",
       rejected: "bg-red-100 text-red-700",
     };
-    return <span className={`px-2 py-0.5 rounded-full text-xs font-bold capitalize ${styles[s] ?? "bg-gray-100 text-gray-600"}`}>{s}</span>;
+    return (
+      <span
+        className={`px-2 py-0.5 rounded-full text-xs font-bold capitalize ${styles[s] ?? "bg-[var(--surface-container-low)] text-[var(--t3)]"}`}
+      >
+        {s}
+      </span>
+    );
   };
 
   return (
     <PageErrorBoundary>
       <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
-        <PageHeader
-          title="Expense Approvals"
-          subtitle="Review and approve or reject pending budget expenses"
-        />
+        <PageHeader title="Expense Approvals" subtitle="Review and approve or reject pending budget expenses" />
 
         {/* Status filter */}
         <div className="flex gap-2 flex-wrap">
@@ -103,7 +129,7 @@ export default function ExpenseApprovalsPage() {
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${statusFilter === s ? "bg-indigo-600 text-white shadow" : "bg-white border border-slate-200 text-slate-500 hover:border-slate-300"}`}
+              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${statusFilter === s ? "bg-indigo-600 text-white shadow" : "bg-[var(--surface)] border border-slate-200 text-slate-500 hover:border-slate-300"}`}
             >
               {s}
             </button>
@@ -111,7 +137,11 @@ export default function ExpenseApprovalsPage() {
         </div>
 
         {loading ? (
-          <div className="space-y-3">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-20 bg-slate-50 rounded-2xl animate-pulse" />)}</div>
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-20 bg-slate-50 rounded-2xl animate-pulse" />
+            ))}
+          </div>
         ) : expenses.length === 0 ? (
           <Card>
             <CardBody>
@@ -140,7 +170,9 @@ export default function ExpenseApprovalsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-lg font-black text-slate-800">UGX {Number(exp.amount).toLocaleString()}</span>
+                      <span className="text-lg font-black text-slate-800">
+                        UGX {Number(exp.amount).toLocaleString()}
+                      </span>
                       {exp.status === "pending" && (
                         <div className="flex gap-2">
                           <button

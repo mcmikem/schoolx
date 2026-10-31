@@ -1555,7 +1555,7 @@ function DirectoryTab({
           return (
             <div key={member.id} className="flex items-center justify-between gap-3 p-3 sm:px-4">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 shrink-0 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
+                <div className="w-10 h-10 shrink-0 bg-[var(--surface-container-low)] rounded-full flex items-center justify-center overflow-hidden">
                   {member.avatar_url ? (
                     <Image
                       src={member.avatar_url}
@@ -1565,11 +1565,11 @@ function DirectoryTab({
                       className="rounded-full object-cover"
                     />
                   ) : (
-                    <span className="text-gray-700 font-semibold">{member.full_name?.charAt(0) || "U"}</span>
+                    <span className="text-[var(--t2)] font-semibold">{member.full_name?.charAt(0) || "U"}</span>
                   )}
                 </div>
                 <div className="min-w-0">
-                  <div className="truncate font-medium text-gray-900">{member.full_name}</div>
+                  <div className="truncate font-medium text-[var(--t1)]">{member.full_name}</div>
                   <div className="flex flex-wrap items-center gap-1.5 mt-1">
                     {getRoleBadge(member.role)}
                     {/* The other hats. A headmaster who also teaches is both,
@@ -1591,7 +1591,7 @@ function DirectoryTab({
                       {member.is_active ? "Active" : "Inactive"}
                     </span>
                   </div>
-                  <div className="truncate text-xs text-gray-500 mt-1">
+                  <div className="truncate text-xs text-[var(--t3)] mt-1">
                     {member.phone}
                     {member.subject && <span className="ml-2">• {member.subject}</span>}
                   </div>
@@ -1748,7 +1748,7 @@ function DirectoryTab({
           onClick={() => setShowAddModal(false)}
         >
           <div
-            className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
+            className="bg-[var(--surface)] rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-[var(--surface-container-high)]">
@@ -1766,7 +1766,7 @@ function DirectoryTab({
               <div>
                 <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Profile Photo</label>
                 <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
+                  <div className="w-14 h-14 rounded-full bg-[var(--surface-container-low)] overflow-hidden flex items-center justify-center">
                     {newStaff.avatar_url ? (
                       <Image
                         src={newStaff.avatar_url}
@@ -1776,7 +1776,7 @@ function DirectoryTab({
                         className="object-cover"
                       />
                     ) : (
-                      <MaterialIcon icon="person" className="text-gray-500" />
+                      <MaterialIcon icon="person" className="text-[var(--t3)]" />
                     )}
                   </div>
                   <input
@@ -1931,7 +1931,7 @@ function DirectoryTab({
           onClick={() => setShowEditModal(false)}
         >
           <div
-            className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
+            className="bg-[var(--surface)] rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-[var(--surface-container-high)]">
@@ -1953,7 +1953,7 @@ function DirectoryTab({
               <div>
                 <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Profile Photo</label>
                 <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
+                  <div className="w-14 h-14 rounded-full bg-[var(--surface-container-low)] overflow-hidden flex items-center justify-center">
                     {editForm.avatar_url ? (
                       <Image
                         src={editForm.avatar_url}
@@ -1963,7 +1963,7 @@ function DirectoryTab({
                         className="object-cover"
                       />
                     ) : (
-                      <MaterialIcon icon="person" className="text-gray-500" />
+                      <MaterialIcon icon="person" className="text-[var(--t3)]" />
                     )}
                   </div>
                   <input
@@ -2139,7 +2139,7 @@ function DirectoryTab({
           onClick={() => setIdCardPreviewStaff(null)}
         >
           <div
-            className="bg-white rounded-2xl w-full max-w-2xl max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
+            className="bg-[var(--surface)] rounded-2xl w-full max-w-2xl max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-[var(--surface-container-high)]">
@@ -2173,10 +2173,10 @@ function DirectoryTab({
                       alt={`${school?.name || "School"} logo`}
                       width={28}
                       height={28}
-                      className="rounded-lg bg-white/20 p-0.5 object-contain"
+                      className="rounded-lg bg-[var(--surface)]/20 p-0.5 object-contain"
                     />
                   ) : (
-                    <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center font-extrabold text-xs">
+                    <div className="w-7 h-7 rounded-lg bg-[var(--surface)]/20 flex items-center justify-center font-extrabold text-xs">
                       {(school?.name || "S").charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -2184,7 +2184,7 @@ function DirectoryTab({
                     {school?.name || "School"}
                   </div>
                   <div
-                    className="w-[74px] h-[74px] rounded-full bg-white border-[3px] border-white overflow-hidden flex items-center justify-center font-bold text-xl"
+                    className="w-[74px] h-[74px] rounded-full bg-[var(--surface)] border-[3px] border-white overflow-hidden flex items-center justify-center font-bold text-xl"
                     style={{ color: staffCardPrimary }}
                   >
                     {idCardPreviewStaff.avatar_url ? (
@@ -2251,7 +2251,7 @@ function DirectoryTab({
                       <div>{`SM-${idCardPreviewStaff.id.slice(0, 8).toUpperCase()}`}</div>
                     </div>
                     <div className="flex flex-col items-center gap-0.5">
-                      <div className="p-1 bg-white rounded-md border border-[var(--border2)]">
+                      <div className="p-1 bg-[var(--surface)] rounded-md border border-[var(--border2)]">
                         <QRCodeSVG
                           value={`SKOOLMATE_STAFF|school:${school?.id || "unknown"}|staff:${idCardPreviewStaff.id}|card:SM-${idCardPreviewStaff.id.slice(0, 8).toUpperCase()}|status:${idCardPreviewStaff.is_active ? "active" : "inactive"}`}
                           size={50}
@@ -2294,7 +2294,7 @@ function DirectoryTab({
           onClick={() => setResetTarget(null)}
         >
           <div
-            className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
+            className="bg-[var(--surface)] rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-[var(--surface-container-high)]">
@@ -2498,7 +2498,7 @@ function ReviewsTab({
         <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
           <div
-            className="relative bg-white rounded-2xl w-full max-w-2xl animate-in fade-in zoom-in duration-200 overflow-y-auto max-h-[calc(100vh-2rem)] my-auto"
+            className="relative bg-[var(--surface)] rounded-2xl w-full max-w-2xl animate-in fade-in zoom-in duration-200 overflow-y-auto max-h-[calc(100vh-2rem)] my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-[var(--border)]">
@@ -2957,7 +2957,7 @@ function LeaveTab({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
+            className="bg-[var(--surface)] rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
           >
             <div className="p-6 border-b border-[var(--border)]">
               <div className="flex items-center justify-between">

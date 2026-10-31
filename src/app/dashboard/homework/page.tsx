@@ -291,7 +291,7 @@ export default function HomeworkPage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-500">Teacher workflow</p>
-            <h2 className="mt-1 text-2xl font-bold text-gray-900">Class Tests</h2>
+            <h2 className="mt-1 text-2xl font-bold text-[var(--t1)]">Class Tests</h2>
           </div>
           <button
             onClick={() => setShowModal(true)}
@@ -305,7 +305,7 @@ export default function HomeworkPage() {
 
         <div
           aria-label="class tests overview"
-          className="rounded-3xl border border-slate-200 bg-white/80 p-4 shadow-sm backdrop-blur-sm"
+          className="rounded-3xl border border-slate-200 bg-[var(--surface)]/80 p-4 shadow-sm backdrop-blur-sm"
         >
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -376,7 +376,7 @@ export default function HomeworkPage() {
             className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
           >
             {[1, 2, 3].map((i) => (
-              <div key={i} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div key={i} className="rounded-2xl border border-slate-200 bg-[var(--surface)] p-4 shadow-sm">
                 <div className="mb-4 h-4 w-24 animate-pulse rounded bg-slate-200" />
                 <div className="mb-2 h-5 w-full animate-pulse rounded bg-slate-200" />
                 <div className="mb-4 h-4 w-3/4 animate-pulse rounded bg-slate-200" />
@@ -398,15 +398,15 @@ export default function HomeworkPage() {
             </button>
           </div>
         ) : homework.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <MaterialIcon className="text-3xl text-gray-400">assignment</MaterialIcon>
+          <div className="bg-[var(--surface)] rounded-2xl p-12 text-center shadow-sm border border-[var(--border)]">
+            <div className="w-16 h-16 bg-[var(--surface-container-low)] rounded-full flex items-center justify-center mx-auto mb-4">
+              <MaterialIcon className="text-3xl text-[var(--t3)]">assignment</MaterialIcon>
             </div>
-            <h3 className="font-bold text-gray-900 mb-2">No Class Tests Yet</h3>
-            <p className="text-gray-500 mb-4">Add your first class test to get started</p>
+            <h3 className="font-bold text-[var(--t1)] mb-2">No Class Tests Yet</h3>
+            <p className="text-[var(--t3)] mb-4">Add your first class test to get started</p>
             <button
               onClick={() => setShowModal(true)}
-              className="px-6 py-2.5 bg-gray-900 text-white rounded-xl font-semibold"
+              className="px-6 py-2.5 bg-[var(--navy)] text-white rounded-xl font-semibold"
             >
               Add Class Test
             </button>
@@ -416,7 +416,7 @@ export default function HomeworkPage() {
             {homework.map((hw) => (
               <div
                 key={hw.id}
-                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+                className="rounded-2xl border border-slate-200 bg-[var(--surface)] p-4 shadow-sm transition-shadow hover:shadow-md"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -482,20 +482,20 @@ export default function HomeworkPage() {
             onClick={() => closeModal()}
           >
             <div
-              className="bg-white rounded-2xl max-w-lg w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto p-6 my-auto"
+              className="bg-[var(--surface)] rounded-2xl max-w-lg w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto p-6 my-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="font-bold text-xl text-gray-900 mb-4">
+              <h3 className="font-bold text-xl text-[var(--t1)] mb-4">
                 {duplicateSource ? "Duplicate Class Test" : "Add Class Test"}
               </h3>
               {duplicateSource && (
-                <p className="text-xs text-gray-500 mb-3">
+                <p className="text-xs text-[var(--t3)] mb-3">
                   Copied from &ldquo;{duplicateSource.title}&rdquo;. Save to add it as a separate test.
                 </p>
               )}
               <form onSubmit={handleCreateHomework} className="space-y-4">
                 <div>
-                  <label htmlFor="homework-title" className="text-sm font-medium text-gray-700 mb-2 block">
+                  <label htmlFor="homework-title" className="text-sm font-medium text-[var(--t2)] mb-2 block">
                     Title *
                   </label>
                   <input
@@ -508,7 +508,7 @@ export default function HomeworkPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="homework-description" className="text-sm font-medium text-gray-700 mb-2 block">
+                  <label htmlFor="homework-description" className="text-sm font-medium text-[var(--t2)] mb-2 block">
                     Description *
                   </label>
                   <textarea
@@ -522,7 +522,7 @@ export default function HomeworkPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="homework-class" className="text-sm font-medium text-gray-700 mb-2 block">
+                    <label htmlFor="homework-class" className="text-sm font-medium text-[var(--t2)] mb-2 block">
                       Class *
                     </label>
                     {classes.length === 0 ? (
@@ -547,7 +547,7 @@ export default function HomeworkPage() {
                     )}
                   </div>
                   <div>
-                    <label htmlFor="homework-subject" className="text-sm font-medium text-gray-700 mb-2 block">
+                    <label htmlFor="homework-subject" className="text-sm font-medium text-[var(--t2)] mb-2 block">
                       Subject *
                     </label>
                     {subjects.length === 0 ? (
@@ -574,7 +574,7 @@ export default function HomeworkPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="homework-due-date" className="text-sm font-medium text-gray-700 mb-2 block">
+                    <label htmlFor="homework-due-date" className="text-sm font-medium text-[var(--t2)] mb-2 block">
                       Due Date *
                     </label>
                     <input
@@ -587,7 +587,7 @@ export default function HomeworkPage() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="homework-marks" className="text-sm font-medium text-gray-700 mb-2 block">
+                    <label htmlFor="homework-marks" className="text-sm font-medium text-[var(--t2)] mb-2 block">
                       Marks *
                     </label>
                     <input
@@ -609,19 +609,19 @@ export default function HomeworkPage() {
                   <button
                     type="button"
                     onClick={() => closeModal()}
-                    className="flex-1 py-2.5 border border-gray-200 rounded-xl font-semibold text-gray-600 hover:bg-gray-50"
+                    className="flex-1 py-2.5 border border-[var(--border)] rounded-xl font-semibold text-[var(--t3)] hover:bg-[var(--surface-container-low)]"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={Boolean(homeworkValidationError)}
-                    className="flex-1 py-2.5 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 py-2.5 bg-[var(--navy)] text-white rounded-xl font-semibold hover:bg-[var(--navy)] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Assign
                   </button>
                 </div>
-                {homeworkValidationError && <p className="text-sm text-gray-500">{homeworkValidationError}</p>}
+                {homeworkValidationError && <p className="text-sm text-[var(--t3)]">{homeworkValidationError}</p>}
               </form>
             </div>
           </div>
@@ -630,21 +630,21 @@ export default function HomeworkPage() {
         {/* Draft Restore Dialog */}
         {homeworkDraft.showRestoreDialog && (
           <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl max-w-sm w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto p-6 my-auto">
+            <div className="bg-[var(--surface)] rounded-2xl max-w-sm w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto p-6 my-auto">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                  <MaterialIcon icon="restore" className="text-gray-600" />
+                <div className="w-10 h-10 rounded-full bg-[var(--surface-container-low)] flex items-center justify-center">
+                  <MaterialIcon icon="restore" className="text-[var(--t3)]" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900">Restore Draft?</h3>
-                  <p className="text-sm text-gray-500">You have an unsaved homework form</p>
+                  <h3 className="font-bold text-[var(--t1)]">Restore Draft?</h3>
+                  <p className="text-sm text-[var(--t3)]">You have an unsaved homework form</p>
                 </div>
               </div>
-              <p className="text-sm text-gray-500 mb-6">Would you like to restore your previous draft?</p>
+              <p className="text-sm text-[var(--t3)] mb-6">Would you like to restore your previous draft?</p>
               <div className="flex gap-3">
                 <button
                   onClick={homeworkDraft.discardDraft}
-                  className="flex-1 py-3 bg-gray-100 font-semibold rounded-xl text-gray-600"
+                  className="flex-1 py-3 bg-[var(--surface-container-low)] font-semibold rounded-xl text-[var(--t3)]"
                 >
                   Discard
                 </button>
@@ -653,7 +653,7 @@ export default function HomeworkPage() {
                     setNewHomework(homeworkDraft.savedDraft as typeof newHomework);
                     homeworkDraft.restoreDraft();
                   }}
-                  className="flex-1 py-3 bg-gray-900 text-white font-semibold rounded-xl"
+                  className="flex-1 py-3 bg-[var(--navy)] text-white font-semibold rounded-xl"
                 >
                   Restore
                 </button>

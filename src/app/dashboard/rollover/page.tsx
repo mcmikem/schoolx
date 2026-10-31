@@ -251,7 +251,7 @@ export default function RolloverPage() {
         </div>
 
         {/* Current Status */}
-        <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 mb-6 max-w-2xl">
+        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--surface-container-high)] p-6 mb-6 max-w-2xl">
           <h2 className="font-semibold text-[var(--primary-900)] mb-4">Current Status</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -275,7 +275,7 @@ export default function RolloverPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 mb-6 max-w-2xl">
+        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--surface-container-high)] p-6 mb-6 max-w-2xl">
           <h2 className="font-semibold text-[var(--primary-900)] mb-4">Rollover Preview</h2>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
@@ -305,7 +305,7 @@ export default function RolloverPage() {
         </div>
 
         {/* Rollover Options */}
-        <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
+        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
           <h2 className="font-semibold text-[var(--primary-900)] mb-4">Rollover Options</h2>
 
           <div className="space-y-4">
@@ -313,7 +313,7 @@ export default function RolloverPage() {
             <div
               onClick={() => setRolloverType("term")}
               className={`p-4 rounded-lg border-2 cursor-pointer transition-colors ${
-                rolloverType === "term" ? "border-blue-500 bg-blue-50" : "border-gray-200"
+                rolloverType === "term" ? "border-blue-500 bg-blue-50" : "border-[var(--border)]"
               }`}
             >
               <div className="font-medium text-[var(--primary-900)]">
@@ -330,7 +330,7 @@ export default function RolloverPage() {
             <div
               onClick={() => setRolloverType("year")}
               className={`p-4 rounded-lg border-2 cursor-pointer transition-colors ${
-                rolloverType === "year" ? "border-blue-500 bg-blue-50" : "border-gray-200"
+                rolloverType === "year" ? "border-blue-500 bg-blue-50" : "border-[var(--border)]"
               }`}
             >
               <div className="font-medium text-[var(--primary-900)]">Full Year Rollover</div>
@@ -408,7 +408,7 @@ export default function RolloverPage() {
         </div>
 
         {/* Warning */}
-        <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 mt-6 max-w-2xl bg-yellow-50">
+        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--surface-container-high)] p-6 mt-6 max-w-2xl bg-yellow-50">
           <h2 className="font-semibold text-yellow-800 mb-2">Important</h2>
           <ul className="text-sm text-yellow-700 space-y-1">
             <li>Make sure all grades are entered before rollover</li>

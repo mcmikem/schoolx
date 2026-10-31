@@ -1356,7 +1356,7 @@ export default function CommunicationHubPage() {
                   <button
                     key={cat}
                     onClick={() => setCategoryFilter(cat === "All" ? "" : cat)}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 ${(cat === "All" && !categoryFilter) || categoryFilter === cat ? "bg-gray-900 text-white shadow-md" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 ${(cat === "All" && !categoryFilter) || categoryFilter === cat ? "bg-[var(--navy)] text-white shadow-md" : "bg-[var(--surface)] text-[var(--t3)] border border-[var(--border)] hover:bg-[var(--surface-container-low)]"}`}
                   >
                     {cat !== "All" && <MaterialIcon icon={getCategoryIcon(cat)} className="text-sm" />}
                     {cat}
@@ -1401,7 +1401,7 @@ export default function CommunicationHubPage() {
                       )}
                       <div className="p-5">
                         <div className="flex items-center gap-2 mb-3">
-                          <span className="px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 flex items-center gap-1">
+                          <span className="px-3 py-1 rounded-lg text-xs font-medium bg-[var(--surface-container-low)] text-[var(--t2)] flex items-center gap-1">
                             <MaterialIcon icon={getCategoryIcon(notice.category)} className="text-xs" />{" "}
                             {notice.category}
                           </span>
@@ -1418,10 +1418,10 @@ export default function CommunicationHubPage() {
                             </span>
                           )}
                         </div>
-                        <h3 className="font-bold text-gray-900 mb-2">{notice.title}</h3>
-                        <p className="text-gray-500 text-sm whitespace-pre-wrap">{notice.content}</p>
-                        <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-                          <div className="flex items-center gap-3 text-xs text-gray-500">
+                        <h3 className="font-bold text-[var(--t1)] mb-2">{notice.title}</h3>
+                        <p className="text-[var(--t3)] text-sm whitespace-pre-wrap">{notice.content}</p>
+                        <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--border)]">
+                          <div className="flex items-center gap-3 text-xs text-[var(--t3)]">
                             <span className="flex items-center gap-1">
                               <MaterialIcon className="text-sm">person</MaterialIcon>
                               {notice.users?.full_name || "Unknown"}
@@ -1440,7 +1440,7 @@ export default function CommunicationHubPage() {
                             </button>
                             <button
                               onClick={() => deleteNotice(notice.id)}
-                              className="p-2 text-gray-400 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                              className="p-2 text-[var(--t3)] hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
                             >
                               <MaterialIcon className="text-lg">delete</MaterialIcon>
                             </button>
@@ -1459,10 +1459,10 @@ export default function CommunicationHubPage() {
               onClick={() => setShowNoticeModal(false)}
             >
               <div
-                className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto"
+                className="bg-[var(--surface)] rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="p-6 border-b border-[var(--surface-container-high)] sticky top-0 bg-white rounded-t-2xl">
+                <div className="p-6 border-b border-[var(--surface-container-high)] sticky top-0 bg-[var(--surface)] rounded-t-2xl">
                   <h2 className="text-lg font-semibold text-[var(--t1)]">Post Notice</h2>
                 </div>
                 <form onSubmit={handleNoticeSubmit} className="p-6 space-y-4">
@@ -1528,7 +1528,7 @@ export default function CommunicationHubPage() {
                   <div>
                     <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Image (Optional)</label>
                     <div className="flex items-center gap-3">
-                      <label className="inline-flex items-center gap-2 rounded-xl border border-[var(--surface-container-high)] bg-white px-4 py-2 text-sm font-medium text-[var(--t3)] hover:bg-[#f8fafb] cursor-pointer">
+                      <label className="inline-flex items-center gap-2 rounded-xl border border-[var(--surface-container-high)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--t3)] hover:bg-[#f8fafb] cursor-pointer">
                         <MaterialIcon icon="upload" className="text-lg" />
                         {uploadingImage ? "Uploading..." : "Upload Image"}
                         <input

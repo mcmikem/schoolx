@@ -427,11 +427,11 @@ export default function SMSCenterPage() {
                 className={`w-full p-4 rounded-[24px] flex items-center gap-4 transition-all text-left border ${
                   activeTemplate.id === t.id
                     ? "bg-slate-800 text-white border-slate-800 shadow-xl"
-                    : "bg-white text-slate-700 border-slate-100 hover:border-slate-200"
+                    : "bg-[var(--surface)] text-slate-700 border-slate-100 hover:border-slate-200"
                 }`}
               >
                 <div
-                  className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${activeTemplate.id === t.id ? "bg-white/10" : "bg-slate-50"}`}
+                  className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${activeTemplate.id === t.id ? "bg-[var(--surface)]/10" : "bg-slate-50"}`}
                 >
                   <MaterialIcon icon={t.icon} style={{ fontSize: 20 }} />
                 </div>
@@ -462,12 +462,12 @@ export default function SMSCenterPage() {
                         className={`flex items-center gap-3 p-3 rounded-2xl border transition-all text-left ${
                           segment === opt.value
                             ? "bg-slate-800 text-white border-slate-800 shadow-md"
-                            : "bg-white text-slate-600 border-slate-100 hover:border-slate-300"
+                            : "bg-[var(--surface)] text-slate-600 border-slate-100 hover:border-slate-300"
                         }`}
                       >
                         <div
                           className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                            segment === opt.value ? "bg-white/10" : "bg-slate-50"
+                            segment === opt.value ? "bg-[var(--surface)]/10" : "bg-slate-50"
                           }`}
                         >
                           <MaterialIcon icon={opt.icon} style={{ fontSize: 18 }} />
@@ -558,7 +558,7 @@ export default function SMSCenterPage() {
                           className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-800 text-sm"
                         />
                         {showStudentDropdown && studentResults.length > 0 && (
-                          <div className="absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto">
+                          <div className="absolute z-20 mt-1 w-full bg-[var(--surface)] border border-slate-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto">
                             {studentResults.map((s) => (
                               <button
                                 key={s.id}

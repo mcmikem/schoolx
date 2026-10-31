@@ -309,7 +309,7 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
                               </span>
                             )}
                             {ev._builtin && (
-                              <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-xs rounded uppercase tracking-wide">
+                              <span className="px-1.5 py-0.5 bg-[var(--surface-container-low)] text-[var(--t3)] text-xs rounded uppercase tracking-wide">
                                 Uganda Govt
                               </span>
                             )}

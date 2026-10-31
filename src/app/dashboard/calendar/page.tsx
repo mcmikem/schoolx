@@ -152,7 +152,7 @@ function EventCard({ evt, onDelete }: { evt: SchoolEvent; onDelete: () => void }
       <p className="mt-1 text-xs opacity-80">{slot.label}</p>
       <div className="mt-1.5 flex -space-x-1">
         {Array.from({ length: avatarCount }, (_, i) => (
-          <span key={`${evt.id}-${i}`} className="h-4 w-4 rounded-full border border-white/90 bg-white/80" />
+          <span key={`${evt.id}-${i}`} className="h-4 w-4 rounded-full border border-white/90 bg-[var(--surface)]/80" />
         ))}
       </div>
     </button>
@@ -470,7 +470,7 @@ export default function CalendarPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex rounded-full border border-[var(--border)] bg-white/80 p-1">
+              <div className="flex rounded-full border border-[var(--border)] bg-[var(--surface)]/80 p-1">
                 {(
                   [
                     ["day", "Daily"],
@@ -516,8 +516,8 @@ export default function CalendarPage() {
             </Card>
           ) : (
             <div className="relative z-10 mt-5 grid grid-cols-1 gap-4 xl:grid-cols-[300px,1fr]">
-              <aside className="space-y-4 rounded-[22px] border border-[var(--border)] bg-white/90 p-4 backdrop-blur">
-                <div className="rounded-xl border border-[var(--surface-container-high)] bg-white px-3 py-2">
+              <aside className="space-y-4 rounded-[22px] border border-[var(--border)] bg-[var(--surface)]/90 p-4 backdrop-blur">
+                <div className="rounded-xl border border-[var(--surface-container-high)] bg-[var(--surface)] px-3 py-2">
                   <div className="flex items-center gap-2">
                     <MaterialIcon icon="search" className="text-[var(--t3)]" />
                     <input
@@ -580,7 +580,7 @@ export default function CalendarPage() {
                           {day}
                           {hasEvent && (
                             <span
-                              className={`absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${isActive ? "bg-white" : "bg-[var(--primary-700)]"}`}
+                              className={`absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${isActive ? "bg-[var(--surface)]" : "bg-[var(--primary-700)]"}`}
                             />
                           )}
                         </button>
@@ -603,7 +603,7 @@ export default function CalendarPage() {
                   )}
                 </div>
 
-                <div className="rounded-2xl border border-[var(--surface-container-high)] bg-white p-4">
+                <div className="rounded-2xl border border-[var(--surface-container-high)] bg-[var(--surface)] p-4">
                   <h3 className="text-sm font-bold text-[var(--t3)]">Filters</h3>
                   <div className="mt-3 space-y-2 text-sm">
                     {(
@@ -624,7 +624,7 @@ export default function CalendarPage() {
                       >
                         <span className="text-[var(--t3)]">{label}</span>
                         <span
-                          className={`h-4 w-4 rounded border ${categoryFilters[key] ? "border-[var(--primary-700)] bg-[var(--primary-700)]" : "border-[var(--border)] bg-white"}`}
+                          className={`h-4 w-4 rounded border ${categoryFilters[key] ? "border-[var(--primary-700)] bg-[var(--primary-700)]" : "border-[var(--border)] bg-[var(--surface)]"}`}
                         >
                           {categoryFilters[key] && <MaterialIcon icon="check" className="text-[12px] text-white" />}
                         </span>
@@ -632,7 +632,7 @@ export default function CalendarPage() {
                     ))}
                   </div>
                 </div>
-                <div className="rounded-2xl border border-[var(--surface-container-high)] bg-white p-4">
+                <div className="rounded-2xl border border-[var(--surface-container-high)] bg-[var(--surface)] p-4">
                   <h3 className="text-sm font-bold text-[var(--t3)]">Audience</h3>
                   <div className="mt-3 space-y-2 text-sm">
                     {(
@@ -655,7 +655,7 @@ export default function CalendarPage() {
                       >
                         <span className="text-[var(--t3)]">{label}</span>
                         <span
-                          className={`h-4 w-4 rounded border ${audienceFilters[key as "personal" | "school" | "parents"] ? "border-[var(--primary-700)] bg-[var(--primary-700)]" : "border-[var(--border)] bg-white"}`}
+                          className={`h-4 w-4 rounded border ${audienceFilters[key as "personal" | "school" | "parents"] ? "border-[var(--primary-700)] bg-[var(--primary-700)]" : "border-[var(--border)] bg-[var(--surface)]"}`}
                         >
                           {audienceFilters[key as "personal" | "school" | "parents"] && (
                             <MaterialIcon icon="check" className="text-[12px] text-white" />
@@ -665,7 +665,7 @@ export default function CalendarPage() {
                     ))}
                   </div>
                 </div>
-                <div className="rounded-2xl border border-[var(--surface-container-high)] bg-white p-4">
+                <div className="rounded-2xl border border-[var(--surface-container-high)] bg-[var(--surface)] p-4">
                   <h3 className="text-sm font-bold text-[var(--t3)]">Other Calendars</h3>
                   <div className="mt-3 space-y-2 text-sm">
                     {(
@@ -696,7 +696,10 @@ export default function CalendarPage() {
                   <h3 className="text-sm font-bold text-[var(--t3)]">Snapshot</h3>
                   <div className="mt-3 space-y-2">
                     {statCards.map((stat) => (
-                      <div key={stat.label} className="rounded-xl border border-[var(--border)] bg-white px-3 py-2">
+                      <div
+                        key={stat.label}
+                        className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+                      >
                         <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--t2)]">{stat.label}</p>
                         <p className="mt-1 text-base font-semibold text-[var(--t1)]">{stat.value}</p>
                         <p className="mt-0.5 truncate text-xs text-[var(--t2)]">{stat.note}</p>
@@ -706,7 +709,7 @@ export default function CalendarPage() {
                 </div>
               </aside>
 
-              <section className="rounded-[22px] border border-[var(--border)] bg-white p-4 sm:p-5 shadow-[0_14px_28px_rgba(10,46,64,0.06)]">
+              <section className="rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-[0_14px_28px_rgba(10,46,64,0.06)]">
                 <div className="mb-3 flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface-bright)] px-3 py-2">
                   <div className="flex items-center gap-2 text-[var(--t1)]">
                     <MaterialIcon icon="today" className="text-[16px]" />
@@ -744,7 +747,7 @@ export default function CalendarPage() {
                             key={`head-${dateKey}`}
                             type="button"
                             onClick={() => setSelectedDate(dateKey)}
-                            className={`rounded-xl border px-2 py-2 text-left transition ${isCurrent ? "border-[var(--border)] bg-[var(--surface-container)]" : "border-[var(--surface-container-high)] bg-white"}`}
+                            className={`rounded-xl border px-2 py-2 text-left transition ${isCurrent ? "border-[var(--border)] bg-[var(--surface-container)]" : "border-[var(--surface-container-high)] bg-[var(--surface)]"}`}
                           >
                             <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--t3)]">
                               {fullWeekDays[date.getDay()]}
@@ -772,7 +775,7 @@ export default function CalendarPage() {
                       ).map(({ dateKey, events: dayColEvents }) => (
                         <div
                           key={`col-${dateKey}`}
-                          className="relative h-[640px] rounded-xl border border-[var(--surface-container-high)] bg-white"
+                          className="relative h-[640px] rounded-xl border border-[var(--surface-container-high)] bg-[var(--surface)]"
                         >
                           {scheduleHours.map((hour) => (
                             <div
@@ -833,7 +836,7 @@ export default function CalendarPage() {
                             key={`month-day-${day}`}
                             type="button"
                             onClick={() => setSelectedDate(dateStr)}
-                            className={`h-28 rounded-xl border p-2 text-left transition ${isActive ? "border-[var(--border)] bg-[var(--surface-container)]" : "border-[var(--surface-container-high)] bg-white hover:border-[var(--border)]"}`}
+                            className={`h-28 rounded-xl border p-2 text-left transition ${isActive ? "border-[var(--border)] bg-[var(--surface-container)]" : "border-[var(--surface-container-high)] bg-[var(--surface)] hover:border-[var(--border)]"}`}
                           >
                             <div className="flex items-center justify-between">
                               <span
@@ -876,7 +879,7 @@ export default function CalendarPage() {
                       selectedDateEvents.map((evt) => (
                         <div
                           key={`selected-${evt.id}`}
-                          className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-white px-3 py-2"
+                          className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
                         >
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-[var(--t3)]">{evt.title}</p>
@@ -905,7 +908,7 @@ export default function CalendarPage() {
             onClick={() => setShowModal(false)}
           >
             <div
-              className="w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl bg-white my-auto"
+              className="w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl bg-[var(--surface)] my-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="border-b border-[var(--surface-container-high)] p-6">

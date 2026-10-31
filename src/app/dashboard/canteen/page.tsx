@@ -235,7 +235,7 @@ export default function CanteenPage() {
                               ? "bg-blue-100 text-blue-800"
                               : order.status === "preparing"
                                 ? "bg-amber-100 text-amber-800"
-                                : "bg-gray-100 text-gray-800"
+                                : "bg-[var(--surface-container-low)] text-gray-800"
                         }`}
                       >
                         <option value="pending">Pending</option>

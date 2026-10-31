@@ -187,7 +187,7 @@ export default function LibraryPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search catalogue..."
-                className="pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-4 focus:ring-slate-100 w-full min-w-[200px]"
+                className="pl-10 pr-4 py-3 bg-[var(--surface)] border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-4 focus:ring-slate-100 w-full min-w-[200px]"
               />
               <MaterialIcon icon="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             </div>
@@ -210,7 +210,10 @@ export default function LibraryPage() {
             { label: "In Library", value: availableBooks, icon: "check_circle", color: "bg-emerald-500" },
             { label: "Inventory Value", value: books.length, icon: "inventory", color: "bg-amber-600" },
           ].map((s) => (
-            <div key={s.label} className="p-5 bg-white rounded-3xl border border-slate-100 flex items-center gap-4">
+            <div
+              key={s.label}
+              className="p-5 bg-[var(--surface)] rounded-3xl border border-slate-100 flex items-center gap-4"
+            >
               <div className={`w-12 h-12 rounded-2xl ${s.color} text-white flex items-center justify-center shrink-0`}>
                 <MaterialIcon icon={s.icon} />
               </div>
@@ -228,7 +231,7 @@ export default function LibraryPage() {
             <button
               key={c}
               onClick={() => setCategory(c)}
-              className={`shrink-0 px-5 py-2 rounded-2xl text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all ${category === c ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "bg-white text-slate-500 border border-slate-100 hover:border-slate-200"}`}
+              className={`shrink-0 px-5 py-2 rounded-2xl text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all ${category === c ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "bg-[var(--surface)] text-slate-500 border border-slate-100 hover:border-slate-200"}`}
             >
               {c}
             </button>
@@ -257,7 +260,7 @@ export default function LibraryPage() {
               return (
                 <div
                   key={book.id}
-                  className="bg-white p-6 rounded-3xl border border-slate-100 hover:shadow-xl transition-all group relative overflow-hidden"
+                  className="bg-[var(--surface)] p-6 rounded-3xl border border-slate-100 hover:shadow-xl transition-all group relative overflow-hidden"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-black uppercase tracking-wider">
@@ -320,7 +323,7 @@ export default function LibraryPage() {
         {showAdd && (
           <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
             <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" aria-hidden="true" />
-            <div className="relative bg-white rounded-[2.5rem] w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8 transform animate-in slide-in-from-bottom-8 duration-300">
+            <div className="relative bg-[var(--surface)] rounded-[2.5rem] w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8 transform animate-in slide-in-from-bottom-8 duration-300">
               <div className="flex justify-between mb-8 items-center">
                 <h2 className="text-2xl font-black text-slate-800 tracking-tight">
                   {editingBook ? "Edit Volume" : "Add Volume"}

@@ -270,20 +270,20 @@ export default function FeeTermsPage() {
         ) : feeTerms.length === 0 ? (
           <div className="text-center py-12">
             <MaterialIcon icon="payments" className="text-5xl text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-700">No fee terms configured</h3>
-            <p className="text-gray-500 mt-1">Create fee terms to manage payments</p>
+            <h3 className="text-lg font-medium text-[var(--t2)]">No fee terms configured</h3>
+            <p className="text-[var(--t3)] mt-1">Create fee terms to manage payments</p>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {feeTerms.map((term) => (
               <div
                 key={term.id}
-                className="bg-white rounded-2xl border border-gray-200 p-5 hover:shadow-md transition-shadow"
+                className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-5 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="font-semibold text-gray-900">{term.name}</h3>
-                    <p className="text-sm text-gray-500">
+                    <h3 className="font-semibold text-[var(--t1)]">{term.name}</h3>
+                    <p className="text-sm text-[var(--t3)]">
                       {term.code} • {term.academic_year}
                     </p>
                   </div>
@@ -292,29 +292,32 @@ export default function FeeTermsPage() {
 
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Total Amount</span>
+                    <span className="text-[var(--t3)]">Total Amount</span>
                     <span className="font-medium">UGX {term.total_amount.toLocaleString()}</span>
                   </div>
                   {term.discount_percentage > 0 && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Discount</span>
+                      <span className="text-[var(--t3)]">Discount</span>
                       <span className="font-medium text-green-600">{term.discount_percentage}%</span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Installments</span>
+                    <span className="text-[var(--t3)]">Installments</span>
                     <span className="font-medium">{term.fee_term_lines?.length || 0}</span>
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-3 border-t border-gray-100">
+                <div className="flex gap-2 pt-3 border-t border-[var(--border)]">
                   <button
                     onClick={() => setShowInstallments(showInstallments === term.id ? null : term.id)}
                     className="flex-1 py-2 text-sm text-blue-700 hover:bg-blue-50 rounded-lg"
                   >
                     {showInstallments === term.id ? "Hide" : "View"} Installments
                   </button>
-                  <button onClick={() => openModal(term)} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                  <button
+                    onClick={() => openModal(term)}
+                    className="p-2 text-[var(--t3)] hover:bg-[var(--surface-container-low)] rounded-lg"
+                  >
                     <MaterialIcon icon="edit" />
                   </button>
                   <button onClick={() => deleteTerm(term.id)} className="p-2 text-red-700 hover:bg-red-50 rounded-lg">
@@ -323,11 +326,14 @@ export default function FeeTermsPage() {
                 </div>
 
                 {showInstallments === term.id && term.fee_term_lines && (
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Installments</h4>
+                  <div className="mt-4 pt-4 border-t border-[var(--border)]">
+                    <h4 className="text-sm font-medium text-[var(--t2)] mb-2">Installments</h4>
                     <div className="space-y-2">
                       {term.fee_term_lines.map((line, i) => (
-                        <div key={i} className="flex justify-between text-sm bg-gray-50 p-2 rounded">
+                        <div
+                          key={i}
+                          className="flex justify-between text-sm bg-[var(--surface-container-low)] p-2 rounded"
+                        >
                           <span>Installment {line.installment_number}</span>
                           <span className="font-medium">
                             {line.amount_percentage}% ({line.due_days} days)
@@ -351,33 +357,33 @@ export default function FeeTermsPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Name</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                  className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
                   placeholder="e.g., Term 1 Fees"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Code</label>
                 <input
                   type="text"
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                  className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
                   placeholder="e.g., T1"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <label className="block text-sm font-medium text-[var(--t2)] mb-1">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
                 rows={2}
                 placeholder="Optional description"
               />
@@ -385,7 +391,7 @@ export default function FeeTermsPage() {
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount (UGX)</label>
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Total Amount (UGX)</label>
                 <input
                   type="number"
                   inputMode="numeric"
@@ -396,11 +402,11 @@ export default function FeeTermsPage() {
                       total_amount: parseFloat(e.target.value) || 0,
                     })
                   }
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                  className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Discount %</label>
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Discount %</label>
                 <input
                   type="number"
                   inputMode="numeric"
@@ -411,49 +417,49 @@ export default function FeeTermsPage() {
                       discount_percentage: parseFloat(e.target.value) || 0,
                     })
                   }
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                  className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Academic Year</label>
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Academic Year</label>
                 <input
                   type="text"
                   value={formData.academic_year}
                   onChange={(e) => setFormData({ ...formData, academic_year: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                  className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
                 />
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium text-gray-700">Installments</label>
+                <label className="text-sm font-medium text-[var(--t2)]">Installments</label>
                 <button type="button" onClick={addInstallment} className="text-sm text-blue-600 hover:underline">
                   + Add Installment
                 </button>
               </div>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {installments.map((inst, i) => (
-                  <div key={i} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                    <span className="text-sm text-gray-500 w-24">Installment {inst.installment_number}</span>
+                  <div key={i} className="flex items-center gap-2 p-2 bg-[var(--surface-container-low)] rounded-lg">
+                    <span className="text-sm text-[var(--t3)] w-24">Installment {inst.installment_number}</span>
                     <input
                       type="number"
                       inputMode="numeric"
                       value={inst.due_days}
                       onChange={(e) => updateInstallment(i, "due_days", parseInt(e.target.value))}
-                      className="w-20 px-2 py-1 border border-gray-200 rounded text-sm"
+                      className="w-20 px-2 py-1 border border-[var(--border)] rounded text-sm"
                       placeholder="Days"
                     />
-                    <span className="text-sm text-gray-500">days,</span>
+                    <span className="text-sm text-[var(--t3)]">days,</span>
                     <input
                       type="number"
                       inputMode="numeric"
                       value={inst.amount_percentage}
                       onChange={(e) => updateInstallment(i, "amount_percentage", parseFloat(e.target.value))}
-                      className="w-20 px-2 py-1 border border-gray-200 rounded text-sm"
+                      className="w-20 px-2 py-1 border border-[var(--border)] rounded text-sm"
                       placeholder="%"
                     />
-                    <span className="text-sm text-gray-500">%</span>
+                    <span className="text-sm text-[var(--t3)]">%</span>
                     {installments.length > 1 && (
                       <button
                         type="button"
@@ -484,7 +490,7 @@ export default function FeeTermsPage() {
                 onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                 className="w-4 h-4"
               />
-              <label htmlFor="is_active" className="text-sm text-gray-700">
+              <label htmlFor="is_active" className="text-sm text-[var(--t2)]">
                 Active
               </label>
             </div>

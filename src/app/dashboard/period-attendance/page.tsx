@@ -233,7 +233,7 @@ export default function PeriodAttendancePage() {
                           className={`min-h-10 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                             attendanceMap[student.id] === option.status
                               ? option.color
-                              : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+                              : "bg-[var(--surface)] text-[var(--t3)] border-[var(--border)] hover:border-gray-300"
                           }`}
                         >
                           {option.label}

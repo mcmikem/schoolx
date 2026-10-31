@@ -223,23 +223,23 @@ export default function CommentsPage() {
           </div>
         ) : filteredStudents.length === 0 ? (
           <div className="empty-state">
-            <MaterialIcon icon="comment" className="text-4xl text-gray-400" />
+            <MaterialIcon icon="comment" className="text-4xl text-[var(--t3)]" />
             <h3 className="text-lg font-semibold mt-2">Select a class and subject</h3>
-            <p className="text-sm text-gray-500">Comments will be generated based on student scores</p>
+            <p className="text-sm text-[var(--t3)]">Comments will be generated based on student scores</p>
           </div>
         ) : (
           <div>
             {/* Tabs */}
-            <div className="flex gap-1 mb-4 bg-gray-100 rounded-xl p-1 w-fit">
+            <div className="flex gap-1 mb-4 bg-[var(--surface-container-low)] rounded-xl p-1 w-fit">
               <button
                 onClick={() => setTab("generate")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium ${tab === "generate" ? "bg-white shadow-sm" : "text-gray-500"}`}
+                className={`px-4 py-2 rounded-lg text-sm font-medium ${tab === "generate" ? "bg-[var(--surface)] shadow-sm" : "text-[var(--t3)]"}`}
               >
                 Students ({filteredStudents.length})
               </button>
               <button
                 onClick={() => setTab("review")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium ${tab === "review" ? "bg-white shadow-sm" : "text-gray-500"}`}
+                className={`px-4 py-2 rounded-lg text-sm font-medium ${tab === "review" ? "bg-[var(--surface)] shadow-sm" : "text-[var(--t3)]"}`}
               >
                 Generated ({Object.keys(comments).length})
               </button>
@@ -260,10 +260,10 @@ export default function CommentsPage() {
                               className="shrink-0"
                             />
                             <div className="min-w-0">
-                              <div className="font-semibold text-gray-900 truncate">
+                              <div className="font-semibold text-[var(--t1)] truncate">
                                 {student.first_name} {student.last_name}
                               </div>
-                              <div className="text-sm text-gray-500">
+                              <div className="text-sm text-[var(--t3)]">
                                 {score !== null ? (
                                   <span
                                     className={`px-2 py-0.5 rounded-full text-xs font-medium ${perfColors[perfLabel(score)]}`}
@@ -278,12 +278,12 @@ export default function CommentsPage() {
                           </div>
                           {comments[student.id] && (
                             <div className="flex items-center gap-2 shrink-0">
-                              <span className="text-xs text-gray-500 max-w-[200px] truncate italic">
+                              <span className="text-xs text-[var(--t3)] max-w-[200px] truncate italic">
                                 "{comments[student.id]}"
                               </span>
                               <button
                                 onClick={() => regenerateComment(student.id)}
-                                className="p-1.5 text-gray-400 hover:text-blue-700 hover:bg-blue-50 rounded-lg"
+                                className="p-1.5 text-[var(--t3)] hover:text-blue-700 hover:bg-blue-50 rounded-lg"
                                 title="Regenerate"
                               >
                                 <MaterialIcon icon="refresh" style={{ fontSize: 16 }} />
@@ -301,7 +301,7 @@ export default function CommentsPage() {
             {tab === "review" && Object.keys(comments).length > 0 && (
               <div>
                 <div className="flex justify-between items-center mb-4">
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-[var(--t3)]">
                     {savedCount > 0 && <span className="text-green-600 font-medium">{savedCount} saved</span>}
                   </div>
                   <Button onClick={saveAllComments} disabled={saving} variant="primary">
@@ -319,7 +319,7 @@ export default function CommentsPage() {
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="font-semibold text-gray-900">
+                                <span className="font-semibold text-[var(--t1)]">
                                   {student?.first_name} {student?.last_name}
                                 </span>
                                 {score !== null && (
@@ -333,13 +333,13 @@ export default function CommentsPage() {
                               <textarea
                                 value={comment}
                                 onChange={(e) => setComments((prev) => ({ ...prev, [studentId]: e.target.value }))}
-                                className="w-full resize-none rounded-[16px] border border-[#dce4ee] bg-white p-3 text-sm text-gray-700 shadow-sm outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/12"
+                                className="w-full resize-none rounded-[16px] border border-[#dce4ee] bg-[var(--surface)] p-3 text-sm text-[var(--t2)] shadow-sm outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/12"
                                 rows={2}
                               />
                             </div>
                             <button
                               onClick={() => regenerateComment(studentId)}
-                              className="p-2 text-gray-400 hover:text-blue-700 hover:bg-blue-50 rounded-lg shrink-0"
+                              className="p-2 text-[var(--t3)] hover:text-blue-700 hover:bg-blue-50 rounded-lg shrink-0"
                               title="Regenerate"
                             >
                               <MaterialIcon icon="refresh" />
@@ -355,9 +355,9 @@ export default function CommentsPage() {
 
             {tab === "review" && Object.keys(comments).length === 0 && (
               <div className="empty-state">
-                <MaterialIcon icon="rate_review" className="text-4xl text-gray-400" />
+                <MaterialIcon icon="rate_review" className="text-4xl text-[var(--t3)]" />
                 <h3 className="text-lg font-semibold mt-2">No comments generated yet</h3>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-[var(--t3)]">
                   Click "Generate All Comments" to create comments for all students
                 </p>
               </div>

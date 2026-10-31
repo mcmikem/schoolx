@@ -544,7 +544,7 @@ export default function TermEndPage() {
                         ? "bg-blue-100 text-blue-700 animate-pulse"
                         : step.status === "error"
                           ? "bg-red-100 text-red-700"
-                          : "bg-gray-100 text-gray-400"
+                          : "bg-[var(--surface-container-low)] text-[var(--t3)]"
                   }`}
                 >
                   {step.status === "done" ? (
@@ -558,10 +558,10 @@ export default function TermEndPage() {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-medium ${step.status === "error" ? "text-red-700" : "text-gray-900"}`}>
+                  <p className={`text-sm font-medium ${step.status === "error" ? "text-red-700" : "text-[var(--t1)]"}`}>
                     {step.label}
                   </p>
-                  {step.detail && <p className="text-xs text-gray-400 mt-0.5 truncate">{step.detail}</p>}
+                  {step.detail && <p className="text-xs text-[var(--t3)] mt-0.5 truncate">{step.detail}</p>}
                 </div>
                 <Badge
                   variant={
@@ -589,7 +589,7 @@ export default function TermEndPage() {
           {!processing && showResults && processResults && (
             <>
               <div className="border-t border-[var(--border)] mt-6 pt-6">
-                <h4 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-[var(--t1)] mb-4 flex items-center gap-2">
                   <MaterialIcon icon="summarize" className="text-base" />
                   Summary
                 </h4>
@@ -654,7 +654,7 @@ export default function TermEndPage() {
           </CardHeader>
           <CardBody>
             {checklistLoading ? (
-              <div className="flex items-center gap-2 text-sm text-gray-400">
+              <div className="flex items-center gap-2 text-sm text-[var(--t3)]">
                 <MaterialIcon icon="hourglass_top" className="animate-spin text-base" />
                 Checking prerequisites...
               </div>
@@ -677,8 +677,8 @@ export default function TermEndPage() {
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">{item.label}</p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-sm font-medium text-[var(--t1)]">{item.label}</p>
+                      <p className="text-xs text-[var(--t3)]">
                         {item.count.toLocaleString()} of {item.expected.toLocaleString()} records
                         {item.status === "warn" && " — incomplete"}
                       </p>
@@ -756,7 +756,7 @@ export default function TermEndPage() {
 
         {running && (
           <div className="mb-6">
-            <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
+            <div className="flex items-center justify-between text-sm text-[var(--t3)] mb-2">
               <span>
                 Step {currentStepIndex + 1} of {totalSteps}
               </span>
@@ -787,7 +787,7 @@ export default function TermEndPage() {
                           ? "bg-blue-100 text-blue-700"
                           : step.status === "error"
                             ? "bg-red-100 text-red-700"
-                            : "bg-gray-100 text-gray-400"
+                            : "bg-[var(--surface-container-low)] text-[var(--t3)]"
                     }`}
                   >
                     {step.status === "done" ? (
@@ -802,7 +802,7 @@ export default function TermEndPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-gray-900">{step.title}</h3>
+                      <h3 className="font-semibold text-[var(--t1)]">{step.title}</h3>
                       <span
                         className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                           step.status === "done"
@@ -811,7 +811,7 @@ export default function TermEndPage() {
                               ? "bg-blue-100 text-blue-700"
                               : step.status === "error"
                                 ? "bg-red-100 text-red-700"
-                                : "bg-gray-100 text-gray-500"
+                                : "bg-[var(--surface-container-low)] text-[var(--t3)]"
                         }`}
                       >
                         {step.status === "pending"
@@ -823,8 +823,8 @@ export default function TermEndPage() {
                               : "Error"}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-500">{step.description}</p>
-                    {step.details && <p className="text-xs text-gray-400 mt-1">{step.details}</p>}
+                    <p className="text-sm text-[var(--t3)]">{step.description}</p>
+                    {step.details && <p className="text-xs text-[var(--t3)] mt-1">{step.details}</p>}
                   </div>
                 </div>
               </CardBody>

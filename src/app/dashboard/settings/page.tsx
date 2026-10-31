@@ -1558,7 +1558,7 @@ export default function SettingsPage() {
                                       ? "bg-amber-100 text-amber-700"
                                       : p.payment_status === "failed"
                                         ? "bg-red-100 text-red-700"
-                                        : "bg-gray-100 text-gray-500"
+                                        : "bg-[var(--surface-container-low)] text-[var(--t3)]"
                                 }`}
                               >
                                 {p.payment_status || "unknown"}
@@ -1581,7 +1581,7 @@ export default function SettingsPage() {
             {/* relative is load-bearing: without it this static panel paints
                 UNDER the absolute backdrop above, dimming the dialog and
                 swallowing every click. */}
-            <div className="relative bg-white rounded-2xl p-6 max-w-md w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl">
+            <div className="relative bg-[var(--surface)] rounded-2xl p-6 max-w-md w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-[var(--on-surface)]">Complete Payment</h3>
                 <button

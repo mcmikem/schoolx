@@ -266,7 +266,9 @@ export default function CoursesPage() {
   };
 
   const getCategoryStyle = (category: string) => {
-    return COURSE_CATEGORIES.find((c) => c.value === category)?.color || "bg-gray-100 text-gray-700";
+    return (
+      COURSE_CATEGORIES.find((c) => c.value === category)?.color || "bg-[var(--surface-container-low)] text-[var(--t2)]"
+    );
   };
 
   return (
@@ -305,7 +307,7 @@ export default function CoursesPage() {
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-200 rounded-xl"
+            className="px-4 py-2 border border-[var(--border)] rounded-xl"
           >
             <option value="">All Categories</option>
             {COURSE_CATEGORIES.map((c) => (
@@ -323,16 +325,18 @@ export default function CoursesPage() {
         ) : courses.length === 0 ? (
           <div className="text-center py-12">
             <MaterialIcon icon="menu_book" className="text-5xl text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-700">No courses found</h3>
-            <p className="text-gray-500 mt-1">Add courses to get started</p>
+            <h3 className="text-lg font-medium text-[var(--t2)]">No courses found</h3>
+            <p className="text-[var(--t3)] mt-1">Add courses to get started</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {courses.map((course) => (
               <div
                 key={course.id}
-                className={`bg-white rounded-2xl border p-4 ${
-                  course.is_active ? "border-gray-200" : "border-gray-100 bg-gray-50"
+                className={`bg-[var(--surface)] rounded-2xl border p-4 ${
+                  course.is_active
+                    ? "border-[var(--border)]"
+                    : "border-[var(--border)] bg-[var(--surface-container-low)]"
                 }`}
               >
                 <div className="flex items-start justify-between mb-3">
@@ -351,10 +355,12 @@ export default function CoursesPage() {
                   </span>
                 </div>
 
-                <h3 className="font-semibold text-gray-900 mb-1">{course.name}</h3>
-                <p className="text-sm text-gray-500 mb-2">{course.code}</p>
+                <h3 className="font-semibold text-[var(--t1)] mb-1">{course.name}</h3>
+                <p className="text-sm text-[var(--t3)] mb-2">{course.code}</p>
 
-                {course.description && <p className="text-sm text-gray-600 mb-3 line-clamp-2">{course.description}</p>}
+                {course.description && (
+                  <p className="text-sm text-[var(--t3)] mb-3 line-clamp-2">{course.description}</p>
+                )}
 
                 <div className="flex flex-wrap gap-2 mb-3">
                   {course.is_elective && (
@@ -369,10 +375,10 @@ export default function CoursesPage() {
                   )}
                 </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                <div className="flex items-center justify-between pt-3 border-t border-[var(--border)]">
                   <button
                     onClick={() => toggleActive(course.id, course.is_active)}
-                    className={`text-sm ${course.is_active ? "text-green-600" : "text-gray-400"}`}
+                    className={`text-sm ${course.is_active ? "text-green-600" : "text-[var(--t3)]"}`}
                   >
                     {course.is_active ? "Active" : "Inactive"}
                   </button>
@@ -383,7 +389,7 @@ export default function CoursesPage() {
                         setFormData(course);
                         setShowModal(true);
                       }}
-                      className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                      className="p-1 text-[var(--t3)] hover:bg-[var(--surface-container-low)] rounded"
                     >
                       <MaterialIcon icon="edit" />
                     </button>
@@ -409,17 +415,17 @@ export default function CoursesPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Course Name</label>
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Course Name</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                  className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
                   placeholder="e.g., Mathematics"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Code</label>
                 <input
                   type="text"
                   value={formData.code}
@@ -429,18 +435,18 @@ export default function CoursesPage() {
                       code: e.target.value.toUpperCase(),
                     })
                   }
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                  className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
                   placeholder="e.g., MATH"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <label className="block text-sm font-medium text-[var(--t2)] mb-1">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
                 rows={2}
                 placeholder="Course description..."
               />
@@ -448,11 +454,11 @@ export default function CoursesPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Category</label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                  className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
                 >
                   {COURSE_CATEGORIES.map((c) => (
                     <option key={c.value} value={c.value}>
@@ -462,11 +468,11 @@ export default function CoursesPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Icon</label>
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Icon</label>
                 <select
                   value={formData.icon}
                   onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                  className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
                 >
                   {COURSE_ICONS.map((icon) => (
                     <option key={icon} value={icon}>
@@ -479,16 +485,16 @@ export default function CoursesPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Color</label>
                 <input
                   type="color"
                   value={formData.color}
                   onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  className="w-full h-10 border border-gray-200 rounded-xl cursor-pointer"
+                  className="w-full h-10 border border-[var(--border)] rounded-xl cursor-pointer"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Credit Hours</label>
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Credit Hours</label>
                 <input
                   type="number"
                   inputMode="numeric"
@@ -499,14 +505,14 @@ export default function CoursesPage() {
                       credit_hours: parseInt(e.target.value) || 0,
                     })
                   }
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                  className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Max Score</label>
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Max Score</label>
                 <input
                   type="number"
                   inputMode="numeric"
@@ -517,11 +523,11 @@ export default function CoursesPage() {
                       max_score: parseInt(e.target.value) || 100,
                     })
                   }
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                  className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Pass Score</label>
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Pass Score</label>
                 <input
                   type="number"
                   inputMode="numeric"
@@ -532,7 +538,7 @@ export default function CoursesPage() {
                       passing_score: parseInt(e.target.value) || 50,
                     })
                   }
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+                  className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
                 />
               </div>
             </div>
@@ -545,7 +551,7 @@ export default function CoursesPage() {
                   onChange={(e) => setFormData({ ...formData, is_elective: e.target.checked })}
                   className="rounded border-gray-300"
                 />
-                <span className="text-sm text-gray-700">Is Elective</span>
+                <span className="text-sm text-[var(--t2)]">Is Elective</span>
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -554,7 +560,7 @@ export default function CoursesPage() {
                   onChange={(e) => setFormData({ ...formData, is_laboratory: e.target.checked })}
                   className="rounded border-gray-300"
                 />
-                <span className="text-sm text-gray-700">Requires Lab</span>
+                <span className="text-sm text-[var(--t2)]">Requires Lab</span>
               </label>
             </div>
 

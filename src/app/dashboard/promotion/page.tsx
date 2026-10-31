@@ -123,7 +123,7 @@ export default function PromotionPage() {
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <Card>
-              <CardBody className="space-y-4 bg-white">
+              <CardBody className="space-y-4 bg-[var(--surface)]">
                 <h2 className="font-semibold text-[var(--on-surface)]">Select Class to Promote From</h2>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -175,7 +175,7 @@ export default function PromotionPage() {
                       <button
                         key={t}
                         onClick={() => setPromotionType(t)}
-                        className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] transition-all capitalize ${promotionType === t ? "border-transparent bg-[var(--primary)] text-[var(--on-primary)] shadow-[0_10px_20px_rgba(0,92,230,0.2)]" : "border-[var(--border)] bg-white text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-low)]"}`}
+                        className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] transition-all capitalize ${promotionType === t ? "border-transparent bg-[var(--primary)] text-[var(--on-primary)] shadow-[0_10px_20px_rgba(0,92,230,0.2)]" : "border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-low)]"}`}
                       >
                         {t}
                       </button>
@@ -187,7 +187,7 @@ export default function PromotionPage() {
 
             {selectedClass && (
               <Card>
-                <CardBody className="bg-white">
+                <CardBody className="bg-[var(--surface)]">
                   <div className="flex justify-between items-center mb-4">
                     <h2 className="font-semibold text-[var(--on-surface)]">
                       Students {loadingStudents ? "…" : `(${students.length})`}
@@ -210,7 +210,7 @@ export default function PromotionPage() {
                       {students.map((s) => (
                         <label
                           key={s.id}
-                          className={`cursor-pointer rounded-[18px] border p-3 transition-colors flex items-center gap-3 ${selectedStudents.has(s.id) ? "border-[var(--primary)]/30 bg-[var(--primary)]/10" : "border-[var(--border)] bg-white hover:bg-[var(--surface-container-low)]"}`}
+                          className={`cursor-pointer rounded-[18px] border p-3 transition-colors flex items-center gap-3 ${selectedStudents.has(s.id) ? "border-[var(--primary)]/30 bg-[var(--primary)]/10" : "border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-container-low)]"}`}
                         >
                           <input
                             type="checkbox"
@@ -247,7 +247,7 @@ export default function PromotionPage() {
 
           <div>
             <Card>
-              <CardBody className="bg-white">
+              <CardBody className="bg-[var(--surface)]">
                 <h2 className="mb-4 font-semibold text-[var(--on-surface)]">Promotion History</h2>
                 {history.length === 0 ? (
                   <p className="text-sm text-[var(--on-surface-variant)] text-center py-6">No promotions yet</p>

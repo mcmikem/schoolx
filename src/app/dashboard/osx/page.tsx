@@ -102,7 +102,7 @@ export default function OSXPage() {
                       step.status === "complete"
                         ? "bg-green-500 text-white"
                         : step.status === "current"
-                          ? "bg-white text-[var(--navy)] ring-4 ring-white/30 animate-pulse"
+                          ? "bg-[var(--surface)] text-[var(--navy)] ring-4 ring-white/30 animate-pulse"
                           : "bg-[var(--navy)] text-white/40"
                     }`}
                   >
@@ -129,7 +129,7 @@ export default function OSXPage() {
               {PROGRAMS.map((prog) => (
                 <Card
                   key={prog.id}
-                  className={`group hover:shadow-xl transition-all duration-300 border-l-4 ${prog.active ? "border-primary" : "border-gray-200 opacity-70"}`}
+                  className={`group hover:shadow-xl transition-all duration-300 border-l-4 ${prog.active ? "border-primary" : "border-[var(--border)] opacity-70"}`}
                 >
                   <CardBody>
                     <div className="flex items-start justify-between mb-3 text-sm">
@@ -139,7 +139,7 @@ export default function OSXPage() {
                         <MaterialIcon icon={prog.icon} />
                       </div>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${prog.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}
+                        className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${prog.active ? "bg-green-100 text-green-700" : "bg-[var(--surface-container-low)] text-[var(--t3)]"}`}
                       >
                         {prog.active ? "Active" : "Inactive"}
                       </span>
@@ -198,7 +198,7 @@ export default function OSXPage() {
                         <span>{metric.label}</span>
                         <span>{metric.val}%</span>
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-2 bg-[var(--surface-container-low)] rounded-full overflow-hidden">
                         <div className={`h-full rounded-full ${metric.color}`} style={{ width: `${metric.val}%` }} />
                       </div>
                     </div>
@@ -237,10 +237,10 @@ export default function OSXPage() {
                   ].map((svc) => (
                     <button
                       key={svc.name}
-                      className="w-full h-auto p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-xl transition-all border border-transparent hover:border-gray-200"
+                      className="w-full h-auto p-3 text-left bg-[var(--surface-container-low)] hover:bg-[var(--surface-container-low)] rounded-xl transition-all border border-transparent hover:border-[var(--border)]"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-primary-600">
+                        <div className="w-8 h-8 rounded-lg bg-[var(--surface)] shadow-sm flex items-center justify-center text-primary-600">
                           <MaterialIcon icon={svc.icon} className="text-lg" />
                         </div>
                         <div>

@@ -290,7 +290,7 @@ export default function WorkflowsBuilder() {
                       <button
                         key={t.id}
                         onClick={() => setSelectedTrigger(t.id)}
-                        className={`p-4 rounded-2xl flex items-center gap-3 transition-all border text-left ${selectedTrigger === t.id ? "bg-white border-2 border-[var(--primary)] shadow-lg" : "bg-[var(--surface)] border-[var(--border)] hover:border-[var(--primary)]/50 scale-[0.98]"}`}
+                        className={`p-4 rounded-2xl flex items-center gap-3 transition-all border text-left ${selectedTrigger === t.id ? "bg-[var(--surface)] border-2 border-[var(--primary)] shadow-lg" : "bg-[var(--surface)] border-[var(--border)] hover:border-[var(--primary)]/50 scale-[0.98]"}`}
                       >
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${t.bg} ${t.color}`}>
                           <MaterialIcon icon={t.icon} style={{ fontSize: 20 }} />

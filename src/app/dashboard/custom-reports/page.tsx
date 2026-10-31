@@ -352,7 +352,7 @@ export default function CustomReportsBuilder() {
           </div>
 
           {/* Live Canvas Preview */}
-          <div className="glass-premium rounded-3xl lg:col-span-3 flex flex-col border border-[var(--border)] bg-white/40 shadow-sm overflow-hidden">
+          <div className="glass-premium rounded-3xl lg:col-span-3 flex flex-col border border-[var(--border)] bg-[var(--surface)]/40 shadow-sm overflow-hidden">
             <div className="p-4 bg-[var(--surface)] border-b border-[var(--border)] flex items-center gap-3">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-red-400" />

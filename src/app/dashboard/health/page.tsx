@@ -254,7 +254,10 @@ export default function HealthPage() {
             { label: "Discharged Today", value: dischargedToday, color: "bg-emerald-500", icon: "check_circle" },
             { label: "Referred to Hospital", value: referred.length, color: "bg-red-500", icon: "local_hospital" },
           ].map((s) => (
-            <div key={s.label} className="p-5 bg-white rounded-3xl border border-slate-100 flex items-center gap-4">
+            <div
+              key={s.label}
+              className="p-5 bg-[var(--surface)] rounded-3xl border border-slate-100 flex items-center gap-4"
+            >
               <div className={`w-12 h-12 rounded-2xl ${s.color} text-white flex items-center justify-center shrink-0`}>
                 <MaterialIcon icon={s.icon} />
               </div>
@@ -392,7 +395,7 @@ export default function HealthPage() {
         {editingRecord && (
           <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" aria-hidden="true" />
-            <div className="relative bg-white rounded-[40px] w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8">
+            <div className="relative bg-[var(--surface)] rounded-[40px] w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-black text-slate-800">Edit Record</h2>
                 <button onClick={() => setEditingRecord(null)} className="p-2 hover:bg-slate-100 rounded-xl">
@@ -482,7 +485,7 @@ export default function HealthPage() {
         {showAdd && (
           <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" aria-hidden="true" />
-            <div className="relative bg-white rounded-[40px] w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl overflow-hidden">
+            <div className="relative bg-[var(--surface)] rounded-[40px] w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl overflow-hidden">
               <div className="p-8">
                 <div className="flex justify-between items-center mb-8">
                   <div>
@@ -506,7 +509,7 @@ export default function HealthPage() {
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
                     />
                     {students.length > 0 && (
-                      <div className="absolute top-full mt-1 left-0 right-0 bg-white rounded-2xl border border-slate-100 shadow-xl z-10 overflow-hidden">
+                      <div className="absolute top-full mt-1 left-0 right-0 bg-[var(--surface)] rounded-2xl border border-slate-100 shadow-xl z-10 overflow-hidden">
                         {students.map((s) => (
                           <button
                             key={s.id}

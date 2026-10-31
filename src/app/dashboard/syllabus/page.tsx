@@ -408,7 +408,7 @@ export default function SyllabusPage() {
               setSelectedClass(e.target.value);
               setTopics([]);
             }}
-            className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium"
+            className="px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium"
           >
             <option value="">Select Class</option>
             {classes.map((c) => (
@@ -423,7 +423,7 @@ export default function SyllabusPage() {
               setSelectedSubject(e.target.value);
               setTopics([]);
             }}
-            className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium"
+            className="px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium"
           >
             <option value="">Select Subject</option>
             {subjects.map((s) => (
@@ -438,7 +438,7 @@ export default function SyllabusPage() {
               setSelectedTerm(e.target.value);
               setTopics([]);
             }}
-            className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium"
+            className="px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium"
           >
             <option value="1">Term 1</option>
             <option value="2">Term 2</option>
@@ -505,7 +505,7 @@ export default function SyllabusPage() {
                 placeholder="Search topics, subtopics, objectives..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white focus:ring-2 focus:ring-[var(--t1)]/20 focus:border-[var(--t1)]"
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] focus:ring-2 focus:ring-[var(--t1)]/20 focus:border-[var(--t1)]"
               />
             </div>
             <div className="space-y-3">
@@ -518,7 +518,7 @@ export default function SyllabusPage() {
                     t.objectives?.toLowerCase().includes(searchQuery.toLowerCase()),
                 )
                 .map((topic) => (
-                  <div key={topic.id} className="bg-white rounded-xl border border-gray-200 p-4">
+                  <div key={topic.id} className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
@@ -528,7 +528,7 @@ export default function SyllabusPage() {
                                 ? "bg-green-100 text-green-700"
                                 : topic.status === "in_progress"
                                   ? "bg-amber-100 text-amber-700"
-                                  : "bg-gray-100 text-gray-600"
+                                  : "bg-[var(--surface-container-low)] text-[var(--t3)]"
                             }`}
                           >
                             {topic.status === "completed"
@@ -548,7 +548,10 @@ export default function SyllabusPage() {
                         {topic.subtopics && topic.subtopics.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-1">
                             {topic.subtopics.map((sub: string, i: number) => (
-                              <span key={i} className="px-2 py-0.5 bg-gray-50 rounded text-xs text-[var(--t3)]">
+                              <span
+                                key={i}
+                                className="px-2 py-0.5 bg-[var(--surface-container-low)] rounded text-xs text-[var(--t3)]"
+                              >
                                 {sub}
                               </span>
                             ))}
@@ -607,8 +610,8 @@ export default function SyllabusPage() {
         {/* Add Topic Modal */}
         {showAddModal && (
           <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
-              <div className="p-6 border-b border-gray-200">
+            <div className="bg-[var(--surface)] rounded-2xl w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
+              <div className="p-6 border-b border-[var(--border)]">
                 <h2 className="text-xl font-bold text-[var(--t1)]">Add Syllabus Topic</h2>
               </div>
               <form onSubmit={handleAddTopic} className="p-6 space-y-4">
@@ -618,7 +621,7 @@ export default function SyllabusPage() {
                     type="text"
                     value={newTopic.topic}
                     onChange={(e) => setNewTopic({ ...newTopic, topic: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200"
+                    className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)]"
                     placeholder="e.g., Introduction to Fractions"
                     required
                   />
@@ -635,7 +638,7 @@ export default function SyllabusPage() {
                           weeks_covered: e.target.value,
                         })
                       }
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200"
+                      className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)]"
                       placeholder="e.g., Week 1-2"
                     />
                   </div>
@@ -645,7 +648,7 @@ export default function SyllabusPage() {
                       type="text"
                       value={newTopic.resources}
                       onChange={(e) => setNewTopic({ ...newTopic, resources: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200"
+                      className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)]"
                       placeholder="e.g., Charts, Workbook"
                     />
                   </div>
@@ -655,7 +658,7 @@ export default function SyllabusPage() {
                   <textarea
                     value={newTopic.objectives}
                     onChange={(e) => setNewTopic({ ...newTopic, objectives: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200"
+                    className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)]"
                     placeholder="What students will learn..."
                     rows={2}
                   />
@@ -665,7 +668,7 @@ export default function SyllabusPage() {
                   <textarea
                     value={newTopic.subtopics}
                     onChange={(e) => setNewTopic({ ...newTopic, subtopics: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200"
+                    className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)]"
                     placeholder="Parts of a fraction&#10;Equivalent fractions&#10;Adding fractions"
                     rows={4}
                   />
@@ -674,7 +677,7 @@ export default function SyllabusPage() {
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
-                    className="flex-1 py-3 border border-gray-200 rounded-xl font-semibold text-gray-600"
+                    className="flex-1 py-3 border border-[var(--border)] rounded-xl font-semibold text-[var(--t3)]"
                   >
                     Cancel
                   </button>

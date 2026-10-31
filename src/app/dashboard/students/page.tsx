@@ -659,7 +659,7 @@ export default function StudentHubPage() {
                 <button
                   type="button"
                   onClick={() => setShowBulkImportModal(true)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white/80 px-3.5 py-2 text-[13px] font-bold text-[var(--t2)] hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/80 px-3.5 py-2 text-[13px] font-bold text-[var(--t2)] hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
                 >
                   <MaterialIcon size={16}>upload_file</MaterialIcon>
                   Import CSV
@@ -673,7 +673,7 @@ export default function StudentHubPage() {
                     aria-expanded={moreMenuOpen}
                     aria-haspopup="menu"
                     aria-label="More student actions"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-white/80 text-[var(--t2)] hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)]/80 text-[var(--t2)] hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
                   >
                     <MaterialIcon size={18}>more_horiz</MaterialIcon>
                   </button>
@@ -715,7 +715,7 @@ export default function StudentHubPage() {
                 <button
                   type="button"
                   onClick={handleExport}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white/80 px-3.5 py-2 text-[13px] font-bold text-[var(--t2)] hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/80 px-3.5 py-2 text-[13px] font-bold text-[var(--t2)] hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
                 >
                   <MaterialIcon size={16}>download</MaterialIcon>
                   Export
@@ -740,21 +740,21 @@ export default function StudentHubPage() {
             <div className="ml-auto flex flex-wrap items-center gap-2">
               <Link
                 href="/dashboard/students/id-cards"
-                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white/70 px-3 py-1.5 text-[12px] font-bold text-[var(--t2)] no-underline hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-1.5 text-[12px] font-bold text-[var(--t2)] no-underline hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
               >
                 <MaterialIcon size={15}>id_card</MaterialIcon>
                 ID Card Studio
               </Link>
               <Link
                 href="/dashboard/reports"
-                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white/70 px-3 py-1.5 text-[12px] font-bold text-[var(--t2)] no-underline hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-1.5 text-[12px] font-bold text-[var(--t2)] no-underline hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
               >
                 <MaterialIcon size={15}>description</MaterialIcon>
                 Individual Reports
               </Link>
               <Link
                 href="/dashboard/report-cards"
-                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white/70 px-3 py-1.5 text-[12px] font-bold text-[var(--t2)] no-underline hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-1.5 text-[12px] font-bold text-[var(--t2)] no-underline hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
               >
                 <MaterialIcon size={15}>print</MaterialIcon>
                 Batch Reports

@@ -1308,7 +1308,7 @@ export default function AttendancePage() {
                 aria-label="Toggle absentee SMS alerts"
               >
                 <div
-                  className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-transform duration-200 ${absenteeAlertEnabled ? "translate-x-7" : "translate-x-1"}`}
+                  className={`absolute top-1 h-6 w-6 rounded-full bg-[var(--surface)] shadow transition-transform duration-200 ${absenteeAlertEnabled ? "translate-x-7" : "translate-x-1"}`}
                 />
               </button>
             </div>

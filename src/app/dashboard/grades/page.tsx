@@ -1832,7 +1832,7 @@ export default function GradesPage() {
           onClose={() => setGradeConfirm((s) => ({ ...s, open: false }))}
           title="Confirm Action"
         >
-          <p className="text-sm text-gray-700 mb-4">{gradeConfirm.message}</p>
+          <p className="text-sm text-[var(--t2)] mb-4">{gradeConfirm.message}</p>
           <ModalFooter>
             <Button variant="ghost" onClick={() => setGradeConfirm((s) => ({ ...s, open: false }))}>
               Cancel

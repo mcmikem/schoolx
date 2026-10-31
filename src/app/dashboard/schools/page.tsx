@@ -764,27 +764,27 @@ export default function SchoolsPage() {
 
         {/* Stats - Mobile friendly */}
         <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-4 mb-6">
-          <div className="bg-white rounded-xl border border-[var(--surface-container-high)] p-3 sm:p-4 text-center sm:text-left">
+          <div className="bg-[var(--surface)] rounded-xl border border-[var(--surface-container-high)] p-3 sm:p-4 text-center sm:text-left">
             <div className="text-xl sm:text-2xl font-bold text-[var(--primary-900)]">{stats.totalSchools}</div>
             <div className="text-xs text-[var(--t3)]">Total</div>
           </div>
-          <div className="bg-white rounded-xl border border-[var(--surface-container-high)] p-3 sm:p-4 text-center sm:text-left">
+          <div className="bg-[var(--surface)] rounded-xl border border-[var(--surface-container-high)] p-3 sm:p-4 text-center sm:text-left">
             <div className="text-xl sm:text-2xl font-bold text-green-600">{stats.active}</div>
             <div className="text-xs text-[var(--t3)]">Active</div>
           </div>
-          <div className="bg-white rounded-xl border border-[var(--surface-container-high)] p-3 sm:p-4 text-center sm:text-left">
+          <div className="bg-[var(--surface)] rounded-xl border border-[var(--surface-container-high)] p-3 sm:p-4 text-center sm:text-left">
             <div className="text-xl sm:text-2xl font-bold text-amber-600">{stats.trial}</div>
             <div className="text-xs text-[var(--t3)]">Trial</div>
           </div>
-          <div className="hidden md:block bg-white rounded-xl border border-[var(--surface-container-high)] p-4">
+          <div className="hidden md:block bg-[var(--surface)] rounded-xl border border-[var(--surface-container-high)] p-4">
             <div className="text-2xl font-bold text-red-600">{stats.expired}</div>
             <div className="text-xs text-[var(--t3)]">Expired</div>
           </div>
-          <div className="hidden md:block bg-white rounded-xl border border-[var(--surface-container-high)] p-4">
+          <div className="hidden md:block bg-[var(--surface)] rounded-xl border border-[var(--surface-container-high)] p-4">
             <div className="text-2xl font-bold text-[var(--primary-900)]">{stats.totalStudents.toLocaleString()}</div>
             <div className="text-xs text-[var(--t3)]">Students</div>
           </div>
-          <div className="hidden md:block bg-white rounded-xl border border-[var(--surface-container-high)] p-4">
+          <div className="hidden md:block bg-[var(--surface)] rounded-xl border border-[var(--surface-container-high)] p-4">
             <div className="text-2xl font-bold text-green-700">{formatCompactCurrency(stats.revenue, true)}</div>
             <div className="text-xs text-[var(--t3)]">Revenue</div>
           </div>
@@ -820,7 +820,7 @@ export default function SchoolsPage() {
           </select>
         </div>
 
-        <div className="bg-white rounded-xl border border-[var(--surface-container-high)] p-4 sm:p-5 mb-6">
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--surface-container-high)] p-4 sm:p-5 mb-6">
           <div className="flex items-center justify-between gap-3 mb-3">
             <h2 className="text-sm sm:text-base font-semibold text-[var(--primary-900)]">Pending Module Requests</h2>
             <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
@@ -886,7 +886,7 @@ export default function SchoolsPage() {
             {filtered.map((school) => (
               <div
                 key={school.id}
-                className="bg-white rounded-xl border border-[var(--surface-container-high)] p-4 sm:p-6 hover:shadow-md transition-shadow cursor-pointer"
+                className="bg-[var(--surface)] rounded-xl border border-[var(--surface-container-high)] p-4 sm:p-6 hover:shadow-md transition-shadow cursor-pointer"
                 onClick={() => openSchoolDetail(school)}
               >
                 <div className="flex items-start justify-between mb-3">
@@ -903,7 +903,7 @@ export default function SchoolsPage() {
                         : school.subscription_status === "trial"
                           ? "bg-[var(--amber-soft)] text-[var(--amber-ink)]"
                           : school.subscription_status === "suspended"
-                            ? "bg-gray-100 text-gray-600"
+                            ? "bg-[var(--surface-container-low)] text-[var(--t3)]"
                             : "bg-[var(--red-soft)] text-[var(--red-ink)]"
                     }`}
                   >
@@ -969,7 +969,7 @@ export default function SchoolsPage() {
         {showSchoolDetail && selectedSchool && (
           <div className="modal-overlay" onClick={() => setShowSchoolDetail(false)}>
             <div className="modal max-w-3xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-              <div className="p-6 border-b border-gray-100">
+              <div className="p-6 border-b border-[var(--border)]">
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-semibold text-[var(--primary-900)]">{selectedSchool.name}</h2>
@@ -977,7 +977,10 @@ export default function SchoolsPage() {
                       {selectedSchool.school_code} • {selectedSchool.district}
                     </p>
                   </div>
-                  <button onClick={() => setShowSchoolDetail(false)} className="p-2 text-gray-400 hover:text-gray-600">
+                  <button
+                    onClick={() => setShowSchoolDetail(false)}
+                    className="p-2 text-[var(--t3)] hover:text-[var(--t3)]"
+                  >
                     <MaterialIcon icon="close" />
                   </button>
                 </div>
@@ -1121,7 +1124,7 @@ export default function SchoolsPage() {
                                     ? "bg-blue-100 text-blue-700"
                                     : u.role === "bursar"
                                       ? "bg-green-100 text-green-700"
-                                      : "bg-gray-100 text-gray-700"
+                                      : "bg-[var(--surface-container-low)] text-[var(--t2)]"
                               }`}
                             >
                               {u.role.replace("_", " ")}
@@ -1153,7 +1156,7 @@ export default function SchoolsPage() {
             }}
           >
             <div className="modal max-w-lg" onClick={(e) => e.stopPropagation()}>
-              <div className="p-6 border-b border-gray-100">
+              <div className="p-6 border-b border-[var(--border)]">
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-semibold text-[var(--primary-900)]">Add New School</h2>
@@ -1164,7 +1167,7 @@ export default function SchoolsPage() {
                       setShowAddModal(false);
                       setAddStep(1);
                     }}
-                    className="p-2 text-gray-400 hover:text-gray-600"
+                    className="p-2 text-[var(--t3)] hover:text-[var(--t3)]"
                   >
                     <MaterialIcon icon="close" />
                   </button>
@@ -1375,7 +1378,7 @@ export default function SchoolsPage() {
                       {createdSchool.adminPassword}
                     </div>
                   </div>
-                  <div className="pt-2 border-t border-gray-200">
+                  <div className="pt-2 border-t border-[var(--border)]">
                     <div className="text-xs text-[var(--t3)]">
                       Login URL: <span className="font-mono text-sm">omuto.org/login</span>
                     </div>
@@ -1416,12 +1419,15 @@ export default function SchoolsPage() {
         {showSubModal && selectedSchool && (
           <div className="modal-overlay" onClick={() => setShowSubModal(false)}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div className="p-6 border-b border-gray-100">
+              <div className="p-6 border-b border-[var(--border)]">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-[var(--primary-900)]">
                     Manage Subscription - {selectedSchool.name}
                   </h2>
-                  <button onClick={() => setShowSubModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
+                  <button
+                    onClick={() => setShowSubModal(false)}
+                    className="p-2 text-[var(--t3)] hover:text-[var(--t3)]"
+                  >
                     <MaterialIcon icon="close" />
                   </button>
                 </div>
@@ -1505,12 +1511,15 @@ export default function SchoolsPage() {
         {showResetModal && selectedSchool && (
           <div className="modal-overlay" onClick={() => setShowResetModal(false)}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div className="p-6 border-b border-gray-100">
+              <div className="p-6 border-b border-[var(--border)]">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-[var(--primary-900)]">
                     Reset Password - {selectedSchool.name}
                   </h2>
-                  <button onClick={() => setShowResetModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
+                  <button
+                    onClick={() => setShowResetModal(false)}
+                    className="p-2 text-[var(--t3)] hover:text-[var(--t3)]"
+                  >
                     <MaterialIcon icon="close" />
                   </button>
                 </div>
@@ -1548,12 +1557,15 @@ export default function SchoolsPage() {
         {showTrialModal && selectedSchool && (
           <div className="modal-overlay" onClick={() => setShowTrialModal(false)}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div className="p-6 border-b border-gray-100">
+              <div className="p-6 border-b border-[var(--border)]">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-[var(--primary-900)]">
                     Extend Trial - {selectedSchool.name}
                   </h2>
-                  <button onClick={() => setShowTrialModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
+                  <button
+                    onClick={() => setShowTrialModal(false)}
+                    className="p-2 text-[var(--t3)] hover:text-[var(--t3)]"
+                  >
                     <MaterialIcon icon="close" />
                   </button>
                 </div>
@@ -1598,12 +1610,15 @@ export default function SchoolsPage() {
         {showSuspendModal && selectedSchool && (
           <div className="modal-overlay" onClick={() => setShowSuspendModal(false)}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div className="p-6 border-b border-gray-100">
+              <div className="p-6 border-b border-[var(--border)]">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-[var(--primary-900)]">
                     {selectedSchool.subscription_status === "suspended" ? "Reactivate" : "Suspend"} School
                   </h2>
-                  <button onClick={() => setShowSuspendModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
+                  <button
+                    onClick={() => setShowSuspendModal(false)}
+                    className="p-2 text-[var(--t3)] hover:text-[var(--t3)]"
+                  >
                     <MaterialIcon icon="close" />
                   </button>
                 </div>
@@ -1635,10 +1650,13 @@ export default function SchoolsPage() {
         {showAddUserModal && selectedSchool && (
           <div className="modal-overlay" onClick={() => setShowAddUserModal(false)}>
             <div className="modal max-w-md" onClick={(e) => e.stopPropagation()}>
-              <div className="p-6 border-b border-gray-100">
+              <div className="p-6 border-b border-[var(--border)]">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-[var(--primary-900)]">Add User - {selectedSchool.name}</h2>
-                  <button onClick={() => setShowAddUserModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
+                  <button
+                    onClick={() => setShowAddUserModal(false)}
+                    className="p-2 text-[var(--t3)] hover:text-[var(--t3)]"
+                  >
                     <MaterialIcon icon="close" />
                   </button>
                 </div>

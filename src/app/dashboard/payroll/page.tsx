@@ -263,7 +263,7 @@ export default function PayrollPage() {
         {/* Confirmation dialog */}
         {confirmOpen && (
           <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto bg-black/50 p-3 sm:p-4">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-sm max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl">
+            <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-sm max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl">
               <h3 className="text-lg font-bold text-slate-800 mb-2">Run payroll for {month}?</h3>
               <p className="text-sm text-slate-500 mb-1">
                 {staff.length} staff members &bull; Gross:{" "}
@@ -295,7 +295,7 @@ export default function PayrollPage() {
         {/* Progress modal */}
         {progress.open && (
           <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto bg-black/50 p-3 sm:p-4">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-sm max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl">
+            <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-sm max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl">
               <h3 className="text-lg font-bold text-slate-800 mb-4">
                 {progress.error ? "Payroll Error" : "Processing Payroll..."}
               </h3>
@@ -366,7 +366,7 @@ export default function PayrollPage() {
           ].map((s) => (
             <div
               key={s.label}
-              className="p-4 bg-white rounded-3xl border border-slate-100 flex flex-col items-center text-center gap-2"
+              className="p-4 bg-[var(--surface)] rounded-3xl border border-slate-100 flex flex-col items-center text-center gap-2"
             >
               <div className={`w-10 h-10 rounded-xl ${s.color} text-white flex items-center justify-center shrink-0`}>
                 <MaterialIcon icon={s.icon} style={{ fontSize: 20 }} />
@@ -384,7 +384,7 @@ export default function PayrollPage() {
           <input
             type="text"
             placeholder="Search by staff name..."
-            className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-slate-400"
+            className="flex-1 rounded-xl border border-slate-200 bg-[var(--surface)] px-4 py-2.5 text-sm outline-none focus:border-slate-400"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />

@@ -346,7 +346,7 @@ export default function SubstitutionsPage() {
       Sick: "bg-red-100 text-red-800",
       Personal: "bg-blue-100 text-blue-800",
       Training: "bg-teal-100 text-teal-800",
-      Other: "bg-gray-100 text-gray-800",
+      Other: "bg-[var(--surface-container-low)] text-gray-800",
     };
     return (
       <span className={`px-2 py-1 rounded-lg text-xs font-medium ${colors[reason] || colors.Other}`}>{reason}</span>

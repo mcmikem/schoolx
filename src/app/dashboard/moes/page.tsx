@@ -205,7 +205,9 @@ export default function MoESExportPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <Card className="text-center">
             <CardBody>
-              <div className="text-2xl font-bold text-[var(--t1)]">{dataLoading || studentsError ? "—" : totals.total}</div>
+              <div className="text-2xl font-bold text-[var(--t1)]">
+                {dataLoading || studentsError ? "—" : totals.total}
+              </div>
               <div className="text-sm text-[var(--t3)]">Total Students</div>
             </CardBody>
           </Card>
@@ -217,7 +219,9 @@ export default function MoESExportPage() {
           </Card>
           <Card className="text-center">
             <CardBody>
-              <div className="text-2xl font-bold text-pink-600">{dataLoading || studentsError ? "—" : totals.girls}</div>
+              <div className="text-2xl font-bold text-pink-600">
+                {dataLoading || studentsError ? "—" : totals.girls}
+              </div>
               <div className="text-sm text-[var(--t3)]">Girls</div>
             </CardBody>
           </Card>
@@ -242,9 +246,7 @@ export default function MoESExportPage() {
                   {studentsError ? (
                     <tr>
                       <td colSpan={7} className="p-0">
-                        <ErrorState
-                          message="Student records could not be loaded, so this headcount is not accurate. Do not export it."
-                        />
+                        <ErrorState message="Student records could not be loaded, so this headcount is not accurate. Do not export it." />
                       </td>
                     </tr>
                   ) : dataLoading ? (
@@ -261,19 +263,19 @@ export default function MoESExportPage() {
                     </tr>
                   ) : (
                     moesData.map((row) => (
-                    <tr key={row.className}>
-                      <td className="font-medium text-[var(--t1)]">{row.className}</td>
-                      <td className="text-blue-600">{row.boys}</td>
-                      <td className="text-pink-600">{row.girls}</td>
-                      <td className="font-medium">{row.total}</td>
-                      <td>{row.ageUnder6}</td>
-                      <td>{row.age6 + row.age7 + row.age8 + row.age9 + row.age10 + row.age11 + row.age12}</td>
-                      <td>{row.ageOver12}</td>
-                    </tr>
+                      <tr key={row.className}>
+                        <td className="font-medium text-[var(--t1)]">{row.className}</td>
+                        <td className="text-blue-600">{row.boys}</td>
+                        <td className="text-pink-600">{row.girls}</td>
+                        <td className="font-medium">{row.total}</td>
+                        <td>{row.ageUnder6}</td>
+                        <td>{row.age6 + row.age7 + row.age8 + row.age9 + row.age10 + row.age11 + row.age12}</td>
+                        <td>{row.ageOver12}</td>
+                      </tr>
                     ))
                   )}
                   {!dataLoading && !studentsError && moesData.length > 0 && (
-                    <tr className="bg-gray-50 font-bold">
+                    <tr className="bg-[var(--surface-container-low)] font-bold">
                       <td>TOTAL</td>
                       <td className="text-blue-600">{totals.boys}</td>
                       <td className="text-pink-600">{totals.girls}</td>

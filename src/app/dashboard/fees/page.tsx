@@ -2224,7 +2224,7 @@ export default function FinanceHubPage() {
                     Search: “{searchTerm}”{" "}
                     <button
                       onClick={() => setSearchTerm("")}
-                      className="w-5 h-5 rounded-full bg-white/70 hover:bg-white flex items-center justify-center"
+                      className="w-5 h-5 rounded-full bg-[var(--surface)]/70 hover:bg-[var(--surface)] flex items-center justify-center"
                     >
                       <MaterialIcon icon="close" className="text-[14px]" />
                     </button>
@@ -2235,7 +2235,7 @@ export default function FinanceHubPage() {
                     Class: {classes.find((c) => c.id === selectedClass)?.name || selectedClass}{" "}
                     <button
                       onClick={() => setSelectedClass("all")}
-                      className="w-5 h-5 rounded-full bg-white/70 hover:bg-white flex items-center justify-center"
+                      className="w-5 h-5 rounded-full bg-[var(--surface)]/70 hover:bg-[var(--surface)] flex items-center justify-center"
                     >
                       <MaterialIcon icon="close" className="text-[14px]" />
                     </button>
@@ -2246,7 +2246,7 @@ export default function FinanceHubPage() {
                     Status: {statusFilter}{" "}
                     <button
                       onClick={() => setStatusFilter("all")}
-                      className="w-5 h-5 rounded-full bg-white/70 hover:bg-white flex items-center justify-center"
+                      className="w-5 h-5 rounded-full bg-[var(--surface)]/70 hover:bg-[var(--surface)] flex items-center justify-center"
                     >
                       <MaterialIcon icon="close" className="text-[14px]" />
                     </button>

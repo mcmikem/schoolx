@@ -261,7 +261,7 @@ export default function DormAttendancePage() {
                                   ? "bg-red-100 text-red-800"
                                   : status === "sick"
                                     ? "bg-amber-100 text-amber-800"
-                                    : "bg-gray-100 text-gray-800"
+                                    : "bg-[var(--surface-container-low)] text-gray-800"
                             }`}
                           >
                             {status}
@@ -308,19 +308,19 @@ export default function DormAttendancePage() {
                           <div className="flex gap-1">
                             <button
                               onClick={() => updateStatus(student.id, "present")}
-                              className={`px-2 py-1 rounded text-xs font-bold ${status === "present" ? "bg-green-600 text-white" : "bg-gray-100 text-gray-600"}`}
+                              className={`px-2 py-1 rounded text-xs font-bold ${status === "present" ? "bg-green-600 text-white" : "bg-[var(--surface-container-low)] text-[var(--t3)]"}`}
                             >
                               P
                             </button>
                             <button
                               onClick={() => updateStatus(student.id, "absent")}
-                              className={`px-2 py-1 rounded text-xs font-bold ${status === "absent" ? "bg-red-600 text-white" : "bg-gray-100 text-gray-600"}`}
+                              className={`px-2 py-1 rounded text-xs font-bold ${status === "absent" ? "bg-red-600 text-white" : "bg-[var(--surface-container-low)] text-[var(--t3)]"}`}
                             >
                               A
                             </button>
                             <button
                               onClick={() => updateStatus(student.id, "sick")}
-                              className={`px-2 py-1 rounded text-xs font-bold ${status === "sick" ? "bg-amber-600 text-white" : "bg-gray-100 text-gray-600"}`}
+                              className={`px-2 py-1 rounded text-xs font-bold ${status === "sick" ? "bg-amber-600 text-white" : "bg-[var(--surface-container-low)] text-[var(--t3)]"}`}
                             >
                               S
                             </button>

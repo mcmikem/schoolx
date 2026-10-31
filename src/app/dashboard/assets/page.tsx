@@ -153,7 +153,7 @@ export default function AssetsPage() {
           ].map((s) => (
             <div
               key={s.label}
-              className="flex items-center gap-4 rounded-[24px] border border-[var(--border)] bg-white p-5 shadow-[var(--sh1)]"
+              className="flex items-center gap-4 rounded-[24px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--sh1)]"
             >
               <div className={`w-12 h-12 rounded-2xl ${s.color} text-white flex items-center justify-center shrink-0`}>
                 <MaterialIcon icon={s.icon} />
@@ -180,7 +180,7 @@ export default function AssetsPage() {
               <button
                 key={c}
                 onClick={() => setFilterCategory(c)}
-                className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition-all ${filterCategory === c ? "border-transparent bg-[var(--primary)] text-[var(--on-primary)] shadow-[0_10px_20px_rgba(0,92,230,0.18)]" : "border-[var(--border)] bg-white text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-low)]"}`}
+                className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition-all ${filterCategory === c ? "border-transparent bg-[var(--primary)] text-[var(--on-primary)] shadow-[0_10px_20px_rgba(0,92,230,0.18)]" : "border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-low)]"}`}
               >
                 {c}
               </button>
@@ -244,7 +244,7 @@ export default function AssetsPage() {
         {showAdd && (
           <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" aria-hidden="true" />
-            <div className="relative w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto rounded-[34px] border border-white/70 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.2)]">
+            <div className="relative w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto rounded-[34px] border border-white/70 bg-[var(--surface)] shadow-[0_24px_60px_rgba(15,23,42,0.2)]">
               <div className="p-8 space-y-5">
                 <div className="flex justify-between items-center">
                   <h2 className="text-2xl font-semibold tracking-[-0.03em] text-[var(--on-surface)]">Register Asset</h2>

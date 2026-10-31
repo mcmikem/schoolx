@@ -196,9 +196,9 @@ export default function LeavePage() {
         </div>
 
         {loading ? (
-          <div className="text-center py-12 text-gray-400">Loading...</div>
+          <div className="text-center py-12 text-[var(--t3)]">Loading...</div>
         ) : requests.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
+          <div className="text-center py-12 text-[var(--t3)]">
             <MaterialIcon icon="event_busy" className="text-4xl mx-auto mb-2" />
             <p>No leave requests</p>
             {!isManager && (
@@ -215,15 +215,15 @@ export default function LeavePage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       {isManager && (
-                        <p className="text-xs font-bold text-gray-500 uppercase mb-1">
+                        <p className="text-xs font-bold text-[var(--t3)] uppercase mb-1">
                           {r.users?.full_name || "Staff"}
                         </p>
                       )}
                       <h3 className="font-semibold capitalize">{r.leave_type} Leave</h3>
-                      <p className="text-sm text-gray-500 mt-0.5">
+                      <p className="text-sm text-[var(--t3)] mt-0.5">
                         {r.start_date} → {r.end_date} ({r.days_count} day{r.days_count !== 1 ? "s" : ""})
                       </p>
-                      {r.reason && <p className="text-xs text-gray-400 mt-1">{r.reason}</p>}
+                      {r.reason && <p className="text-xs text-[var(--t3)] mt-1">{r.reason}</p>}
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       <span
@@ -259,7 +259,7 @@ export default function LeavePage() {
 
         {showModal && (
           <div className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-4 overflow-y-auto flex items-start sm:items-center justify-center">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
+            <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
               <h2 className="text-xl font-semibold mb-4">Request Leave</h2>
               <form onSubmit={handleSubmit}>
                 <div className="space-y-4">
@@ -311,7 +311,7 @@ export default function LeavePage() {
                     </div>
                   </div>
                   {form.startDate && form.endDate && (
-                    <p className="text-xs text-gray-500">{diffDays(form.startDate, form.endDate)} day(s)</p>
+                    <p className="text-xs text-[var(--t3)]">{diffDays(form.startDate, form.endDate)} day(s)</p>
                   )}
                   <div>
                     <label className="text-sm font-medium mb-1 block">Reason</label>

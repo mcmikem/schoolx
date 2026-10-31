@@ -220,7 +220,7 @@ export default function GradingSettingsPage() {
                       }`}
                     >
                       <span
-                        className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                        className={`absolute top-0.5 h-6 w-6 rounded-full bg-[var(--surface)] shadow transition-transform ${
                           useBot ? "left-5" : "left-0.5"
                         }`}
                       />

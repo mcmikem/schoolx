@@ -230,9 +230,9 @@ export default function NoticesPage() {
         </p>
 
         {loading ? (
-          <div className="text-center py-12 text-gray-400">Loading notices...</div>
+          <div className="text-center py-12 text-[var(--t3)]">Loading notices...</div>
         ) : notices.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
+          <div className="text-center py-12 text-[var(--t3)]">
             <MaterialIcon icon="campaign" className="text-4xl mx-auto mb-2" />
             <p>No notices posted yet</p>
             <Button className="mt-4" onClick={() => setShowPostModal(true)}>
@@ -246,9 +246,9 @@ export default function NoticesPage() {
               <Card key={notice.id}>
                 <CardBody>
                   <h2 className="text-lg font-semibold">{notice.title}</h2>
-                  <p className="text-sm text-gray-500 mt-1">{notice.content}</p>
+                  <p className="text-sm text-[var(--t3)] mt-1">{notice.content}</p>
                   <div className="flex items-center gap-2 mt-2">
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 capitalize">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--surface-container-low)] text-[var(--t3)] capitalize">
                       {notice.type || notice.category || "General"}
                     </span>
                     {notice.priority === "high" && (
@@ -256,7 +256,7 @@ export default function NoticesPage() {
                         Urgent
                       </span>
                     )}
-                    <span className="text-xs text-gray-400">{new Date(notice.created_at).toLocaleDateString()}</span>
+                    <span className="text-xs text-[var(--t3)]">{new Date(notice.created_at).toLocaleDateString()}</span>
                   </div>
                   <div className="flex justify-end mt-3 gap-2">
                     <button
@@ -290,7 +290,7 @@ export default function NoticesPage() {
             aria-modal="true"
             aria-label="Edit Notice"
           >
-            <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
+            <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
               <h2 className="text-xl font-semibold mb-4">Edit Notice</h2>
               <form onSubmit={handleEditSave}>
                 <div className="space-y-4">
@@ -358,7 +358,7 @@ export default function NoticesPage() {
             aria-modal="true"
             aria-label="Post Notice"
           >
-            <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
+            <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
               <h2 className="text-xl font-semibold mb-4">Post Notice</h2>
               <form onSubmit={handlePost}>
                 <div className="space-y-4">

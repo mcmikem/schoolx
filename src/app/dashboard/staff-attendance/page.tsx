@@ -172,7 +172,7 @@ export default function StaffAttendancePage() {
       const isActive = prev[memberId] === option.status;
       return isActive
         ? option.color
-        : "bg-white text-[var(--t3)] border-[var(--surface-container-high)] hover:border-[var(--border2)]";
+        : "bg-[var(--surface)] text-[var(--t3)] border-[var(--surface-container-high)] hover:border-[var(--border2)]";
     };
   };
 
@@ -253,7 +253,7 @@ export default function StaffAttendancePage() {
                           className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
                             attendance[member.id] === option.status
                               ? option.color
-                              : "bg-white text-[var(--t3)] border-[var(--surface-container-high)] hover:border-[var(--border2)]"
+                              : "bg-[var(--surface)] text-[var(--t3)] border-[var(--surface-container-high)] hover:border-[var(--border2)]"
                           }`}
                         >
                           {option.label}
