@@ -362,11 +362,19 @@ self.addEventListener('fetch', (event) => {
             if (fallbackShell) return markOfflineFallback(fallbackShell, url.pathname);
           }
 
-          const offlinePage = await caches.match(OFFLINE_FALLBACK);
-          if (offlinePage) return offlinePage;
+          // Never strand the user on the standalone offline.html screen: it
+          // covers the whole viewport and its buttons are dead-ends on a
+          // phone with no signal. Fall back to the cached login shell instead,
+          // which keeps them inside the app and lets the in-app offline banner
+          // explain what is happening.
+          const loginShell = await pageCache.match('/login/');
+          if (loginShell) return loginShell;
+
+          const dashboardShell = await pageCache.match('/dashboard/');
+          if (dashboardShell) return markOfflineFallback(dashboardShell, url.pathname);
 
           return new Response(
-            '<html><body><h1>You are offline</h1><p>Please check your internet connection.</p></body></html>',
+            '<!doctype html><html><head><meta charset="utf-8"><title>SkoolMate OS</title></head><body style="font-family:system-ui;text-align:center;padding:40px"><h1>You are offline</h1><p>Reconnect once to load SkoolMate, then it will work offline afterwards.</p></body></html>',
             { headers: { 'Content-Type': 'text/html' } }
           );
         } finally {
