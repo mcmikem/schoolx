@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import type { Subject, School } from "@/types";
 import { getQuerySchoolId, withTimeout } from "./utils";
+import { useOnlineStatus } from "@/lib/offline";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { logger } from "@/lib/logger";
@@ -14,7 +15,12 @@ export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
   const { isDemo, school } = useAuth();
   const schoolType = ((school as School | null)?.school_type || "primary") as School["school_type"];
 
+  const isOnline = useOnlineStatus();
   const fetchSubjects = useCallback(async () => {
+    if (!isOnline) {
+      setLoading(false);
+      return;
+    }
     if (!schoolId) {
       setLoading(false);
       return;
@@ -69,7 +75,7 @@ export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
     } finally {
       setLoading(false);
     }
-  }, [schoolId, autoSeed, isDemo, schoolType]);
+  }, [schoolId, autoSeed, isDemo, schoolType, isOnline]);
 
   useEffect(() => {
     fetchSubjects();

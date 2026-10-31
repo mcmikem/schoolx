@@ -1426,7 +1426,22 @@ export function useClasses(schoolId?: string) {
     prevIsDemo.current = isDemo;
   }, [isDemo]);
 
+  const isOnline = useOnlineStatus();
   const fetchClasses = useCallback(async () => {
+    // Offline: read from cache, never block on a network that cannot answer.
+    if (!isOnline) {
+      try {
+        const querySchoolId = getQuerySchoolId(schoolId, isDemo);
+        if (querySchoolId) {
+          const cached = await offlineDB.getAllFromCache("classes", { school_id: querySchoolId });
+          if (cached.length > 0) setClasses(cached as unknown as Class[]);
+        }
+      } catch {
+        /* ignore */
+      }
+      setLoading(false);
+      return;
+    }
     // Demo mode - check for demo school UUID
     if (isDemo || isDemoSchool(schoolId)) {
       setClasses(DEMO_CLASSES as unknown as Class[]);
@@ -1505,7 +1520,7 @@ export function useClasses(schoolId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [schoolId, isDemo, toast]);
+  }, [schoolId, isDemo, toast, isOnline]);
 
   const createClass = async (newClass: Partial<Class>) => {
     if (isDemo || isDemoSchool(schoolId)) {
