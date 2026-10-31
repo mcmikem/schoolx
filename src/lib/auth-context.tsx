@@ -855,9 +855,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const handlerSafetyTimer = setTimeout(() => {
               handlerSafetyFired = true;
               logger.warn("[Auth] onAuthStateChange handler safety timer — forcing authInitialized");
+              const su = session?.user;
+              if (su) {
+                // Slow phone: apply degraded login from the cached session so
+                // the user lands on the dashboard instead of staring at the
+                // login form. The background heal fills in the full profile.
+                applyDegradedUser(su as unknown as Parameters<typeof applyDegradedUser>[0]);
+              }
               setLoading(false);
               setAuthInitialized(true);
-            }, 8000);
+            }, 15000);
 
             try {
               const sessionUser = session?.user;
