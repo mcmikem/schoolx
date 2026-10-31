@@ -26,7 +26,7 @@ import { generateUgandaPrimaryBody } from "@/components/reports/ugandaPrimaryRep
 export default function ReportsPage() {
   const { school, refreshSchoolFromAPI } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
-  const { students, loading: studentsLoading } = useStudents(school?.id, { limit: 1000 });
+  const { students, loading: studentsLoading } = useStudents(school?.id, { limit: 5000 });
   const { classes } = useClasses(school?.id);
   const toast = useToast();
 

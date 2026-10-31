@@ -24,7 +24,7 @@ export default function GraduationPage() {
   const isOnline = useOnlineStatus();
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
-  const { students, loading: studentsLoading } = useStudents(school?.id, { limit: 1000 });
+  const { students, loading: studentsLoading } = useStudents(school?.id, { limit: 5000 });
   const { classes } = useClasses(school?.id);
 
   const [eligibleStudents, setEligibleStudents] = useState<any[]>([]);

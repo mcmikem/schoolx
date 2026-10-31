@@ -32,7 +32,7 @@ export default function MoESExportPage() {
   const { school } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
-  const { students, loading: studentsLoading, error: studentsError } = useStudents(school?.id, { limit: 1000 });
+  const { students, loading: studentsLoading, error: studentsError } = useStudents(school?.id, { limit: 5000 });
   const { classes, loading: classesLoading } = useClasses(school?.id);
   const [exporting, setExporting] = useState(false);
   // This page writes a statutory return to the Ministry of Education. Both

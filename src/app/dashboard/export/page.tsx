@@ -14,7 +14,7 @@ import { logger } from "@/lib/logger";
 export default function ExportPage() {
   const { school, isDemo } = useAuth();
   const toast = useToast();
-  const { students } = useStudents(school?.id, { limit: 1000 });
+  const { students } = useStudents(school?.id, { limit: 5000 });
   const { classes } = useClasses(school?.id);
   const [selectedClass, setSelectedClass] = useState("all");
   const [exportType, setExportType] = useState<"students" | "uneb" | "grades" | "attendance" | "fees">("students");

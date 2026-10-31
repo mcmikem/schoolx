@@ -38,7 +38,7 @@ export default function RequirementsPage() {
   const { currentTerm, academicYear } = useAcademic();
   const toast = useToast();
   const { classes } = useClasses(school?.id);
-  const { students } = useStudents(school?.id, { limit: 1000, fields: "full" });
+  const { students } = useStudents(school?.id, { limit: 5000, fields: "full" });
   const { items, loading, error, summary, itemsForClass, progressFor, statusOf, addItem, removeItem, mark, refresh } =
     useRequirements(school?.id, currentTerm, academicYear);
 

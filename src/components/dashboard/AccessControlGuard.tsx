@@ -279,7 +279,7 @@ export function useDashboardNotifications() {
   const { currentTerm, academicYear } = useAcademic();
   // The whole roster in one request: this guard multiplies expected fees by
   // `students.length`, and the default page of 100 silently under-counted.
-  const { students } = useStudents(isDemo ? undefined : school?.id, { limit: 1000 });
+  const { students } = useStudents(isDemo ? undefined : school?.id, { limit: 5000 });
   const { classes } = useClasses(isDemo ? undefined : school?.id);
   const { payments } = useFeePayments(isDemo ? undefined : school?.id, 1, 50, true);
   const { feeStructure } = useFeeStructure(isDemo ? undefined : school?.id);

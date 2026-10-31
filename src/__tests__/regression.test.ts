@@ -1010,7 +1010,7 @@ describe("Student totals agree across screens", () => {
     ];
     for (const [label, rel] of capped) {
       const src = read(rel);
-      expect(src).toContain("{ limit: 1000 }");
+      expect(src).toContain("{ limit: 5000 }");
       expect(src).not.toMatch(/useStudents\(school\?\.id\)(?!, \{)/);
     }
   });

@@ -43,7 +43,7 @@ function startOfDay(date: Date) {
 function BursarDashboardContent() {
   const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
-  const { students, loading: studentsLoading, error: studentsError } = useStudents(school?.id, { limit: 1000 });
+  const { students, loading: studentsLoading, error: studentsError } = useStudents(school?.id, { limit: 5000 });
   const {
     payments,
     loading: paymentsLoading,
