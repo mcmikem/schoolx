@@ -39,6 +39,7 @@ import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import { readDemoStorage } from "@/lib/auth-demo";
 import { OFFLINE_USER_KEY } from "@/lib/auth-context-types";
 import { useSchoolColors } from "@/lib/useSchoolColors";
+import CommandPalette from "@/components/CommandPalette";
 import { useSessionTimeout } from "@/lib/useSessionTimeout";
 
 const OwlAssistant = dynamic(() => import("@/components/OwlAssistant"), { ssr: false });
@@ -500,6 +501,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         <main id="main-content" className="main-content mobile-container flex-1 flex flex-col min-h-screen">
           <TopBar pageTitle={pageTitle} onSignOut={handleSignOut} />
           <OfflineModeBanner />
+          <CommandPalette />
           <StorageWarning />
           {breadcrumbItems.length > 1 && (
             <div className="dashboard-breadcrumbs px-4 sm:px-6 py-2 border-b border-[var(--border)] bg-[var(--surface)]">
