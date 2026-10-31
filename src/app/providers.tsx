@@ -4,6 +4,7 @@ import { ReactNode, useEffect, useState } from "react";
 import BrandProvider from "@/components/BrandProvider";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { ToastProvider } from "@/components/Toast";
+import { Toaster } from "sonner";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { setupErrorLogging } from "@/lib/error-logger";
 import { logger } from "@/lib/logger";
@@ -361,6 +362,7 @@ export default function Providers({ children }: { children: ReactNode }) {
                 <FaviconUpdater />
                 <CommCenter />
                 <BrandProvider>{children}</BrandProvider>
+                <Toaster position="bottom-right" richColors closeButton />
               </LoadingChecker>
             </AuthProvider>
           </ServiceWorkerRegistration>
