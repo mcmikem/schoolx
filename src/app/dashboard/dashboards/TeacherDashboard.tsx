@@ -54,7 +54,10 @@ export function TeacherDashboardContent() {
   // Only the essentials block the first paint: classes and subjects. The
   // roster and dashboard stats stream in afterwards so a slow phone shows
   // something useful instead of a spinner for the whole load.
-  const dataLoading = classesLoading || subjectsLoading;
+  const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+  // Offline: never block on loading — serve cached (or empty) data immediately
+  // so the user is not stuck on a spinner that can never resolve.
+  const dataLoading = isOffline ? false : classesLoading || subjectsLoading;
 
   useEffect(() => {
     if (!dataLoading) {

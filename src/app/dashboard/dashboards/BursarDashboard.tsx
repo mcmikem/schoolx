@@ -57,7 +57,10 @@ function BursarDashboardContent() {
   const { summary: feeSummary, loading: feeSummaryLoading } = useFeeSummary(school?.id, currentTerm, academicYear);
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
   const [period, setPeriod] = useState<CollectionPeriod>("week");
-  const dataLoading = studentsLoading || paymentsLoading || feeStructureLoading || feeSummaryLoading;
+  const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+  const dataLoading = isOffline
+    ? false
+    : studentsLoading || paymentsLoading || feeStructureLoading || feeSummaryLoading;
 
   useEffect(() => {
     if (!dataLoading) {
