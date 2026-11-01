@@ -180,13 +180,39 @@ export function normalizeAuthPhone(phone: string): string {
   return digits;
 }
 
+const FRIENDLY_ERRORS: Array<[RegExp, string]> = [
+  [/network|fetch failed|failed to fetch/i, "No internet connection. Check your network and try again."],
+  [/timeout|timed out/i, "This is taking too long. Check your connection and try again."],
+  [/permission denied|forbidden|not allowed|403/i, "You don't have permission to do this."],
+  [/not found|404/i, "The requested item could not be found."],
+  [/duplicate|unique constraint/i, "This record already exists."],
+  [/foreign key|violates/i, "This record is linked to other data and cannot be changed."],
+  [/null value|not-null/i, "A required field is missing. Please fill in all required fields."],
+  [/invalid.*password|wrong.*password/i, "The password is incorrect. Please try again."],
+  [/rate limit|too many/i, "Too many attempts. Please wait a few minutes and try again."],
+  [/session.*expired|token.*expired/i, "Your session has expired. Please sign in again."],
+  [/offline database/i, "Saved offline data is unavailable on this device. Reconnect and try again."],
+];
+
 export function getErrorMessage(error: unknown, fallback?: string): string {
-  if (typeof error === "string") return error;
-  if (error && typeof error === "object") {
-    if ("message" in error && typeof (error as any).message === "string") return (error as any).message;
-    if ("error" in error && typeof (error as any).error === "string") return (error as any).error;
+  const raw =
+    typeof error === "string"
+      ? error
+      : error && typeof error === "object"
+        ? "message" in error && typeof (error as any).message === "string"
+          ? (error as any).message
+          : "error" in error && typeof (error as any).error === "string"
+            ? (error as any).error
+            : ""
+        : "";
+
+  if (raw) {
+    for (const [pattern, friendly] of FRIENDLY_ERRORS) {
+      if (pattern.test(raw)) return friendly;
+    }
+    return raw;
   }
-  return fallback || "An unexpected error occurred";
+  return fallback || "Something went wrong. Please try again.";
 }
 
 export function normalizeAttendanceInput(input: Record<string, any>): Record<string, any> {

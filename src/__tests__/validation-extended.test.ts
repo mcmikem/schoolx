@@ -292,7 +292,7 @@ describe("Validation - Student Input", () => {
   describe("getErrorMessage", () => {
     test("reads messages from plain objects", () => {
       expect(getErrorMessage({ message: "Column does not exist" })).toBe("Column does not exist");
-      expect(getErrorMessage({ error: "Permission denied" })).toBe("Permission denied");
+      expect(getErrorMessage({ error: "Permission denied" })).toBe("You don't have permission to do this.");
       expect(getErrorMessage("Oops")).toBe("Oops");
     });
   });
