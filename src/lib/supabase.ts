@@ -232,6 +232,13 @@ const realClient = hasUsableSupabaseConfig
             persistSession: true,
             autoRefreshToken: true,
             storage: browserAuthStorage,
+            // Disable the Web Locks API lock on auth operations. On old
+            // browsers (iOS 12, old Android WebViews) navigator.locks may be
+            // missing or buggy, causing getSession()/onAuthStateChange to hang
+            // indefinitely. A single-tab PWA has no multi-tab contention, so a
+            // no-op lock is safe and prevents the "stuck on restoring session"
+            // hang.
+            lock: async (_name: string, _acquireTimeout: number, fn: () => Promise<any>) => fn(),
           },
           cookieOptions: {
             maxAge: SESSION_COOKIE_LIFETIME,
