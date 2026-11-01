@@ -470,6 +470,9 @@ const DAYS = [
   { value: 3, label: "Wed", full: "Wednesday" },
   { value: 4, label: "Thu", full: "Thursday" },
   { value: 5, label: "Fri", full: "Friday" },
+  // Most Ugandan schools teach or test on Saturday morning; the generator and
+  // the database already support day 6, so the grid must show it too.
+  { value: 6, label: "Sat", full: "Saturday" },
 ];
 
 const DEMO_DAY_VALUES: Record<string, number> = {
@@ -974,7 +977,7 @@ export default function TimetablePage() {
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--t3)]">NCDC weekly load</p>
                   <p className="mt-0.5 text-sm text-[var(--t3)]">
-                    {weeklyPlanned} periods planned for {selectedClass?.name}
+                    {weeklyPlanned} periods a week across these subjects for {selectedClass?.name}
                   </p>
                 </div>
                 <span
@@ -1351,6 +1354,7 @@ export default function TimetablePage() {
           schoolId={school?.id || ""}
           academicYear={new Date().getFullYear().toString()}
           subjects={subjects}
+          level={selectedLevel}
           onApproved={() => {
             fetchTimetable();
             fetchAllTimetables();

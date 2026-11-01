@@ -87,6 +87,11 @@ describe("Uganda school day builder", () => {
     expect(errors.join(" ")).toMatch(/end by 17:00/);
   });
 
+  it("does not treat evening prep as part of the 08:00–17:00 day", () => {
+    const { errors } = validateSchoolDay(SCHOOL_DAY_PRESETS.upper_secondary);
+    expect(errors).toEqual([]);
+  });
+
   it("warns when an upper-secondary day has no evening prep", () => {
     const dayOnly: SchoolDayConfig = { ...SCHOOL_DAY_PRESETS.upper_secondary, prepMinutes: 0 };
     const { warnings } = validateSchoolDay(dayOnly);

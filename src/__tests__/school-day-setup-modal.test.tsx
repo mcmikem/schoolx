@@ -54,11 +54,18 @@ describe("SchoolDaySetupModal", () => {
     expect(screen.getByText(/classes end 15:05/)).toBeTruthy();
   });
 
-  it("refuses a break longer than the MoES limit", () => {
+  it("clamps the break to the MoES 30-minute limit", () => {
     renderModal();
-    const breakInput = screen.getByLabelText(/Break \(max 30\)/i);
+    const breakInput = screen.getByLabelText(/Break \(max 30\)/i) as HTMLInputElement;
     fireEvent.change(breakInput, { target: { value: "45" } });
-    expect(screen.getByText(/break must not exceed 30 minutes/i)).toBeTruthy();
+    expect(breakInput.value).toBe("30");
+  });
+
+  it("refuses a day that runs past 17:00", () => {
+    renderModal();
+    fireEvent.change(screen.getByLabelText(/Lesson length/i), { target: { value: "60" } });
+    fireEvent.change(screen.getByLabelText(/Lessons after lunch/i), { target: { value: "6" } });
+    expect(screen.getByText(/end by 17:00/i)).toBeTruthy();
     expect((screen.getByText("Update bell schedule").closest("button") as HTMLButtonElement).disabled).toBe(true);
   });
 

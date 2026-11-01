@@ -30,6 +30,30 @@ interface SchoolDaySetupModalProps {
 
 const LESSON_LENGTHS = [30, 35, 40, 45, 60];
 
+type NumericField =
+  | "assemblyMinutes"
+  | "lessonMinutes"
+  | "lessonsBeforeBreak"
+  | "breakMinutes"
+  | "lessonsBeforeLunch"
+  | "lunchMinutes"
+  | "lessonsAfterLunch"
+  | "coCurricularMinutes"
+  | "prepMinutes";
+
+/** Keep every number inside a range the builder and MoES checks can trust. */
+const NUMERIC_BOUNDS: Record<NumericField, [number, number]> = {
+  assemblyMinutes: [0, 40],
+  lessonMinutes: [30, 60],
+  lessonsBeforeBreak: [1, 5],
+  breakMinutes: [0, 30],
+  lessonsBeforeLunch: [1, 6],
+  lunchMinutes: [0, 60],
+  lessonsAfterLunch: [0, 6],
+  coCurricularMinutes: [60, 180],
+  prepMinutes: [0, 180],
+};
+
 export default function SchoolDaySetupModal({
   isOpen,
   onClose,
@@ -56,6 +80,13 @@ export default function SchoolDaySetupModal({
     setConfig((prev) => ({ ...prev, ...patch }));
     setDirty(true);
     setConfirming(false);
+  };
+
+  const updateNumber = (field: NumericField, raw: string) => {
+    const [min, max] = NUMERIC_BOUNDS[field];
+    const parsed = Number(raw);
+    const value = Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : min;
+    update({ [field]: value } as Partial<SchoolDayConfig>);
   };
 
   const choosePreset = (next: SchoolLevel) => {
@@ -181,7 +212,7 @@ export default function SchoolDaySetupModal({
             </span>
             <select
               value={config.lessonMinutes}
-              onChange={(e) => update({ lessonMinutes: Number(e.target.value) })}
+              onChange={(e) => updateNumber("lessonMinutes", e.target.value)}
               className="input h-10 text-sm"
             >
               {LESSON_LENGTHS.map((minutes) => (
@@ -195,7 +226,7 @@ export default function SchoolDaySetupModal({
             <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">Assembly</span>
             <select
               value={config.assemblyMinutes}
-              onChange={(e) => update({ assemblyMinutes: Number(e.target.value) })}
+              onChange={(e) => updateNumber("assemblyMinutes", e.target.value)}
               className="input h-10 text-sm"
             >
               <option value={0}>None</option>
@@ -214,7 +245,7 @@ export default function SchoolDaySetupModal({
               min={1}
               max={5}
               value={config.lessonsBeforeBreak}
-              onChange={(e) => update({ lessonsBeforeBreak: Number(e.target.value) })}
+              onChange={(e) => updateNumber("lessonsBeforeBreak", e.target.value)}
               className="input h-10 text-sm"
             />
           </label>
@@ -228,7 +259,7 @@ export default function SchoolDaySetupModal({
               max={30}
               step={5}
               value={config.breakMinutes}
-              onChange={(e) => update({ breakMinutes: Number(e.target.value) })}
+              onChange={(e) => updateNumber("breakMinutes", e.target.value)}
               className="input h-10 text-sm"
             />
           </label>
@@ -241,7 +272,7 @@ export default function SchoolDaySetupModal({
               min={1}
               max={5}
               value={config.lessonsBeforeLunch}
-              onChange={(e) => update({ lessonsBeforeLunch: Number(e.target.value) })}
+              onChange={(e) => updateNumber("lessonsBeforeLunch", e.target.value)}
               className="input h-10 text-sm"
             />
           </label>
@@ -255,7 +286,7 @@ export default function SchoolDaySetupModal({
               max={60}
               step={5}
               value={config.lunchMinutes}
-              onChange={(e) => update({ lunchMinutes: Number(e.target.value) })}
+              onChange={(e) => updateNumber("lunchMinutes", e.target.value)}
               className="input h-10 text-sm"
             />
           </label>
@@ -268,7 +299,7 @@ export default function SchoolDaySetupModal({
               min={0}
               max={5}
               value={config.lessonsAfterLunch}
-              onChange={(e) => update({ lessonsAfterLunch: Number(e.target.value) })}
+              onChange={(e) => updateNumber("lessonsAfterLunch", e.target.value)}
               className="input h-10 text-sm"
             />
           </label>
@@ -278,7 +309,7 @@ export default function SchoolDaySetupModal({
             </span>
             <select
               value={config.coCurricularMinutes}
-              onChange={(e) => update({ coCurricularMinutes: Number(e.target.value) })}
+              onChange={(e) => updateNumber("coCurricularMinutes", e.target.value)}
               className="input h-10 text-sm"
             >
               <option value={60}>60 min</option>
@@ -293,7 +324,7 @@ export default function SchoolDaySetupModal({
             </span>
             <select
               value={config.prepMinutes}
-              onChange={(e) => update({ prepMinutes: Number(e.target.value) })}
+              onChange={(e) => updateNumber("prepMinutes", e.target.value)}
               className="input h-10 text-sm"
             >
               <option value={0}>Day school</option>

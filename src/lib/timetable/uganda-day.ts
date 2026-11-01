@@ -231,7 +231,10 @@ export function validateSchoolDay(config: SchoolDayConfig): SchoolDayCheck {
   }
 
   const slots = buildSchoolDay(config);
-  const last = slots[slots.length - 1];
+  // Evening prep is a boarding routine after the official day; the MoES
+  // 08:00–17:00 window covers lessons and co-curricular activities.
+  const classDaySlots = slots.filter((slot) => slot.name !== "Evening Prep");
+  const last = classDaySlots[classDaySlots.length - 1];
   if (last && toMinutes(last.end_time) > 17 * 60) {
     errors.push("The school day must end by 17:00 (MoES).");
   }

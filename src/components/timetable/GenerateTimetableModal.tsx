@@ -5,6 +5,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { Button } from "@/components/ui/index";
 import { Modal } from "@/components/ui/Modal";
 import { logger } from "@/lib/logger";
+import { matchWeeklyTarget, weeklyPeriodTargets, type SchoolLevel } from "@/lib/timetable/uganda-day";
 
 interface SubjectOption {
   id: string;
@@ -57,6 +58,7 @@ export default function GenerateTimetableModal({
   academicYear,
   subjects,
   onApproved,
+  level = "lower_secondary",
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -64,6 +66,8 @@ export default function GenerateTimetableModal({
   academicYear: string;
   subjects: SubjectOption[];
   onApproved: () => void;
+  /** Which NCDC weekly guide to seed the per-subject counts from. */
+  level?: SchoolLevel;
 }) {
   const toast = useToast();
   const [periodsDefault, setPeriodsDefault] = useState(4);
@@ -74,13 +78,25 @@ export default function GenerateTimetableModal({
   const [approving, setApproving] = useState(false);
   const [error, setError] = useState("");
 
+  /** NCDC periods-per-week, keyed by the guide's subject label. */
+  const ncdcGuide = (() => {
+    const targets = weeklyPeriodTargets(level, 1);
+    return new Map(targets.map((target) => [target.subject, target.periods]));
+  })();
+  const guidedPeriods = (subjectName: string) => {
+    const key = matchWeeklyTarget(subjectName);
+    return key ? ncdcGuide.get(key) : undefined;
+  };
+
   useEffect(() => {
     if (isOpen) {
       setPreview(null);
       setError("");
-      setPerSubject(Object.fromEntries(subjects.map((s) => [s.id, 4])));
+      setPerSubject(Object.fromEntries(subjects.map((subject) => [subject.id, guidedPeriods(subject.name) ?? 4])));
     }
-  }, [isOpen, subjects]);
+    // guidedPeriods is derived from `level`; listing it would re-seed on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, subjects, level]);
 
   const toggleDay = (day: number) => {
     setDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort()));
@@ -198,7 +214,25 @@ export default function GenerateTimetableModal({
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[var(--t2)]">Periods per subject / week</label>
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-sm font-medium text-[var(--t2)]">Periods per subject / week</label>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPerSubject(
+                      Object.fromEntries(
+                        subjects.map((subject) => [subject.id, guidedPeriods(subject.name) ?? periodsDefault]),
+                      ),
+                    )
+                  }
+                  className="text-xs font-semibold text-[var(--primary)] hover:underline"
+                >
+                  Use NCDC guide
+                </button>
+              </div>
+              <p className="text-xs text-[var(--t3)]">
+                Seeded from the NCDC weekly guide for this level. Adjust to match your school.
+              </p>
               <div className="max-h-48 overflow-y-auto rounded-xl border border-[var(--border)] divide-y divide-[var(--border)]">
                 {subjects.map((s) => (
                   <div key={s.id} className="flex items-center justify-between px-3 py-2">
