@@ -12,6 +12,8 @@ import { useReactToPrint } from "react-to-print";
 import { useSearchParams } from "next/navigation";
 import { DEMO_STUDENTS } from "@/lib/demo-data";
 import { logger } from "@/lib/logger";
+import { Button } from "@/components/ui/index";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export default function AdmissionPackagePage() {
   const { school, isDemo } = useAuth();
@@ -166,36 +168,25 @@ export default function AdmissionPackagePage() {
   return (
     <PageErrorBoundary>
       <div className="p-6 max-w-7xl mx-auto space-y-8">
-        <div className="flex justify-between items-end">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center text-primary-800">
-                <MaterialIcon icon="history_edu" />
-              </div>
-              <h1 className="text-3xl font-black text-[var(--t1)] tracking-tight">Admission Package</h1>
+        <PageHeader
+          title="Admission Package"
+          subtitle="Generate official enrollment documents"
+          actions={
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={handleDownloadPdf}
+                disabled={!student || downloadingPdf}
+                icon={<MaterialIcon icon="download" />}
+              >
+                {downloadingPdf ? "Generating..." : "Download PDF"}
+              </Button>
+              <Button onClick={handlePrint} disabled={!student} icon={<MaterialIcon icon="print" />}>
+                Print Admission Package
+              </Button>
             </div>
-            <p className="text-[var(--t3)] font-medium">Generate official enrollment documents</p>
-          </div>
-
-          <div className="flex gap-4">
-            <button
-              onClick={handleDownloadPdf}
-              disabled={!student || downloadingPdf}
-              className="flex items-center gap-2 px-6 py-3 bg-white text-primary-800 border border-primary-200 rounded-2xl font-bold hover:bg-primary-50 transition-all disabled:opacity-50"
-            >
-              <MaterialIcon icon="download" />
-              {downloadingPdf ? "Generating..." : "Download PDF"}
-            </button>
-            <button
-              onClick={handlePrint}
-              disabled={!student}
-              className="flex items-center gap-2 px-6 py-3 bg-primary-800 text-white rounded-2xl font-bold shadow-lg shadow-primary-800/20 hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100"
-            >
-              <MaterialIcon icon="print" />
-              Print Admission Package
-            </button>
-          </div>
-        </div>
+          }
+        />
 
         {!student && (
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-12 text-center">

@@ -9,6 +9,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { ErrorState } from "@/components/EmptyState";
 import { logger } from "@/lib/logger";
 import { cardClassName } from "@/lib/utils";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { format } from "date-fns";
 
 type WalletRow = {
@@ -166,14 +167,10 @@ export default function StudentWalletsPage() {
   return (
     <PageErrorBoundary>
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
-        <div className="flex justify-between items-end">
-          <div>
-            <h1 className="text-3xl font-black text-[var(--t1)] tracking-tight">Student Wallets</h1>
-            <p className="text-[var(--t3)] font-medium tracking-tight">
-              Manage digital pocket money and recent wallet activity
-            </p>
-          </div>
-          <div className="flex gap-4">
+        <PageHeader
+          title="Student Wallets"
+          subtitle="Manage digital pocket money and recent wallet activity"
+          actions={
             <div className="relative">
               <input
                 type="text"
@@ -184,8 +181,8 @@ export default function StudentWalletsPage() {
               />
               <MaterialIcon icon="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--t3)]" />
             </div>
-          </div>
-        </div>
+          }
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="p-6 rounded-[32px] bg-primary-800 text-white shadow-xl shadow-primary-800/20 flex flex-col justify-between min-h-[160px]">

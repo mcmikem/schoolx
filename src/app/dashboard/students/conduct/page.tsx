@@ -12,6 +12,8 @@ import { format } from "date-fns";
 import { getErrorMessage } from "@/lib/validation";
 import { logger } from "@/lib/logger";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
+import { Button } from "@/components/ui/index";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 interface BehaviorLog {
   id: string;
@@ -185,20 +187,15 @@ export default function ConductManagementPage() {
   return (
     <PageErrorBoundary>
       <div className="p-6 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-black text-[var(--t1)] tracking-tight">Conduct & Merits</h1>
-            <p className="text-[var(--t3)] font-medium">Character tracking and disciplinary management</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-[var(--primary)] text-white rounded-2xl font-bold shadow-lg hover:scale-105 transition-all"
-          >
-            <MaterialIcon icon="add" />
-            Log Incident
-          </button>
-        </div>
+        <PageHeader
+          title="Conduct & Merits"
+          subtitle="Character tracking and disciplinary management"
+          actions={
+            <Button onClick={() => setShowModal(true)} icon={<MaterialIcon icon="add" />}>
+              Log Incident
+            </Button>
+          }
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="p-6 rounded-[32px] bg-emerald-50 border border-emerald-100 flex items-center gap-4">

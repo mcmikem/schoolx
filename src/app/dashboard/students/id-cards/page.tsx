@@ -6,6 +6,8 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import StudentIDCard from "@/components/students/StudentIDCard";
 import MaterialIcon from "@/components/MaterialIcon";
+import { Button } from "@/components/ui/index";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { useSearchParams } from "next/navigation";
 import { DEMO_STUDENTS } from "@/lib/demo-data";
 import { logger } from "@/lib/logger";
@@ -125,20 +127,15 @@ export default function IDCardGenerator() {
   return (
     <PageErrorBoundary>
       <div className="p-6 max-w-7xl mx-auto space-y-8">
-        <div className="flex justify-between items-end">
-          <div>
-            <h1 className="text-3xl font-black text-[var(--t1)] tracking-tight">Identity Center</h1>
-            <p className="text-[var(--t3)] font-medium">Generate professional student ID cards</p>
-          </div>
-          <button
-            onClick={handlePrint}
-            disabled={students.length === 0}
-            className="flex items-center gap-2 px-6 py-3 bg-primary-800 text-white rounded-2xl font-bold shadow-lg shadow-primary-800/20 hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100"
-          >
-            <MaterialIcon icon="print" />
-            Print {students.length} Cards
-          </button>
-        </div>
+        <PageHeader
+          title="Identity Center"
+          subtitle="Generate professional student ID cards"
+          actions={
+            <Button onClick={handlePrint} disabled={students.length === 0} icon={<MaterialIcon icon="print" />}>
+              Print {students.length} Cards
+            </Button>
+          }
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Search Panel */}
