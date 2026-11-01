@@ -9,6 +9,7 @@ import { useAcademic } from "@/lib/academic-context";
 import { APP_NAME } from "@/lib/app-name";
 import { useAuth } from "@/lib/auth-context";
 import { canUseModule, DEFAULT_FEATURE_STAGE, type FeatureStage, type ModuleKey } from "@/lib/featureStages";
+import { getModuleDefinition } from "@/lib/modules/catalog";
 import { getNavigationForRoles } from "@/lib/navigation";
 import { type RoleRouteOverrides, resolveRouteAccess, useRoleRouteOverrides } from "@/lib/role-access-overrides";
 import { canAccess, type UserRole } from "@/lib/roles";
@@ -27,6 +28,8 @@ function filterGroupsByFeatureStage(
   featureStage: FeatureStage | undefined,
   role: string | undefined,
   overrides: RoleRouteOverrides,
+  billingMode: string,
+  entitledModules: Set<string>,
 ): import("@/lib/navigation").NavGroup[] {
   const stage = featureStage || DEFAULT_FEATURE_STAGE;
   const typedRole = role as UserRole | undefined;
@@ -36,13 +39,23 @@ function filterGroupsByFeatureStage(
     return resolveRouteAccess(typedRole, href, isRouteAllowed(typedRole, href), overrides);
   };
 
+  const isModuleAllowed = (mod: string | undefined): boolean => {
+    if (!mod) return true; // no module gate
+    if (billingMode === "modular") {
+      // Free modules (is_billable false) always allowed; otherwise need entitlement
+      const def = getModuleDefinition(mod as any);
+      if (def && !def.is_billable) return true;
+      return entitledModules.has(mod);
+    }
+    return canUseModule(stage, mod as any);
+  };
+
   return groups
     .map((group) => ({
       ...group,
       items: group.items.filter((item) => {
         const mod = ROUTE_TO_MODULE[item.href];
-        const moduleAllowed = !mod || canUseModule(stage, mod);
-        return moduleAllowed && canAccessRoute(item.href);
+        return isModuleAllowed(mod) && canAccessRoute(item.href);
       }),
     }))
     .filter((group) => group.items.length > 0);
@@ -77,6 +90,50 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
   const [isPinnedOpen, setIsPinnedOpen] = useState(false);
   const { overrides } = useRoleRouteOverrides(school?.id);
 
+  // Modular billing: only show modules the school has paid for. Full-suite
+  // mode keeps the existing feature-stage gating.
+  const [billingMode, setBillingMode] = useState<string>("full_suite");
+  const [entitledModules, setEntitledModules] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!school?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { supabase } = await import("@/lib/supabase");
+        const { data: schoolRow } = await supabase
+          .from("schools")
+          .select("billing_mode")
+          .eq("id", school.id)
+          .maybeSingle();
+        if (cancelled) return;
+        const mode = (schoolRow as { billing_mode?: string } | null)?.billing_mode || "full_suite";
+        setBillingMode(mode);
+        if (mode === "modular") {
+          const { data: ents } = await supabase
+            .from("school_module_entitlements")
+            .select("module_key, status, ends_at")
+            .eq("school_id", school.id);
+          if (cancelled) return;
+          const active = new Set<string>();
+          for (const e of (ents || []) as { module_key: string; status: string; ends_at: string | null }[]) {
+            if (
+              (e.status === "active" || e.status === "trial") &&
+              (!e.ends_at || new Date(e.ends_at).getTime() > Date.now())
+            ) {
+              active.add(e.module_key);
+            }
+          }
+          setEntitledModules(active);
+        }
+      } catch {
+        // fail open
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [school?.id]);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -102,6 +159,8 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
     school?.feature_stage as FeatureStage | undefined,
     user?.role,
     overrides,
+    billingMode,
+    entitledModules,
   );
 
   const schoolName = school?.name || "My School";
