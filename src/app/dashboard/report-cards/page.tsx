@@ -41,6 +41,7 @@ import {
 import { isTimeoutResult, timeoutFallback, withTimeout } from "@/lib/hooks/utils";
 import { logger } from "@/lib/logger";
 import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print-window";
+import { downloadReportPDF } from "@/components/reports/StudentReportPDF";
 import { writeAnalysisRemark } from "@/lib/report-analysis";
 import { competencyBadge, reportGradeColor } from "@/lib/report-card-presentation";
 import { searchReportList } from "@/lib/report-list";
@@ -1953,6 +1954,35 @@ export default function ReportCardsPage() {
     };
   };
 
+  const handleDownloadPDF = async (report: StudentReport) => {
+    try {
+      const schoolName = school?.name || "School";
+      const subjects = (report.subjects || []).map((s: any) => ({
+        name: s.name || s.subject || "Subject",
+        score: Number(s.finalScore ?? s.total ?? s.score ?? 0),
+        grade: s.grade || "",
+      }));
+      await downloadReportPDF(
+        {
+          schoolName,
+          studentName: report.name,
+          studentNumber: report.studentNumber || "",
+          className: report.className || "",
+          term: currentTerm || 1,
+          academicYear: academicYear || "",
+          subjects,
+          classTeacherRemark: report.classTeacherComment,
+          headTeacherRemark: report.hmComment,
+          feeBalance: report.feeBalance,
+        },
+        `Report-${report.name.replace(/\\s+/g, "_")}.pdf`,
+      );
+      toast.success("PDF downloaded");
+    } catch (err) {
+      toast.error("Failed to generate PDF");
+    }
+  };
+
   const handlePrintReport = (report: StudentReport) => {
     if (reportFormat === "cbc") {
       handlePrintCBCReport(report);
@@ -3039,6 +3069,14 @@ export default function ReportCardsPage() {
                                   className="p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)] min-h-[44px] min-w-[44px] flex items-center justify-center"
                                 >
                                   <MaterialIcon className="text-xl">description</MaterialIcon>
+                                </button>
+                                <button
+                                  onClick={() => handleDownloadPDF(report)}
+                                  title="Download PDF"
+                                  aria-label={`Download PDF for ${report.name}`}
+                                  className="p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)] min-h-[44px] min-w-[44px] flex items-center justify-center"
+                                >
+                                  <MaterialIcon className="text-xl">download</MaterialIcon>
                                 </button>
                                 {canSms && (
                                   <button
