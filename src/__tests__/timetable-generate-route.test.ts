@@ -41,6 +41,7 @@ function mockSupabase(tables: TableData, inserted: { rows: unknown[] }) {
     b.or = jest.fn(() => b);
     b.in = jest.fn(() => b);
     b.order = jest.fn(() => b);
+    b.maybeSingle = jest.fn(() => Promise.resolve({ data: (tables[table] ?? [])[0] ?? null, error: null }));
     b.insert = jest.fn((rows: unknown) => {
       const list = Array.isArray(rows) ? rows : [rows];
       writes[table] = [...(writes[table] || []), ...list];
@@ -63,6 +64,7 @@ const AUTH = {
 };
 
 const BASE_TABLES: TableData = {
+  schools: [{ id: "school-1", billing_mode: "full_suite" }],
   classes: [{ id: "c1", name: "P.5A", level: "P.5" }],
   subjects: [{ id: "s-eng", name: "English", code: "ENG" }],
   users: [{ id: "t1", full_name: "Teacher One" }],

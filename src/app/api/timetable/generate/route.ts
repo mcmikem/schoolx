@@ -9,6 +9,7 @@ import {
   createServiceRoleClientOrThrow,
   withSecurity,
 } from "@/lib/api-utils";
+import { requireModuleEntitlement } from "@/lib/subscription-guard";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import {
   solveTimetable,
@@ -90,6 +91,14 @@ async function handlePost(request: NextRequest) {
     }
 
     const supabase = createServiceRoleClientOrThrow();
+
+    // Module entitlement check (modular billing)
+    const modCheck = await requireModuleEntitlement({
+      supabase,
+      schoolId: auth.context.schoolId || "",
+      moduleKey: "operations",
+    });
+    if (!modCheck.ok) return modCheck.response;
 
     if (body.action === "preview") return previewDraft(supabase, scope.schoolId, body);
     if (body.action === "approve")

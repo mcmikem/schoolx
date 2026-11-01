@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 import { rateLimit, supabaseClientOptions } from "@/lib/api-utils";
+import { requireModuleEntitlement } from "@/lib/subscription-guard";
 import {
   getNextGradeWorkflowStatusActions,
   getPrevGradeWorkflowStatusActions,
@@ -56,6 +57,28 @@ export async function POST(request: NextRequest) {
   if (userError || !userData) {
     logger.error("[API grades/workflow] Error fetching user:", userError);
     return NextResponse.json({ error: "User profile not found" }, { status: 404 });
+  }
+
+  // Module entitlement check (modular billing)
+  if (userData.school_id) {
+    const { data: schoolRow } = await supabaseAdmin
+      .from("schools")
+      .select("billing_mode")
+      .eq("id", userData.school_id)
+      .maybeSingle();
+    if ((schoolRow as { billing_mode?: string } | null)?.billing_mode === "modular") {
+      const { data: ent } = await supabaseAdmin
+        .from("school_module_entitlements")
+        .select("status, ends_at")
+        .eq("school_id", userData.school_id)
+        .in("module_key", ["marks", "grades"])
+        .maybeSingle();
+      const isActive = ent?.status === "active" || ent?.status === "trial";
+      const validEnd = !ent?.ends_at || new Date(ent.ends_at).getTime() > Date.now();
+      if (!isActive || !validEnd) {
+        return NextResponse.json({ error: "This feature requires the marks module." }, { status: 403 });
+      }
+    }
   }
 
   try {
