@@ -17,6 +17,11 @@ import { logger } from "@/lib/logger";
 import { getLocalDateString } from "@/lib/hooks/utils";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import GenerateTimetableModal from "@/components/timetable/GenerateTimetableModal";
+import dynamic from "next/dynamic";
+const TimetableCalendar = dynamic(() => import("@/components/timetable/TimetableCalendar"), {
+  ssr: false,
+  loading: () => null,
+});
 import SchoolDaySetupModal from "@/components/timetable/SchoolDaySetupModal";
 import {
   SCHOOL_DAY_PRESETS,
@@ -825,8 +830,9 @@ export default function TimetablePage() {
   const mainTabs = [
     { id: "timetable", label: "Class Timetable" },
     { id: "calendar", label: "Term Calendar" },
+    { id: "fc", label: "Week View" },
   ];
-  const [mainTab, setMainTab] = useState<"timetable" | "calendar">("timetable");
+  const [mainTab, setMainTab] = useState<"timetable" | "calendar" | "fc">("timetable");
 
   if (loadingSlots) {
     return (
@@ -915,6 +921,10 @@ export default function TimetablePage() {
 
         <TabPanel activeTab={mainTab} tabId="calendar">
           <TermCalendar schoolId={school?.id || ""} userId={user?.id || ""} />
+        </TabPanel>
+
+        <TabPanel activeTab={mainTab} tabId="fc">
+          <TimetableCalendar timetable={timetable} slots={effectiveSlots as any} />
         </TabPanel>
 
         <TabPanel activeTab={mainTab} tabId="timetable">
