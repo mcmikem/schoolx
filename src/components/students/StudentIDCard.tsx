@@ -203,10 +203,16 @@ export default function StudentIDCard({
       </div>
 
       {/* Footer / Stripe with motto */}
-      <div className="px-3 py-1 flex items-center justify-between gap-2 bg-slate-50 border-t border-slate-200">
-        <p className="text-[6px] font-bold text-slate-500 truncate flex-1">{school.address || school.phone || ""}</p>
-        <p className="text-[6px] font-black text-slate-600 uppercase tracking-wider truncate text-right">
-          {school.school_motto || school.motto || ""}
+      <div className="px-3 py-1 flex flex-col gap-0.5 bg-slate-50 border-t border-slate-200">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[6px] font-bold text-slate-500 truncate flex-1">{school.address || school.phone || ""}</p>
+          <p className="text-[6px] font-black text-slate-600 uppercase tracking-wider truncate text-right">
+            {school.school_motto || school.motto || ""}
+          </p>
+        </div>
+        <p className="text-[5px] text-slate-400 text-center leading-tight">
+          Property of {school.name}. If found, please return to the school or call {school.phone || "the school office"}
+          .
         </p>
       </div>
       <div className="h-1 w-full" style={{ backgroundColor: primaryColor }} />
