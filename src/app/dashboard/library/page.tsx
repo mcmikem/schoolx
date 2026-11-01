@@ -10,22 +10,41 @@ import { getErrorMessage } from "@/lib/validation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { isClassScopedRole } from "@/lib/roles";
+import { Button, Modal, StatStrip } from "@/components/ui/index";
+import { PageHeader } from "@/components/ui/PageHeader";
+import SearchField from "@/components/ui/SearchField";
+import { EmptyState } from "@/components/EmptyState";
 
 const CATEGORIES = ["All", "Textbooks", "Fiction", "Science", "History", "Reference", "Religious"];
 const BLANK_FORM = { title: "", author: "", isbn: "", category: "Textbooks", total_copies: "1" };
+
+interface LibraryBook {
+  id: string;
+  title: string;
+  author?: string | null;
+  isbn?: string | null;
+  category?: string | null;
+  total_copies: number;
+  available_copies: number;
+  created_at?: string | null;
+}
 
 export default function LibraryPage() {
   const { school, user } = useAuth();
   const canManageCatalog = !isClassScopedRole(user?.role);
   const toast = useToast();
-  const [books, setBooks] = useState<any[]>([]);
+  const [books, setBooks] = useState<LibraryBook[]>([]);
   const [category, setCategory] = useState("All");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [editingBook, setEditingBook] = useState<any | null>(null);
+  const [editingBook, setEditingBook] = useState<LibraryBook | null>(null);
   const [form, setForm] = useState(BLANK_FORM);
   const [saving, setSaving] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<LibraryBook | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   const parsedCopies = parseInt(form.total_copies, 10);
   const libraryValidationError =
     !form.title.trim() || !form.author.trim()
@@ -33,9 +52,6 @@ export default function LibraryPage() {
       : !Number.isFinite(parsedCopies) || parsedCopies < 1
         ? "Total copies must be at least 1."
         : "";
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<any | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   const fetchBooks = useCallback(async () => {
     if (!school?.id) return;
@@ -46,7 +62,7 @@ export default function LibraryPage() {
       .eq("school_id", school.id)
       .order("created_at", { ascending: false });
 
-    if (!error) setBooks(data || []);
+    if (!error) setBooks((data || []) as LibraryBook[]);
     setLoading(false);
   }, [school?.id]);
 
@@ -54,16 +70,25 @@ export default function LibraryPage() {
     fetchBooks();
   }, [fetchBooks]);
 
+  const needle = search.trim().toLowerCase();
   const filtered = books.filter(
-    (b) =>
-      (category === "All" || b.category === category) &&
-      (b.title.toLowerCase().includes(search.toLowerCase()) ||
-        (b.author?.toLowerCase() || "").includes(search.toLowerCase())),
+    (book) =>
+      (category === "All" || book.category === category) &&
+      (!needle ||
+        book.title.toLowerCase().includes(needle) ||
+        (book.author?.toLowerCase() || "").includes(needle) ||
+        (book.isbn?.toLowerCase() || "").includes(needle)),
   );
 
-  const totalBooks = books.reduce((s, b) => s + Number(b.total_copies || 0), 0);
-  const availableBooks = books.reduce((s, b) => s + Number(b.available_copies || 0), 0);
+  const totalBooks = books.reduce((sum, book) => sum + Number(book.total_copies || 0), 0);
+  const availableBooks = books.reduce((sum, book) => sum + Number(book.available_copies || 0), 0);
   const totalBorrowed = totalBooks - availableBooks;
+
+  const closeAdd = () => {
+    setShowAdd(false);
+    setEditingBook(null);
+    setForm(BLANK_FORM);
+  };
 
   const saveBook = async () => {
     if (!school?.id) return;
@@ -124,9 +149,7 @@ export default function LibraryPage() {
       }
 
       fetchBooks();
-      setForm(BLANK_FORM);
-      setShowAdd(false);
-      setEditingBook(null);
+      closeAdd();
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to save book"));
     } finally {
@@ -134,7 +157,7 @@ export default function LibraryPage() {
     }
   };
 
-  const openEdit = (book: any) => {
+  const openEdit = (book: LibraryBook) => {
     setEditingBook(book);
     setForm({
       title: book.title,
@@ -146,7 +169,7 @@ export default function LibraryPage() {
     setShowAdd(true);
   };
 
-  const handleDeleteConfirm = (book: any) => {
+  const handleDeleteConfirm = (book: LibraryBook) => {
     setPendingDelete(book);
     setConfirmOpen(true);
   };
@@ -157,7 +180,7 @@ export default function LibraryPage() {
     try {
       const { error } = await supabase.from("library_books").delete().eq("id", pendingDelete.id);
       if (error) throw error;
-      setBooks((prev) => prev.filter((b) => b.id !== pendingDelete.id));
+      setBooks((prev) => prev.filter((book) => book.id !== pendingDelete.id));
       toast.success("Book removed from catalogue");
       setConfirmOpen(false);
     } catch (err) {
@@ -168,238 +191,286 @@ export default function LibraryPage() {
     }
   };
 
+  const clearFilters = () => {
+    setSearch("");
+    setCategory("All");
+  };
+
   return (
     <PageErrorBoundary>
-      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-        <div className="flex justify-between items-end flex-wrap gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                <MaterialIcon icon="local_library" />
-              </div>
-              <h1 className="text-3xl font-black text-slate-800 tracking-tight">Library Core</h1>
-            </div>
-            <p className="text-slate-500 font-medium">Manage book inventory and student borrowing</p>
-          </div>
-          <div className="flex gap-3">
-            <div className="relative">
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search catalogue..."
-                className="pl-10 pr-4 py-3 bg-[var(--surface)] border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-4 focus:ring-slate-100 w-full min-w-[200px]"
-              />
-              <MaterialIcon icon="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            </div>
-            {canManageCatalog && (
-              <button
-                onClick={() => setShowAdd(true)}
-                className="flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:scale-105 transition-all shadow-lg shadow-indigo-600/20"
-              >
-                <MaterialIcon icon="add" /> New Volume
-              </button>
-            )}
-          </div>
-        </div>
+      <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
+        <PageHeader
+          title="Library"
+          subtitle={
+            loading
+              ? "Loading the catalogue"
+              : `${books.length} title${books.length === 1 ? "" : "s"} · ${availableBooks} of ${totalBooks} copies on the shelf`
+          }
+          actions={
+            canManageCatalog && (
+              <Button onClick={() => setShowAdd(true)} icon={<MaterialIcon icon="add" />}>
+                New volume
+              </Button>
+            )
+          }
+        />
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: "Total Stock", value: totalBooks, icon: "auto_stories", color: "bg-indigo-600" },
-            { label: "On Loan", value: totalBorrowed, icon: "bookmark", color: "bg-blue-500" },
-            { label: "In Library", value: availableBooks, icon: "check_circle", color: "bg-emerald-500" },
-            { label: "Inventory Value", value: books.length, icon: "inventory", color: "bg-amber-600" },
-          ].map((s) => (
-            <div
-              key={s.label}
-              className="p-5 bg-[var(--surface)] rounded-3xl border border-slate-100 flex items-center gap-4"
-            >
-              <div className={`w-12 h-12 rounded-2xl ${s.color} text-white flex items-center justify-center shrink-0`}>
-                <MaterialIcon icon={s.icon} />
-              </div>
-              <div>
-                <p className="text-2xl font-black text-slate-800">{s.value}</p>
-                <p className="text-xs font-black uppercase tracking-widest text-slate-400">{s.label}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        <StatStrip
+          columns={4}
+          items={[
+            { label: "Titles", value: books.length, hint: "in the catalogue", tone: "info" },
+            { label: "Total stock", value: totalBooks, hint: "copies owned" },
+            {
+              label: "On loan",
+              value: totalBorrowed,
+              hint: "with students",
+              tone: totalBorrowed > 0 ? "warning" : "default",
+            },
+            { label: "In library", value: availableBooks, hint: "ready to borrow", tone: "positive" },
+          ]}
+        />
 
-        {/* Category Filter */}
-        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-          {CATEGORIES.map((c) => (
-            <button
-              key={c}
-              onClick={() => setCategory(c)}
-              className={`shrink-0 px-5 py-2 rounded-2xl text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all ${category === c ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "bg-[var(--surface)] text-slate-500 border border-slate-100 hover:border-slate-200"}`}
-            >
-              {c}
-            </button>
-          ))}
-        </div>
-
-        {/* Book Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {loading ? (
-            Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-40 bg-slate-50 rounded-3xl animate-pulse" />
-            ))
-          ) : filtered.length === 0 ? (
-            <div className="col-span-full py-16 text-center">
-              <MaterialIcon icon="auto_stories" className="text-4xl text-[var(--t3)] opacity-30 mb-2" />
-              <p className="text-sm font-medium text-[var(--t2)]">No books found</p>
-              <p className="text-xs text-[var(--t3)] mt-1">
-                {category !== "All"
-                  ? `No books in the "${category}" category`
-                  : "Add books to your library to get started"}
-              </p>
-            </div>
-          ) : (
-            filtered.map((book) => {
-              const pct = book.total_copies > 0 ? Math.round((book.available_copies / book.total_copies) * 100) : 0;
-              return (
-                <div
-                  key={book.id}
-                  className="bg-[var(--surface)] p-6 rounded-3xl border border-slate-100 hover:shadow-xl transition-all group relative overflow-hidden"
+        <div className="space-y-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[var(--sh1)] sm:p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+            <SearchField
+              label="Search catalogue"
+              value={search}
+              onChange={setSearch}
+              placeholder="Title, author or ISBN"
+            />
+            <div className="no-scrollbar flex shrink-0 gap-2 overflow-x-auto pb-1 lg:pb-0">
+              {CATEGORIES.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setCategory(item)}
+                  aria-pressed={category === item}
+                  className={`min-h-10 shrink-0 whitespace-nowrap rounded-full px-3 text-sm font-medium transition-colors ${
+                    category === item
+                      ? "bg-[var(--primary)] text-[var(--on-primary)]"
+                      : "bg-[var(--surface-container-low)] text-[var(--t2)] hover:bg-[var(--surface-container)]"
+                  }`}
                 >
-                  <div className="flex justify-between items-start mb-4">
-                    <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-black uppercase tracking-wider">
-                      {book.category}
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+          {(needle || category !== "All") && (
+            <p className="text-xs text-[var(--t3)]">
+              {filtered.length} of {books.length} titles
+              {category !== "All" ? ` in ${category}` : ""}
+              {needle ? ` matching “${search.trim()}”` : ""}
+            </p>
+          )}
+        </div>
+
+        {loading ? (
+          <div
+            role="status"
+            aria-label="Loading catalogue"
+            aria-live="polite"
+            className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+          >
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="h-44 animate-pulse rounded-2xl bg-[var(--surface-container-low)]" />
+            ))}
+          </div>
+        ) : books.length === 0 ? (
+          <EmptyState
+            icon="auto_stories"
+            title="No books yet"
+            description="Add the titles on your shelves, then track how many copies are available to borrow."
+            action={canManageCatalog ? { label: "Add your first book", onClick: () => setShowAdd(true) } : undefined}
+            owlyQuestion="How do I add books to the library catalogue?"
+          />
+        ) : filtered.length === 0 ? (
+          <div
+            role="status"
+            className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-12 text-center"
+          >
+            <MaterialIcon icon="search_off" className="text-3xl text-[var(--t3)]" />
+            <h2 className="mt-2 font-semibold text-[var(--t1)]">No books found</h2>
+            <p className="mt-1 text-sm text-[var(--t3)]">
+              {category !== "All" && needle
+                ? `Nothing in ${category} matches “${search.trim()}”.`
+                : category !== "All"
+                  ? `No books in the “${category}” category.`
+                  : `Nothing matches “${search.trim()}”.`}
+            </p>
+            <Button variant="outline" className="mt-4" onClick={clearFilters}>
+              Clear filters
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((book) => {
+              const total = Number(book.total_copies || 0);
+              const available = Number(book.available_copies || 0);
+              const pct = total > 0 ? Math.round((available / total) * 100) : 0;
+              const barTone = pct > 50 ? "bg-[var(--green)]" : pct > 20 ? "bg-[var(--amber)]" : "bg-[var(--error)]";
+
+              return (
+                <article
+                  key={book.id}
+                  className="flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--sh1)] transition-shadow hover:shadow-[var(--sh2)]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="rounded-full bg-[var(--primary-50)] px-2.5 py-1 text-xs font-semibold text-[var(--primary-700)]">
+                      {book.category || "Uncategorised"}
                     </span>
                     <span
-                      className={`text-xs font-black ${book.available_copies === 0 ? "text-red-500" : "text-emerald-600"}`}
+                      className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        available === 0
+                          ? "bg-[var(--red-soft)] text-[var(--red-ink)]"
+                          : "bg-[var(--green-soft)] text-[var(--green-ink)]"
+                      }`}
                     >
-                      {book.available_copies === 0 ? "OUT OF STOCK" : `${book.available_copies} AVAILABLE`}
+                      {available === 0 ? "Out of stock" : `${available} available`}
                     </span>
                   </div>
-                  <h3 className="text-sm font-black text-slate-800 mb-1 leading-snug group-hover:text-indigo-600 transition-colors uppercase tracking-tight">
-                    {book.title}
-                  </h3>
-                  <p className="text-xs text-slate-400 font-bold mb-4 italic">by {book.author || "Unknown Author"}</p>
 
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                      <span>STOCK STATUS</span>
-                      <span>{pct}%</span>
+                  <h3 className="mt-3 text-base font-semibold text-[var(--t1)]">{book.title}</h3>
+                  <p className="mt-1 text-sm text-[var(--t3)]">by {book.author || "Unknown author"}</p>
+
+                  <div className="mt-auto space-y-2 pt-4">
+                    <div className="flex items-center justify-between text-xs text-[var(--t3)]">
+                      <span>On shelf</span>
+                      <span className="font-semibold text-[var(--t2)]">
+                        {available} of {total}
+                      </span>
                     </div>
-                    <div className="w-full h-2 bg-slate-50 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-700 ${pct > 50 ? "bg-emerald-400" : pct > 20 ? "bg-amber-400" : "bg-red-400"}`}
-                        style={{ width: `${pct}%` }}
-                      />
+                    <div
+                      role="progressbar"
+                      aria-label={`${book.title} availability`}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={pct}
+                      className="h-2 w-full overflow-hidden rounded-full bg-[var(--surface-container-low)]"
+                    >
+                      <div className={`h-full rounded-full ${barTone}`} style={{ width: `${pct}%` }} />
                     </div>
-                    <div className="flex justify-between items-center pt-2">
-                      <div className="flex flex-col">
-                        <span className="text-lg font-black text-slate-800 leading-none">{book.available_copies}</span>
-                        <span className="text-[8px] font-black text-slate-400">IN SHELF</span>
-                      </div>
+                    <div className="flex items-center justify-between gap-2 pt-2">
+                      <span className="truncate text-xs text-[var(--t3)]">
+                        {book.isbn ? `ISBN ${book.isbn}` : "No ISBN"}
+                      </span>
                       {canManageCatalog && (
-                        <div className="flex gap-1">
+                        <div className="flex shrink-0 gap-1">
                           <button
+                            type="button"
                             onClick={() => openEdit(book)}
-                            className="p-2 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-xl transition-all"
-                            title="Edit book"
+                            aria-label={`Edit ${book.title}`}
+                            className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--t3)] transition-colors hover:bg-[var(--surface-container)] hover:text-[var(--primary)]"
                           >
-                            <MaterialIcon icon="edit" style={{ fontSize: 18 }} />
+                            <MaterialIcon icon="edit" className="text-lg" />
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleDeleteConfirm(book)}
-                            className="p-2 bg-slate-50 hover:bg-red-600 hover:text-white rounded-xl transition-all"
-                            title="Delete book"
+                            aria-label={`Remove ${book.title}`}
+                            className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--t3)] transition-colors hover:bg-[var(--red-soft)] hover:text-[var(--red-ink)]"
                           >
-                            <MaterialIcon icon="delete" style={{ fontSize: 18 }} />
+                            <MaterialIcon icon="delete" className="text-lg" />
                           </button>
                         </div>
                       )}
                     </div>
                   </div>
-                </div>
+                </article>
               );
-            })
-          )}
-        </div>
-
-        {/* Add / Edit Book Modal */}
-        {showAdd && (
-          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" aria-hidden="true" />
-            <div className="relative bg-[var(--surface)] rounded-[2.5rem] w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8 transform animate-in slide-in-from-bottom-8 duration-300">
-              <div className="flex justify-between mb-8 items-center">
-                <h2 className="text-2xl font-black text-slate-800 tracking-tight">
-                  {editingBook ? "Edit Volume" : "Add Volume"}
-                </h2>
-                <button
-                  onClick={() => {
-                    setShowAdd(false);
-                    setEditingBook(null);
-                    setForm(BLANK_FORM);
-                  }}
-                  className="w-10 h-10 flex items-center justify-center hover:bg-slate-100 rounded-2xl transition-colors"
-                >
-                  <MaterialIcon icon="close" className="text-slate-400" />
-                </button>
-              </div>
-              <div className="space-y-5">
-                {(["title", "author", "isbn"] as const).map((f) => (
-                  <div key={f}>
-                    <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
-                      {f}
-                    </label>
-                    <input
-                      value={form[f]}
-                      onChange={(e) => setForm({ ...form, [f]: e.target.value })}
-                      className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-100 transition-all placeholder:text-slate-300"
-                      placeholder={`Enter ${f}...`}
-                    />
-                  </div>
-                ))}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
-                      Category
-                    </label>
-                    <select
-                      value={form.category}
-                      onChange={(e) => setForm({ ...form, category: e.target.value })}
-                      className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-100"
-                    >
-                      {CATEGORIES.slice(1).map((c) => (
-                        <option key={c}>{c}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
-                      Total Copies
-                    </label>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      min="1"
-                      value={form.total_copies}
-                      onChange={(e) => setForm({ ...form, total_copies: e.target.value })}
-                      className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-100"
-                    />
-                  </div>
-                </div>
-                <button
-                  onClick={saveBook}
-                  disabled={saving || Boolean(libraryValidationError)}
-                  className="w-full py-4 bg-indigo-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest hover:shadow-xl hover:shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
-                >
-                  {saving ? (
-                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <MaterialIcon icon="save" /> {editingBook ? "Save Changes" : "Register Volume"}
-                    </>
-                  )}
-                </button>
-                {libraryValidationError && <p className="text-sm text-slate-500">{libraryValidationError}</p>}
-              </div>
-            </div>
+            })}
           </div>
         )}
+
+        <Modal isOpen={showAdd} onClose={closeAdd} title={editingBook ? "Edit volume" : "Add volume"} size="md">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              saveBook();
+            }}
+            className="space-y-4"
+          >
+            <div>
+              <label htmlFor="library-title" className="mb-2 block text-sm font-medium text-[var(--t2)]">
+                Title *
+              </label>
+              <input
+                id="library-title"
+                value={form.title}
+                onChange={(event) => setForm({ ...form, title: event.target.value })}
+                className="input"
+                placeholder="e.g. Fountain of Knowledge"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="library-author" className="mb-2 block text-sm font-medium text-[var(--t2)]">
+                Author *
+              </label>
+              <input
+                id="library-author"
+                value={form.author}
+                onChange={(event) => setForm({ ...form, author: event.target.value })}
+                className="input"
+                placeholder="e.g. J. K. Rowling"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="library-isbn" className="mb-2 block text-sm font-medium text-[var(--t2)]">
+                ISBN
+              </label>
+              <input
+                id="library-isbn"
+                value={form.isbn}
+                onChange={(event) => setForm({ ...form, isbn: event.target.value })}
+                className="input"
+                placeholder="Optional"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="library-category" className="mb-2 block text-sm font-medium text-[var(--t2)]">
+                  Category
+                </label>
+                <select
+                  id="library-category"
+                  value={form.category}
+                  onChange={(event) => setForm({ ...form, category: event.target.value })}
+                  className="input"
+                >
+                  {CATEGORIES.slice(1).map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="library-copies" className="mb-2 block text-sm font-medium text-[var(--t2)]">
+                  Total copies *
+                </label>
+                <input
+                  id="library-copies"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  value={form.total_copies}
+                  onChange={(event) => setForm({ ...form, total_copies: event.target.value })}
+                  className="input"
+                  required
+                />
+              </div>
+            </div>
+            {libraryValidationError && <p className="text-sm text-[var(--t3)]">{libraryValidationError}</p>}
+            <div className="flex gap-3 pt-2">
+              <Button type="button" variant="outline" fullWidth onClick={closeAdd}>
+                Cancel
+              </Button>
+              <Button type="submit" fullWidth loading={saving} disabled={Boolean(libraryValidationError)}>
+                {editingBook ? "Save changes" : "Add book"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
 
         <ConfirmDialog
           isOpen={confirmOpen}

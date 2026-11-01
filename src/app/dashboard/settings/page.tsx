@@ -631,32 +631,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handlePlanUpgrade = async (plan: string) => {
-    if (!school?.id) return;
-    const normalizedPlan =
-      plan === "basic" ? "starter" : plan === "premium" ? "growth" : plan === "max" ? "enterprise" : plan;
-    if (normalizedPlan === "starter" || normalizedPlan === "free_trial") {
-      setUpgradingPlan(true);
-      try {
-        const { error } = await supabase
-          .from("schools")
-          .update({ subscription_plan: normalizedPlan, subscription_status: "trial" })
-          .eq("id", school.id);
-        if (error) throw error;
-        await refreshSchool();
-        toast.success(`Successfully switched to ${normalizedPlan.toUpperCase()} plan!`);
-      } catch (err: unknown) {
-        logger.error("Plan upgrade error:", err);
-        toast.error(err instanceof Error ? err.message : "Failed to update plan. Please try again.");
-      } finally {
-        setUpgradingPlan(false);
-      }
-      return;
-    }
-    setSelectedPaymentPlan(normalizedPlan);
-    setShowPaymentModal(true);
-  };
-
   const initiatePayment = async (provider: "mtn" | "airtel" | "paypal") => {
     if (!school?.id || !selectedPaymentPlan) return;
     setUpgradingPlan(true);

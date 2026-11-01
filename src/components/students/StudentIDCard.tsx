@@ -23,6 +23,8 @@ interface StudentIDCardProps {
     phone?: string;
     primary_color?: string;
     accent_color?: string;
+    school_motto?: string;
+    motto?: string;
   };
 }
 
@@ -180,7 +182,13 @@ export default function StudentIDCard({ student, school }: StudentIDCardProps) {
         </div>
       </div>
 
-      {/* Footer / Stripe */}
+      {/* Footer / Stripe with motto */}
+      <div className="px-3 py-1 flex items-center justify-between gap-2 bg-slate-50 border-t border-slate-200">
+        <p className="text-[6px] font-bold text-slate-500 truncate flex-1">{school.address || school.phone || ""}</p>
+        <p className="text-[6px] font-black text-slate-600 uppercase tracking-wider truncate text-right">
+          {school.school_motto || school.motto || ""}
+        </p>
+      </div>
       <div className="h-1 w-full" style={{ backgroundColor: primaryColor }} />
     </div>
   );
