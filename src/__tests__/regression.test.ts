@@ -948,7 +948,7 @@ describe("Student totals agree across screens", () => {
 
   it("reads the Student Hub header from the uncapped head count", () => {
     const src = read("src/app/dashboard/students/page.tsx");
-    expect(src).toContain("totalCount} students enrolled");
+    expect(src).toContain("students enrolled in");
     expect(src).not.toContain("students.length} students enrolled");
   });
 

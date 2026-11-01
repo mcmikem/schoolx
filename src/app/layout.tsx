@@ -116,7 +116,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     var saveData = (navigator.connection && navigator.connection.saveData) || false;
     var prefersReducedData = false;
     try { prefersReducedData = window.matchMedia('(prefers-reduced-data: reduce)').matches; } catch(e){}
-    if ((mem && mem <= 3) || (cores && cores <= 4) || saveData || prefersReducedData) {
+    var mode = 'auto';
+    try { mode = localStorage.getItem('skoolmate-performance') || 'auto'; } catch(e){}
+    var slow = navigator.connection && /^(slow-2g|2g|3g)$/.test(navigator.connection.effectiveType || '');
+    if (mode === 'lite' || (mode !== 'full' && ((mem && mem <= 3) || (cores && cores <= 4) || saveData || slow || prefersReducedData))) {
       document.documentElement.classList.add('lite');
     }
   } catch (e) {}

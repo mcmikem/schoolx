@@ -4,6 +4,14 @@ import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
+import { isLiteMode, PERFORMANCE_EVENT } from "@/lib/performance-mode";
+import {
+  preparationKey,
+  readPreparation,
+  savePreparation,
+  PREPARE_EVENT,
+  type Preparation,
+} from "@/lib/offline-preparation";
 import { safeLocalStorage } from "@/lib/safe-storage";
 
 const WARMED_KEY = "skoolmate_offline_data_v1";
@@ -71,10 +79,7 @@ interface WarmedRecord {
 }
 
 function connectionProfile(): "essential" | "full" {
-  const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } })
-    .connection;
-  const type = connection?.effectiveType?.toLowerCase();
-  return connection?.saveData || type === "slow-2g" || type === "2g" || type === "3g" ? "essential" : "full";
+  return isLiteMode() ? "essential" : "full";
 }
 
 function alreadyWarmed(userId: string, profile: WarmedRecord["profile"]): boolean {
@@ -106,32 +111,46 @@ function markWarmed(userId: string, profile: WarmedRecord["profile"]) {
  * launch from spending the same data again.
  */
 export function OfflineDataWarmer() {
-  const { user, isDemo, authInitialized } = useAuth();
+  const { user, school, isDemo, authInitialized } = useAuth();
   const isOnline = useOnlineStatus();
 
   useEffect(() => {
-    if (!authInitialized || !user || isDemo || !isOnline) return;
+    if (!authInitialized || !user || !school?.id || isDemo || !isOnline) return;
     if (typeof navigator === "undefined") return;
     if (process.env.NODE_ENV !== "production") return;
     const profile = connectionProfile();
-    if (alreadyWarmed(user.id, profile)) return;
+    const scope = `${user.id}:${school.id}`;
+    const key = preparationKey(user.id, school.id);
+    const controller = new AbortController();
 
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let idleHandle: number | undefined;
 
-    const run = async () => {
+    let running = false;
+    const run = async (requestedProfile = profile) => {
+      if (running) return;
       if (cancelled || !navigator.onLine) return;
+      running = true;
+      const progress: Preparation = { at: Date.now(), running: true, tables: {}, errors: [] };
+      savePreparation(key, progress);
       try {
-        const tables = profile === "essential" ? ESSENTIAL_OFFLINE_DATA_TABLES : OFFLINE_DATA_TABLES;
-        const result = await offlineDB.warmTables(
-          tables,
-          profile === "essential" ? { pageSize: 100, maxRows: 100 } : { pageSize: 250, maxRows: 1000 },
-        );
+        const tables = requestedProfile === "essential" ? ESSENTIAL_OFFLINE_DATA_TABLES : OFFLINE_DATA_TABLES;
+        const result = await offlineDB.warmTables(tables, {
+          ...(requestedProfile === "essential" ? { pageSize: 100, maxRows: 100 } : { pageSize: 250, maxRows: 1000 }),
+          schoolId: school.id,
+          signal: controller.signal,
+          onProgress: (table, rows, total, complete) => {
+            if (cancelled) return;
+            progress.tables[table] = { rows, total, complete };
+            savePreparation(key, { ...progress, at: Date.now() });
+          },
+        });
         if (cancelled) return;
         // A single unavailable table must not make every launch download the
         // other 31 again. Failed tables are retried on the next daily pass.
-        if (result.rows > 0) markWarmed(user.id, profile);
+        if (result.errors.length === 0) markWarmed(scope, requestedProfile);
+        progress.errors = result.errors;
         if (result.errors.length > 0) logger.debug("[offline] some tables were not warmed", result.errors);
         window.dispatchEvent(
           new CustomEvent("skoolmate:offline-data-warmed", {
@@ -140,21 +159,39 @@ export function OfflineDataWarmer() {
         );
       } catch (error) {
         logger.warn("[offline] data warm-up failed", error);
+        progress.errors = ["Preparation stopped. Reconnect and try again."];
+      } finally {
+        running = false;
+        if (!cancelled) savePreparation(key, { ...progress, running: false, at: Date.now() });
       }
     };
 
-    if (typeof window.requestIdleCallback === "function") {
-      idleHandle = window.requestIdleCallback(() => void run(), { timeout: 30_000 });
-    } else {
-      timer = setTimeout(() => void run(), START_DELAY_MS);
-    }
+    const prepareNow = () => {
+      void run("full");
+    };
+    const schedule = () => {
+      if (alreadyWarmed(scope, connectionProfile()) || cancelled) return;
+      timer = setTimeout(() => {
+        if (typeof window.requestIdleCallback === "function") {
+          idleHandle = window.requestIdleCallback(() => void run(connectionProfile()), { timeout: 30_000 });
+        } else void run(connectionProfile());
+      }, START_DELAY_MS);
+    };
+    window.addEventListener(PREPARE_EVENT, prepareNow);
+    window.addEventListener(PERFORMANCE_EVENT, schedule);
+    const previous = readPreparation(key);
+    if (previous?.running) savePreparation(key, { ...previous, running: false });
+    schedule();
 
     return () => {
       cancelled = true;
+      controller.abort();
+      window.removeEventListener(PREPARE_EVENT, prepareNow);
+      window.removeEventListener(PERFORMANCE_EVENT, schedule);
       if (idleHandle !== undefined) window.cancelIdleCallback?.(idleHandle);
       if (timer) clearTimeout(timer);
     };
-  }, [authInitialized, user, isDemo, isOnline]);
+  }, [authInitialized, user?.id, school?.id, isDemo, isOnline]);
 
   return null;
 }

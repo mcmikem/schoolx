@@ -5,6 +5,11 @@ import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import { useOnlineStatus } from "@/lib/offline";
+import { isLiteMode } from "@/lib/performance-mode";
+import { runBackgroundWork } from "@/lib/background-work";
+import { PREPARE_EVENT } from "@/lib/offline-preparation";
+import { isRouteAllowed } from "@/components/dashboard/AccessControlGuard";
+import type { UserRole } from "@/lib/roles";
 import { safeLocalStorage } from "@/lib/safe-storage";
 
 // v2 invalidates old records: v1 marked a route complete before the service
@@ -66,19 +71,15 @@ function routesForRole(routes: string[], role: string | undefined): string[] {
   if (role === "parent") return routes.filter((route) => route.startsWith("/parent-portal/"));
   if (role === "student") return routes.filter((route) => route.startsWith("/student-portal/"));
   if (role === "super_admin") return routes.filter((route) => route.startsWith("/super-admin/"));
-  allowed = routes.filter((route) => route.startsWith("/dashboard/") || route === "/onboarding/");
+  allowed = routes.filter(
+    (route) => (route.startsWith("/dashboard/") || route === "/onboarding/") && isRouteAllowed(role as UserRole, route),
+  );
   const priority = PRIORITY_ROUTES.filter((route) => allowed.includes(route));
   return [...priority, ...allowed.filter((route) => !priority.includes(route))];
 }
 
 function isSlowConnection(): boolean {
-  const connection = (
-    navigator as Navigator & {
-      connection?: { effectiveType?: string; saveData?: boolean };
-    }
-  ).connection;
-  if (connection?.saveData) return true;
-  return ["slow-2g", "2g", "3g"].includes(connection?.effectiveType || "");
+  return isLiteMode();
 }
 
 function delay(ms: number): Promise<void> {
@@ -168,103 +169,120 @@ export function OfflineRouteWarmer() {
     if (process.env.NODE_ENV !== "production") return;
 
     let cancelled = false;
+    let running = false;
+    const controllerForWork = new AbortController();
     let idleHandle: number | undefined;
     let timerHandle: ReturnType<typeof setTimeout> | undefined;
 
-    const run = async () => {
-      if (cancelled || !navigator.onLine) return;
-      if (typeof navigator.storage?.persist === "function") {
-        try {
-          await navigator.storage.persist();
-        } catch {
-          // Persistence is a request, not a requirement.
-        }
-      }
-
-      let manifest: OfflineRouteManifest | null = null;
+    const run = async (full = false) => {
+      if (running) return;
+      running = true;
       try {
-        const response = await fetch("/offline-routes.json", { cache: "no-store" });
-        if (!response.ok) return;
-        manifest = (await response.json()) as OfflineRouteManifest;
-      } catch {
-        return;
-      }
-      if (cancelled || !manifest?.routes?.length) return;
-
-      const roleRoutes = routesForRole(manifest.routes, user.role);
-      const slow = isSlowConnection();
-      // On Data Saver / weak mobile data, prepare the pages teachers and
-      // bursars need first. Leave the rest pending for a better connection.
-      const routes = slow ? PRIORITY_ROUTES.filter((route) => roleRoutes.includes(route)) : roleRoutes;
-
-      let controller: ServiceWorker | null = null;
-      if ("serviceWorker" in navigator) {
-        try {
-          const registration = await Promise.race([navigator.serviceWorker.ready, delay(3_000).then(() => null)]);
-          controller = navigator.serviceWorker.controller || registration?.active || null;
-        } catch {
-          controller = null;
-        }
-      }
-
-      // The stored "done" list can outlive the cache it describes: a new
-      // deploy wipes the PAGE cache on activate, and the browser may evict it
-      // under storage pressure. Ask the worker what it really holds, and only
-      // fall back to the stored list when the worker cannot answer (older
-      // worker, no MessageChannel).
-      let doneKey = manifest.version;
-      let done = readDone(doneKey);
-      if (controller) {
-        const cacheState = await checkRoutesWithWorker(controller, routes);
-        if (cacheState) {
-          doneKey = `${manifest.version}:${cacheState.version}`;
-          done = new Set(cacheState.cached);
-          writeDone(doneKey, done);
-        }
-      }
-
-      const pending = routes.filter((route) => !done.has(route));
-      if (pending.length === 0) return;
-
-      const wait = slow ? BATCH_DELAY_SLOW_MS : BATCH_DELAY_MS;
-
-      for (const route of pending) {
-        if (cancelled || !navigator.onLine) break;
-        try {
-          // Let Next prepare the route's RSC payload and code, then wait for
-          // the service worker to confirm that the HTML document was cached.
-          // A failed/redirected fetch stays pending for the next online pass.
-          await router.prefetch(route);
-          const cached = controller ? await cacheRouteWithWorker(controller, route) : false;
-          if (cached) {
-            done.add(route);
-            writeDone(doneKey, done);
-          } else {
-            logger.debug("[offline] route was not confirmed in page cache; will retry", route);
+        if (cancelled || !navigator.onLine) return;
+        if (typeof navigator.storage?.persist === "function") {
+          try {
+            await navigator.storage.persist();
+          } catch {
+            // Persistence is a request, not a requirement.
           }
-        } catch (error) {
-          logger.debug("[offline] could not prefetch route", route, error);
         }
-        await delay(wait);
+
+        let manifest: OfflineRouteManifest | null = null;
+        try {
+          const response = await fetch("/offline-routes.json", { cache: "no-store" });
+          if (!response.ok) return;
+          manifest = (await response.json()) as OfflineRouteManifest;
+        } catch {
+          return;
+        }
+        if (cancelled || !manifest?.routes?.length) return;
+
+        const roleRoutes = [
+          ...new Set([user.role, ...(user.roles || [])].flatMap((role) => routesForRole(manifest!.routes, role))),
+        ];
+        const slow = !full && isSlowConnection();
+        // On Data Saver / weak mobile data, prepare the pages teachers and
+        // bursars need first. Leave the rest pending for a better connection.
+        const routes = slow ? PRIORITY_ROUTES.filter((route) => roleRoutes.includes(route)) : roleRoutes;
+
+        let controller: ServiceWorker | null = null;
+        if ("serviceWorker" in navigator) {
+          try {
+            const registration = await Promise.race([navigator.serviceWorker.ready, delay(3_000).then(() => null)]);
+            controller = navigator.serviceWorker.controller || registration?.active || null;
+          } catch {
+            controller = null;
+          }
+        }
+
+        // The stored "done" list can outlive the cache it describes: a new
+        // deploy wipes the PAGE cache on activate, and the browser may evict it
+        // under storage pressure. Ask the worker what it really holds, and only
+        // fall back to the stored list when the worker cannot answer (older
+        // worker, no MessageChannel).
+        let doneKey = manifest.version;
+        let done = readDone(doneKey);
+        if (controller) {
+          const cacheState = await checkRoutesWithWorker(controller, routes);
+          if (cacheState) {
+            doneKey = `${manifest.version}:${cacheState.version}`;
+            done = new Set(cacheState.cached);
+            writeDone(doneKey, done);
+          }
+        }
+
+        const pending = routes.filter((route) => !done.has(route));
+        if (pending.length === 0) return;
+
+        const wait = slow ? BATCH_DELAY_SLOW_MS : BATCH_DELAY_MS;
+
+        for (const route of pending) {
+          if (cancelled || !navigator.onLine) break;
+          try {
+            // Let Next prepare the route's RSC payload and code, then wait for
+            // the service worker to confirm that the HTML document was cached.
+            // A failed/redirected fetch stays pending for the next online pass.
+            const cached = await runBackgroundWork(async () => {
+              router.prefetch(route);
+              return controller ? await cacheRouteWithWorker(controller, route) : false;
+            }, controllerForWork.signal);
+            if (cached) {
+              done.add(route);
+              writeDone(doneKey, done);
+            } else {
+              logger.debug("[offline] route was not confirmed in page cache; will retry", route);
+            }
+          } catch (error) {
+            logger.debug("[offline] could not prefetch route", route, error);
+          }
+          await delay(wait);
+        }
+      } finally {
+        running = false;
       }
     };
 
     const schedule = () => {
-      if (typeof window.requestIdleCallback === "function") {
-        idleHandle = window.requestIdleCallback(() => void run(), { timeout: 20_000 });
-      } else {
-        timerHandle = setTimeout(() => void run(), START_DELAY_MS);
-      }
+      timerHandle = setTimeout(() => {
+        if (typeof window.requestIdleCallback === "function") {
+          idleHandle = window.requestIdleCallback(() => void run(), { timeout: 20_000 });
+        } else void run();
+      }, START_DELAY_MS);
     };
-
+    const prepareNow = () => {
+      void run(true);
+    };
+    window.addEventListener(PREPARE_EVENT, prepareNow);
     schedule();
 
     return () => {
       cancelled = true;
+      controllerForWork.abort();
+      window.removeEventListener(PREPARE_EVENT, prepareNow);
       if (idleHandle !== undefined) window.cancelIdleCallback?.(idleHandle);
       if (timerHandle) clearTimeout(timerHandle);
     };
-  }, [authInitialized, user, isOnline, router]);
+  }, [authInitialized, user?.id, user?.role, JSON.stringify(user?.roles), isOnline, router]);
 
   return null;
 }

@@ -153,18 +153,15 @@ async function matchNearestSectionPage(pathname) {
  */
 async function warmAppShell() {
   const pageCache = await caches.open(PAGE_CACHE);
-  await Promise.all(
-    APP_SHELL_ROUTES.map((url) =>
-      fetch(url, { credentials: 'same-origin' })
-        .then((res) => {
-          if (res.ok && !res.redirected) {
-            return cache.put(url, res);
-          }
-          return undefined;
-        })
-        .catch(() => undefined)
-    )
-  );
+  // A small sequential safety net; the signed-in client prepares role-specific
+  // routes through WARM_ROUTE with the shared foreground-aware scheduler.
+  for (const url of APP_SHELL_ROUTES.slice(0, 6)) {
+    try {
+      if (await pageCache.match(url)) continue;
+      const res = await fetch(url, { credentials: 'same-origin' });
+      if (res.ok && !res.redirected) await pageCache.put(url, res);
+    } catch { /* The client verifies missing routes and retries on reconnect. */ }
+  }
 }
 
 self.addEventListener('install', (event) => {

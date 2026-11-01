@@ -1,4 +1,5 @@
 "use client";
+import { readDraft, writeDraft } from "@/lib/draft-storage";
 import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { NoData } from "@/components/EmptyState";
@@ -152,7 +153,7 @@ async function saveGrade(grade: {
 
   if (!navigator.onLine) {
     await offlineDB.save("grades", payload as unknown as Record<string, unknown>);
-    return { ...payload, id: `offline-grade-${Date.now()}`, created_at: new Date().toISOString() };
+    return { ...payload, id: `offline-grade-${Date.now()}`, created_at: new Date().toISOString(), queued: true };
   }
 
   const data = await upsertRecordReturning<any>(
@@ -554,6 +555,17 @@ export default function GradesPage() {
   const activeSheetKey =
     selectedClass && selectedSubject ? `${selectedClass}:${selectedSubject}:${currentTerm}:${academicYear}` : "";
 
+  const gradeDraftKey = (sheet: string) => `skoolmate:draft:grades:${user?.id}:${school?.id}:${sheet}`;
+  type GradeDraft = Record<string, { score: number; max: number }>;
+  const [draftWarning, setDraftWarning] = useState(false);
+  const forgetSavedDraft = (sheet: string, key: string, score: number) => {
+    const storageKey = gradeDraftKey(sheet);
+    const draft = readDraft<GradeDraft>(storageKey) || {};
+    if (draft[key]?.score === score) {
+      delete draft[key];
+      writeDraft(storageKey, draft);
+    }
+  };
   // Undo for marks.
   //
   // Attendance and fees both had undo; grades did not, and it is the page with
@@ -768,7 +780,12 @@ export default function GradesPage() {
         }
       }
 
+      const draft = activeSheetKey ? readDraft<GradeDraft>(gradeDraftKey(activeSheetKey)) : null;
       const mergedMarks = cachedSheetMarks ? { ...marksMap, ...cachedSheetMarks } : marksMap;
+      if (draft)
+        for (const [key, value] of Object.entries(draft)) {
+          if (Number.isFinite(value.score)) mergedMarks[key] = value.score;
+        }
       const mergedMaxScores = cachedSheetMaxScores ? { ...maxScoresMap, ...cachedSheetMaxScores } : maxScoresMap;
       if (activeSheetKey) {
         sheetMarksCacheRef.current[activeSheetKey] = mergedMarks;
@@ -776,6 +793,10 @@ export default function GradesPage() {
       }
 
       setMarks(mergedMarks);
+      if (draft)
+        for (const [key, value] of Object.entries(draft)) {
+          if (Number.isFinite(value.max)) mergedMaxScores[key] = value.max;
+        }
       setMarkMaxScores(mergedMaxScores);
       setMarksBy(newMarksBy);
       setCaLocked(isCaLocked);
@@ -911,6 +932,10 @@ export default function GradesPage() {
         if (activeSheetKey) sheetMarkMaxCacheRef.current[activeSheetKey] = next;
         return next;
       });
+      const draftKey = gradeDraftKey(activeSheetKey);
+      const draft = readDraft<GradeDraft>(draftKey) || {};
+      draft[`${studentId}_${type}`] = { score: num, max: getAssessmentMaximum(type) };
+      setDraftWarning(!writeDraft(draftKey, draft));
       dirtyCellsRef.current.set(`${activeSheetKey}:${studentId}_${type}`, {
         subjectId: selectedSubject,
         classId: selectedClass,
@@ -1076,7 +1101,7 @@ export default function GradesPage() {
         try {
           const maxScore =
             sheetMarkMaxCacheRef.current[sheetKey]?.[key] ?? markMaxScores[key] ?? getAssessmentMaximum(type);
-          await saveGrade({
+          const saved = await saveGrade({
             student_id: studentId,
             subject_id: subjectId,
             class_id: classId,
@@ -1090,7 +1115,8 @@ export default function GradesPage() {
             isDemo,
             schoolId: school?.id,
           });
-          setSaveStatuses((prev) => ({ ...prev, [statusKey]: "saved" }));
+          forgetSavedDraft(sheetKey, key, score);
+          setSaveStatuses((prev) => ({ ...prev, [statusKey]: "queued" in saved && saved.queued ? "queued" : "saved" }));
           setTimeout(() => {
             setSaveStatuses((prev) => {
               const next = { ...prev };
@@ -1100,7 +1126,7 @@ export default function GradesPage() {
           }, 2000);
         } catch (err) {
           logger.warn("Failed to auto-save grade:", err);
-          setSaveStatuses((prev) => ({ ...prev, [statusKey]: "idle" }));
+          setSaveStatuses((prev) => ({ ...prev, [statusKey]: "error" }));
           toast.error(`Failed to auto-save ${type.toUpperCase()} for student`);
         }
       }, 500);
@@ -1323,6 +1349,8 @@ export default function GradesPage() {
   const getInputBorderClass = useCallback(
     (studentId: string, type: string): string => {
       const status = getSaveStatusForInput(studentId, type);
+      if (status === "error") return "ring-2 ring-red-500 bg-red-50/30";
+      if (status === "queued") return "ring-2 ring-amber-400 bg-amber-50/30";
       if (status === "dirty") return "ring-2 ring-amber-400 bg-amber-50/30";
       if (status === "saving") return "ring-2 ring-blue-400 bg-blue-50/30 animate-pulse";
       if (status === "saved") return "ring-2 ring-green-400 bg-green-50/30";
@@ -1390,6 +1418,11 @@ export default function GradesPage() {
           gradePayload.competency_level = getCompetencyLabel(score as CompetencyValue);
         }
         await saveGrade(gradePayload);
+        forgetSavedDraft(
+          activeSheetKey,
+          `${gradePayload.student_id}_${gradePayload.assessment_type}`,
+          gradePayload.score,
+        );
       }
       // Bulk-sync student_grades for all students in this subject
       const hasLegacyMarks = Object.keys(marks).some(
@@ -1848,6 +1881,18 @@ export default function GradesPage() {
             </Button>
           </ModalFooter>
         </Modal>
+        <div role="status" aria-live="polite" className="mb-3 text-sm text-[var(--t2)]">
+          {Object.values(saveStatuses).some((status) => status === "error")
+            ? "Some marks could not be saved. Your draft is kept on this phone; use Save draft to retry."
+            : Object.values(saveStatuses).some((status) => status === "queued")
+              ? "Saved on this phone — waiting to sync."
+              : "Marks save automatically. Use Save draft to save or retry the whole sheet."}
+        </div>
+        {draftWarning && (
+          <p role="alert" className="mb-3 text-sm text-[var(--red)]">
+            This phone could not store a recovery draft. Save your marks before leaving.
+          </p>
+        )}
         <PageHeader
           title="Grades & Marks"
           subtitle={

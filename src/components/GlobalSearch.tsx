@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
-import { canAccess, type UserRole, type RolePermissions } from "@/lib/roles";
+import { offlineDB, useOnlineStatus } from "@/lib/offline";
+import { searchWords } from "@/lib/students/registry-query";
+import { canAccessAny, canAccess, type UserRole, type RolePermissions } from "@/lib/roles";
 import { roleBasedRoutes } from "@/components/dashboard/AccessControlGuard";
 import { canOpenSettingsPage } from "@/lib/role-tab-access";
 
@@ -57,6 +59,8 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
   const router = useRouter();
   const { user } = useAuth();
   const schoolId = user?.school_id;
+  const isOnline = useOnlineStatus();
+  const searchRequest = useRef(0);
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -75,8 +79,9 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
   // Same permission table the route guard uses: a teacher has fees/messages/
   // staff denied, so search must not surface those pages or their rows either.
   const can = useCallback(
-    (feature: keyof RolePermissions): boolean => (user?.role ? canAccess(user.role as UserRole, feature) : true),
-    [user?.role],
+    (feature: keyof RolePermissions): boolean =>
+      !!user?.role && canAccessAny([user.role as UserRole, ...(user.roles || [])], feature),
+    [user?.role, user?.roles],
   );
 
   const pages = useMemo<SearchResult[]>(
@@ -212,8 +217,46 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
         return;
       }
 
+      const request = ++searchRequest.current;
       setLoading(true);
-      const searchTerm = `%${searchQuery}%`;
+      const safeQuery = searchWords(searchQuery).join(" ");
+      if (!safeQuery) {
+        setResults([]);
+        setLoading(false);
+        return;
+      }
+      if (!isOnline) {
+        try {
+          const cached = can("students") ? await offlineDB.getAllFromCache("students", { school_id: schoolId }) : [];
+          const words = safeQuery.toLowerCase().split(" ");
+          const students: SearchResult[] = cached
+            .filter((student) =>
+              words.every((word) =>
+                `${student.first_name} ${student.last_name} ${student.student_number || ""}`
+                  .toLowerCase()
+                  .includes(word),
+              ),
+            )
+            .slice(0, 5)
+            .map((student) => ({
+              type: "student",
+              id: String(student.id),
+              title: `${student.first_name} ${student.last_name}`,
+              subtitle: `${student.student_number || "Student"} · saved copy`,
+              icon: "person",
+              href: `/dashboard/students/${student.id}`,
+            }));
+          if (request === searchRequest.current)
+            setResults([
+              ...students,
+              ...pages.filter((page) => page.title.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 5),
+            ]);
+        } finally {
+          if (request === searchRequest.current) setLoading(false);
+        }
+        return;
+      }
+      const searchTerm = `%${safeQuery}%`;
       const [studentsRes, staffRes, paymentsRes, messagesRes] = await Promise.all([
         can("students")
           ? supabase
@@ -292,13 +335,15 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
 
       const pageResults = pages.filter((p) => p.title.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 5);
 
+      if (request !== searchRequest.current) return;
       setResults([...studentResults, ...staffResults, ...paymentResults, ...messageResults, ...pageResults]);
       setLoading(false);
     },
-    [schoolId, pages, can],
+    [schoolId, pages, can, isOnline],
   );
 
   useEffect(() => {
+    if (!isOpen) return;
     const timer = setTimeout(() => {
       if (query.length >= 2) {
         searchDatabase(query);
@@ -307,8 +352,11 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
         setResults([]);
       }
     }, 300);
-    return () => clearTimeout(timer);
-  }, [query, searchDatabase]);
+    return () => {
+      clearTimeout(timer);
+      searchRequest.current++;
+    };
+  }, [query, searchDatabase, isOpen]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -441,6 +489,11 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
               </button>
             </div>
 
+            {!isOnline && (
+              <p role="status" className="px-4 py-2 text-sm text-[var(--t2)]">
+                Offline: searching saved students and pages. Results may be incomplete.
+              </p>
+            )}
             <div ref={resultsRef} className="max-h-[60vh] overflow-y-auto">
               {results.length === 0 && query.length >= 2 && !loading && (
                 <div className="px-4 py-8 text-center text-[var(--t3)]">No results found for &quot;{query}&quot;</div>

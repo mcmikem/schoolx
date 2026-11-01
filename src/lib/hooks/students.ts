@@ -16,6 +16,8 @@ import {
   normalizeStudentUpdateInput,
   validateStudentInput,
 } from "@/lib/validation";
+import { registryQuery, type RegistryQuery } from "@/lib/students/registry-query";
+import { filterStudents, sortStudents } from "@/lib/students/registry";
 import type { Class, CreateStudentInput, Student } from "@/types";
 import { getCachedData, getOrFetchCached, invalidateCachePattern } from "./queryCache";
 import { getLocalDateString, getQuerySchoolId, isTimeoutResult, timeoutFallback, withTimeout } from "./utils";
@@ -130,6 +132,7 @@ export type StudentQueryOptions = {
   fields?: "full" | "slim";
   /** Hold the first fetch until the caller has resolved device/network settings. */
   enabled?: boolean;
+  registry?: RegistryQuery;
 };
 
 function buildCoreStudentPayload(student: Record<string, unknown>) {
@@ -284,6 +287,7 @@ async function fetchStudentsWithFallback(options: {
   offset: number;
   limit: number;
   fields?: "full" | "slim";
+  registry?: RegistryQuery;
 }): Promise<StudentWithClass[]> {
   // PostgREST caps an individual response at 1,000 rows. A few screens ask
   // for a larger list, so fetch it in bounded pages instead of silently
@@ -323,18 +327,20 @@ async function fetchStudentsWithFallback(options: {
   let lastError: unknown = null;
 
   for (const attempt of selectAttempts) {
-    const result = await supabase
-      .from("students")
-      .select(attempt.fields)
-      .eq("school_id", options.schoolId)
-      .order("created_at", { ascending: false })
-      .range(options.offset, options.offset + options.limit - 1);
+    const query = options.registry
+      ? registryQuery(options.schoolId, attempt.fields, options.registry)
+      : supabase
+          .from("students")
+          .select(attempt.fields)
+          .eq("school_id", options.schoolId)
+          .order("created_at", { ascending: false });
+    const result = await query.range(options.offset, options.offset + options.limit - 1);
 
     if (!result.error) {
       return result.data as unknown as StudentWithClass[];
     }
 
-    if (isAnyMissingStudentsColumnError(result.error)) {
+    if (isMissingStudentColumnError(result.error, "photo_url") && studentPhotoColumnSupported !== false) {
       studentPhotoColumnSupported = false;
       return fetchStudentsWithFallback(options);
     }
@@ -652,7 +658,10 @@ export function useStudents(schoolId?: string, options?: StudentQueryOptions): U
   const offset = options?.offset || 0;
   const slim = options?.fields === "slim";
   const enabled = options?.enabled ?? true;
-  const cacheKey = `students:${schoolId}:${limit}:${offset}:${slim ? "slim" : "full"}`;
+  const registryKey = JSON.stringify(options?.registry ?? null);
+  const registry = options?.registry;
+  const requestId = useRef(0);
+  const cacheKey = `students:${schoolId}:${limit}:${offset}:${slim ? "slim" : "full"}:${registryKey}`;
   const cachedData = getCachedData<StudentsCacheEntry>(cacheKey);
   const [students, setStudents] = useState<StudentWithClass[]>(cachedData?.students || []);
   const [loading, setLoading] = useState(!cachedData);
@@ -838,10 +847,19 @@ export function useStudents(schoolId?: string, options?: StudentQueryOptions): U
   }, [seedStudentNumberSequence, isStudentNumberTaken]);
 
   const fetchStudents = useCallback(async () => {
+    const request = ++requestId.current;
+    setError(null);
     // Demo mode - check for demo school UUID
     if (isDemo || isDemoSchool(schoolId)) {
-      setStudents(DEMO_STUDENTS as unknown as StudentWithClass[]);
-      setTotalCount(DEMO_STUDENTS.length);
+      const filtered = registry
+        ? sortStudents(
+            filterStudents(DEMO_STUDENTS as unknown as StudentWithClass[], registry),
+            registry.sortBy || "name",
+            registry.sortDir,
+          )
+        : (DEMO_STUDENTS as unknown as StudentWithClass[]);
+      setStudents(registry ? filtered.slice(offset, offset + limit) : filtered);
+      setTotalCount(filtered.length);
       studentCountRef.current = DEMO_STUDENTS.length;
       setLoading(false);
       return;
@@ -862,17 +880,42 @@ export function useStudents(schoolId?: string, options?: StudentQueryOptions): U
       return;
     }
 
+    if (registry && !isOnline) {
+      try {
+        const cached = await offlineDB.getAllFromCache("students", { school_id: querySchoolId });
+        const rows = sortStudents(
+          filterStudents(cached as unknown as StudentWithClass[], registry),
+          registry.sortBy || "name",
+          registry.sortDir,
+        );
+        if (request !== requestId.current) return;
+        setStudents(rows.slice(offset, offset + limit));
+        setTotalCount(rows.length);
+      } catch {
+        if (request === requestId.current) setError("Could not read saved students.");
+      } finally {
+        if (request === requestId.current) setLoading(false);
+      }
+      return;
+    }
+
     try {
       setLoading(true);
+      if (registry) setStudents([]);
       // Count and rows are fetched under one shared promise and cached
       // together. Previously every consumer that mounted in the same tick found
       // an empty cache and issued its own identical pair of round-trips, which
       // is expensive when each query crosses an ocean to reach the database.
       const { data: entry } = await getOrFetchCached<StudentsCacheEntry>(cacheKey, async () => {
-        const timeoutFallback = getStudentSelectTimeoutFallback(null, lastResolvedStudentsRef.current);
+        const timeoutFallback = registry
+          ? null
+          : getStudentSelectTimeoutFallback(null, lastResolvedStudentsRef.current);
         const [countResult, data] = await Promise.all([
           withTimeout(
-            supabase.from("students").select("id", { count: "exact", head: true }).eq("school_id", querySchoolId),
+            (registry
+              ? registryQuery(querySchoolId, "id", registry, true)
+              : supabase.from("students").select("id", { count: "exact", head: true }).eq("school_id", querySchoolId)
+            ).then((result) => ({ count: result.count, error: result.error })),
             5000,
             null,
           ),
@@ -882,28 +925,33 @@ export function useStudents(schoolId?: string, options?: StudentQueryOptions): U
               offset,
               limit,
               fields: slim ? "slim" : "full",
+              registry,
             }),
             8000,
             timeoutFallback,
           ),
         ]);
 
+        if (registry && data === null) throw new Error("Student search timed out. Try again.");
         const rows = (data as unknown as StudentWithClass[]) || [];
+        if (registry && (countResult === null || countResult.error))
+          throw new Error("Could not read register totals. Try again.");
         const count = typeof countResult?.count === "number" && countResult.count > 0 ? countResult.count : rows.length;
 
         return { students: rows, count };
       });
 
+      if (request !== requestId.current) return;
       setStudents(entry.students);
       setTotalCount(entry.count);
       studentCountRef.current = entry.count;
       lastResolvedStudentsRef.current = entry.students;
     } catch (err: unknown) {
-      setError(getErrorMessage(err, "Failed to load students"));
+      if (request === requestId.current) setError(getErrorMessage(err, "Failed to load students"));
     } finally {
-      setLoading(false);
+      if (request === requestId.current) setLoading(false);
     }
-  }, [schoolId, isDemo, limit, offset, cacheKey]);
+  }, [schoolId, isDemo, limit, offset, cacheKey, registryKey, isOnline]);
 
   const createStudent = async (student: CreateStudentInput) => {
     const normalizedStudent = normalizeStudentInput(student);
@@ -1327,7 +1375,7 @@ export function useStudents(schoolId?: string, options?: StudentQueryOptions): U
   // read here (never overwrite) — the shared cache is populated by the full
   // select hooks so a reference refresh can't degrade the stored records.
   useEffect(() => {
-    if (isDemo || isDemoSchool(schoolId) || !schoolId) return;
+    if (registry || !enabled || isDemo || isDemoSchool(schoolId) || !schoolId) return;
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     if (!querySchoolId) return;
     let cancelled = false;
@@ -1348,7 +1396,7 @@ export function useStudents(schoolId?: string, options?: StudentQueryOptions): U
     return () => {
       cancelled = true;
     };
-  }, [schoolId, isDemo, limit]);
+  }, [schoolId, isDemo, limit, registryKey, enabled]);
 
   useEffect(() => {
     if (!enabled) return;

@@ -64,8 +64,28 @@ export function filterStudents<T extends RegistryStudent>(students: T[], filters
     position = "all",
     defaultersOnly = false,
   } = filters;
+  const words = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const exact = (student: T) =>
+    words.every(
+      (word) =>
+        `${student.first_name} ${student.last_name}`.toLowerCase().includes(word) ||
+        (student.parent_name || "").toLowerCase().includes(word) ||
+        (student.student_number || "").toLowerCase().includes(word),
+    );
+  const fuzzy = words.length
+    ? new Set(
+        new Fuse(students, {
+          keys: ["first_name", "last_name", "parent_name", "student_number"],
+          threshold: 0.3,
+          ignoreLocation: true,
+          minMatchCharLength: 2,
+        })
+          .search(search.trim())
+          .map((result) => result.item),
+      )
+    : null;
   return students.filter((student) => {
-    if (!matchesStudentSearch(student, search)) return false;
+    if (words.length && !exact(student) && !fuzzy?.has(student)) return false;
     if (classId !== "all" && student.class_id !== classId) return false;
     if (gender !== "all" && student.gender !== gender) return false;
     if (status !== "all" && student.status !== status) return false;

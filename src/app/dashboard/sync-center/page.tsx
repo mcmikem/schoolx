@@ -1,4 +1,5 @@
 "use client";
+import { OfflinePreparation } from "@/components/OfflinePreparation";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { offlineDB } from "@/lib/offline";
@@ -105,6 +106,7 @@ export default function SyncCenterPage() {
   } | null>(null);
 
   const loadData = useCallback(async () => {
+    if (document.visibilityState === "hidden") return;
     try {
       const pendingItems = (await offlineDB.getPendingSync()) as unknown as PendingItem[];
       const failedItems = (await offlineDB.getFailedSync()) as unknown as PendingItem[];
@@ -144,7 +146,11 @@ export default function SyncCenterPage() {
   useEffect(() => {
     loadData();
     const interval = setInterval(loadData, 10000);
-    return () => clearInterval(interval);
+    document.addEventListener("visibilitychange", loadData);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", loadData);
+    };
   }, [loadData]);
 
   const handleSync = async () => {
@@ -293,6 +299,7 @@ export default function SyncCenterPage() {
           title="Sync Center"
           subtitle="Offline changes, conflicts and last-sync status — one place, on any device"
         />
+        <OfflinePreparation />
 
         <StatStrip
           ariaLive="polite"

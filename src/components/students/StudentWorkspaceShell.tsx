@@ -6,11 +6,11 @@ import MaterialIcon from "@/components/MaterialIcon";
 type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "promotion";
 
 interface StudentWorkspaceShellProps {
-  totalStudents: number;
-  boysCount: number;
-  girlsCount: number;
+  totalStudents: number | null;
+  boysCount: number | null;
+  girlsCount: number | null;
   classesCount: number;
-  activeStudents: number;
+  activeStudents: number | null;
   transferredCount: number;
   atRiskCount: number;
   likelyDropoutCount: number;
@@ -63,7 +63,7 @@ export default function StudentWorkspaceShell({
     activeButton?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
   }, [activeTab]);
 
-  const workflowCounts: Record<StudentWorkspaceTab, number> = {
+  const workflowCounts: Record<StudentWorkspaceTab, number | null> = {
     registry: totalStudents,
     transfers: transferredCount,
     dropouts: atRiskCount + likelyDropoutCount,
@@ -87,7 +87,7 @@ export default function StudentWorkspaceShell({
               {s.label}
             </div>
             <div className="mt-1 text-xl font-extrabold tabular-nums" style={{ color: s.color }}>
-              {s.value}
+              {s.value ?? "—"}
             </div>
           </div>
         ))}
@@ -114,7 +114,7 @@ export default function StudentWorkspaceShell({
             >
               <MaterialIcon icon={tab.icon} size={16} />
               {tab.label}
-              {count > 0 && (
+              {count !== null && count > 0 && (
                 <span className={`text-xs tabular-nums ${isActive ? "text-[var(--primary)]" : "text-[var(--t3)]"}`}>
                   {count}
                 </span>

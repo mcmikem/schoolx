@@ -4,15 +4,15 @@ const config: CapacitorConfig = {
   appId: "com.skoolmate.os",
   appName: "SkoolMate OS",
   webDir: "out",
-  // TODO: Change to staging URL for non-production builds
+  // Native WebView loads the hosted app; staging builds can override explicitly.
   server: {
-    url: "https://omuto-school-management.vercel.app",
+    url: process.env.SKOOLMATE_NATIVE_SERVER_URL || "https://skoolmate.omuto.org",
     hostname: "skoolmate.os",
     androidScheme: "https",
     cleartext: false,
   },
   android: {
-    allowMixedContent: true,
+    allowMixedContent: false,
     captureInput: true,
   },
   ios: {

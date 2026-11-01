@@ -76,7 +76,7 @@ describe("offline background warmers", () => {
     expect(warmer).toContain('"attendance"');
     expect(warmer).toContain('"grades"');
     expect(warmer).toContain('"fee_payments"');
-    expect(warmer).toContain("{ pageSize: 100, maxRows: 100 }");
+    expect(warmer).toContain("pageSize: 100, maxRows: 100");
   });
 
   it("limits offline page downloads to core work screens on weak connections", () => {

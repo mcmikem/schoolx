@@ -12,6 +12,7 @@ import { useNotifications } from "@/lib/notifications";
 import { canOpenSettingsPage } from "@/lib/role-tab-access";
 import { canAccess, type UserRole } from "@/lib/roles";
 import { supabase } from "@/lib/supabase";
+import { usePerformanceMode } from "@/lib/performance-mode";
 import { useTheme } from "@/lib/theme-context";
 import { logger } from "@/lib/logger";
 import { useSyncStatus } from "@/lib/useSyncStatus";
@@ -236,6 +237,7 @@ function NotificationsPanel({
 
 function UserMenu({ open, onClose, onSignOut }: { open: boolean; onClose: () => void; onSignOut: () => void }) {
   const { user, school } = useAuth();
+  const performance = usePerformanceMode();
   const schoolName = school?.name || "School";
 
   /**
@@ -305,6 +307,19 @@ function UserMenu({ open, onClose, onSignOut }: { open: boolean; onClose: () => 
         <MaterialIcon icon="help_outline" size={20} />
         Help: learn step by step
       </Link>
+      <label className="flex items-center justify-between gap-2 px-4 py-2 text-sm text-[var(--t2)]">
+        <span>Performance mode</span>
+        <select
+          aria-label="Performance mode"
+          value={performance.mode}
+          onChange={(event) => performance.setMode(event.target.value as "auto" | "lite" | "full")}
+          className="min-h-11 max-w-24 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2"
+        >
+          <option value="auto">Auto</option>
+          <option value="lite">Lite</option>
+          <option value="full">Full</option>
+        </select>
+      </label>
       {canOpenSettingsPage(user?.role) && (
         <Link
           href="/dashboard/settings"

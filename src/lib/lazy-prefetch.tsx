@@ -1,19 +1,9 @@
+import { isLiteMode } from "@/lib/performance-mode";
+import { runBackgroundWork } from "@/lib/background-work";
 import dynamic from "next/dynamic";
 import type { ComponentType } from "react";
 
 type Importer<P> = () => Promise<{ default: ComponentType<P> }>;
-
-type NetworkInformationLike = {
-  saveData?: boolean;
-  effectiveType?: string;
-};
-
-function isSlowConnection(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const conn = (navigator as Navigator & { connection?: NetworkInformationLike }).connection;
-  if (!conn) return false;
-  return Boolean(conn.saveData) || conn.effectiveType === "slow-2g" || conn.effectiveType === "2g";
-}
 
 function whenIdle(task: () => void, delayMs: number): void {
   if (typeof window === "undefined") return;
@@ -45,11 +35,11 @@ export function lazyWithIdlePrefetch<P extends object>(
 ): ComponentType<P> {
   whenIdle(
     () => {
-      importer().catch(() => {
+      void runBackgroundWork(importer).catch(() => {
         /* Offline or a failed chunk: the real render path retries and reports. */
       });
     },
-    isSlowConnection() ? 8000 : 1500,
+    isLiteMode() ? 12000 : 4000,
   );
 
   return dynamic<P>(importer, { loading: options.loading ?? (() => null) }) as ComponentType<P>;

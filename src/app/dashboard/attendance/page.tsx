@@ -1,4 +1,5 @@
 "use client";
+import { readDraft, writeDraft, clearDraft } from "@/lib/draft-storage";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
@@ -353,6 +354,13 @@ export default function AttendancePage() {
     refetch: refetchAttendance,
   } = useOfflineAttendance(selectedClass && school?.id ? school.id : undefined, date);
 
+  const attendanceDraftKey = `skoolmate:draft:attendance:${user?.id}:${school?.id}:${selectedClass}:${date}`;
+  const loadedDraftScope = useRef("");
+  const [draftWarning, setDraftWarning] = useState(false);
+  useEffect(() => {
+    if (!dirtyRef.current || loadedDraftScope.current !== attendanceDraftKey) return;
+    setDraftWarning(!writeDraft(attendanceDraftKey, attendance));
+  }, [attendance, attendanceDraftKey]);
   useEffect(() => {
     if (!selectedClass || !school?.id) return;
     setAllMarked(false);
@@ -374,10 +382,29 @@ export default function AttendancePage() {
     // Only saved/edited marks live in state — unmarked rows show an honest
     // "Unmarked" chip (first tap = Absent) and still save as Present, so a
     // save is never silently partial.
-    setAttendance(attendanceMap);
-    // Freshly loaded from source — nothing local is unsaved.
-    dirtyRef.current = false;
-  }, [selectedClass, school?.id, offlineStudents, offlineAttendance, studentsLoading, attendanceLoading]);
+    if (studentsLoading || attendanceLoading) return;
+    // A background refresh must never overwrite a register being marked.
+    if (loadedDraftScope.current === attendanceDraftKey && dirtyRef.current) return;
+    const draft = readDraft<Record<string, string>>(attendanceDraftKey);
+    const restored = draft
+      ? Object.fromEntries(
+          Object.entries(draft).filter(
+            ([id, status]) => classIds.has(id) && ["present", "absent", "late", "excused", "sick"].includes(status),
+          ),
+        )
+      : {};
+    setAttendance({ ...attendanceMap, ...restored });
+    loadedDraftScope.current = attendanceDraftKey;
+    dirtyRef.current = Object.keys(restored).length > 0;
+  }, [
+    selectedClass,
+    school?.id,
+    offlineStudents,
+    offlineAttendance,
+    studentsLoading,
+    attendanceLoading,
+    attendanceDraftKey,
+  ]);
 
   // Returning to this tab (a phone call, another app, a locked screen) should
   // show the truth: marks may have moved on another device, or synced in from
@@ -652,6 +679,7 @@ export default function AttendancePage() {
         await loadOfflineCount();
         const summaryCounts = countStatuses(Object.values(effective));
         dirtyRef.current = false;
+        clearDraft(attendanceDraftKey);
         setSavedSummary({
           ...summaryCounts,
           total: records.length,
@@ -694,6 +722,7 @@ export default function AttendancePage() {
       await loadOfflineCount();
       const summaryCounts = countStatuses(records.map((r) => String((r as { status?: unknown }).status ?? "")));
       dirtyRef.current = false;
+      clearDraft(attendanceDraftKey);
       setSavedSummary({
         ...summaryCounts,
         total: records.length,
@@ -1148,6 +1177,11 @@ export default function AttendancePage() {
 
       <PageErrorBoundary>
         <div className="content min-w-0 pb-28 lg:pb-20">
+          {draftWarning && (
+            <p role="alert" className="mb-3 rounded-lg border border-[var(--red)] p-3 text-sm">
+              This phone could not store your draft. Save the register before leaving this page.
+            </p>
+          )}
           <PageHeader
             title="Attendance Center"
             subtitle={`Marking records for ${selectedClassName?.name || "Academic Classes"}`}

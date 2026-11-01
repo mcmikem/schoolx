@@ -262,6 +262,7 @@ export default function FinanceHubPage() {
     if (isDemo) return;
     let cancelled = false;
     const poll = async () => {
+      if (cancelled || document.visibilityState === "hidden" || !navigator.onLine) return;
       try {
         const res = await fetch("/api/parent/fee-payment-claims/", {
           method: "POST",
@@ -276,9 +277,13 @@ export default function FinanceHubPage() {
     };
     void poll();
     const id = window.setInterval(poll, 60000);
+    document.addEventListener("visibilitychange", poll);
+    window.addEventListener("online", poll);
     return () => {
       cancelled = true;
       window.clearInterval(id);
+      document.removeEventListener("visibilitychange", poll);
+      window.removeEventListener("online", poll);
     };
   }, [isDemo]);
 

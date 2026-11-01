@@ -6,7 +6,7 @@
 
 export type StudentMarks = Record<string, number | null>;
 
-export type SaveStatus = "idle" | "dirty" | "saving" | "saved";
+export type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "queued" | "error";
 
 export type GradeResult = { grade: string; color: string };
 

@@ -1,4 +1,8 @@
 "use client";
+import { useOnlineStatus } from "@/lib/offline";
+import { useRegistrySummary } from "@/lib/hooks/useRegistrySummary";
+import { fetchAllStudents } from "@/lib/hooks/students";
+import { isLiteMode, PERFORMANCE_EVENT } from "@/lib/performance-mode";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -107,6 +111,7 @@ interface AttendanceStatusMeta {
 
 export default function StudentHubPage() {
   const { school, user, isDemo } = useAuth();
+  const isOnline = useOnlineStatus();
   const { academicYear, currentTerm } = useAcademic();
   // Teachers can register and correct students (RLS limits them to their own classes).
   // Import, PLE numbering, meals/registration bulk edits and deleting stay with
@@ -126,25 +131,10 @@ export default function StudentHubPage() {
   const [networkProfileReady, setNetworkProfileReady] = useState(false);
   const [loadFullRoster, setLoadFullRoster] = useState(false);
   const [attendanceStatusMap, setAttendanceStatusMap] = useState<Record<string, AttendanceStatusMeta>>({});
-  const preferredPageSize = tablePrefs.pageSize || (isConstrainedNetwork ? 20 : 50);
+  const preferredPageSize =
+    tablePrefs.pageSize === -1 && !loadFullRoster ? 50 : tablePrefs.pageSize || (isConstrainedNetwork ? 20 : 50);
   const itemsPerPage = preferredPageSize;
-  const registryFetchLimit = isConstrainedNetwork && !loadFullRoster ? 500 : 10000;
-
-  const {
-    students,
-    loading,
-    createStudent,
-    updateStudent,
-    deleteStudent,
-    totalCount,
-    error: studentsError,
-    refetch,
-  } = useStudents(school?.id, {
-    limit: registryFetchLimit,
-    offset: 0,
-    enabled: networkProfileReady,
-  });
-  const { classes } = useClasses(school?.id);
+  const registryFetchLimit = 10000;
 
   const [activeTab, setActiveTab] = useState<StudentWorkspaceTab>("registry");
 
@@ -163,16 +153,6 @@ export default function StudentHubPage() {
     [pathname, router, searchParams],
   );
 
-  const transfers = useStudentTransfers(school?.id, students, isDemo, createStudent, updateStudent, toast, school);
-  const dropouts = useStudentDropouts(school?.id, students, isDemo, updateStudent, toast, user);
-  const promotion = useStudentPromotion(school?.id, students, isDemo, updateStudent, toast, academicYear, user);
-  const fetchTransferHistory = transfers.fetchTransferHistory;
-  const fetchAtRiskStudents = dropouts.fetchAtRiskStudents;
-  const fetchPromotionClasses = promotion.fetchPromotionClasses;
-  const fetchPromotionHistory = promotion.fetchPromotionHistory;
-  const fetchPromotionStudents = promotion.fetchPromotionStudents;
-  const promotionFromClass = promotion.fromClass;
-
   const urlFilters = useUrlSyncedFilters();
   const [searchTerm, setSearchTerm] = useState(() => urlFilters.get("q") ?? "");
   const [selectedClass, setSelectedClass] = useState(() => urlFilters.get("class") ?? "all");
@@ -189,6 +169,51 @@ export default function StudentHubPage() {
   const [sortBy, setSortBy] = useState<"name" | "number" | "class">("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [houseMap, setHouseMap] = useState<Record<string, HouseMeta>>({});
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  const fullRegister = loadFullRoster || activeTab !== "registry";
+  const {
+    students,
+    loading,
+    createStudent,
+    updateStudent,
+    deleteStudent,
+    totalCount: matchingCount,
+    error: studentsError,
+    refetch,
+  } = useStudents(school?.id, {
+    limit: fullRegister ? registryFetchLimit : Math.max(1, itemsPerPage === -1 ? 50 : itemsPerPage),
+    offset: fullRegister ? 0 : (currentPage - 1) * Math.max(1, itemsPerPage === -1 ? 50 : itemsPerPage),
+    registry: fullRegister
+      ? undefined
+      : {
+          search: debouncedSearch,
+          classId: selectedClass,
+          gender: filterGender,
+          status: filterStatus,
+          position: filterPosition,
+          defaultersOnly: filterDefaulters,
+          sortBy,
+          sortDir,
+        },
+    enabled: networkProfileReady,
+  });
+  const { classes } = useClasses(school?.id);
+
+  const summary = useRegistrySummary(school?.id, students);
+  const totalCount = summary?.total ?? matchingCount;
+  const transfers = useStudentTransfers(school?.id, students, isDemo, createStudent, updateStudent, toast, school);
+  const dropouts = useStudentDropouts(school?.id, students, isDemo, updateStudent, toast, user);
+  const promotion = useStudentPromotion(school?.id, students, isDemo, updateStudent, toast, academicYear, user);
+  const fetchTransferHistory = transfers.fetchTransferHistory;
+  const fetchAtRiskStudents = dropouts.fetchAtRiskStudents;
+  const fetchPromotionClasses = promotion.fetchPromotionClasses;
+  const fetchPromotionHistory = promotion.fetchPromotionHistory;
+  const fetchPromotionStudents = promotion.fetchPromotionStudents;
+  const promotionFromClass = promotion.fromClass;
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [smsTarget, setSmsTarget] = useState<SmsTarget | null>(null);
@@ -230,20 +255,25 @@ export default function StudentHubPage() {
 
     const connection = nav.connection;
     if (!connection) {
+      setIsConstrainedNetwork(isLiteMode());
       setNetworkProfileReady(true);
       return;
     }
 
     const evaluateConnection = () => {
       const type = (connection.effectiveType || "").toLowerCase();
-      const constrained = !!connection.saveData || type.includes("2g") || type.includes("3g");
+      const constrained = isLiteMode() || !!connection.saveData || type.includes("2g") || type.includes("3g");
       setIsConstrainedNetwork(constrained);
       setNetworkProfileReady(true);
     };
 
     evaluateConnection();
     connection.addEventListener?.("change", evaluateConnection);
-    return () => connection.removeEventListener?.("change", evaluateConnection);
+    window.addEventListener(PERFORMANCE_EVENT, evaluateConnection);
+    return () => {
+      connection.removeEventListener?.("change", evaluateConnection);
+      window.removeEventListener(PERFORMANCE_EVENT, evaluateConnection);
+    };
   }, []);
 
   // Keyed on the value, not on searchParams: the filter sync below rewrites the
@@ -304,7 +334,8 @@ export default function StudentHubPage() {
   }, [school?.id]);
 
   useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
     const deriveAttendanceMeta = (
       status: string | null | undefined,
@@ -446,8 +477,13 @@ export default function StudentHubPage() {
 
   const pageSize = itemsPerPage;
   const paginatedStudents =
-    pageSize === -1 ? filtered : filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  const totalPages = pageSize === -1 ? 1 : Math.max(1, Math.ceil(filtered.length / pageSize));
+    !fullRegister || pageSize === -1
+      ? fullRegister
+        ? filtered
+        : students
+      : filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const totalPages =
+    pageSize === -1 ? 1 : Math.max(1, Math.ceil((fullRegister ? filtered.length : matchingCount) / pageSize));
 
   // Sync filters to URL (debounced for search)
   useEffect(() => {
@@ -510,7 +546,20 @@ export default function StudentHubPage() {
     school?.id,
   ]);
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    let exportStudents = students;
+    try {
+      if (!isDemo && school?.id) {
+        if (!navigator.onLine) {
+          toast.error("Reconnect to export the complete register.");
+          return;
+        }
+        exportStudents = await fetchAllStudents(school.id);
+      }
+    } catch {
+      toast.error("Could not load the complete register for export. Try again.");
+      return;
+    }
     if (students.length === 0) {
       toast.error("No students to export");
       return;
@@ -521,7 +570,7 @@ export default function StudentHubPage() {
     const canSeeBalances = user?.role ? canAccess(user.role as UserRole, "fees") : false;
     const headers = ["Name", "Student Number", "Gender", "Parent Name", "Parent Phone", "Class"];
     if (canSeeBalances) headers.push("Opening Balance");
-    const rows = students.map((s) => {
+    const rows = exportStudents.map((s) => {
       const row: (string | number)[] = [
         `${s.first_name} ${s.last_name}`,
         s.student_number || "",
@@ -544,12 +593,25 @@ export default function StudentHubPage() {
     toast.success("Export downloaded");
   };
 
-  const boysCount = students.filter((s) => s.gender === "M").length;
-  const girlsCount = students.filter((s) => s.gender === "F").length;
+  const boysCount = summary?.boys ?? null;
+  const girlsCount = summary?.girls ?? null;
 
   const generatePLEIndexNumbers = async () => {
     setPleConfirmOpen(false);
-    const p7Students = students.filter((s) => s.classes?.name?.startsWith("P.7") && !s.ple_index_number);
+    let roster = students;
+    try {
+      if (!isDemo && school?.id) {
+        if (!navigator.onLine) {
+          toast.error("Reconnect to generate PLE numbers for the complete register.");
+          return;
+        }
+        roster = await fetchAllStudents(school.id);
+      }
+    } catch {
+      toast.error("Could not load the complete register. Try again.");
+      return;
+    }
+    const p7Students = roster.filter((s) => s.classes?.name?.startsWith("P.7") && !s.ple_index_number);
     if (p7Students.length === 0) {
       toast.error("No P.7 students without index numbers");
       return;
@@ -559,7 +621,7 @@ export default function StudentHubPage() {
       const year = new Date().getFullYear();
       const schoolCode = school?.school_code || "SCHL";
       let startNum = 1;
-      const existingNumbers = students.filter((s) => s.ple_index_number?.startsWith(schoolCode + year));
+      const existingNumbers = roster.filter((s) => s.ple_index_number?.startsWith(schoolCode + year));
       if (existingNumbers.length > 0) {
         const nums = existingNumbers.map((s) => parseInt(s.ple_index_number?.slice(-4) || "0"));
         startNum = Math.max(...nums) + 1;
@@ -636,11 +698,13 @@ export default function StudentHubPage() {
           subtitle={
             loading ? (
               <span className="inline-block w-48 h-4 rounded bg-gray-200 animate-pulse" />
+            ) : // `totalCount` is the uncapped head count; `students.length` is
+            // however many rows fit in one request, which is what made this
+            // header disagree with the dashboards on large rosters.
+            summary ? (
+              `${summary.total} students enrolled in ${academicYear} (${summary.boys} Boys / ${summary.girls} Girls)`
             ) : (
-              // `totalCount` is the uncapped head count; `students.length` is
-              // however many rows fit in one request, which is what made this
-              // header disagree with the dashboards on large rosters.
-              `${totalCount} students enrolled in ${academicYear} (${boysCount} Boys / ${girlsCount} Girls)`
+              "Student register — school totals unavailable"
             )
           }
           actions={
@@ -763,13 +827,15 @@ export default function StudentHubPage() {
           </div>
         </PageHeader>
 
-        {isConstrainedNetwork && !loadFullRoster && totalCount > students.length && !loading && (
+        {!fullRegister && !loading && (
           <div
             role="status"
             className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm"
           >
             <p className="text-[var(--t2)]">
-              Showing the first {students.length} of {totalCount} students to save data on this slow connection.
+              {isOnline
+                ? "Loading one page at a time. Search and filters cover the full register."
+                : "Offline: searching only students saved on this device. Results may be incomplete."}
             </p>
             <Button variant="secondary" size="sm" onClick={() => setLoadFullRoster(true)}>
               Load full register
@@ -795,6 +861,15 @@ export default function StudentHubPage() {
           </div>
         )}
 
+        {studentsError && !fullRegister && (
+          <div role="alert" className="rounded-xl border border-[var(--red)] p-3 text-sm">
+            {studentsError}{" "}
+            <button type="button" onClick={() => void refetch()} className="min-h-11 px-3 font-semibold underline">
+              Try again
+            </button>
+          </div>
+        )}
+
         <OwlyTrigger guideId="students" label="How do I manage students?" className="mb-4" />
 
         <div className="mb-3">
@@ -802,10 +877,10 @@ export default function StudentHubPage() {
         </div>
 
         <StudentWorkspaceShell
-          totalStudents={totalCount}
+          totalStudents={summary?.total ?? null}
           boysCount={boysCount}
           girlsCount={girlsCount}
-          activeStudents={students.filter((s) => s.status === "active").length}
+          activeStudents={summary?.active ?? null}
           classesCount={classes.length}
           transferredCount={(transfers.transferredInCount || 0) + (transfers.transferredOutCount || 0)}
           atRiskCount={dropouts.atRiskCount}
@@ -841,12 +916,13 @@ export default function StudentHubPage() {
             onSortDirChange={setSortDir}
             pageSize={pageSize}
             onPageSizeChange={(value) => {
+              if (value === -1) setLoadFullRoster(true);
               updateTablePrefs({ pageSize: value });
               setCurrentPage(1);
             }}
             loading={loading}
-            filteredCount={filtered.length}
-            filteredTotal={filtered.length}
+            filteredCount={fullRegister ? filtered.length : matchingCount}
+            filteredTotal={fullRegister ? filtered.length : matchingCount}
             paginatedStudents={paginatedStudents}
             currentPage={currentPage}
             totalPages={totalPages}

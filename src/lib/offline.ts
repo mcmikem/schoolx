@@ -1,6 +1,7 @@
 // Offline-first database using IndexedDB
 // This allows the app to work without internet connection
 
+import { runBackgroundWork } from "@/lib/background-work";
 import { useEffect, useState } from "react";
 import { logger } from "@/lib/logger";
 import { payloadMatchesServerRow, stripLocalOnlySyncKeys } from "@/lib/sync-payload";
@@ -1140,7 +1141,13 @@ class OfflineDB {
    */
   async warmTables(
     tables: string[],
-    options: { pageSize?: number; maxRows?: number } = {},
+    options: {
+      pageSize?: number;
+      maxRows?: number;
+      schoolId?: string;
+      signal?: AbortSignal;
+      onProgress?: (table: string, rows: number, total: number | null, complete: boolean) => void;
+    } = {},
   ): Promise<{ tables: number; rows: number; errors: string[] }> {
     const pageSize = Math.min(Math.max(options.pageSize ?? 500, 1), 1000);
     const maxRows = Math.max(options.maxRows ?? 2000, pageSize);
@@ -1156,16 +1163,30 @@ class OfflineDB {
         let tableRows = 0;
         let tableFailed = false;
 
-        while (tableRows < maxRows) {
-          const to = Math.min(offset + pageSize - 1, maxRows - 1);
+        const tableCap = table === "students" || table === "classes" ? 10000 : maxRows;
+        let total: number | null = null;
+        while (tableRows < tableCap) {
+          if (options.signal?.aborted) throw new Error("Preparation cancelled");
+          const to = Math.min(offset + pageSize - 1, tableCap - 1);
           try {
-            const query = supabase.from(table).select("*").range(offset, to);
-            const result = (await Promise.race([
-              query,
-              new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error(`${table} download timed out`)), 20_000),
-              ),
-            ])) as { data: unknown; error: { code?: string; message?: string } | null };
+            const result = await runBackgroundWork(async () => {
+              const controller = new AbortController();
+              const cancel = () => controller.abort();
+              options.signal?.addEventListener("abort", cancel, { once: true });
+              const timeout = setTimeout(cancel, 20_000);
+              try {
+                let query = supabase.from(table).select("*", { count: "exact" });
+                if (options.schoolId) query = query.eq("school_id", options.schoolId);
+                // Stable paging matters even while another phone inserts records.
+                query = query.order("id", { ascending: true }).range(offset, to);
+                return await query.abortSignal(controller.signal);
+              } finally {
+                clearTimeout(timeout);
+                options.signal?.removeEventListener("abort", cancel);
+              }
+            }, options.signal);
+            if (options.signal?.aborted) throw new Error("Preparation cancelled");
+            total = result.count;
 
             if (result.error) {
               if (result.error.code === MISSING_TABLE_CODE) missingTables.add(table);
@@ -1178,8 +1199,10 @@ class OfflineDB {
             if (batch.length > 0) await this.cacheFromServer(table, batch);
             tableRows += batch.length;
             rows += batch.length;
-            if (batch.length < pageSize) break;
-            offset += pageSize;
+            const complete = total !== null && tableRows >= total;
+            options.onProgress?.(table, tableRows, total, complete);
+            if (complete || batch.length === 0) break;
+            offset += batch.length;
           } catch (error) {
             errors.push(`${table}: ${error instanceof Error ? error.message : "could not download"}`);
             tableFailed = true;
@@ -1187,7 +1210,10 @@ class OfflineDB {
           }
         }
 
-        if (!tableFailed) warmedTables += 1;
+        if (!tableFailed) {
+          warmedTables += 1;
+          options.onProgress?.(table, tableRows, total, total !== null && tableRows >= total);
+        }
       }
     } catch (error) {
       errors.push(error instanceof Error ? error.message : "Could not start the offline download");
