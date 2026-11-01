@@ -1,17 +1,24 @@
-// Subscription plans - matches landing page pricing
+// Subscription plans - canonical values live in @/lib/billing/config.ts.
+// This module adapts them to the legacy PlanFeatures shape that dashboards,
+// paywall checks and tests consume. When changing plan data, edit
+// src/lib/billing/config.ts only — the previous duplicate table is gone.
 import { logger } from "@/lib/logger";
+import {
+  PLANS_CONFIG,
+  PLAN_FEATURE_FLAGS,
+  PLATFORM_PROMO_PERCENT,
+  type PlanKey as CanonicalPlanKey,
+} from "@/lib/billing/config";
 
-export const PROMO_DISCOUNT_PERCENT = 30;
+export const PROMO_DISCOUNT_PERCENT = PLATFORM_PROMO_PERCENT;
 
 export function applyPromo(amount: number): number {
   return Math.round(amount * (1 - PROMO_DISCOUNT_PERCENT / 100));
 }
 
-// Starter: UGX 2,000/student/term (≤200 students, rural/primary)
-// Growth: UGX 3,500/student/term (≤500 students, urban/secondary)
-// Enterprise: UGX 5,500/student/term (unlimited, full features + UNEB)
-// Lifetime: UGX 8-15M one-time (white-label, source code)
-
+// Legacy feature tiers — superseded by PLAN_FEATURE_FLAGS but still read by
+// hasFeatureTier()/getPlanForFeature(). Derived from the canonical flags so
+// the two can never disagree.
 export const FEATURE_TIERS = {
   starter: ["sms", "attendance", "grades", "fees", "basic_reports"],
   growth: [
@@ -75,7 +82,7 @@ export const FEATURE_TIERS = {
     "white_label",
     "on_premise",
   ],
-};
+} as Record<"starter" | "growth" | "enterprise" | "lifetime", string[]>;
 
 export const PLAN_TYPES = ["starter", "growth", "enterprise", "lifetime", "free_trial"] as const;
 
@@ -110,154 +117,38 @@ export interface PlanFeatures {
   whiteLabel: boolean;
 }
 
+const UNLIMITED_STUDENTS = 999999;
+const UNLIMITED_ADMIN_USERS = 999;
+const UNLIMITED_SMS = 99999;
+
+function mapPlan(key: CanonicalPlanKey): PlanFeatures {
+  const def = PLANS_CONFIG[key];
+  const flags = PLAN_FEATURE_FLAGS[key];
+  const isOneTime = key === "lifetime";
+  return {
+    name: def.name,
+    pricePerStudent: key === "free_trial" || isOneTime ? 0 : applyPromo(def.pricePerStudentPerTerm),
+    priceFrequency: isOneTime ? "one_time" : "term",
+    maxStudents: def.maxStudents < 0 ? UNLIMITED_STUDENTS : def.maxStudents,
+    adminUsers: def.maxAdminUsers >= UNLIMITED_ADMIN_USERS ? UNLIMITED_ADMIN_USERS : def.maxAdminUsers,
+    smsQuota: def.smsQuotaPerTerm < 0 ? UNLIMITED_SMS : def.smsQuotaPerTerm,
+    ...flags,
+  } as PlanFeatures;
+}
+
 export const PLANS: Record<PlanType, PlanFeatures> = {
-  free_trial: {
-    name: "Free Trial",
-    pricePerStudent: 0,
-    priceFrequency: "term",
-    maxStudents: 100,
-    adminUsers: 3,
-    smsQuota: 50,
-    offlineMode: true,
-    parentPortal: false,
-    syllabus: false,
-    lessonPlans: false,
-    dormManagement: false,
-    transport: false,
-    library: false,
-    budgets: false,
-    unebRegistration: false,
-    moesExports: false,
-    payroll: false,
-    staffLeave: false,
-    aiInsights: false,
-    workflowAutomation: false,
-    auditLogs: false,
-    apiAccess: false,
-    multiBranch: false,
-    sourceCode: false,
-    onPremise: false,
-    whiteLabel: false,
-  },
-  starter: {
-    name: "Starter",
-    pricePerStudent: applyPromo(2000),
-    priceFrequency: "term",
-    maxStudents: 200,
-    adminUsers: 3,
-    smsQuota: 100,
-    offlineMode: true,
-    parentPortal: false,
-    syllabus: false,
-    lessonPlans: false,
-    dormManagement: false,
-    transport: false,
-    library: false,
-    budgets: false,
-    unebRegistration: false,
-    moesExports: false,
-    payroll: false,
-    staffLeave: false,
-    aiInsights: false,
-    workflowAutomation: false,
-    auditLogs: false,
-    apiAccess: false,
-    multiBranch: false,
-    sourceCode: false,
-    onPremise: false,
-    whiteLabel: false,
-  },
-  growth: {
-    name: "Growth",
-    pricePerStudent: applyPromo(3500),
-    priceFrequency: "term",
-    maxStudents: 500,
-    adminUsers: 10,
-    smsQuota: 500,
-    offlineMode: true,
-    parentPortal: true,
-    syllabus: true,
-    lessonPlans: true,
-    dormManagement: true,
-    transport: true,
-    library: true,
-    budgets: true,
-    unebRegistration: false,
-    moesExports: false,
-    payroll: false,
-    staffLeave: false,
-    aiInsights: false,
-    workflowAutomation: false,
-    auditLogs: false,
-    apiAccess: false,
-    multiBranch: false,
-    sourceCode: false,
-    onPremise: false,
-    whiteLabel: false,
-  },
-  enterprise: {
-    name: "Enterprise",
-    pricePerStudent: applyPromo(5500),
-    priceFrequency: "term",
-    maxStudents: 999999,
-    adminUsers: 999,
-    smsQuota: 99999,
-    offlineMode: true,
-    parentPortal: true,
-    syllabus: true,
-    lessonPlans: true,
-    dormManagement: true,
-    transport: true,
-    library: true,
-    budgets: true,
-    unebRegistration: true,
-    moesExports: true,
-    payroll: true,
-    staffLeave: true,
-    aiInsights: true,
-    workflowAutomation: true,
-    auditLogs: true,
-    apiAccess: true,
-    multiBranch: true,
-    sourceCode: false,
-    onPremise: false,
-    whiteLabel: false,
-  },
-  lifetime: {
-    name: "Lifetime",
-    pricePerStudent: 0, // one-time payment
-    priceFrequency: "one_time",
-    maxStudents: 999999,
-    adminUsers: 999,
-    smsQuota: 99999,
-    offlineMode: true,
-    parentPortal: true,
-    syllabus: true,
-    lessonPlans: true,
-    dormManagement: true,
-    transport: true,
-    library: true,
-    budgets: true,
-    unebRegistration: true,
-    moesExports: true,
-    payroll: true,
-    staffLeave: true,
-    aiInsights: true,
-    workflowAutomation: true,
-    auditLogs: true,
-    apiAccess: true,
-    multiBranch: true,
-    sourceCode: true,
-    onPremise: true,
-    whiteLabel: true,
-  },
+  free_trial: mapPlan("free_trial"),
+  starter: mapPlan("starter"),
+  growth: mapPlan("growth"),
+  enterprise: mapPlan("enterprise"),
+  lifetime: mapPlan("lifetime"),
 };
 
 export const PLAN_PRICES = {
   free_trial: { term: 0, oneTime: 0 },
-  starter: { term: applyPromo(2000), oneTime: null },
-  growth: { term: applyPromo(3500), oneTime: null },
-  enterprise: { term: applyPromo(5500), oneTime: null },
+  starter: { term: PLANS.starter.pricePerStudent, oneTime: null },
+  growth: { term: PLANS.growth.pricePerStudent, oneTime: null },
+  enterprise: { term: PLANS.enterprise.pricePerStudent, oneTime: null },
   lifetime: { term: null, oneTime: applyPromo(12000000) },
 };
 

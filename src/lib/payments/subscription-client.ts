@@ -1,16 +1,22 @@
 // Subscription client - matches landing page pricing
-// Starter: UGX 1,400/student/term (30% off)
-// Growth: UGX 2,450/student/term (30% off)
-// Enterprise: UGX 3,850/student/term (30% off)
-// Lifetime: UGX 8-15M one-time (white-label, source code)
+//
+// WARNING: this file is a thin adapter over @/lib/billing/config.ts, the
+// canonical billing configuration. The numbers and feature flags live there
+// — the duplicates that used to live in this copy HAVE been removed. Exported
+// names are preserved for the many call sites (`normalizePlanType`, `PLANS`,
+// etc.). When adding a plan behaviour, edit billing/config.ts only.
 
-export const PROMO_DISCOUNT_PERCENT = 30;
+import {
+  BILLING_CYCLES,
+  PLANS_CONFIG,
+  PLAN_FEATURE_FLAGS,
+  PLATFORM_PROMO_PERCENT,
+  type PlanKey,
+} from "@/lib/billing/config";
 
-function applyPromo(amount: number): number {
-  return Math.round(amount * (1 - PROMO_DISCOUNT_PERCENT / 100));
-}
+export { PLATFORM_PROMO_PERCENT as PROMO_DISCOUNT_PERCENT };
 
-export type PlanType = "starter" | "growth" | "enterprise" | "lifetime" | "free_trial";
+export type PlanType = PlanKey;
 
 const LEGACY_PLAN_MAP = {
   basic: "starter",
@@ -45,132 +51,33 @@ export interface PlanFeatures {
   multiBranch: boolean;
 }
 
+const UNLIMITED = Infinity;
+
+function mapPlan(key: PlanKey): PlanFeatures {
+  const def = PLANS_CONFIG[key];
+  const flags = PLAN_FEATURE_FLAGS[key];
+  const isOneTime = key === "lifetime";
+  return {
+    name: def.name,
+    pricePerStudent: key === "free_trial" || isOneTime ? 0 : applyPromo(def.pricePerStudentPerTerm),
+    priceFrequency: isOneTime ? "one_time" : "term",
+    maxStudents: def.maxStudents < 0 ? UNLIMITED : def.maxStudents,
+    adminUsers: def.maxAdminUsers >= 999 ? UNLIMITED : def.maxAdminUsers,
+    smsQuota: def.smsQuotaPerTerm < 0 ? UNLIMITED : def.smsQuotaPerTerm,
+    ...flags,
+  } as PlanFeatures;
+}
+
+export function applyPromo(amount: number): number {
+  return Math.round(amount * (1 - PLATFORM_PROMO_PERCENT / 100));
+}
+
 export const PLANS: Record<PlanType, PlanFeatures> = {
-  free_trial: {
-    name: "Free Trial",
-    pricePerStudent: 0,
-    priceFrequency: "term",
-    maxStudents: 100,
-    adminUsers: 3,
-    smsQuota: 50,
-    offlineMode: true,
-    parentPortal: false,
-    syllabus: false,
-    lessonPlans: false,
-    dormManagement: false,
-    transport: false,
-    library: false,
-    budgets: false,
-    unebRegistration: false,
-    moesExports: false,
-    payroll: false,
-    staffLeave: false,
-    aiInsights: false,
-    workflowAutomation: false,
-    auditLogs: false,
-    apiAccess: false,
-    multiBranch: false,
-  },
-  starter: {
-    name: "Starter",
-    pricePerStudent: applyPromo(2000),
-    priceFrequency: "term",
-    maxStudents: 500,
-    adminUsers: 3,
-    smsQuota: 100,
-    offlineMode: true,
-    parentPortal: false,
-    syllabus: false,
-    lessonPlans: false,
-    dormManagement: false,
-    transport: false,
-    library: false,
-    budgets: false,
-    unebRegistration: false,
-    moesExports: false,
-    payroll: false,
-    staffLeave: false,
-    aiInsights: false,
-    workflowAutomation: false,
-    auditLogs: false,
-    apiAccess: false,
-    multiBranch: false,
-  },
-  growth: {
-    name: "Growth",
-    pricePerStudent: applyPromo(3500),
-    priceFrequency: "term",
-    maxStudents: 2000,
-    adminUsers: 10,
-    smsQuota: 500,
-    offlineMode: true,
-    parentPortal: true,
-    syllabus: true,
-    lessonPlans: true,
-    dormManagement: true,
-    transport: true,
-    library: true,
-    budgets: true,
-    unebRegistration: false,
-    moesExports: false,
-    payroll: false,
-    staffLeave: false,
-    aiInsights: false,
-    workflowAutomation: false,
-    auditLogs: false,
-    apiAccess: false,
-    multiBranch: false,
-  },
-  enterprise: {
-    name: "Enterprise",
-    pricePerStudent: applyPromo(5500),
-    priceFrequency: "term",
-    maxStudents: Infinity,
-    adminUsers: Infinity,
-    smsQuota: Infinity,
-    offlineMode: true,
-    parentPortal: true,
-    syllabus: true,
-    lessonPlans: true,
-    dormManagement: true,
-    transport: true,
-    library: true,
-    budgets: true,
-    unebRegistration: true,
-    moesExports: true,
-    payroll: true,
-    staffLeave: true,
-    aiInsights: true,
-    workflowAutomation: true,
-    auditLogs: true,
-    apiAccess: true,
-    multiBranch: true,
-  },
-  lifetime: {
-    name: "Lifetime",
-    pricePerStudent: 0,
-    priceFrequency: "one_time",
-    maxStudents: Infinity,
-    adminUsers: Infinity,
-    smsQuota: Infinity,
-    offlineMode: true,
-    parentPortal: true,
-    syllabus: true,
-    lessonPlans: true,
-    dormManagement: true,
-    transport: true,
-    library: true,
-    budgets: true,
-    unebRegistration: true,
-    moesExports: true,
-    payroll: true,
-    staffLeave: true,
-    aiInsights: true,
-    workflowAutomation: true,
-    auditLogs: true,
-    apiAccess: true,
-    multiBranch: true,
-  },
+  free_trial: mapPlan("free_trial"),
+  starter: mapPlan("starter"),
+  growth: mapPlan("growth"),
+  enterprise: mapPlan("enterprise"),
+  lifetime: mapPlan("lifetime"),
 };
 
 // Plan order for upgrades
@@ -219,3 +126,5 @@ export function getPlanUsageWarning(plan: PlanType, currentCount: number, featur
   }
   return null;
 }
+
+export { BILLING_CYCLES };

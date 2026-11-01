@@ -15,6 +15,7 @@ import {
   type ModuleKey,
   type FeatureStage,
 } from "@/lib/modules/catalog";
+import { useModuleAccess } from "@/lib/hooks/useModuleAccess";
 import { deepFreeze } from "@/lib/deep-freeze";
 import { resolveRouteAccess, useRoleRouteOverrides } from "@/lib/role-access-overrides";
 import { canOpenSettingsPage } from "@/lib/role-tab-access";
@@ -229,6 +230,7 @@ export function useAccessControl() {
   const router = useRouter();
   const toast = useToast();
   const { overrides } = useRoleRouteOverrides(school?.id);
+  const { loaded: accessLoaded, canAccessPath } = useModuleAccess();
 
   const featureStage = (school?.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE;
 
@@ -260,8 +262,13 @@ export function useAccessControl() {
       }
     }
 
+    // Module gate: defer until the billing context is loaded (or failed — in
+    // either case fall back to legacy feature-stage logic). The proxy is the
+    // authoritative server-side gate; this only shapes UX.
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     const moduleKey = getRequiredModuleForPath(pathname);
-    if (moduleKey && !isModuleInFeatureStage(featureStage, moduleKey)) {
+    const moduleAllowed = accessLoaded ? canAccessPath(pathname) : isModuleInFeatureStage(featureStage, moduleKey!);
+    if (moduleKey && !moduleAllowed) {
       const lastDenied = safeSessionStorage.getItem("lastDeniedPath");
       if (lastDenied !== pathname) {
         safeSessionStorage.setItem("lastDeniedPath", pathname);
@@ -271,7 +278,7 @@ export function useAccessControl() {
       return;
     }
     safeSessionStorage.removeItem("lastDeniedPath");
-  }, [user, pathname, toast, featureStage, router, overrides]);
+  }, [user, pathname, toast, featureStage, router, overrides, accessLoaded, canAccessPath]);
 }
 
 export function useDashboardNotifications() {

@@ -31,6 +31,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { type ModuleKey } from "@/lib/modules/catalog";
 import { tabsForRole } from "@/lib/role-tab-access";
 import { OwlyHelpLink } from "@/components/owly/OwlyHelpLink";
+import SubscriptionBillingPanel from "@/components/billing/SubscriptionBillingPanel";
 
 interface SchoolSettings {
   sms_notifications: boolean;
@@ -1386,161 +1387,7 @@ export default function SettingsPage() {
               </CardBody>
             </Card>
 
-            <Card>
-              <CardBody>
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h2 className="text-lg font-semibold text-[var(--on-surface)]">SkoolMate Subscription</h2>
-                    <p className="text-sm text-[var(--t3)]">
-                      {(() => {
-                        if (school?.is_tester) return "Test account — full access enabled";
-                        switch (school?.subscription_status) {
-                          case "active":
-                            return "Your subscription is active";
-                          case "trial":
-                            return "Your account is on a trial";
-                          case "past_due":
-                            return "Your subscription has a payment due";
-                          case "expired":
-                          case "canceled":
-                          case "unpaid":
-                          case "suspended":
-                            return "Your subscription is not active";
-                          default:
-                            return "Subscription status unavailable";
-                        }
-                      })()}
-                    </p>
-                  </div>
-                  <div className="px-4 py-2 bg-[var(--green-soft)] text-[var(--green-ink)] rounded-full text-sm font-semibold">
-                    {school?.subscription_plan
-                      ? `${school.subscription_plan.toUpperCase()} PLAN`
-                      : school?.is_tester
-                        ? "TEST"
-                        : "NO PLAN"}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="p-6 rounded-2xl border-2 border-[var(--border)] bg-[var(--surface-container-low)]">
-                    <div className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-2">Starter</div>
-                    <div className="text-2xl font-bold mb-4">
-                      UGX 250k <span className="text-sm font-normal text-[var(--t3)]">/ term</span>
-                    </div>
-                    <ul className="space-y-3 mb-6">
-                      <li className="flex items-center gap-2 text-sm">
-                        <MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Up to 100
-                        Students
-                      </li>
-                      <li className="flex items-center gap-2 text-sm">
-                        <MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Basic Attendance
-                      </li>
-                      <li className="flex items-center gap-2 text-sm">
-                        <MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Fee Management
-                      </li>
-                    </ul>
-                    <Button
-                      variant="secondary"
-                      className="w-full"
-                      loading={upgradingPlan && selectedPlan === "starter"}
-                      onClick={() => handlePlanUpgrade("starter")}
-                    >
-                      Active
-                    </Button>
-                  </div>
-                  <div className="p-6 rounded-2xl border-2 border-[var(--primary)] bg-[var(--primary-soft)] relative">
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[var(--primary)] text-white text-xs font-bold rounded-full uppercase">
-                      Most Popular
-                    </div>
-                    <div className="text-sm font-bold text-[var(--primary)] uppercase tracking-wider mb-2">Growth</div>
-                    <div className="text-2xl font-bold mb-4">
-                      UGX 3,500 <span className="text-sm font-normal text-[var(--t3)]">/ month</span>
-                    </div>
-                    <ul className="space-y-3 mb-6">
-                      <li className="flex items-center gap-2 text-sm">
-                        <MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Up to 500
-                        Students
-                      </li>
-                      <li className="flex items-center gap-2 text-sm">
-                        <MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> SMS Notifications
-                      </li>
-                      <li className="flex items-center gap-2 text-sm">
-                        <MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Report Card
-                        Printing
-                      </li>
-                    </ul>
-                    <Button
-                      className="w-full"
-                      loading={upgradingPlan && selectedPlan === "growth"}
-                      onClick={() => handlePlanUpgrade("growth")}
-                    >
-                      {(school?.subscription_plan as string) === "growth" ||
-                      (school?.subscription_plan as string) === "premium"
-                        ? "Current Plan"
-                        : "Select"}
-                    </Button>
-                  </div>
-                  <div className="p-6 rounded-2xl border-2 border-[var(--border)] bg-[var(--surface-container-low)]">
-                    <div className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-2">Enterprise</div>
-                    <div className="text-2xl font-bold mb-4">
-                      UGX 5,500 <span className="text-sm font-normal text-[var(--t3)]">/ month</span>
-                    </div>
-                    <ul className="space-y-3 mb-6">
-                      <li className="flex items-center gap-2 text-sm">
-                        <MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Unlimited
-                        Students
-                      </li>
-                      <li className="flex items-center gap-2 text-sm">
-                        <MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> AI Smart Advisor
-                      </li>
-                      <li className="flex items-center gap-2 text-sm">
-                        <MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Full Payroll &
-                        Assets
-                      </li>
-                    </ul>
-                    <Button
-                      variant="secondary"
-                      className="w-full"
-                      loading={upgradingPlan && selectedPlan === "enterprise"}
-                      onClick={() => handlePlanUpgrade("enterprise")}
-                    >
-                      {(school?.subscription_plan as string) === "enterprise" ||
-                      (school?.subscription_plan as string) === "max"
-                        ? "Current Plan"
-                        : "Upgrade"}
-                    </Button>
-                  </div>
-                </div>
-              </CardBody>
-            </Card>
-            <Card>
-              <CardBody>
-                <h3 className="text-lg font-semibold mb-4 text-[var(--on-surface)]">Why Upgrade to Premium?</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex gap-4 p-4 rounded-xl bg-[var(--surface-container)]">
-                    <div className="w-10 h-10 rounded-full bg-[var(--primary-soft)] flex items-center justify-center shrink-0">
-                      <MaterialIcon icon="smart_toy" className="text-[var(--primary)]" />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-sm">AI Smart Advisor</div>
-                      <div className="text-xs text-[var(--t3)]">
-                        Get proactive alerts about performance drops, fee deficits, and staff workload optimization.
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-4 p-4 rounded-xl bg-[var(--surface-container)]">
-                    <div className="w-10 h-10 rounded-full bg-[var(--primary-soft)] flex items-center justify-center shrink-0">
-                      <MaterialIcon icon="notifications_active" className="text-[var(--primary)]" />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-sm">Auto-SMS Reminders</div>
-                      <div className="text-xs text-[var(--t3)]">
-                        Recover fees 3.5x faster with automatic, personalized SMS nudges to parents.
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardBody>
-            </Card>
+            <SubscriptionBillingPanel onRefresh={fetchModuleData} />
 
             <Card>
               <CardBody>
@@ -1551,6 +1398,7 @@ export default function SettingsPage() {
                   </div>
                   {paymentHistory.length > 0 && <span className="text-xs text-[var(--t3)]">Last 10 payments</span>}
                 </div>
+
                 {paymentHistory.length === 0 ? (
                   <div className="text-sm text-[var(--t3)] py-4 text-center">No payment history yet.</div>
                 ) : (

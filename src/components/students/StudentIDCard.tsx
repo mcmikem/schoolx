@@ -167,10 +167,15 @@ export default function StudentIDCard({ student, school }: StudentIDCardProps) {
         {/* QR Code */}
         <div className="w-[15mm] flex flex-col items-center justify-center gap-1">
           <div className="p-1 bg-white rounded-lg shadow-sm border border-slate-100">
-            <QRCodeSVG value={student.id} size={48} level="H" includeMargin={false} />
+            <QRCodeSVG
+              value={`https://skoolmate.omuto.org/dashboard/students/${student.id}/`}
+              size={48}
+              level="M"
+              includeMargin={false}
+            />
           </div>
           <p className="text-[6px] font-black text-slate-400 uppercase tracking-tighter text-center">
-            Scan for Profile
+            Scan for details
           </p>
         </div>
       </div>

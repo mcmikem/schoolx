@@ -321,7 +321,7 @@ export async function POST(request: NextRequest) {
     const { error: entitlementError } = await supabase.from("school_module_entitlements").upsert(
       {
         school_id: targetSchoolId,
-        module_key: moduleKey,
+        module_key: resolvedModuleKey,
         status: "active",
         starts_at: startsAt.toISOString(),
         ends_at: endsAt.toISOString(),

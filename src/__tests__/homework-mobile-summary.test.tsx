@@ -56,10 +56,11 @@ jest.mock("@/components/Toast", () => ({
 }));
 
 jest.mock("@/components/ui/PageHeader", () => ({
-  PageHeader: ({ title, subtitle }: { title: string; subtitle?: string }) => (
+  PageHeader: ({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: React.ReactNode }) => (
     <div>
       <h1>{title}</h1>
       <p>{subtitle}</p>
+      {actions}
     </div>
   ),
 }));
@@ -86,8 +87,10 @@ describe("Homework page mobile summary", () => {
     render(<HomeworkPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/quick class test summary/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/class tests overview/i)).toBeInTheDocument();
+      const overview = screen.getByLabelText(/class tests overview/i);
+      expect(within(overview).getByText("Assigned")).toBeInTheDocument();
+      expect(within(overview).getByText("Due soon")).toBeInTheDocument();
+      expect(within(overview).getByText("Overdue")).toBeInTheDocument();
     });
   });
 
@@ -129,6 +132,64 @@ describe("Homework page mobile summary", () => {
     expect(within(overview).getByText("Due soon")).toBeInTheDocument();
     expect(overview).toHaveTextContent(/Due soon\s*1/);
     expect(overview).toHaveTextContent(/Overdue\s*0/);
+  });
+
+  it("narrows the list from the search field", async () => {
+    mockHomeworkData.push(
+      {
+        id: "hw-fractions",
+        title: "Fractions practice",
+        description: "Exercise 4",
+        subject_id: "subject-1",
+        class_id: "class-1",
+        due_date: "2026-10-12",
+        marks: 10,
+        subjects: { name: "Mathematics", code: "MTH" },
+        classes: { name: "Primary 3" },
+      },
+      {
+        id: "hw-algebra",
+        title: "Algebra quiz",
+        description: "Simplify expressions",
+        subject_id: "subject-1",
+        class_id: "class-1",
+        due_date: "2026-10-12",
+        marks: 20,
+        subjects: { name: "Mathematics", code: "MTH" },
+        classes: { name: "Primary 3" },
+      },
+    );
+
+    render(<HomeworkPage />);
+    await screen.findByText("Fractions practice");
+
+    fireEvent.change(screen.getByLabelText(/search class tests/i), { target: { value: "algebra" } });
+
+    expect(screen.queryByText("Fractions practice")).not.toBeInTheDocument();
+    expect(screen.getByText("Algebra quiz")).toBeInTheDocument();
+    expect(screen.getByText(/1 of 2 match/i)).toBeInTheDocument();
+  });
+
+  it("says how far away the due date is", async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(2026, 9, 10, 12));
+    mockHomeworkData.push({
+      id: "hw-next-week",
+      title: "Algebra quiz",
+      description: "Simplify expressions",
+      subject_id: "subject-1",
+      class_id: "class-1",
+      due_date: "2026-10-13",
+      marks: 20,
+      subjects: { name: "Mathematics", code: "MTH" },
+      classes: { name: "Primary 3" },
+    });
+
+    await act(async () => {
+      render(<HomeworkPage />);
+    });
+
+    expect(screen.getByText(/in 3 days/i)).toBeInTheDocument();
   });
 
   it("shows a retry state instead of claiming there are no class tests when loading fails", async () => {

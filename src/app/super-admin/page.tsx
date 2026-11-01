@@ -32,6 +32,7 @@ import {
   UserRow,
 } from "./_shared";
 import { UserActions } from "./_user-actions";
+import ManualPaymentsSection from "./_manual-payments";
 
 export default function SuperAdminPage() {
   const { user, authInitialized, signOut } = useAuth();
@@ -1113,6 +1114,8 @@ export default function SuperAdminPage() {
                   ))}
                 </div>
               )}
+
+              <ManualPaymentsSection />
             </div>
           )}
 

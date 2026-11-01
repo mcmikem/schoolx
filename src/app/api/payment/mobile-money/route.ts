@@ -104,6 +104,16 @@ export async function POST(request: NextRequest) {
       provider,
       transactionId: paymentLink.txRef,
       paymentStatus: "pending",
+      description: `${planInfo.planName} plan · ${studentCount || 0} students`,
+      // Intent lets the webhook activate the exact cycle purchased rather
+      // than guessing; term = 4 months.
+      intent: {
+        type: "renew",
+        plan,
+        cycle: "term",
+        months: plan === "lifetime" ? 1200 : 4,
+        studentCount: studentCount || 0,
+      },
     });
 
     return NextResponse.json(

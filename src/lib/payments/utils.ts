@@ -1,5 +1,17 @@
 import { PLAN_PRICES, PlanType } from "../subscription";
 import { createSupabaseServerClient } from "../supabase/server";
+import { createClient } from "@supabase/supabase-js";
+import { logger } from "../logger";
+
+// Service-role client for ledger reads/writes that must bypass RLS
+// (payment status flips are triggered by webhooks, not by a user session).
+function createSupabaseAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  return createClient(url, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
 
 export const PAYMENT_PROVIDERS = {
   STRIPE: "stripe",
@@ -8,8 +20,7 @@ export const PAYMENT_PROVIDERS = {
   AIRTEL: "airtel",
 } as const;
 
-export type PaymentProviderType =
-  (typeof PAYMENT_PROVIDERS)[keyof typeof PAYMENT_PROVIDERS];
+export type PaymentProviderType = (typeof PAYMENT_PROVIDERS)[keyof typeof PAYMENT_PROVIDERS];
 
 // Updated pricing for Uganda market (per student/term)
 export const PAYMENT_PRICES_UGX = {
@@ -47,10 +58,7 @@ export function validatePaymentAmount(amount: number, plan: PlanType): boolean {
 
 const MIN_STUDENT_COUNT = 50;
 
-export async function calculateTotalPrice(
-  plan: PlanType,
-  studentCount?: number,
-): Promise<number> {
+export async function calculateTotalPrice(plan: PlanType, studentCount?: number): Promise<number> {
   const basePrice = getPlanPrice(plan);
   if (plan === "lifetime") return basePrice;
   const count = Math.max(studentCount || MIN_STUDENT_COUNT, MIN_STUDENT_COUNT);
@@ -65,6 +73,9 @@ export async function recordPayment(params: {
   transactionId: string;
   paymentStatus: "pending" | "completed" | "failed" | "refunded";
   customerId?: string;
+  intent?: Record<string, unknown>;
+  description?: string;
+  lineItems?: Record<string, unknown>;
 }) {
   const supabase = await createSupabaseServerClient();
 
@@ -75,6 +86,10 @@ export async function recordPayment(params: {
     provider: params.provider,
     transaction_id: params.transactionId,
     payment_status: params.paymentStatus,
+    ...(params.customerId && { customer_id: params.customerId }),
+    ...(params.intent && { intent: params.intent }),
+    ...(params.description && { description: params.description }),
+    ...(params.lineItems && { line_items: params.lineItems }),
   });
 
   if (error) throw error;
@@ -146,9 +161,7 @@ export async function savePendingMobilePayment(params: {
 }
 
 // Get pending mobile payment by reference
-export async function getPendingMobilePayment(
-  reference: string,
-): Promise<PendingMobilePayment | null> {
+export async function getPendingMobilePayment(reference: string): Promise<PendingMobilePayment | null> {
   const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase
@@ -212,6 +225,12 @@ export async function updatePaymentStatus(
 }
 
 // Activate school subscription
+//
+// Uses the new billing service semantics: see if the ledger row carries a
+// payment intent (stored by /api/billing + mobile-money checkouts); extend
+// next_payment_date from the later of (today, current anchor) so renewing
+// early never shortens coverage. Falls back to a 4-month term anchor for
+// legacy rows with no intent (lifetime anchors ~100 years).
 export async function activateSchoolSubscription(
   schoolId: string,
   plan: PlanType,
@@ -219,13 +238,54 @@ export async function activateSchoolSubscription(
   transactionId: string,
 ) {
   const supabase = await createSupabaseServerClient();
+  const admin = createSupabaseAdminClient();
+
+  try {
+    const { buildQuote, applyCompletedPayment } = await import("@/lib/billing/service");
+
+    // New-style ledger rows (created with an intent) apply atomically.
+    if (transactionId) {
+      const { data: ledger } = await admin
+        .from("subscription_payments")
+        .select("id, intent, payment_status")
+        .eq("transaction_id", transactionId)
+        .maybeSingle();
+      if (ledger?.intent) {
+        await applyCompletedPayment(admin, transactionId, {
+          provider: (provider as any) || "cash",
+        });
+      }
+    }
+  } catch (err) {
+    logger.warn("[billing] intent-based activation unavailable, using legacy path:", err);
+  }
+
+  const TERM_MONTHS = 4;
+  const LIFETIME_YEARS = 100;
+
+  const { data: school } = await supabase
+    .from("schools")
+    .select("next_payment_date, subscription_plan, subscription_status")
+    .eq("id", schoolId)
+    .maybeSingle();
+
+  const now = new Date();
+  const currentEnd = school?.next_payment_date ? new Date(school.next_payment_date) : null;
+  const anchor = currentEnd && currentEnd.getTime() > now.getTime() ? currentEnd : now;
+  const nextPaymentDate = new Date(anchor);
+  if (plan === "lifetime") {
+    nextPaymentDate.setFullYear(nextPaymentDate.getFullYear() + LIFETIME_YEARS);
+  } else {
+    nextPaymentDate.setMonth(nextPaymentDate.getMonth() + TERM_MONTHS);
+  }
 
   const { data, error } = await supabase
     .from("schools")
     .update({
       subscription_plan: plan,
       subscription_status: "active",
-      last_payment_at: new Date().toISOString(),
+      last_payment_at: now.toISOString(),
+      next_payment_date: nextPaymentDate.toISOString(),
     })
     .eq("id", schoolId);
 
@@ -234,10 +294,7 @@ export async function activateSchoolSubscription(
 }
 
 // Get school payment history
-export async function getSchoolPaymentHistory(
-  schoolId: string,
-  limit?: number,
-) {
+export async function getSchoolPaymentHistory(schoolId: string, limit?: number) {
   const supabase = await createSupabaseServerClient();
 
   let query = supabase

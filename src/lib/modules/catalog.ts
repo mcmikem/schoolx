@@ -168,10 +168,12 @@ export function isModuleAccessible(params: {
 }
 
 // ─── Plan → feature stage mapping ────────────────────────────────────────────
+// Enterprise is the "everything included" tier — it unlocks the full stage.
+// (Lifetime was already mapped to full; ownership plans sit above it.)
 export const PLAN_FEATURE_STAGE: Record<PlanTier, FeatureStage> = {
   starter: "core",
   growth: "academic",
-  enterprise: "finance",
+  enterprise: "full",
   lifetime: "full",
 };
 
