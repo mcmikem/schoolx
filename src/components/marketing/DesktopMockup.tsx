@@ -27,22 +27,22 @@ export function DesktopMockup() {
 
   return (
     <div
-      className={`mockup-shell mockup-desktop relative rounded-[32px] border border-slate-200 bg-white p-3 shadow-[0_40px_90px_rgba(15,23,42,0.14)] transition-all duration-700 min-h-[480px] ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+      className={`mockup-shell mockup-desktop relative rounded-[32px] border border-[var(--border)] bg-white p-3 shadow-[0_40px_90px_rgba(15,23,42,0.14)] transition-all duration-700 min-h-[480px] ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
     >
-      <div className="rounded-[28px] border border-slate-200 bg-[var(--surface-bright)] overflow-hidden">
-        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-3">
+      <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface-bright)] overflow-hidden">
+        <div className="flex items-center justify-between border-b border-[var(--border)] bg-white px-5 py-3">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
             <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
           </div>
-          <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
+          <div className="rounded-full border border-[var(--border)] bg-[var(--surface-container-low)] px-3 py-1 text-xs font-medium text-[var(--t3)]">
             omuto.org/dashboard
           </div>
         </div>
 
         <div className="grid gap-0 lg:grid-cols-[220px_minmax(0,1fr)]">
-          <aside className="border-b border-slate-200 bg-[#0e2345] p-5 text-white lg:border-b-0 lg:border-r">
+          <aside className="border-b border-[var(--border)] bg-[#0e2345] p-5 text-white lg:border-b-0 lg:border-r">
             <div className="mb-5 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/12 text-white">
                 <MaterialIcon icon="school" className="text-[20px]" />
@@ -80,40 +80,40 @@ export function DesktopMockup() {
                   <div
                     key={label}
                     ref={counter.ref}
-                    className="story-card rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-slate-200 hover:shadow-md transition-shadow cursor-default"
+                    className="story-card rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-[var(--border)] hover:shadow-md transition-shadow cursor-default"
                   >
-                    <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">{label}</p>
-                    <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">
+                    <p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--t3)]">{label}</p>
+                    <p className="mt-3 text-2xl font-semibold tracking-tight text-[var(--t1)]">
                       {i === 0 && activeTab === 0 ? `UGX ${counter.display}M` : value}
                     </p>
-                    <p className="mt-1 text-sm text-slate-500">{note}</p>
+                    <p className="mt-1 text-sm text-[var(--t3)]">{note}</p>
                   </div>
                 );
               })}
             </div>
 
             {content.bars && (
-              <div className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+              <div className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-[var(--border)]">
                 <div className="mb-4 flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">
+                    <p className="text-sm font-semibold text-[var(--t1)]">
                       {activeTab === 2
                         ? "Attendance by class"
                         : activeTab === 3
                           ? "Candidate and class performance"
                           : "Performance overview"}
                     </p>
-                    <p className="text-xs text-slate-500">Term II academic snapshot</p>
+                    <p className="text-xs text-[var(--t3)]">Term II academic snapshot</p>
                   </div>
                 </div>
                 <div className="space-y-4">
                   {content.bars.map((bar, i) => (
                     <div key={bar.name}>
                       <div className="mb-2 flex items-center justify-between text-sm">
-                        <span className="font-medium text-slate-700">{bar.name}</span>
-                        <span className="text-slate-500">{bar.value}%</span>
+                        <span className="font-medium text-[var(--t2)]">{bar.name}</span>
+                        <span className="text-[var(--t3)]">{bar.value}%</span>
                       </div>
-                      <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                      <div className="h-2.5 rounded-full bg-[var(--surface-container)] overflow-hidden">
                         <div
                           className={`h-2.5 rounded-full ${bar.color} transition-all duration-1000 ease-out`}
                           style={{
@@ -129,17 +129,17 @@ export function DesktopMockup() {
             )}
 
             {content.students && (
-              <div className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200">
-                <p className="text-sm font-semibold text-slate-900 mb-4">Recent students</p>
+              <div className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-[var(--border)]">
+                <p className="text-sm font-semibold text-[var(--t1)] mb-4">Recent students</p>
                 <div className="space-y-3">
                   {content.students.map((s) => (
                     <div
                       key={s.name}
-                      className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0"
+                      className="flex items-center justify-between py-2 border-b border-[var(--border)] last:border-0"
                     >
                       <div>
-                        <p className="text-sm font-medium text-slate-900">{s.name}</p>
-                        <p className="text-xs text-slate-500">{s.class}</p>
+                        <p className="text-sm font-medium text-[var(--t1)]">{s.name}</p>
+                        <p className="text-xs text-[var(--t3)]">{s.class}</p>
                       </div>
                       <span
                         className={`text-xs font-semibold px-2 py-1 rounded-full ${s.balance === "UGX 0" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}
@@ -156,8 +156,8 @@ export function DesktopMockup() {
               <div className="rounded-[28px] bg-[var(--primary-50)] p-5 ring-1 ring-[#d7e4fb]">
                 <div className="mb-4 flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">Quick actions</p>
-                    <p className="text-xs text-slate-500">Common tasks</p>
+                    <p className="text-sm font-semibold text-[var(--t1)]">Quick actions</p>
+                    <p className="text-xs text-[var(--t3)]">Common tasks</p>
                   </div>
                 </div>
                 <div className="space-y-3">
@@ -173,8 +173,8 @@ export function DesktopMockup() {
                         <MaterialIcon icon={item.icon} className="text-[20px]" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-900 truncate">{item.title}</p>
-                        <p className="text-xs text-slate-500 truncate">{item.note}</p>
+                        <p className="text-sm font-semibold text-[var(--t1)] truncate">{item.title}</p>
+                        <p className="text-xs text-[var(--t3)] truncate">{item.note}</p>
                       </div>
                     </div>
                   ))}

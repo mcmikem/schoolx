@@ -235,7 +235,7 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                 <div
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
                     deliveryStatus === "sending"
-                      ? "bg-gray-100 text-gray-700"
+                      ? "bg-[var(--surface-container)] text-[var(--t2)]"
                       : deliveryStatus === "sent"
                         ? "bg-blue-50 text-blue-700"
                         : deliveryStatus === "delivered"

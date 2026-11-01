@@ -50,14 +50,17 @@ export default function DemoLoginClient() {
     <div className="min-h-screen bg-[#f0f5fc] flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md rounded-3xl border border-white/60 bg-white/90 p-8 shadow-[0_24px_48px_rgba(15,23,42,0.08)] backdrop-blur-xl">
         <div className="mb-6">
-          <Link href="/login" className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900">
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-1.5 text-sm text-[var(--t2)] hover:text-[var(--t1)]"
+          >
             <MaterialIcon icon="arrow_back" size={16} />
             Back to sign in
           </Link>
         </div>
 
-        <h1 className="text-xl font-bold text-slate-900 mb-1">Demo sign-in</h1>
-        <p className="text-sm text-slate-600 mb-5">
+        <h1 className="text-xl font-bold text-[var(--t1)] mb-1">Demo sign-in</h1>
+        <p className="text-sm text-[var(--t2)] mb-5">
           Development only. Pick a role, enter the demo password, and continue.
         </p>
 
@@ -69,12 +72,14 @@ export default function DemoLoginClient() {
               onClick={() => setPhone(account.phone)}
               className={`rounded-xl border px-3 py-2 text-left text-sm transition-colors ${
                 phone === account.phone
-                  ? "border-slate-900 bg-slate-900 text-white"
-                  : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
+                  ? "border-[var(--navy)] bg-[var(--navy)] text-white"
+                  : "border-[var(--border)] bg-white text-[var(--t1)] hover:bg-[var(--surface-container-low)]"
               }`}
             >
               <span className="block font-medium">{account.label}</span>
-              <span className={`font-mono text-xs ${phone === account.phone ? "text-slate-300" : "text-slate-500"}`}>
+              <span
+                className={`font-mono text-xs ${phone === account.phone ? "text-[var(--t4)]" : "text-[var(--t3)]"}`}
+              >
                 ...{account.phone.slice(-3)}
               </span>
             </button>
@@ -83,7 +88,7 @@ export default function DemoLoginClient() {
 
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <label htmlFor="demo-phone" className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label htmlFor="demo-phone" className="block text-sm font-medium text-[var(--t2)] mb-1.5">
               Phone
             </label>
             <input
@@ -92,11 +97,11 @@ export default function DemoLoginClient() {
               onChange={(event) => setPhone(event.target.value)}
               inputMode="numeric"
               autoComplete="username"
-              className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none focus:border-slate-400"
+              className="w-full rounded-xl border border-[var(--border)] bg-white px-3.5 py-2.5 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
             />
           </div>
           <div>
-            <label htmlFor="demo-password" className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label htmlFor="demo-password" className="block text-sm font-medium text-[var(--t2)] mb-1.5">
               Demo password
             </label>
             <input
@@ -105,7 +110,7 @@ export default function DemoLoginClient() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="current-password"
-              className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none focus:border-slate-400"
+              className="w-full rounded-xl border border-[var(--border)] bg-white px-3.5 py-2.5 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
             />
           </div>
 
@@ -118,7 +123,7 @@ export default function DemoLoginClient() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+            className="w-full rounded-xl bg-[var(--navy)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--navy)] disabled:opacity-60"
           >
             {loading ? "Signing in…" : "Continue"}
           </button>

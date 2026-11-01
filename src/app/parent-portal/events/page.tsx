@@ -24,7 +24,7 @@ const TYPE_STYLES: Record<string, string> = {
   holiday: "bg-emerald-50 text-emerald-700 border-emerald-200",
   event: "bg-violet-50 text-violet-700 border-violet-200",
   academic: "bg-sky-50 text-sky-700 border-sky-200",
-  substitution: "bg-slate-100 text-slate-700 border-slate-200",
+  substitution: "bg-[var(--surface-container)] text-[var(--t2)] border-[var(--border)]",
 };
 
 const TYPE_ICONS: Record<string, string> = {
@@ -213,7 +213,7 @@ export default function ParentEventsPage() {
                         <p className="text-xs text-[var(--t3)] font-medium mt-0.5">{label}</p>
                       </div>
                       <span
-                        className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-black uppercase tracking-wider capitalize ${TYPE_STYLES[ev.event_type] || "bg-slate-100 text-slate-600 border-slate-200"}`}
+                        className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-black uppercase tracking-wider capitalize ${TYPE_STYLES[ev.event_type] || "bg-[var(--surface-container)] text-[var(--t2)] border-[var(--border)]"}`}
                       >
                         <MaterialIcon icon={TYPE_ICONS[ev.event_type] || "event"} className="text-xs" />
                         {ev.event_type}

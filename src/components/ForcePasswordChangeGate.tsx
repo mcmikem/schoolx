@@ -63,11 +63,11 @@ export default function ForcePasswordChangeGate() {
         role="dialog"
         aria-modal="true"
         aria-label="Sign in again"
-        className="fixed inset-0 z-[9999] flex items-center justify-center bg-white p-6 dark:bg-gray-950"
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-white p-6 dark:bg-[var(--surface-container-high)]"
       >
-        <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-xl dark:border-gray-800 dark:bg-gray-900">
-          <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">Sign in again</h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{SESSION_EXPIRED_MESSAGE}</p>
+        <div className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-white p-6 text-center shadow-xl dark:border-[var(--border)] dark:bg-[var(--surface-container-high)]">
+          <h1 className="text-lg font-bold text-[var(--t1)] dark:text-[var(--t4)]">Sign in again</h1>
+          <p className="mt-2 text-sm text-[var(--t2)] dark:text-[var(--t3)]">{SESSION_EXPIRED_MESSAGE}</p>
           <button
             type="button"
             onClick={async () => {
@@ -182,11 +182,11 @@ export default function ForcePasswordChangeGate() {
       role="dialog"
       aria-modal="true"
       aria-label="Set a new password"
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-white p-6 dark:bg-gray-950"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-white p-6 dark:bg-[var(--surface-container-high)]"
     >
-      <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-800 dark:bg-gray-900">
-        <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">Set a new password</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+      <div className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-white p-6 shadow-xl dark:border-[var(--border)] dark:bg-[var(--surface-container-high)]">
+        <h1 className="text-lg font-bold text-[var(--t1)] dark:text-[var(--t4)]">Set a new password</h1>
+        <p className="mt-2 text-sm text-[var(--t2)] dark:text-[var(--t3)]">
           {user.password_reset_required
             ? "An administrator reset your access. Choose a password only you know before continuing."
             : "Your account was created with a temporary password. Choose a password only you know before continuing."}
@@ -194,39 +194,39 @@ export default function ForcePasswordChangeGate() {
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
           <label className="block">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">New password</span>
+            <span className="text-sm font-medium text-[var(--t2)] dark:text-[var(--t4)]">New password</span>
             <input
               type="password"
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={busy}
-              className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-blue-900"
+              className="mt-1 w-full rounded-lg border border-[var(--border2)] bg-white px-3 py-2.5 text-base text-[var(--t1)] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:opacity-60 dark:border-[var(--border)] dark:bg-[var(--surface-container-high)] dark:text-[var(--t4)] dark:focus:ring-blue-900"
               required
             />
           </label>
 
           <label className="block">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Confirm password</span>
+            <span className="text-sm font-medium text-[var(--t2)] dark:text-[var(--t4)]">Confirm password</span>
             <input
               type="password"
               autoComplete="new-password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               disabled={busy}
-              className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-blue-900"
+              className="mt-1 w-full rounded-lg border border-[var(--border2)] bg-white px-3 py-2.5 text-base text-[var(--t1)] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:opacity-60 dark:border-[var(--border)] dark:bg-[var(--surface-container-high)] dark:text-[var(--t4)] dark:focus:ring-blue-900"
               required
             />
           </label>
 
-          <p className="text-xs text-gray-500 dark:text-gray-400">{PASSWORD_RULES}</p>
+          <p className="text-xs text-[var(--t3)] dark:text-[var(--t3)]">{PASSWORD_RULES}</p>
 
           {error && (
             <div role="alert" className="space-y-2">
               <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-700">
                 {error}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-xs text-[var(--t3)] dark:text-[var(--t3)]">
                 If this keeps happening, tap &quot;Sign in again&quot; below and retry. Your temporary password is still
                 valid.
               </p>
@@ -240,7 +240,7 @@ export default function ForcePasswordChangeGate() {
                   }
                   window.location.href = "/login/";
                 }}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                className="w-full rounded-lg border border-[var(--border2)] px-4 py-2 text-sm font-semibold text-[var(--t2)] hover:bg-[var(--surface-container-low)] dark:border-[var(--border)] dark:text-[var(--t4)] dark:hover:bg-[var(--navy)]"
               >
                 Sign in again
               </button>

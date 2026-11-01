@@ -431,13 +431,13 @@ export default function LoginPage() {
       <div className="min-h-screen bg-[#f0f5fc] flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-md rounded-3xl border border-white/60 bg-white/90 p-8 shadow-[0_24px_48px_rgba(15,23,42,0.08)] backdrop-blur-xl">
           {!authInitialized && (
-            <div className="mb-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+            <div className="mb-4 flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] p-3 text-xs text-[var(--t2)]">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent" />
               <span>Restoring your session… if this takes too long, sign in below.</span>
             </div>
           )}
           <div className="mb-6">
-            <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900">
+            <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-[var(--t2)] hover:text-[var(--t1)]">
               <MaterialIcon icon="arrow_back" size={16} />
               Back to home
             </Link>
@@ -482,7 +482,7 @@ export default function LoginPage() {
                     }}
                     className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/80 hover:bg-white border border-amber-300 text-left transition-colors shadow-xs"
                   >
-                    <span className="font-medium text-slate-800">{acc.label}</span>
+                    <span className="font-medium text-[var(--t1)]">{acc.label}</span>
                     <span className="font-mono text-xs text-amber-700">...{acc.phone.slice(-3)}</span>
                   </button>
                 ))}
@@ -509,8 +509,8 @@ export default function LoginPage() {
             </div>
           )}
 
-          <h1 className="text-2xl font-semibold text-slate-900">Sign in</h1>
-          <p className="mt-2 text-sm text-slate-600">
+          <h1 className="text-2xl font-semibold text-[var(--t1)]">Sign in</h1>
+          <p className="mt-2 text-sm text-[var(--t2)]">
             {otpMode ? "Enter your phone number to receive an OTP." : "Use your phone number or email and password."}
           </p>
 
@@ -541,7 +541,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"
+                    className="rounded-lg p-1.5 text-[var(--t3)] hover:bg-[var(--surface-container)]"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     <MaterialIcon icon={showPassword ? "visibility_off" : "visibility"} size={20} />
@@ -561,12 +561,12 @@ export default function LoginPage() {
               />
             )}
 
-            <label className="flex items-center gap-2 text-sm text-slate-600">
+            <label className="flex items-center gap-2 text-sm text-[var(--t2)]">
               <input
                 type="checkbox"
                 checked={rememberSession}
                 onChange={(e) => setRememberSession(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300"
+                className="h-4 w-4 rounded border-[var(--border2)]"
               />
               Keep me signed in on this device
             </label>
@@ -604,13 +604,13 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={toggleOtpMode}
-                className="text-sm text-slate-600 hover:text-slate-900 underline"
+                className="text-sm text-[var(--t2)] hover:text-[var(--t1)] underline"
               >
                 {otpMode ? "Login with password" : "Login with OTP instead"}
               </button>
 
               {!otpMode && (
-                <Link href="/forgot-password" className="text-sm text-slate-600 hover:text-slate-900">
+                <Link href="/forgot-password" className="text-sm text-[var(--t2)] hover:text-[var(--t1)]">
                   Forgot your password?
                 </Link>
               )}
@@ -620,16 +620,16 @@ export default function LoginPage() {
           <div className="mt-6">
             <div className="relative mb-4">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200" />
+                <div className="w-full border-t border-[var(--border)]" />
               </div>
-              <div className="relative flex justify-center text-xs text-slate-500">
+              <div className="relative flex justify-center text-xs text-[var(--t3)]">
                 <span className="bg-white px-2">or continue with</span>
               </div>
             </div>
             <button
               type="button"
               onClick={handleGoogleLogin}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--t2)] hover:bg-[var(--surface-container-low)] transition-colors"
             >
               <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
                 <path
@@ -653,10 +653,10 @@ export default function LoginPage() {
             </button>
           </div>
 
-          <p className="mt-6 text-center text-sm text-slate-600 space-y-2">
+          <p className="mt-6 text-center text-sm text-[var(--t2)] space-y-2">
             <span>
               Don&apos;t have an account?{" "}
-              <Link href="/register" className="font-medium text-slate-900 hover:underline">
+              <Link href="/register" className="font-medium text-[var(--t1)] hover:underline">
                 Register
               </Link>
             </span>
@@ -667,7 +667,7 @@ export default function LoginPage() {
                 href="https://wa.me/256750028703?text=Hi%2C%20I%27d%20like%20a%20demo%20of%20SkoolMate"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium text-slate-900 hover:underline"
+                className="font-medium text-[var(--t1)] hover:underline"
               >
                 Book a free walkthrough
               </a>
@@ -679,7 +679,7 @@ export default function LoginPage() {
                 href={generateSupportWhatsAppLink({ topic: "I have trouble logging in to SkoolMate OS." })}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium text-slate-900 hover:underline"
+                className="font-medium text-[var(--t1)] hover:underline"
               >
                 WhatsApp us at {PLATFORM_SUPPORT_PHONE_DISPLAY}
               </a>{" "}

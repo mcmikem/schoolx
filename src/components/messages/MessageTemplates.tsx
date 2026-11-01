@@ -18,11 +18,7 @@ interface MessageTemplatesProps {
   editingTemplate: SMSTemplate | null;
   onEditingTemplateChange: (t: SMSTemplate | null) => void;
   newTemplate: { name: string; category: string; message: string };
-  onNewTemplateChange: (t: {
-    name: string;
-    category: string;
-    message: string;
-  }) => void;
+  onNewTemplateChange: (t: { name: string; category: string; message: string }) => void;
   templateCategories: { value: string; label: string }[];
   onCreateTemplate: () => void;
   onUpdateTemplate: () => void;
@@ -44,12 +40,12 @@ export default function MessageTemplates({
   onDeleteTemplate,
   onCreateDefaultTemplates,
 }: MessageTemplatesProps) {
-  const createTemplateValidationError = !newTemplate.name.trim() || !newTemplate.message.trim()
-    ? "Add both template name and message to continue."
-    : "";
-  const editTemplateValidationError = editingTemplate && (!editingTemplate.name.trim() || !editingTemplate.message.trim())
-    ? "Template name and message are required to save changes."
-    : "";
+  const createTemplateValidationError =
+    !newTemplate.name.trim() || !newTemplate.message.trim() ? "Add both template name and message to continue." : "";
+  const editTemplateValidationError =
+    editingTemplate && (!editingTemplate.name.trim() || !editingTemplate.message.trim())
+      ? "Template name and message are required to save changes."
+      : "";
 
   return (
     <>
@@ -68,34 +64,20 @@ export default function MessageTemplates({
         {templates.map((template) => (
           <Card key={template.id} className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-[var(--t1)]">
-                {template.name}
-              </h3>
+              <h3 className="font-semibold text-[var(--t1)]">{template.name}</h3>
               <span
-                className={`px-2.5 py-1 rounded-full text-xs font-medium ${template.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium ${template.is_active ? "bg-green-100 text-green-700" : "bg-[var(--surface-container)] text-[var(--t2)]"}`}
               >
                 {template.is_active ? "Active" : "Inactive"}
               </span>
             </div>
-            <div className="text-xs text-[var(--t3)] mb-2 uppercase">
-              {template.category.replace("_", " ")}
-            </div>
-            <p className="text-sm text-[var(--t3)] mb-4 line-clamp-3">
-              {template.message}
-            </p>
+            <div className="text-xs text-[var(--t3)] mb-2 uppercase">{template.category.replace("_", " ")}</div>
+            <p className="text-sm text-[var(--t3)] mb-4 line-clamp-3">{template.message}</p>
             <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={() => onEditingTemplateChange(template)}
-                className="flex-1"
-              >
+              <Button size="sm" onClick={() => onEditingTemplateChange(template)} className="flex-1">
                 Edit
               </Button>
-              <Button
-                size="sm"
-                variant="danger"
-                onClick={() => onDeleteTemplate(template.id)}
-              >
+              <Button size="sm" variant="danger" onClick={() => onDeleteTemplate(template.id)}>
                 Delete
               </Button>
             </div>
@@ -103,12 +85,8 @@ export default function MessageTemplates({
         ))}
         {templates.length === 0 && (
           <div className="col-span-full text-center py-12 text-[var(--t3)]">
-            <MaterialIcon className="text-5xl opacity-50 mx-auto">
-              sms
-            </MaterialIcon>
-            <p className="mt-2">
-              No templates yet. Create one or add defaults.
-            </p>
+            <MaterialIcon className="text-5xl opacity-50 mx-auto">sms</MaterialIcon>
+            <p className="mt-2">No templates yet. Create one or add defaults.</p>
           </div>
         )}
       </div>
@@ -116,14 +94,10 @@ export default function MessageTemplates({
       {showCreateTemplate && (
         <div className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-4 overflow-y-auto flex items-start sm:items-center justify-center">
           <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
-            <h2 className="text-xl font-bold text-[var(--t1)] mb-4">
-              Create SMS Template
-            </h2>
+            <h2 className="text-xl font-bold text-[var(--t1)] mb-4">Create SMS Template</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  Template Name
-                </label>
+                <label className="block text-sm font-medium mb-1">Template Name</label>
                 <input
                   value={newTemplate.name}
                   onChange={(e) =>
@@ -137,9 +111,7 @@ export default function MessageTemplates({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  Category
-                </label>
+                <label className="block text-sm font-medium mb-1">Category</label>
                 <select
                   value={newTemplate.category}
                   onChange={(e) =>
@@ -158,9 +130,7 @@ export default function MessageTemplates({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  Message
-                </label>
+                <label className="block text-sm font-medium mb-1">Message</label>
                 <textarea
                   value={newTemplate.message}
                   onChange={(e) =>
@@ -174,17 +144,12 @@ export default function MessageTemplates({
                   placeholder="Enter message template..."
                 />
                 <p className="text-xs text-[var(--t3)] mt-1">
-                  Use {"{{variable}}"} for dynamic content (e.g.,{" "}
-                  {"{{student_name}}"}, {"{{amount}}"})
+                  Use {"{{variable}}"} for dynamic content (e.g., {"{{student_name}}"}, {"{{amount}}"})
                 </p>
               </div>
             </div>
             <div className="flex gap-3 mt-6">
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={() => onShowCreateTemplateChange(false)}
-              >
+              <Button variant="secondary" className="flex-1" onClick={() => onShowCreateTemplateChange(false)}>
                 Cancel
               </Button>
               <Button className="flex-1" onClick={onCreateTemplate} disabled={Boolean(createTemplateValidationError)}>
@@ -201,14 +166,10 @@ export default function MessageTemplates({
       {editingTemplate && (
         <div className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-4 overflow-y-auto flex items-start sm:items-center justify-center">
           <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
-            <h2 className="text-xl font-bold text-[var(--t1)] mb-4">
-              Edit SMS Template
-            </h2>
+            <h2 className="text-xl font-bold text-[var(--t1)] mb-4">Edit SMS Template</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  Template Name
-                </label>
+                <label className="block text-sm font-medium mb-1">Template Name</label>
                 <input
                   value={editingTemplate.name}
                   onChange={(e) =>
@@ -221,9 +182,7 @@ export default function MessageTemplates({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  Category
-                </label>
+                <label className="block text-sm font-medium mb-1">Category</label>
                 <select
                   value={editingTemplate.category}
                   onChange={(e) =>
@@ -242,9 +201,7 @@ export default function MessageTemplates({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  Message
-                </label>
+                <label className="block text-sm font-medium mb-1">Message</label>
                 <textarea
                   value={editingTemplate.message}
                   onChange={(e) =>
@@ -275,11 +232,7 @@ export default function MessageTemplates({
               </div>
             </div>
             <div className="flex gap-3 mt-6">
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={() => onEditingTemplateChange(null)}
-              >
+              <Button variant="secondary" className="flex-1" onClick={() => onEditingTemplateChange(null)}>
                 Cancel
               </Button>
               <Button className="flex-1" onClick={onUpdateTemplate} disabled={Boolean(editTemplateValidationError)}>

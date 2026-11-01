@@ -103,23 +103,23 @@ export default function FeaturesPage() {
             <Link href="/">
               <SkoolMateLogo size="md" variant="default" />
             </Link>
-            <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
-              <Link href="/features" className="transition hover:text-slate-950">
+            <div className="hidden items-center gap-8 text-sm font-medium text-[var(--t2)] md:flex">
+              <Link href="/features" className="transition hover:text-[var(--t3)]">
                 Features
               </Link>
-              <Link href="/pricing" className="transition hover:text-slate-950">
+              <Link href="/pricing" className="transition hover:text-[var(--t3)]">
                 Pricing
               </Link>
-              <Link href="/demo" className="transition hover:text-slate-950">
+              <Link href="/demo" className="transition hover:text-[var(--t3)]">
                 Demo
               </Link>
-              <Link href="/blog" className="transition hover:text-slate-950">
+              <Link href="/blog" className="transition hover:text-[var(--t3)]">
                 Blog
               </Link>
-              <Link href="/about" className="transition hover:text-slate-950">
+              <Link href="/about" className="transition hover:text-[var(--t3)]">
                 About
               </Link>
-              <Link href="/contact" className="transition hover:text-slate-950">
+              <Link href="/contact" className="transition hover:text-[var(--t3)]">
                 Contact
               </Link>
             </div>
@@ -142,12 +142,12 @@ export default function FeaturesPage() {
                 <MaterialIcon icon="travel_explore" className="text-sm" />
                 Everything in one platform
               </span>
-              <h1 className="mt-6 font-['Sora'] text-4xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-5xl lg:text-6xl">
+              <h1 className="mt-6 font-['Sora'] text-4xl font-semibold tracking-[-0.05em] text-[var(--t3)] sm:text-5xl lg:text-6xl">
                 Every tool your school needs.
                 <br />
                 <span className="text-[var(--green)]">Nothing it doesn&apos;t.</span>
               </h1>
-              <p className="mt-6 text-lg leading-8 text-slate-600 max-w-2xl mx-auto">
+              <p className="mt-6 text-lg leading-8 text-[var(--t2)] max-w-2xl mx-auto">
                 SkoolMate OS brings together student management, academics, fees, communication, and planning — so your
                 school runs from one place instead of ten.
               </p>
@@ -160,14 +160,14 @@ export default function FeaturesPage() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {featureGroups.map((group, i) => (
               <FadeIn key={group.title} delay={i * 80}>
-                <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all h-full flex flex-col">
+                <div className="rounded-[28px] border border-[var(--border)] bg-white p-6 shadow-sm hover:shadow-md transition-all h-full flex flex-col">
                   <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${group.color}`}>
                     <MaterialIcon icon={group.icon} className="text-[24px]" />
                   </div>
-                  <h3 className="mt-4 text-lg font-semibold text-slate-900">{group.title}</h3>
+                  <h3 className="mt-4 text-lg font-semibold text-[var(--t1)]">{group.title}</h3>
                   <ul className="mt-4 space-y-2.5 flex-1">
                     {group.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2.5 text-sm text-slate-600">
+                      <li key={f} className="flex items-start gap-2.5 text-sm text-[var(--t2)]">
                         <MaterialIcon icon="check" className="text-[var(--green)] text-[18px] mt-0.5 flex-shrink-0" />
                         {f}
                       </li>
@@ -184,10 +184,10 @@ export default function FeaturesPage() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <FadeIn>
               <div className="text-center max-w-3xl mx-auto">
-                <h2 className="font-['Sora'] text-3xl font-semibold text-slate-950 sm:text-4xl">
+                <h2 className="font-['Sora'] text-3xl font-semibold text-[var(--t3)] sm:text-4xl">
                   Core platform modules
                 </h2>
-                <p className="mt-4 text-lg text-slate-600">
+                <p className="mt-4 text-lg text-[var(--t2)]">
                   Every module is designed to reduce duplicate work. Enter data once, use it everywhere.
                 </p>
               </div>
@@ -195,11 +195,11 @@ export default function FeaturesPage() {
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 max-w-4xl mx-auto">
               {modules.map((mod, i) => (
                 <FadeIn key={mod.label} delay={i * 80}>
-                  <div className="rounded-[24px] border border-slate-200 bg-white px-5 py-5 shadow-sm hover:shadow-md hover:border-[var(--brand-green)]/30 transition-all flex items-center gap-4">
+                  <div className="rounded-[24px] border border-[var(--border)] bg-white px-5 py-5 shadow-sm hover:shadow-md hover:border-[var(--brand-green)]/30 transition-all flex items-center gap-4">
                     <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)] flex-shrink-0">
                       <MaterialIcon icon={mod.icon} className="text-[22px]" />
                     </div>
-                    <p className="text-sm font-semibold text-slate-800">{mod.label}</p>
+                    <p className="text-sm font-semibold text-[var(--t1)]">{mod.label}</p>
                   </div>
                 </FadeIn>
               ))}
@@ -211,10 +211,10 @@ export default function FeaturesPage() {
         <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <FadeIn>
             <div className="text-center max-w-3xl mx-auto mb-12">
-              <h2 className="font-['Sora'] text-3xl font-semibold text-slate-950 sm:text-4xl">
+              <h2 className="font-['Sora'] text-3xl font-semibold text-[var(--t3)] sm:text-4xl">
                 Security & data protection
               </h2>
-              <p className="mt-4 text-lg text-slate-600">
+              <p className="mt-4 text-lg text-[var(--t2)]">
                 Student records and financial data are sensitive. Here is how we protect your school.
               </p>
             </div>
@@ -222,12 +222,12 @@ export default function FeaturesPage() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {securityDetails.map((item, i) => (
               <FadeIn key={item.title} delay={i * 100}>
-                <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md hover:border-[var(--brand-green)]/30 transition-all h-full">
+                <div className="rounded-[28px] border border-[var(--border)] bg-white p-6 shadow-sm hover:shadow-md hover:border-[var(--brand-green)]/30 transition-all h-full">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)]">
                     <MaterialIcon icon={item.icon} className="text-[24px]" />
                   </div>
-                  <h3 className="mt-4 text-lg font-semibold text-slate-900">{item.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{item.desc}</p>
+                  <h3 className="mt-4 text-lg font-semibold text-[var(--t1)]">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--t2)]">{item.desc}</p>
                 </div>
               </FadeIn>
             ))}
@@ -259,73 +259,73 @@ export default function FeaturesPage() {
         </section>
 
         {/* Footer */}
-        <footer className="border-t border-slate-200 bg-white">
+        <footer className="border-t border-[var(--border)] bg-white">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <SkoolMateLogo size="md" variant="default" />
-                <p className="mt-4 text-sm leading-6 text-slate-500">
+                <p className="mt-4 text-sm leading-6 text-[var(--t3)]">
                   The school operating system built from real experience in Ugandan schools.
                 </p>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Product</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Product</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/features" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/features" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Features
                     </Link>
                   </li>
                   <li>
-                    <Link href="/pricing" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/pricing" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Pricing
                     </Link>
                   </li>
                   <li>
-                    <Link href="/about" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/about" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       About
                     </Link>
                   </li>
                 </ul>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Resources</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Resources</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/login" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/login" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Sign In
                     </Link>
                   </li>
                   <li>
-                    <Link href="/register" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/register" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Register School
                     </Link>
                   </li>
                   <li>
-                    <Link href="/contact" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/contact" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Contact
                     </Link>
                   </li>
                 </ul>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Legal</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Legal</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/privacy" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/privacy" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Privacy Policy
                     </Link>
                   </li>
                   <li>
-                    <Link href="/terms" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/terms" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Terms of Service
                     </Link>
                   </li>
                 </ul>
               </div>
             </div>
-            <div className="mt-10 border-t border-slate-200 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-sm text-slate-400">
+            <div className="mt-10 border-t border-[var(--border)] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-[var(--t3)]">
                 &copy; {new Date().getFullYear()} Omuto Foundation. All rights reserved.
               </p>
             </div>

@@ -8,9 +8,7 @@ interface TopicPerformanceCardProps {
   performance: TopicPerformance;
 }
 
-export default function TopicPerformanceCard({
-  performance,
-}: TopicPerformanceCardProps) {
+export default function TopicPerformanceCard({ performance }: TopicPerformanceCardProps) {
   const getMasteryIcon = (level: string) => {
     switch (level) {
       case "advanced":
@@ -24,9 +22,7 @@ export default function TopicPerformanceCard({
     }
   };
 
-  const getMasteryColor = (
-    level: string
-  ): "text-amber-600" | "text-green-600" | "text-blue-600" | "text-red-600" => {
+  const getMasteryColor = (level: string): "text-amber-600" | "text-green-600" | "text-blue-600" | "text-red-600" => {
     switch (level) {
       case "advanced":
         return "text-amber-600";
@@ -40,7 +36,7 @@ export default function TopicPerformanceCard({
   };
 
   const getScoreColor = (score?: number) => {
-    if (!score) return "bg-gray-100 text-gray-700";
+    if (!score) return "bg-[var(--surface-container)] text-[var(--t2)]";
     if (score >= 80) return "bg-green-100 text-green-700";
     if (score >= 65) return "bg-blue-100 text-blue-700";
     if (score >= 50) return "bg-amber-100 text-amber-700";
@@ -48,27 +44,19 @@ export default function TopicPerformanceCard({
   };
 
   const totalStudents = performance.student_count || 1;
-  const passRate = Math.round(
-    (((totalStudents - performance.students_below_50) / totalStudents) * 100)
-  );
+  const passRate = Math.round(((totalStudents - performance.students_below_50) / totalStudents) * 100);
 
   return (
     <Card className="p-4 hover:shadow-md transition-shadow">
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
-          <h3 className="font-semibold text-[var(--t1)] mb-1">
-            {performance.topic}
-          </h3>
+          <h3 className="font-semibold text-[var(--t1)] mb-1">{performance.topic}</h3>
           <div className="flex items-center gap-2">
-            <MaterialIcon
-              className={`text-lg ${getMasteryColor(performance.mastery_level)}`}
-            >
+            <MaterialIcon className={`text-lg ${getMasteryColor(performance.mastery_level)}`}>
               {getMasteryIcon(performance.mastery_level)}
             </MaterialIcon>
-            <span className="text-xs font-medium text-[var(--t3)] capitalize">
-              {performance.mastery_level} Level
-            </span>
+            <span className="text-xs font-medium text-[var(--t3)] capitalize">{performance.mastery_level} Level</span>
           </div>
         </div>
 
@@ -83,12 +71,8 @@ export default function TopicPerformanceCard({
 
       {/* Score Card */}
       {performance.average_score !== undefined && (
-        <div
-          className={`${getScoreColor(performance.average_score)} rounded-lg p-3 mb-3 text-center`}
-        >
-          <div className="text-2xl font-bold">
-            {performance.average_score.toFixed(1)}%
-          </div>
+        <div className={`${getScoreColor(performance.average_score)} rounded-lg p-3 mb-3 text-center`}>
+          <div className="text-2xl font-bold">{performance.average_score.toFixed(1)}%</div>
           <div className="text-xs font-medium">Average Score</div>
         </div>
       )}
@@ -97,9 +81,7 @@ export default function TopicPerformanceCard({
       <div className="space-y-2 mb-3">
         <div className="flex justify-between items-center text-xs">
           <span className="text-[var(--t3)]">Student Performance Distribution</span>
-          <span className="font-semibold text-[var(--t2)]">
-            {totalStudents} students
-          </span>
+          <span className="font-semibold text-[var(--t2)]">{totalStudents} students</span>
         </div>
 
         {/* Distribution Bars */}
@@ -107,12 +89,8 @@ export default function TopicPerformanceCard({
           {/* Above 75 */}
           <div>
             <div className="flex justify-between mb-1">
-              <span className="text-xs font-medium text-[var(--t2)]">
-                Above 75%
-              </span>
-              <span className="text-xs text-[var(--t3)]">
-                {performance.students_above_75} students
-              </span>
+              <span className="text-xs font-medium text-[var(--t2)]">Above 75%</span>
+              <span className="text-xs text-[var(--t3)]">{performance.students_above_75} students</span>
             </div>
             <div className="w-full h-2 bg-[var(--border)] rounded-full overflow-hidden">
               <div
@@ -127,12 +105,8 @@ export default function TopicPerformanceCard({
           {/* 50-75 */}
           <div>
             <div className="flex justify-between mb-1">
-              <span className="text-xs font-medium text-[var(--t2)]">
-                50-75%
-              </span>
-              <span className="text-xs text-[var(--t3)]">
-                {performance.students_50_to_75} students
-              </span>
+              <span className="text-xs font-medium text-[var(--t2)]">50-75%</span>
+              <span className="text-xs text-[var(--t3)]">{performance.students_50_to_75} students</span>
             </div>
             <div className="w-full h-2 bg-[var(--border)] rounded-full overflow-hidden">
               <div
@@ -147,12 +121,8 @@ export default function TopicPerformanceCard({
           {/* Below 50 */}
           <div>
             <div className="flex justify-between mb-1">
-              <span className="text-xs font-medium text-[var(--t2)]">
-                Below 50%
-              </span>
-              <span className="text-xs text-[var(--t3)]">
-                {performance.students_below_50} students
-              </span>
+              <span className="text-xs font-medium text-[var(--t2)]">Below 50%</span>
+              <span className="text-xs text-[var(--t3)]">{performance.students_below_50} students</span>
             </div>
             <div className="w-full h-2 bg-[var(--border)] rounded-full overflow-hidden">
               <div
@@ -185,23 +155,15 @@ export default function TopicPerformanceCard({
       {/* Notes */}
       {performance.common_misconceptions && (
         <div className="mb-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
-          <h4 className="text-xs font-semibold text-amber-900 mb-1">
-            Common Misconceptions
-          </h4>
-          <p className="text-xs text-amber-800">
-            {performance.common_misconceptions}
-          </p>
+          <h4 className="text-xs font-semibold text-amber-900 mb-1">Common Misconceptions</h4>
+          <p className="text-xs text-amber-800">{performance.common_misconceptions}</p>
         </div>
       )}
 
       {performance.differentiation_needed && (
         <div className="mb-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
-          <h4 className="text-xs font-semibold text-blue-900 mb-1">
-            Differentiation Needed
-          </h4>
-          <p className="text-xs text-blue-800">
-            {performance.differentiation_needed}
-          </p>
+          <h4 className="text-xs font-semibold text-blue-900 mb-1">Differentiation Needed</h4>
+          <p className="text-xs text-blue-800">{performance.differentiation_needed}</p>
         </div>
       )}
 

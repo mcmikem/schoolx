@@ -109,7 +109,7 @@ export default function ClassManager({
               <button
                 key={type}
                 onClick={() => onSchoolConfigChange({ ...schoolConfig, location_type: type })}
-                className={`p-4 rounded-xl border-2 text-center transition-all ${schoolConfig.location_type === type ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
+                className={`p-4 rounded-xl border-2 text-center transition-all ${schoolConfig.location_type === type ? "border-blue-600 bg-blue-50" : "border-[var(--border)] hover:border-[var(--border2)]"}`}
               >
                 <div className="font-medium capitalize">{type.replace("_", " ")}</div>
               </button>

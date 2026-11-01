@@ -4,13 +4,13 @@ import { useState } from "react";
 export function FAQItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white hover:shadow-sm transition-shadow">
+    <div className="border border-[var(--border)] rounded-2xl overflow-hidden bg-white hover:shadow-sm transition-shadow">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-6 py-5 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--t1)]/30"
         aria-expanded={open}
       >
-        <span className="text-base font-semibold text-slate-900 pr-4">{q}</span>
+        <span className="text-base font-semibold text-[var(--t1)] pr-4">{q}</span>
         <span
           className={`material-symbols-outlined text-[var(--t1)] transition-transform duration-300 flex-shrink-0 ${open ? "rotate-180" : ""}`}
         >
@@ -18,7 +18,7 @@ export function FAQItem({ q, a }: { q: string; a: string }) {
         </span>
       </button>
       <div className={`overflow-hidden transition-all duration-300 ${open ? "max-h-48 pb-5" : "max-h-0"}`}>
-        <p className="px-6 text-sm leading-6 text-slate-600">{a}</p>
+        <p className="px-6 text-sm leading-6 text-[var(--t2)]">{a}</p>
       </div>
     </div>
   );

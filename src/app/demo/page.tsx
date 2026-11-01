@@ -27,23 +27,23 @@ export default function DemoPage() {
             <Link href="/">
               <SkoolMateLogo size="md" variant="default" />
             </Link>
-            <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
-              <Link href="/features" className="transition hover:text-slate-950">
+            <div className="hidden items-center gap-8 text-sm font-medium text-[var(--t2)] md:flex">
+              <Link href="/features" className="transition hover:text-[var(--t3)]">
                 Features
               </Link>
-              <Link href="/pricing" className="transition hover:text-slate-950">
+              <Link href="/pricing" className="transition hover:text-[var(--t3)]">
                 Pricing
               </Link>
-              <Link href="/demo" className="transition hover:text-slate-950">
+              <Link href="/demo" className="transition hover:text-[var(--t3)]">
                 Demo
               </Link>
-              <Link href="/blog" className="transition hover:text-slate-950">
+              <Link href="/blog" className="transition hover:text-[var(--t3)]">
                 Blog
               </Link>
-              <Link href="/about" className="transition hover:text-slate-950">
+              <Link href="/about" className="transition hover:text-[var(--t3)]">
                 About
               </Link>
-              <Link href="/contact" className="transition hover:text-slate-950">
+              <Link href="/contact" className="transition hover:text-[var(--t3)]">
                 Contact
               </Link>
             </div>
@@ -65,10 +65,10 @@ export default function DemoPage() {
                 <MaterialIcon icon="play_circle" className="text-sm" />
                 See it in action
               </span>
-              <h1 className="mt-6 font-['Sora'] text-4xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-5xl lg:text-6xl">
+              <h1 className="mt-6 font-['Sora'] text-4xl font-semibold tracking-[-0.05em] text-[var(--t3)] sm:text-5xl lg:text-6xl">
                 See SkoolMate OS in action.
               </h1>
-              <p className="mt-6 text-lg leading-8 text-slate-600 max-w-2xl mx-auto">
+              <p className="mt-6 text-lg leading-8 text-[var(--t2)] max-w-2xl mx-auto">
                 Schedule a free, no-obligation demo. We will show you how your school can use SkoolMate OS for
                 attendance, fees, grades, reports, and parent communication — all in one place.
               </p>
@@ -79,8 +79,8 @@ export default function DemoPage() {
         <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8 lg:pb-24">
           <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr] lg:items-start">
             <FadeIn>
-              <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
-                <h2 className="font-['Sora'] text-2xl font-semibold text-slate-950">What you will see</h2>
+              <div className="rounded-[32px] border border-[var(--border)] bg-white p-6 shadow-sm lg:p-8">
+                <h2 className="font-['Sora'] text-2xl font-semibold text-[var(--t3)]">What you will see</h2>
                 <div className="mt-6 space-y-4">
                   {[
                     {
@@ -119,8 +119,8 @@ export default function DemoPage() {
                         <MaterialIcon icon={item.icon} className="text-[20px]" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-                        <p className="text-sm text-slate-500 mt-0.5">{item.desc}</p>
+                        <p className="text-sm font-semibold text-[var(--t1)]">{item.title}</p>
+                        <p className="text-sm text-[var(--t3)] mt-0.5">{item.desc}</p>
                       </div>
                     </div>
                   ))}
@@ -129,9 +129,9 @@ export default function DemoPage() {
             </FadeIn>
 
             <FadeIn delay={100}>
-              <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
-                <h2 className="font-['Sora'] text-2xl font-semibold text-slate-950">Book a demo</h2>
-                <p className="mt-2 text-sm text-slate-500">Fill in your details and we will schedule a call.</p>
+              <div className="rounded-[32px] border border-[var(--border)] bg-white p-6 shadow-sm lg:p-8">
+                <h2 className="font-['Sora'] text-2xl font-semibold text-[var(--t3)]">Book a demo</h2>
+                <p className="mt-2 text-sm text-[var(--t3)]">Fill in your details and we will schedule a call.</p>
                 <div className="mt-6">
                   <DemoForm />
                 </div>
@@ -145,8 +145,8 @@ export default function DemoPage() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <FadeIn>
               <div className="text-center max-w-3xl mx-auto">
-                <h2 className="font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">Still deciding?</h2>
-                <p className="mt-4 text-base text-slate-600">
+                <h2 className="font-['Sora'] text-2xl font-semibold text-[var(--t3)] sm:text-3xl">Still deciding?</h2>
+                <p className="mt-4 text-base text-[var(--t2)]">
                   Start a free trial instead. No credit card needed. Full access for 30 days.
                 </p>
                 <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -162,73 +162,73 @@ export default function DemoPage() {
           </div>
         </section>
 
-        <footer className="border-t border-slate-200 bg-white">
+        <footer className="border-t border-[var(--border)] bg-white">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <SkoolMateLogo size="md" variant="default" />
-                <p className="mt-4 text-sm leading-6 text-slate-500">
+                <p className="mt-4 text-sm leading-6 text-[var(--t3)]">
                   The school operating system built from real experience in Ugandan schools.
                 </p>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Product</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Product</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/features" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/features" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Features
                     </Link>
                   </li>
                   <li>
-                    <Link href="/pricing" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/pricing" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Pricing
                     </Link>
                   </li>
                   <li>
-                    <Link href="/demo" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/demo" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Request Demo
                     </Link>
                   </li>
                 </ul>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Resources</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Resources</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/blog" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/blog" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Blog
                     </Link>
                   </li>
                   <li>
-                    <Link href="/contact" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/contact" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Contact
                     </Link>
                   </li>
                   <li>
-                    <Link href="/register" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/register" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Register School
                     </Link>
                   </li>
                 </ul>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Legal</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Legal</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/privacy" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/privacy" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Privacy Policy
                     </Link>
                   </li>
                   <li>
-                    <Link href="/terms" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/terms" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Terms of Service
                     </Link>
                   </li>
                 </ul>
               </div>
             </div>
-            <div className="mt-10 border-t border-slate-200 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-sm text-slate-400">
+            <div className="mt-10 border-t border-[var(--border)] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-[var(--t3)]">
                 &copy; {new Date().getFullYear()} Omuto Foundation. All rights reserved.
               </p>
             </div>

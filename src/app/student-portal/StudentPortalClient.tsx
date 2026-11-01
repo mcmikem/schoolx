@@ -175,10 +175,10 @@ export default function StudentPortalClient({ initial }: { initial: PortalInitia
 
   if (!authInitialized || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-[var(--surface-container-low)]">
         <div className="text-center">
-          <div className="w-12 h-12 rounded-full border-4 border-gray-200 border-t-blue-600 animate-spin mx-auto mb-3" />
-          <p className="text-gray-500 text-sm">Loading...</p>
+          <div className="w-12 h-12 rounded-full border-4 border-[var(--border)] border-t-blue-600 animate-spin mx-auto mb-3" />
+          <p className="text-[var(--t3)] text-sm">Loading...</p>
         </div>
       </div>
     );
@@ -186,11 +186,11 @@ export default function StudentPortalClient({ initial }: { initial: PortalInitia
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-[var(--surface-container-low)]">
         <Card className="p-8 max-w-md text-center">
           <MaterialIcon className="text-4xl text-red-400 mx-auto mb-3">error_outline</MaterialIcon>
-          <p className="text-gray-700 font-medium mb-2">Unable to load your data</p>
-          <p className="text-gray-500 text-sm mb-4">{error}</p>
+          <p className="text-[var(--t2)] font-medium mb-2">Unable to load your data</p>
+          <p className="text-[var(--t3)] text-sm mb-4">{error}</p>
           <Button onClick={() => router.refresh()}>Try Again</Button>
         </Card>
       </div>
@@ -199,11 +199,11 @@ export default function StudentPortalClient({ initial }: { initial: PortalInitia
 
   if (!student) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-[var(--surface-container-low)]">
         <Card className="p-8 max-w-md text-center">
-          <MaterialIcon className="text-4xl text-gray-300 mx-auto mb-3">person_off</MaterialIcon>
-          <p className="text-gray-700 font-medium mb-2">No student record found</p>
-          <p className="text-gray-500 text-sm">Please contact your school administration.</p>
+          <MaterialIcon className="text-4xl text-[var(--t4)] mx-auto mb-3">person_off</MaterialIcon>
+          <p className="text-[var(--t2)] font-medium mb-2">No student record found</p>
+          <p className="text-[var(--t3)] text-sm">Please contact your school administration.</p>
         </Card>
       </div>
     );
@@ -212,23 +212,27 @@ export default function StudentPortalClient({ initial }: { initial: PortalInitia
   const attPct = attendance.total > 0 ? Math.round((attendance.present / attendance.total) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+    <div className="min-h-screen bg-[var(--surface-container-low)]">
+      <header className="bg-white border-b border-[var(--border)] px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
             {student.first_name[0]}
             {student.last_name[0]}
           </div>
           <div>
-            <h1 className="font-semibold text-gray-900 text-sm">
+            <h1 className="font-semibold text-[var(--t1)] text-sm">
               {student.first_name} {student.last_name}
             </h1>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-[var(--t3)]">
               {student.classes?.name || "Class"} · {student.student_number}
             </p>
           </div>
         </div>
-        <button onClick={signOut} className="tap-44 p-2 rounded-lg hover:bg-gray-100 text-gray-500" title="Sign out">
+        <button
+          onClick={signOut}
+          className="tap-44 p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)]"
+          title="Sign out"
+        >
           <MaterialIcon>logout</MaterialIcon>
         </button>
       </header>
@@ -270,9 +274,9 @@ export default function StudentPortalClient({ initial }: { initial: PortalInitia
               <div className="flex items-center gap-3">
                 <MaterialIcon className={`text-2xl ${s.color}`}>{s.icon}</MaterialIcon>
                 <div className="min-w-0">
-                  <p className="text-xs text-gray-500">{s.label}</p>
-                  <p className="font-semibold text-gray-900 truncate">{s.value}</p>
-                  <p className="text-xs text-gray-400">{s.sub}</p>
+                  <p className="text-xs text-[var(--t3)]">{s.label}</p>
+                  <p className="font-semibold text-[var(--t1)] truncate">{s.value}</p>
+                  <p className="text-xs text-[var(--t3)]">{s.sub}</p>
                 </div>
               </div>
             </Card>
@@ -282,23 +286,23 @@ export default function StudentPortalClient({ initial }: { initial: PortalInitia
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <StudentPractice schoolId={school?.id} classId={student.class_id} studentId={student.id} isDemo={isDemo} />
           <Card>
-            <div className="p-4 border-b border-gray-100">
+            <div className="p-4 border-b border-[var(--border)]">
               <div className="flex items-center justify-between">
-                <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+                <h2 className="font-semibold text-[var(--t1)] text-sm flex items-center gap-2">
                   <MaterialIcon className="text-blue-500 text-lg">campaign</MaterialIcon>
                   School Notices
                 </h2>
               </div>
             </div>
-            <div className="divide-y divide-gray-50 max-h-64 overflow-y-auto">
+            <div className="divide-y divide-[var(--border)] max-h-64 overflow-y-auto">
               {notices.length === 0 ? (
-                <p className="p-4 text-sm text-gray-400 text-center">No recent notices</p>
+                <p className="p-4 text-sm text-[var(--t3)] text-center">No recent notices</p>
               ) : (
                 notices.map((n) => (
-                  <div key={n.id} className="p-3 hover:bg-gray-50">
-                    <p className="font-medium text-gray-800 text-sm">{n.title}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{n.content}</p>
-                    <p className="text-xs text-gray-400 mt-1">
+                  <div key={n.id} className="p-3 hover:bg-[var(--surface-container-low)]">
+                    <p className="font-medium text-[var(--t1)] text-sm">{n.title}</p>
+                    <p className="text-xs text-[var(--t3)] mt-0.5">{n.content}</p>
+                    <p className="text-xs text-[var(--t3)] mt-1">
                       {new Date(n.created_at).toLocaleDateString("en-UG", {
                         day: "numeric",
                         month: "short",
@@ -312,9 +316,9 @@ export default function StudentPortalClient({ initial }: { initial: PortalInitia
           </Card>
 
           <Card>
-            <div className="p-4 border-b border-gray-100">
+            <div className="p-4 border-b border-[var(--border)]">
               <div className="flex items-center justify-between">
-                <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+                <h2 className="font-semibold text-[var(--t1)] text-sm flex items-center gap-2">
                   <MaterialIcon className="text-purple-500 text-lg">trending_up</MaterialIcon>
                   Quick Links
                 </h2>
@@ -329,11 +333,11 @@ export default function StudentPortalClient({ initial }: { initial: PortalInitia
               ].map((link) => (
                 <button
                   key={link.label}
-                  className="tap-44 w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors text-left"
+                  className="tap-44 w-full flex items-center gap-3 p-3 rounded-xl hover:bg-[var(--surface-container-low)] transition-colors text-left"
                 >
                   <MaterialIcon className={`text-xl ${link.color}`}>{link.icon}</MaterialIcon>
-                  <span className="text-sm font-medium text-gray-700">{link.label}</span>
-                  <MaterialIcon className="ml-auto text-gray-300 text-lg">chevron_right</MaterialIcon>
+                  <span className="text-sm font-medium text-[var(--t2)]">{link.label}</span>
+                  <MaterialIcon className="ml-auto text-[var(--t4)] text-lg">chevron_right</MaterialIcon>
                 </button>
               ))}
             </div>

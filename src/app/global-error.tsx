@@ -41,20 +41,20 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
       <body>
         <a
           href="#error-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-50 bg-gray-900 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-50 bg-[var(--navy)] text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--primary)]/20"
         >
           Skip to main content
         </a>
         <div
           id="error-content"
           tabIndex={-1}
-          className="min-h-screen flex items-center justify-center p-8 bg-gray-50 focus:outline-none"
+          className="min-h-screen flex items-center justify-center p-8 bg-[var(--surface-container-low)] focus:outline-none"
         >
           <div className="text-center max-w-md">
             <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <MaterialIcon icon="warning" size={32} className="h-8 text-red-600" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">{t("error.somethingWentWrong")}</h2>
+            <h2 className="text-xl font-bold text-[var(--t1)] mb-2">{t("error.somethingWentWrong")}</h2>
             <ErrorDetails error={error} source="global-error" className="mb-6" />
             <div className="flex gap-3 justify-center flex-wrap">
               <button
@@ -65,14 +65,14 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
                     reset();
                   }
                 }}
-                className="px-4 py-2 bg-gray-900 text-white rounded-lg font-medium text-sm flex items-center gap-2 hover:bg-gray-800 transition-colors"
+                className="px-4 py-2 bg-[var(--navy)] text-white rounded-lg font-medium text-sm flex items-center gap-2 hover:bg-[var(--navy)] transition-colors"
               >
                 <MaterialIcon icon="refresh" size={16} className="h-4" /> {t("error.tryAgain")}
               </button>
               <button
                 onClick={clearCacheAndReload}
                 disabled={recovering}
-                className="px-4 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg font-medium text-sm flex items-center gap-2 hover:bg-gray-50 transition-colors disabled:opacity-60"
+                className="px-4 py-2 bg-white border border-[var(--border2)] text-[var(--t1)] rounded-lg font-medium text-sm flex items-center gap-2 hover:bg-[var(--surface-container-low)] transition-colors disabled:opacity-60"
               >
                 <MaterialIcon icon="cleaning_services" size={16} className="h-4" />
                 {recovering ? "Clearing…" : "Clear cache & reload"}

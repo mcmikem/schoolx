@@ -223,7 +223,8 @@ export default function ParentHomeworkPage() {
                       <div className="flex flex-col items-end gap-2 shrink-0">
                         <span
                           className={`inline-flex px-2.5 py-0.5 rounded-full border text-xs font-bold uppercase tracking-wider ${
-                            statusInfo?.color || "bg-gray-50 text-gray-700 border-gray-200"
+                            statusInfo?.color ||
+                            "bg-[var(--surface-container-low)] text-[var(--t2)] border-[var(--border)]"
                           }`}
                         >
                           {statusInfo?.label || "Unknown"}

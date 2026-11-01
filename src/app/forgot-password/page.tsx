@@ -56,7 +56,7 @@ export default function ForgotPasswordPage() {
 
         <div className="relative z-10 w-full max-w-md mx-auto px-4">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-[24px] bg-white shadow-xl mb-6 ring-1 ring-slate-100">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-[24px] bg-white shadow-xl mb-6 ring-1 ring-[var(--border)]">
               <SkoolMateLogo size="md" />
             </div>
             <h2 className="text-3xl font-extrabold text-[var(--t1)] tracking-tight">Reset your password</h2>

@@ -16,7 +16,7 @@ export function RoleSwitcher() {
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--t1)]">
             Built for every person in the school
           </p>
-          <h2 className="mt-3 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
+          <h2 className="mt-3 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-[var(--t3)] sm:text-4xl">
             Pick your role. See what it does for you.
           </h2>
         </div>
@@ -29,7 +29,7 @@ export function RoleSwitcher() {
               className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-200 border ${
                 activeRole === i
                   ? "bg-[var(--primary-navy)] text-white border-[#001F3F] shadow-md"
-                  : "bg-white text-slate-600 border-slate-200 hover:border-[#001F3F]/30 hover:text-slate-900"
+                  : "bg-white text-[var(--t2)] border-[var(--border)] hover:border-[#001F3F]/30 hover:text-[var(--t1)]"
               }`}
             >
               <span className="material-symbols-outlined text-[18px]">{r.icon}</span>
@@ -65,7 +65,7 @@ export function RoleSwitcher() {
             {role.tasks.map((task, i) => (
               <div
                 key={task.label}
-                className="flex items-center gap-4 rounded-[22px] border border-slate-200 bg-white px-5 py-4 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+                className="flex items-center gap-4 rounded-[22px] border border-[var(--border)] bg-white px-5 py-4 shadow-sm hover:shadow-md hover:border-[var(--border2)] transition-all"
                 style={{ transitionDelay: `${i * 60}ms` }}
               >
                 <div
@@ -74,8 +74,8 @@ export function RoleSwitcher() {
                 >
                   <span className="material-symbols-outlined text-[20px]">{task.icon}</span>
                 </div>
-                <p className="text-sm font-medium text-slate-800">{task.label}</p>
-                <span className="material-symbols-outlined text-[16px] text-slate-300 ml-auto flex-shrink-0">
+                <p className="text-sm font-medium text-[var(--t1)]">{task.label}</p>
+                <span className="material-symbols-outlined text-[16px] text-[var(--t4)] ml-auto flex-shrink-0">
                   chevron_right
                 </span>
               </div>

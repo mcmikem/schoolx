@@ -570,7 +570,10 @@ export default function BulkImport({ onComplete, createStudent, houses = [] }: B
                   </thead>
                   <tbody className="divide-y divide-[var(--border)] bg-white">
                     {rowsToRender.map(({ row, originalIndex }) => (
-                      <tr key={originalIndex} className={row.isValid ? "hover:bg-slate-50" : "bg-red-50/50"}>
+                      <tr
+                        key={originalIndex}
+                        className={row.isValid ? "hover:bg-[var(--surface-container-low)]" : "bg-red-50/50"}
+                      >
                         <td className="px-4 py-3 text-center">
                           <span
                             className={`material-symbols-outlined text-[18px] ${row.isValid ? "text-emerald-500" : "text-red-500"}`}

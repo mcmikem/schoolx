@@ -294,7 +294,7 @@ export function PhoneMockup() {
                   tabIndex={0}
                   aria-label={`View message ${i + 1}`}
                   className={`h-2 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[var(--t1)] ${
-                    i === activeMsg ? "w-6 bg-[var(--t1)]" : "w-2 bg-slate-300"
+                    i === activeMsg ? "w-6 bg-[var(--t1)]" : "w-2 bg-[var(--surface-container-highest)]"
                   }`}
                 />
               ))}

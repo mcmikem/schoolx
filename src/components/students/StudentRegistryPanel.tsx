@@ -589,7 +589,7 @@ export default function StudentRegistryPanel({
                 type="file"
                 accept=".csv,.xlsx"
                 onChange={onTemplateUpload}
-                className="w-full text-sm text-slate-600"
+                className="w-full text-sm text-[var(--t2)]"
                 disabled={templateStatus === "parsing"}
               />
               <p className="text-xs text-[var(--t3)]">

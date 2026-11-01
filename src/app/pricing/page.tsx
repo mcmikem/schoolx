@@ -29,23 +29,23 @@ export default function PricingPage() {
             <Link href="/">
               <SkoolMateLogo size="md" variant="default" />
             </Link>
-            <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
-              <Link href="/features" className="transition hover:text-slate-950">
+            <div className="hidden items-center gap-8 text-sm font-medium text-[var(--t2)] md:flex">
+              <Link href="/features" className="transition hover:text-[var(--t3)]">
                 Features
               </Link>
-              <Link href="/pricing" className="transition hover:text-slate-950">
+              <Link href="/pricing" className="transition hover:text-[var(--t3)]">
                 Pricing
               </Link>
-              <Link href="/demo" className="transition hover:text-slate-950">
+              <Link href="/demo" className="transition hover:text-[var(--t3)]">
                 Demo
               </Link>
-              <Link href="/blog" className="transition hover:text-slate-950">
+              <Link href="/blog" className="transition hover:text-[var(--t3)]">
                 Blog
               </Link>
-              <Link href="/about" className="transition hover:text-slate-950">
+              <Link href="/about" className="transition hover:text-[var(--t3)]">
                 About
               </Link>
-              <Link href="/contact" className="transition hover:text-slate-950">
+              <Link href="/contact" className="transition hover:text-[var(--t3)]">
                 Contact
               </Link>
             </div>
@@ -68,12 +68,12 @@ export default function PricingPage() {
                 <MaterialIcon icon="payments" className="text-sm" />
                 Simple, transparent pricing
               </span>
-              <h1 className="mt-6 font-['Sora'] text-4xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-5xl lg:text-6xl">
+              <h1 className="mt-6 font-['Sora'] text-4xl font-semibold tracking-[-0.05em] text-[var(--t3)] sm:text-5xl lg:text-6xl">
                 Per-student pricing.
                 <br />
                 <span className="text-[var(--green)]">No hidden fees.</span>
               </h1>
-              <p className="mt-6 text-lg leading-8 text-slate-600 max-w-2xl mx-auto">
+              <p className="mt-6 text-lg leading-8 text-[var(--t2)] max-w-2xl mx-auto">
                 Start free for 30 days. No credit card required. Pay only for the students you have.
               </p>
             </div>
@@ -82,8 +82,8 @@ export default function PricingPage() {
 
         {/* Plans */}
         <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8 lg:pb-24">
-          <div className="mb-8 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-            <strong className="text-slate-900">How billing works:</strong> Pick a plan below and pay per student per
+          <div className="mb-8 rounded-2xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4 text-sm text-[var(--t2)]">
+            <strong className="text-[var(--t1)]">How billing works:</strong> Pick a plan below and pay per student per
             term — all features in that tier are included (Full Suite). Alternatively, choose <strong>Modular</strong>{" "}
             during registration — core modules are free based on your school size, and you add individual modules at
             annual prices. You're never charged both ways and can switch at any time.
@@ -94,12 +94,12 @@ export default function PricingPage() {
                 <div
                   className={`rounded-[32px] border p-6 h-full flex flex-col ${
                     plan.featured
-                      ? "border-[var(--brand-ink)]/20 bg-white text-slate-950 shadow-[0_24px_60px_rgba(0,0,0,0.08)]"
-                      : "border-slate-200 bg-white"
+                      ? "border-[var(--brand-ink)]/20 bg-white text-[var(--t3)] shadow-[0_24px_60px_rgba(0,0,0,0.08)]"
+                      : "border-[var(--border)] bg-white"
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <p className="text-lg font-semibold text-slate-950">{plan.name}</p>
+                    <p className="text-lg font-semibold text-[var(--t3)]">{plan.name}</p>
                     {plan.featured && (
                       <span className="rounded-full bg-[var(--brand-ink)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white">
                         Most chosen
@@ -111,31 +111,31 @@ export default function PricingPage() {
                       </span>
                     )}
                   </div>
-                  <p className="mt-4 font-['Sora'] text-4xl font-semibold tracking-[-0.05em] text-slate-950">
+                  <p className="mt-4 font-['Sora'] text-4xl font-semibold tracking-[-0.05em] text-[var(--t3)]">
                     {plan.price}
                   </p>
-                  <p className="mt-1 text-sm text-slate-500">{plan.cadence}</p>
-                  <p className="mt-1 text-xs text-slate-400">{plan.contrastLabel}</p>
+                  <p className="mt-1 text-sm text-[var(--t3)]">{plan.cadence}</p>
+                  <p className="mt-1 text-xs text-[var(--t3)]">{plan.contrastLabel}</p>
                   <div className="mt-6 space-y-3 flex-1">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">
                       What&apos;s included
                     </p>
                     {plan.features.map((feature) => (
                       <div key={feature} className="flex items-start gap-3">
                         <MaterialIcon icon="check" className="mt-0.5 text-[18px] text-[var(--brand-green)]" />
-                        <p className="text-sm text-slate-700">{feature}</p>
+                        <p className="text-sm text-[var(--t2)]">{feature}</p>
                       </div>
                     ))}
                     {(plan as any).lossItems?.length > 0 && (
                       <>
-                        <div className="my-3 border-t border-slate-200" />
+                        <div className="my-3 border-t border-[var(--border)]" />
                         <p className="text-xs font-semibold uppercase tracking-wider text-amber-600">
                           Not included on this plan
                         </p>
                         {(plan as any).lossItems.map((item: string) => (
                           <div key={item} className="flex items-start gap-3">
                             <MaterialIcon icon="close" className="mt-0.5 text-[16px] text-amber-400" />
-                            <p className="text-sm text-slate-500">{item}</p>
+                            <p className="text-sm text-[var(--t3)]">{item}</p>
                           </div>
                         ))}
                       </>
@@ -162,25 +162,25 @@ export default function PricingPage() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <FadeIn>
               <div className="text-center mb-10">
-                <h2 className="font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
+                <h2 className="font-['Sora'] text-2xl font-semibold text-[var(--t3)] sm:text-3xl">
                   How SkoolMate OS compares
                 </h2>
               </div>
-              <p className="text-center text-sm text-slate-500 mb-2">
+              <p className="text-center text-sm text-[var(--t3)] mb-2">
                 ✓ = Included &nbsp;&nbsp; ✗ = Not available &nbsp;&nbsp; ~ = Partial
               </p>
-              <p className="text-center text-xs text-slate-400 mb-8">
+              <p className="text-center text-xs text-[var(--t3)] mb-8">
                 Based on publicly available information, April 2026. Competitor columns are illustrative.
               </p>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-200">
-                      <th className="text-left py-3 px-4 font-semibold text-slate-900">Feature</th>
+                    <tr className="border-b border-[var(--border)]">
+                      <th className="text-left py-3 px-4 font-semibold text-[var(--t1)]">Feature</th>
                       <th className="py-3 px-4 font-bold text-[var(--brand-green)] bg-green-50">SkoolMate</th>
-                      <th className="py-3 px-4 text-slate-500">Alt A</th>
-                      <th className="py-3 px-4 text-slate-500">Alt B</th>
-                      <th className="py-3 px-4 text-slate-500">Alt C</th>
+                      <th className="py-3 px-4 text-[var(--t3)]">Alt A</th>
+                      <th className="py-3 px-4 text-[var(--t3)]">Alt B</th>
+                      <th className="py-3 px-4 text-[var(--t3)]">Alt C</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -196,12 +196,12 @@ export default function PricingPage() {
                       ["UNEB registration", "✓", "~", "✗", "✗"],
                       ["Full payroll", "✓", "✓", "✓", "~"],
                     ].map((row, i) => (
-                      <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="py-3 px-4 text-slate-700">{row[0]}</td>
+                      <tr key={i} className="border-b border-[var(--border)] hover:bg-[var(--surface-container-low)]">
+                        <td className="py-3 px-4 text-[var(--t2)]">{row[0]}</td>
                         <td className="py-3 px-4 text-center font-bold bg-green-50/50">{row[1]}</td>
-                        <td className="py-3 px-4 text-center text-slate-500">{row[2]}</td>
-                        <td className="py-3 px-4 text-center text-slate-500">{row[3]}</td>
-                        <td className="py-3 px-4 text-center text-slate-500">{row[4]}</td>
+                        <td className="py-3 px-4 text-center text-[var(--t3)]">{row[2]}</td>
+                        <td className="py-3 px-4 text-center text-[var(--t3)]">{row[3]}</td>
+                        <td className="py-3 px-4 text-center text-[var(--t3)]">{row[4]}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -215,7 +215,7 @@ export default function PricingPage() {
         <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <FadeIn>
             <div className="text-center mb-10">
-              <h2 className="font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
+              <h2 className="font-['Sora'] text-2xl font-semibold text-[var(--t3)] sm:text-3xl">
                 Frequently asked questions
               </h2>
             </div>
@@ -254,73 +254,73 @@ export default function PricingPage() {
         </section>
 
         {/* Footer */}
-        <footer className="border-t border-slate-200 bg-white">
+        <footer className="border-t border-[var(--border)] bg-white">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <SkoolMateLogo size="md" variant="default" />
-                <p className="mt-4 text-sm leading-6 text-slate-500">
+                <p className="mt-4 text-sm leading-6 text-[var(--t3)]">
                   The school operating system built from real experience in Ugandan schools.
                 </p>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Product</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Product</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/features" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/features" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Features
                     </Link>
                   </li>
                   <li>
-                    <Link href="/pricing" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/pricing" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Pricing
                     </Link>
                   </li>
                   <li>
-                    <Link href="/about" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/about" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       About
                     </Link>
                   </li>
                 </ul>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Resources</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Resources</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/login" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/login" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Sign In
                     </Link>
                   </li>
                   <li>
-                    <Link href="/register" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/register" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Register School
                     </Link>
                   </li>
                   <li>
-                    <Link href="/contact" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/contact" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Contact
                     </Link>
                   </li>
                 </ul>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Legal</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Legal</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/privacy" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/privacy" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Privacy Policy
                     </Link>
                   </li>
                   <li>
-                    <Link href="/terms" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/terms" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Terms of Service
                     </Link>
                   </li>
                 </ul>
               </div>
             </div>
-            <div className="mt-10 border-t border-slate-200 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-sm text-slate-400">
+            <div className="mt-10 border-t border-[var(--border)] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-[var(--t3)]">
                 &copy; {new Date().getFullYear()} Omuto Foundation. All rights reserved.
               </p>
             </div>

@@ -60,13 +60,13 @@ export function ErrorDetails({ error, source, className }: Props) {
 
   return (
     <div className={className ?? "w-full"}>
-      <p className="text-sm font-medium text-gray-700 break-words mb-3">
+      <p className="text-sm font-medium text-[var(--t2)] break-words mb-3">
         {(error?.message || "An unexpected error occurred.").slice(0, 300)}
       </p>
       {(error?.digest || error?.stack) && (
-        <details className="text-left mb-4 rounded-lg border border-gray-200 bg-white/60 p-3">
-          <summary className="cursor-pointer text-xs font-semibold text-gray-600">Error details</summary>
-          <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed text-gray-500">
+        <details className="text-left mb-4 rounded-lg border border-[var(--border)] bg-white/60 p-3">
+          <summary className="cursor-pointer text-xs font-semibold text-[var(--t2)]">Error details</summary>
+          <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed text-[var(--t3)]">
             {error.digest ? `Digest: ${error.digest}\n` : ""}
             {error.stack || error.message}
           </pre>
@@ -75,7 +75,7 @@ export function ErrorDetails({ error, source, className }: Props) {
       <button
         type="button"
         onClick={copy}
-        className="text-xs font-medium text-gray-500 underline underline-offset-2 hover:text-gray-700 mb-4"
+        className="text-xs font-medium text-[var(--t3)] underline underline-offset-2 hover:text-[var(--t2)] mb-4"
       >
         {copied ? "Copied" : "Copy error details for support"}
       </button>

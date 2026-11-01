@@ -70,10 +70,10 @@ export function VideoTourSection() {
       <FadeIn>
         <div className="max-w-2xl">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">See it working</p>
-          <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
+          <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-[var(--t3)] sm:text-4xl">
             A teacher&apos;s week, in four short clips.
           </h2>
-          <p className="mt-5 text-lg leading-8 text-slate-600">
+          <p className="mt-5 text-lg leading-8 text-[var(--t2)]">
             No slides, no narration. These are the real screens, doing the real job. Thirty seconds each, and you can
             watch them before you sign up.
           </p>

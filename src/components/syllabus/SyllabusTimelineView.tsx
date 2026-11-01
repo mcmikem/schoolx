@@ -11,10 +11,7 @@ interface SyllabusTimelineViewProps {
   viewMode: "grid" | "list";
 }
 
-export default function SyllabusTimelineView({
-  syllabus,
-  viewMode,
-}: SyllabusTimelineViewProps) {
+export default function SyllabusTimelineView({ syllabus, viewMode }: SyllabusTimelineViewProps) {
   const [expanded, setExpanded] = useState(false);
 
   const timeline = syllabus.timeline || [];
@@ -36,8 +33,12 @@ export default function SyllabusTimelineView({
   };
 
   const getStatusColor = (
-    status: string
-  ): "bg-green-100 text-green-700" | "bg-blue-100 text-blue-700" | "bg-amber-100 text-amber-700" | "bg-gray-100 text-gray-700" => {
+    status: string,
+  ):
+    | "bg-green-100 text-green-700"
+    | "bg-blue-100 text-blue-700"
+    | "bg-amber-100 text-amber-700"
+    | "bg-[var(--surface-container)] text-[var(--t2)]" => {
     switch (status) {
       case "completed":
         return "bg-green-100 text-green-700";
@@ -46,7 +47,7 @@ export default function SyllabusTimelineView({
       case "postponed":
         return "bg-amber-100 text-amber-700";
       default:
-        return "bg-gray-100 text-gray-700";
+        return "bg-[var(--surface-container)] text-[var(--t2)]";
     }
   };
 
@@ -70,9 +71,7 @@ export default function SyllabusTimelineView({
               <h3 className="font-semibold text-[var(--t1)]">{syllabus.topic}</h3>
               <span
                 className={`text-xs px-2 py-1 rounded-full ${
-                  progress.on_track
-                    ? "bg-green-100 text-green-700"
-                    : "bg-amber-100 text-amber-700"
+                  progress.on_track ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
                 }`}
               >
                 {progress.on_track ? "On Track" : "Behind"}
@@ -83,9 +82,7 @@ export default function SyllabusTimelineView({
             <div className="mb-2">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs text-[var(--t3)]">Progress</span>
-                <span className="text-sm font-semibold text-[var(--t1)]">
-                  {progress.overall_percentage}%
-                </span>
+                <span className="text-sm font-semibold text-[var(--t1)]">{progress.overall_percentage}%</span>
               </div>
               <div className="w-full h-2 bg-[var(--border)] rounded-full overflow-hidden">
                 <div
@@ -103,9 +100,7 @@ export default function SyllabusTimelineView({
 
           {/* Expand Icon */}
           <div className="text-[var(--t3)]">
-            <MaterialIcon className="text-2xl">
-              {expanded ? "expand_less" : "expand_more"}
-            </MaterialIcon>
+            <MaterialIcon className="text-2xl">{expanded ? "expand_less" : "expand_more"}</MaterialIcon>
           </div>
         </div>
       </div>
@@ -118,25 +113,17 @@ export default function SyllabusTimelineView({
             {/* Details */}
             {syllabus.subtopics && (
               <div>
-                <h4 className="text-xs font-semibold text-[var(--t3)] mb-2">
-                  SUBTOPICS
-                </h4>
+                <h4 className="text-xs font-semibold text-[var(--t3)] mb-2">SUBTOPICS</h4>
                 <div className="flex flex-wrap gap-1">
                   {Array.isArray(syllabus.subtopics)
                     ? syllabus.subtopics.map((st, i) => (
-                        <span
-                          key={i}
-                          className="px-2 py-1 text-xs bg-[var(--bg)] rounded-full text-[var(--t2)]"
-                        >
+                        <span key={i} className="px-2 py-1 text-xs bg-[var(--bg)] rounded-full text-[var(--t2)]">
                           {st}
                         </span>
                       ))
                     : typeof syllabus.subtopics === "string"
                       ? JSON.parse(syllabus.subtopics || "[]").map((st: string, i: number) => (
-                          <span
-                            key={i}
-                            className="px-2 py-1 text-xs bg-[var(--bg)] rounded-full text-[var(--t2)]"
-                          >
+                          <span key={i} className="px-2 py-1 text-xs bg-[var(--bg)] rounded-full text-[var(--t2)]">
                             {st}
                           </span>
                         ))
@@ -147,14 +134,10 @@ export default function SyllabusTimelineView({
 
             {/* Timeline */}
             <div>
-              <h4 className="text-xs font-semibold text-[var(--t3)] mb-3">
-                WEEKLY TIMELINE
-              </h4>
+              <h4 className="text-xs font-semibold text-[var(--t3)] mb-3">WEEKLY TIMELINE</h4>
               <div className="space-y-2 max-h-80 overflow-y-auto">
                 {timeline.length === 0 ? (
-                  <p className="text-xs text-[var(--t3)] italic">
-                    No timeline data yet
-                  </p>
+                  <p className="text-xs text-[var(--t3)] italic">No timeline data yet</p>
                 ) : (
                   timeline.map((week) => (
                     <div
@@ -163,20 +146,14 @@ export default function SyllabusTimelineView({
                     >
                       {/* Status Icon */}
                       <div className="text-[var(--t3)]">
-                        <MaterialIcon className="text-lg">
-                          {getStatusIcon(week.status)}
-                        </MaterialIcon>
+                        <MaterialIcon className="text-lg">{getStatusIcon(week.status)}</MaterialIcon>
                       </div>
 
                       {/* Week Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-sm text-[var(--t1)]">
-                            Week {week.week_number}
-                          </span>
-                          <span
-                            className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(week.status)}`}
-                          >
+                          <span className="font-semibold text-sm text-[var(--t1)]">Week {week.week_number}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(week.status)}`}>
                             {week.status}
                           </span>
                         </div>
@@ -193,9 +170,7 @@ export default function SyllabusTimelineView({
                               style={{ width: `${week.completion_percentage}%` }}
                             />
                           </div>
-                          <span className="text-xs text-[var(--t3)]">
-                            {week.completion_percentage}%
-                          </span>
+                          <span className="text-xs text-[var(--t3)]">{week.completion_percentage}%</span>
                         </div>
                       </div>
 
@@ -215,28 +190,18 @@ export default function SyllabusTimelineView({
             {/* Resources */}
             {syllabus.resources && (
               <div>
-                <h4 className="text-xs font-semibold text-[var(--t3)] mb-2">
-                  RESOURCES
-                </h4>
+                <h4 className="text-xs font-semibold text-[var(--t3)] mb-2">RESOURCES</h4>
                 <p className="text-sm text-[var(--t2)]">{syllabus.resources}</p>
               </div>
             )}
 
             {/* Action Buttons */}
             <div className="flex gap-2 pt-2 border-t border-[var(--border)]">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="flex-1"
-              >
+              <Button variant="ghost" size="sm" className="flex-1">
                 <MaterialIcon className="text-sm">edit</MaterialIcon>
                 Edit
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="flex-1"
-              >
+              <Button variant="ghost" size="sm" className="flex-1">
                 <MaterialIcon className="text-sm">assessment</MaterialIcon>
                 View Performance
               </Button>

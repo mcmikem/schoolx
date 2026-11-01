@@ -390,11 +390,11 @@ export default function GeneralSettings({
       <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
         <h2 className="text-lg font-semibold text-[var(--t1)] mb-6">School Logo</h2>
         <div className="flex items-center gap-6 mb-6">
-          <div className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50">
+          <div className="w-24 h-24 rounded-xl border-2 border-dashed border-[var(--border)] flex items-center justify-center overflow-hidden bg-[var(--surface-container-low)]">
             {logoUrl ? (
               <Image src={logoUrl} alt="School Logo" width={96} height={96} className="w-full h-full object-contain" />
             ) : (
-              <MaterialIcon className="text-4xl text-gray-300">school</MaterialIcon>
+              <MaterialIcon className="text-4xl text-[var(--t4)]">school</MaterialIcon>
             )}
           </div>
           <div>
@@ -409,20 +409,20 @@ export default function GeneralSettings({
                 disabled={uploadingLogo}
               />
             </label>
-            <p className="text-xs text-gray-500 mt-2">PNG, JPG up to 5MB - Auto-compressed</p>
+            <p className="text-xs text-[var(--t3)] mt-2">PNG, JPG up to 5MB - Auto-compressed</p>
           </div>
         </div>
 
         {/* Report Signatures */}
-        <div className="mt-8 pt-6 border-t border-gray-100">
+        <div className="mt-8 pt-6 border-t border-[var(--border)]">
           <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">Report Signatures</h2>
-          <p className="text-sm text-gray-500 mb-6">Add digital signatures to auto-fill on report cards</p>
+          <p className="text-sm text-[var(--t3)] mb-6">Add digital signatures to auto-fill on report cards</p>
 
           <div className="grid grid-cols-2 gap-6">
             {/* Head Teacher Signature */}
             <div>
               <p className="text-sm font-medium mb-2">Head Teacher Signature</p>
-              <div className="h-20 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50">
+              <div className="h-20 rounded-xl border-2 border-dashed border-[var(--border)] flex items-center justify-center overflow-hidden bg-[var(--surface-container-low)]">
                 {school?.signature_headteacher_url ? (
                   <Image
                     src={school.signature_headteacher_url}
@@ -432,7 +432,7 @@ export default function GeneralSettings({
                     className="h-full w-auto object-contain"
                   />
                 ) : (
-                  <MaterialIcon className="text-3xl text-gray-300">draw</MaterialIcon>
+                  <MaterialIcon className="text-3xl text-[var(--t4)]">draw</MaterialIcon>
                 )}
               </div>
               <label className="btn btn-secondary cursor-pointer mt-2 w-full justify-center">
@@ -454,7 +454,7 @@ export default function GeneralSettings({
             {/* Class Teacher Signature */}
             <div>
               <p className="text-sm font-medium mb-2">Class Teacher Signature</p>
-              <div className="h-20 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50">
+              <div className="h-20 rounded-xl border-2 border-dashed border-[var(--border)] flex items-center justify-center overflow-hidden bg-[var(--surface-container-low)]">
                 {school?.signature_class_teacher_url ? (
                   <Image
                     src={school.signature_class_teacher_url}
@@ -464,7 +464,7 @@ export default function GeneralSettings({
                     className="h-full w-auto object-contain"
                   />
                 ) : (
-                  <MaterialIcon className="text-3xl text-gray-300">draw</MaterialIcon>
+                  <MaterialIcon className="text-3xl text-[var(--t4)]">draw</MaterialIcon>
                 )}
               </div>
               <label className="btn btn-secondary cursor-pointer mt-2 w-full justify-center">

@@ -671,15 +671,18 @@ function ParentDashboardContent() {
           <div className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-lg">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
-                <div className="w-12 h-12 rounded-xl bg-gray-100 text-gray-700 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-[var(--surface-container)] text-[var(--t2)] flex items-center justify-center">
                   <MaterialIcon icon="add_card" />
                 </div>
-                <button onClick={() => setShowTopup(false)} className="p-2 hover:bg-gray-100 rounded-xl">
-                  <MaterialIcon icon="close" className="text-gray-400" />
+                <button
+                  onClick={() => setShowTopup(false)}
+                  className="p-2 hover:bg-[var(--surface-container)] rounded-xl"
+                >
+                  <MaterialIcon icon="close" className="text-[var(--t3)]" />
                 </button>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-1">Add Pocket Money</h3>
-              <p className="text-base text-gray-500 font-medium mb-8">
+              <h3 className="text-2xl font-bold text-[var(--t1)] mb-1">Add Pocket Money</h3>
+              <p className="text-base text-[var(--t3)] font-medium mb-8">
                 Funds will be available immediately in {selectedChild?.first_name}&apos;s digital wallet
               </p>
 
@@ -690,14 +693,14 @@ function ParentDashboardContent() {
                   value={topupAmount}
                   onChange={(e) => setTopupAmount(e.target.value)}
                   placeholder="Amount (UGX)"
-                  className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-xl text-2xl font-bold outline-none focus:ring-2 focus:ring-blue-900"
+                  className="w-full px-6 py-4 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-xl text-2xl font-bold outline-none focus:ring-2 focus:ring-blue-900"
                 />
                 <div className="flex gap-2 flex-wrap">
                   {[1000, 2000, 5000, 10000, 20000].map((a) => (
                     <button
                       key={a}
                       onClick={() => setTopupAmount(a.toString())}
-                      className="flex-1 min-w-[64px] py-3 rounded-xl border border-gray-200 text-sm font-bold text-gray-600 hover:border-blue-900 hover:text-blue-900 transition-colors"
+                      className="flex-1 min-w-[64px] py-3 rounded-xl border border-[var(--border)] text-sm font-bold text-[var(--t2)] hover:border-blue-900 hover:text-blue-900 transition-colors"
                     >
                       +{a / 1000}k
                     </button>

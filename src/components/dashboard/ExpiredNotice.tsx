@@ -21,15 +21,15 @@ export default function ExpiredNotice() {
           <MaterialIcon style={{ fontSize: "28px" }}>lock_clock</MaterialIcon>
         </div>
 
-        <h1 className="font-sora text-xl sm:text-2xl font-bold text-slate-800 mb-2">Trial Expired</h1>
+        <h1 className="font-sora text-xl sm:text-2xl font-bold text-[var(--t1)] mb-2">Trial Expired</h1>
 
-        <p className="text-slate-600 mb-6 leading-relaxed text-sm">
+        <p className="text-[var(--t2)] mb-6 leading-relaxed text-sm">
           Your free trial for <strong>{school?.name || "your school"}</strong> has ended. Upgrade now to continue
           managing students, academics & finances!
         </p>
 
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6 text-left">
-          <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+        <div className="bg-[var(--surface-container-low)] border border-[var(--border)] rounded-xl p-4 mb-6 text-left">
+          <h3 className="text-sm font-bold text-[var(--t1)] mb-3 flex items-center gap-2">
             <MaterialIcon className="text-amber-600" style={{ fontSize: 18 }}>
               lightbulb
             </MaterialIcon>
@@ -40,13 +40,13 @@ export default function ExpiredNotice() {
               <MaterialIcon className="text-green-600 mt-0.5" style={{ fontSize: 16 }}>
                 check_circle
               </MaterialIcon>
-              <span className="text-xs text-slate-600">Your data is safe & backed up.</span>
+              <span className="text-xs text-[var(--t2)]">Your data is safe & backed up.</span>
             </li>
             <li className="flex items-start gap-2">
               <MaterialIcon className="text-amber-600 mt-0.5" style={{ fontSize: 16 }}>
                 schedule
               </MaterialIcon>
-              <span className="text-xs text-slate-600">Dashboard access is temporarily restricted.</span>
+              <span className="text-xs text-[var(--t2)]">Dashboard access is temporarily restricted.</span>
             </li>
           </ul>
         </div>
@@ -72,7 +72,7 @@ export default function ExpiredNotice() {
 
           <button
             onClick={signOut}
-            className="w-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 font-medium py-3 px-4 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all text-sm"
+            className="w-full bg-white hover:bg-[var(--surface-container-low)] border border-[var(--border)] text-[var(--t2)] font-medium py-3 px-4 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all text-sm"
           >
             <MaterialIcon style={{ fontSize: 18 }}>logout</MaterialIcon>
             Sign Out
@@ -80,8 +80,8 @@ export default function ExpiredNotice() {
         </div>
 
         {/* Omuto Foundation Ads - More conversion focused */}
-        <div className="mt-6 pt-5 border-t border-slate-200">
-          <p className="text-xs text-slate-500 mb-3">
+        <div className="mt-6 pt-5 border-t border-[var(--border)]">
+          <p className="text-xs text-[var(--t3)] mb-3">
             Powered by{" "}
             <a
               href="https://omuto.org/osx.php"

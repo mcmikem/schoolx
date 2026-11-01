@@ -289,7 +289,7 @@ describe("Grading Utilities", () => {
       expect(getGradeColor("F9")).toBe("text-red-500");
       expect(getGradeColor("A")).toBe("text-green-600");
       expect(getGradeColor("F")).toBe("text-red-500");
-      expect(getGradeColor("unknown")).toBe("text-gray-500");
+      expect(getGradeColor("unknown")).toBe("text-[var(--t3)]");
     });
   });
 

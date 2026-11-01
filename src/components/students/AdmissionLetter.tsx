@@ -31,7 +31,7 @@ export default function AdmissionLetter({
   const customFooter = school?.report_footer_text || school?.report_footer || "";
 
   return (
-    <div className="w-[210mm] min-h-[297mm] bg-white p-[20mm] shadow-2xl mx-auto print:shadow-none print:p-0 admission-letter text-slate-800 font-serif">
+    <div className="w-[210mm] min-h-[297mm] bg-white p-[20mm] shadow-2xl mx-auto print:shadow-none print:p-0 admission-letter text-[var(--t1)] font-serif">
       {/* Header */}
       <div className="flex justify-between items-start border-b-2 pb-6 mb-8" style={{ borderColor: brandColor }}>
         <div className="flex gap-4">
@@ -40,7 +40,7 @@ export default function AdmissionLetter({
             <img
               src={school.logo_url}
               alt={`${school.name || "School"} logo`}
-              className="h-16 w-16 rounded-xl object-contain border border-slate-200 bg-white p-1"
+              className="h-16 w-16 rounded-xl object-contain border border-[var(--border)] bg-white p-1"
             />
           ) : (
             <SkoolMateLogo size="lg" variant="default" showText={false} />
@@ -49,10 +49,10 @@ export default function AdmissionLetter({
             <h1 className="text-2xl font-black uppercase leading-none" style={{ color: brandColor }}>
               {school.name}
             </h1>
-            <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-widest">
+            <p className="text-xs font-bold text-[var(--t3)] mt-1 uppercase tracking-widest">
               {school.address || "P.O Box 123, Kampala, Uganda"}
             </p>
-            <p className="text-xs font-bold text-slate-400 mt-0.5">
+            <p className="text-xs font-bold text-[var(--t3)] mt-0.5">
               {school.phone || "+256 000 000 000"} | {school.email || "info@school.com"}
             </p>
           </div>
@@ -61,7 +61,7 @@ export default function AdmissionLetter({
           <p className="text-sm font-bold" style={{ color: brandColor }}>
             Admission Ref: {student.student_number || "ADM/2026/001"}
           </p>
-          <p className="text-xs text-slate-500 font-medium">{currentDate}</p>
+          <p className="text-xs text-[var(--t3)] font-medium">{currentDate}</p>
           {customHeader ? (
             <p className="text-xs font-semibold mt-1" style={{ color: accentColor }}>
               {customHeader}
@@ -144,19 +144,19 @@ export default function AdmissionLetter({
       {/* Signatures */}
       <div className="mt-20 flex justify-between">
         <div className="text-center">
-          <div className="w-40 border-b border-slate-400 mb-2"></div>
+          <div className="w-40 border-b border-[var(--border2)] mb-2"></div>
           <p className="text-xs font-black uppercase">Head Teacher</p>
-          <p className="text-xs text-slate-400 italic">Signature / Stamp</p>
+          <p className="text-xs text-[var(--t3)] italic">Signature / Stamp</p>
         </div>
         <div className="text-center">
-          <div className="w-40 border-b border-slate-400 mb-2"></div>
+          <div className="w-40 border-b border-[var(--border2)] mb-2"></div>
           <p className="text-xs font-black uppercase">Parent Signature</p>
-          <p className="text-xs text-slate-400 italic">Acceptance Date</p>
+          <p className="text-xs text-[var(--t3)] italic">Acceptance Date</p>
         </div>
       </div>
 
       {/* Footer Motif */}
-      <div className="mt-32 pt-8 border-t border-slate-100 flex justify-between items-center opacity-70">
+      <div className="mt-32 pt-8 border-t border-[var(--border)] flex justify-between items-center opacity-70">
         <SkoolMateLogo size="sm" showText={true} />
         <p className="text-xs font-medium tracking-tighter uppercase italic" style={{ color: brandColor }}>
           {customFooter || "Always Progressing, Never Backwards"}

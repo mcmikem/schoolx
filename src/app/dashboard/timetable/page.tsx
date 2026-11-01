@@ -7,6 +7,7 @@ import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import { useOfflineEvents } from "@/lib/offline-hooks";
 import MaterialIcon from "@/components/MaterialIcon";
+import { VideoLessonButton } from "@/components/onboarding/VideoLesson";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import { Card } from "@/components/ui/Card";
@@ -900,6 +901,9 @@ export default function TimetablePage() {
     <PageErrorBoundary>
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
         <PageHeader title="Timetable" subtitle="Class schedule and academic calendar" />
+        <div className="mb-2">
+          <VideoLessonButton lesson="timetable" label="Watch how" />
+        </div>
 
         <StatStrip
           columns={4}

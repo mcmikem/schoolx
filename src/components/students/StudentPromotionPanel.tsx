@@ -290,19 +290,19 @@ export default function StudentPromotionPanel({
                               <div className="flex gap-1 flex-wrap">
                                 <button
                                   onClick={() => setAction(student.id, "promote")}
-                                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${action === "promote" ? "bg-green-100 border-green-300 text-green-800" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${action === "promote" ? "bg-green-100 border-green-300 text-green-800" : "bg-white border-[var(--border)] text-[var(--t3)] hover:border-[var(--border2)]"}`}
                                 >
                                   Promote
                                 </button>
                                 <button
                                   onClick={() => setAction(student.id, "repeat")}
-                                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${action === "repeat" ? "bg-yellow-100 border-yellow-300 text-yellow-800" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${action === "repeat" ? "bg-yellow-100 border-yellow-300 text-yellow-800" : "bg-white border-[var(--border)] text-[var(--t3)] hover:border-[var(--border2)]"}`}
                                 >
                                   Repeat
                                 </button>
                                 <button
                                   onClick={() => setAction(student.id, "demote")}
-                                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${action === "demote" ? "bg-red-100 border-red-300 text-red-800" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${action === "demote" ? "bg-red-100 border-red-300 text-red-800" : "bg-white border-[var(--border)] text-[var(--t3)] hover:border-[var(--border2)]"}`}
                                 >
                                   Demote
                                 </button>

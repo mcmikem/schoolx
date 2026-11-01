@@ -27,23 +27,23 @@ export default function ContactPage() {
             <Link href="/">
               <SkoolMateLogo size="md" variant="default" />
             </Link>
-            <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
-              <Link href="/features" className="transition hover:text-slate-950">
+            <div className="hidden items-center gap-8 text-sm font-medium text-[var(--t2)] md:flex">
+              <Link href="/features" className="transition hover:text-[var(--t3)]">
                 Features
               </Link>
-              <Link href="/pricing" className="transition hover:text-slate-950">
+              <Link href="/pricing" className="transition hover:text-[var(--t3)]">
                 Pricing
               </Link>
-              <Link href="/demo" className="transition hover:text-slate-950">
+              <Link href="/demo" className="transition hover:text-[var(--t3)]">
                 Demo
               </Link>
-              <Link href="/blog" className="transition hover:text-slate-950">
+              <Link href="/blog" className="transition hover:text-[var(--t3)]">
                 Blog
               </Link>
-              <Link href="/about" className="transition hover:text-slate-950">
+              <Link href="/about" className="transition hover:text-[var(--t3)]">
                 About
               </Link>
-              <Link href="/contact" className="transition hover:text-slate-950">
+              <Link href="/contact" className="transition hover:text-[var(--t3)]">
                 Contact
               </Link>
             </div>
@@ -66,10 +66,10 @@ export default function ContactPage() {
                 <MaterialIcon icon="chat" className="text-sm" />
                 Get in touch
               </span>
-              <h1 className="mt-6 font-['Sora'] text-4xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-5xl lg:text-6xl">
+              <h1 className="mt-6 font-['Sora'] text-4xl font-semibold tracking-[-0.05em] text-[var(--t3)] sm:text-5xl lg:text-6xl">
                 We&apos;d love to hear from you.
               </h1>
-              <p className="mt-6 text-lg leading-8 text-slate-600 max-w-2xl mx-auto">
+              <p className="mt-6 text-lg leading-8 text-[var(--t2)] max-w-2xl mx-auto">
                 Questions about SkoolMate OS? Want a demo? Need help getting started? Reach out — we respond within a
                 few hours.
               </p>
@@ -83,37 +83,37 @@ export default function ContactPage() {
             {/* Contact info */}
             <div className="space-y-5">
               <FadeIn>
-                <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="rounded-[28px] border border-[var(--border)] bg-white p-6 shadow-sm">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)]">
                     <MaterialIcon icon="mail" className="text-[24px]" />
                   </div>
-                  <h3 className="mt-4 text-lg font-semibold text-slate-900">Email</h3>
+                  <h3 className="mt-4 text-lg font-semibold text-[var(--t1)]">Email</h3>
                   <a href="mailto:os@omuto.org" className="mt-2 block text-sm text-[var(--primary)] hover:underline">
                     os@omuto.org
                   </a>
-                  <p className="mt-1 text-xs text-slate-500">We reply within 24 hours</p>
+                  <p className="mt-1 text-xs text-[var(--t3)]">We reply within 24 hours</p>
                 </div>
               </FadeIn>
 
               <FadeIn delay={100}>
-                <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="rounded-[28px] border border-[var(--border)] bg-white p-6 shadow-sm">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)]">
                     <MaterialIcon icon="phone" className="text-[24px]" />
                   </div>
-                  <h3 className="mt-4 text-lg font-semibold text-slate-900">Phone</h3>
+                  <h3 className="mt-4 text-lg font-semibold text-[var(--t1)]">Phone</h3>
                   <a href="tel:0750028703" className="mt-2 block text-sm text-[var(--primary)] hover:underline">
                     0750 028 703
                   </a>
-                  <p className="mt-1 text-xs text-slate-500">Monday&ndash;Friday, 8:00 AM&ndash;5:00 PM</p>
+                  <p className="mt-1 text-xs text-[var(--t3)]">Monday&ndash;Friday, 8:00 AM&ndash;5:00 PM</p>
                 </div>
               </FadeIn>
 
               <FadeIn delay={200}>
-                <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="rounded-[28px] border border-[var(--border)] bg-white p-6 shadow-sm">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-whatsapp)]/10 text-[var(--brand-whatsapp)]">
                     <MaterialIcon icon="chat" className="text-[24px]" />
                   </div>
-                  <h3 className="mt-4 text-lg font-semibold text-slate-900">WhatsApp</h3>
+                  <h3 className="mt-4 text-lg font-semibold text-[var(--t1)]">WhatsApp</h3>
                   <a
                     href="https://wa.me/256750028703"
                     target="_blank"
@@ -122,27 +122,27 @@ export default function ContactPage() {
                   >
                     Chat on WhatsApp
                   </a>
-                  <p className="mt-1 text-xs text-slate-500">Fastest way to get a response</p>
+                  <p className="mt-1 text-xs text-[var(--t3)]">Fastest way to get a response</p>
                 </div>
               </FadeIn>
 
               <FadeIn delay={300}>
-                <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="rounded-[28px] border border-[var(--border)] bg-white p-6 shadow-sm">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)]">
                     <MaterialIcon icon="location_on" className="text-[24px]" />
                   </div>
-                  <h3 className="mt-4 text-lg font-semibold text-slate-900">Location</h3>
-                  <p className="mt-2 text-sm text-slate-600">Kampala, Uganda</p>
-                  <p className="text-xs text-slate-500">Omuto Foundation</p>
+                  <h3 className="mt-4 text-lg font-semibold text-[var(--t1)]">Location</h3>
+                  <p className="mt-2 text-sm text-[var(--t2)]">Kampala, Uganda</p>
+                  <p className="text-xs text-[var(--t3)]">Omuto Foundation</p>
                 </div>
               </FadeIn>
             </div>
 
             {/* Form */}
             <FadeIn delay={100}>
-              <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
-                <h2 className="font-['Sora'] text-2xl font-semibold text-slate-950">Send us a message</h2>
-                <p className="mt-2 text-sm text-slate-500">Fill in the form and we&apos;ll get back to you.</p>
+              <div className="rounded-[32px] border border-[var(--border)] bg-white p-6 shadow-sm lg:p-8">
+                <h2 className="font-['Sora'] text-2xl font-semibold text-[var(--t3)]">Send us a message</h2>
+                <p className="mt-2 text-sm text-[var(--t3)]">Fill in the form and we&apos;ll get back to you.</p>
                 <div className="mt-8">
                   <ContactForm />
                 </div>
@@ -152,73 +152,73 @@ export default function ContactPage() {
         </section>
 
         {/* Footer */}
-        <footer className="border-t border-slate-200 bg-white">
+        <footer className="border-t border-[var(--border)] bg-white">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <SkoolMateLogo size="md" variant="default" />
-                <p className="mt-4 text-sm leading-6 text-slate-500">
+                <p className="mt-4 text-sm leading-6 text-[var(--t3)]">
                   The school operating system built from real experience in Ugandan schools.
                 </p>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Product</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Product</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/features" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/features" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Features
                     </Link>
                   </li>
                   <li>
-                    <Link href="/pricing" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/pricing" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Pricing
                     </Link>
                   </li>
                   <li>
-                    <Link href="/about" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/about" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       About
                     </Link>
                   </li>
                 </ul>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Resources</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Resources</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/login" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/login" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Sign In
                     </Link>
                   </li>
                   <li>
-                    <Link href="/register" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/register" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Register School
                     </Link>
                   </li>
                   <li>
-                    <Link href="/contact" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/contact" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Contact
                     </Link>
                   </li>
                 </ul>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Legal</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Legal</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/privacy" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/privacy" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Privacy Policy
                     </Link>
                   </li>
                   <li>
-                    <Link href="/terms" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/terms" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Terms of Service
                     </Link>
                   </li>
                 </ul>
               </div>
             </div>
-            <div className="mt-10 border-t border-slate-200 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-sm text-slate-400">
+            <div className="mt-10 border-t border-[var(--border)] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-[var(--t3)]">
                 &copy; {new Date().getFullYear()} Omuto Foundation. All rights reserved.
               </p>
             </div>

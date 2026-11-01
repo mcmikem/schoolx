@@ -167,8 +167,8 @@ export default function StudentTransfersPanel({
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center">
-              <MaterialIcon className="text-gray-500">swap_horiz</MaterialIcon>
+            <div className="w-9 h-9 rounded-lg bg-[var(--surface-container)] flex items-center justify-center">
+              <MaterialIcon className="text-[var(--t3)]">swap_horiz</MaterialIcon>
             </div>
             <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">Total Moves</span>
           </div>
@@ -240,7 +240,7 @@ export default function StudentTransfersPanel({
                       </td>
                       {!lowBandwidthMode && <td className="p-4 text-sm font-mono">{student.student_number || "-"}</td>}
                       <td className="p-4">
-                        <span className="px-2.5 py-1 bg-gray-100 rounded-full text-xs font-semibold">
+                        <span className="px-2.5 py-1 bg-[var(--surface-container)] rounded-full text-xs font-semibold">
                           {student.classes?.name || "-"}
                         </span>
                       </td>
@@ -301,7 +301,7 @@ export default function StudentTransfersPanel({
                       <td className="p-4 font-semibold text-sm">{record.student_name}</td>
                       {!lowBandwidthMode && <td className="p-4 text-sm font-mono">{record.student_number || "-"}</td>}
                       <td className="p-4">
-                        <span className="px-2.5 py-1 bg-gray-100 rounded-full text-xs font-semibold">
+                        <span className="px-2.5 py-1 bg-[var(--surface-container)] rounded-full text-xs font-semibold">
                           {record.class_name}
                         </span>
                       </td>
@@ -736,7 +736,7 @@ export default function StudentTransfersPanel({
               </div>
             </div>
             {(school as any)?.report_footer_text || (school as any)?.report_footer ? (
-              <p className="text-center text-xs text-slate-500 mt-6">
+              <p className="text-center text-xs text-[var(--t3)] mt-6">
                 {(school as any).report_footer_text || (school as any).report_footer}
               </p>
             ) : null}

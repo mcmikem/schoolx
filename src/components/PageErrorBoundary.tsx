@@ -60,7 +60,7 @@ export class PageErrorBoundary extends Component<Props, State> {
           <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-6">
             <MaterialIcon icon="warning" className="text-red-500" size={32} />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Something went wrong</h2>
+          <h2 className="text-xl font-bold text-[var(--t1)] mb-2">Something went wrong</h2>
           {this.state.error && (
             <ErrorDetails error={this.state.error} source="page-boundary" className="text-center mb-6" />
           )}
@@ -75,7 +75,7 @@ export class PageErrorBoundary extends Component<Props, State> {
             <button
               onClick={this.handleClearCache}
               disabled={this.state.recovering}
-              className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 text-gray-800 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all disabled:opacity-60"
+              className="flex items-center gap-2 px-6 py-3 bg-white border border-[var(--border)] text-[var(--t1)] rounded-xl font-bold text-sm hover:bg-[var(--surface-container-low)] transition-all disabled:opacity-60"
             >
               <MaterialIcon icon="cleaning_services" size={16} />
               {this.state.recovering ? "Clearing…" : "Clear cache & reload"}

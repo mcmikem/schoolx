@@ -38,7 +38,7 @@ export default function TermTimeline({ events }: { events: Event[] }) {
   return (
     <div className="relative py-20 px-4 overflow-x-auto custom-scrollbar">
       {/* The Main Line */}
-      <div className="h-1.5 bg-slate-200 w-full absolute top-1/2 -translate-y-1/2 rounded-full" />
+      <div className="h-1.5 bg-[var(--surface-container-high)] w-full absolute top-1/2 -translate-y-1/2 rounded-full" />
 
       {/* Current Day Indicator */}
       <div
@@ -52,7 +52,7 @@ export default function TermTimeline({ events }: { events: Event[] }) {
           const date = addMonths(timelineRange.start, m);
           return (
             <div key={m} style={{ left: `${(m / 4) * 100}%` }} className="absolute">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">{format(date, "MMM")}</p>
+              <p className="text-xs font-black text-[var(--t3)] uppercase tracking-widest">{format(date, "MMM")}</p>
             </div>
           );
         })}
@@ -76,27 +76,27 @@ export default function TermTimeline({ events }: { events: Event[] }) {
             <div key={event.id} className="absolute" style={{ left: `${pos}%` }}>
               {/* Connector */}
               <div
-                className={`w-0.5 h-12 bg-slate-200 absolute left-1/2 -translate-x-1/2 ${isTop ? "-top-12" : "top-0"}`}
+                className={`w-0.5 h-12 bg-[var(--surface-container-high)] absolute left-1/2 -translate-x-1/2 ${isTop ? "-top-12" : "top-0"}`}
               />
 
               {/* Dot */}
               <div
-                className={`w-4 h-4 rounded-full border-4 border-white shadow-sm ring-4 ring-slate-50 absolute top-[-8px] left-1/2 -translate-x-1/2 z-20 ${colorClass}`}
+                className={`w-4 h-4 rounded-full border-4 border-white shadow-sm ring-4 ring-[var(--border)] absolute top-[-8px] left-1/2 -translate-x-1/2 z-20 ${colorClass}`}
               />
 
               {/* Box */}
               <div
-                className={`absolute left-1/2 -translate-x-1/2 w-40 p-3 bg-white rounded-2xl shadow-xl border border-slate-100 z-30 transition-all hover:scale-105 hover:z-50 ${isTop ? "-top-32" : "top-12"}`}
+                className={`absolute left-1/2 -translate-x-1/2 w-40 p-3 bg-white rounded-2xl shadow-xl border border-[var(--border)] z-30 transition-all hover:scale-105 hover:z-50 ${isTop ? "-top-32" : "top-12"}`}
               >
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`w-1.5 h-1.5 rounded-full ${colorClass}`} />
-                  <p className="text-xs font-black uppercase text-slate-400 tracking-widest font-mono">
+                  <p className="text-xs font-black uppercase text-[var(--t3)] tracking-widest font-mono">
                     {format(new Date(event.start_date), "MMM dd")}
                   </p>
                 </div>
-                <p className="text-xs font-bold text-slate-800 leading-tight">{event.title}</p>
+                <p className="text-xs font-bold text-[var(--t1)] leading-tight">{event.title}</p>
                 {event.description && (
-                  <p className="text-xs text-slate-400 mt-1 line-clamp-1 italic">{event.description}</p>
+                  <p className="text-xs text-[var(--t3)] mt-1 line-clamp-1 italic">{event.description}</p>
                 )}
               </div>
             </div>

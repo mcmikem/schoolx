@@ -54,14 +54,14 @@ export const PWAInstallPrompt = memo(function PWAInstallPrompt() {
 
   return (
     <div className="fixed bottom-[160px] left-4 right-4 z-[9940] sm:bottom-24 sm:left-auto sm:right-6 sm:max-w-sm">
-      <div className="rounded-2xl border border-slate-200 bg-white/95 backdrop-blur shadow-[0_12px_40px_rgba(15,23,42,0.12)] p-4">
+      <div className="rounded-2xl border border-[var(--border)] bg-white/95 backdrop-blur shadow-[0_12px_40px_rgba(15,23,42,0.12)] p-4">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--brand-green-soft)] text-[var(--brand-green)]">
             <span className="material-symbols-outlined text-[22px]">install_mobile</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-slate-900">Install {APP_NAME}</p>
-            <p className="mt-0.5 text-xs text-slate-500 leading-5">
+            <p className="text-sm font-semibold text-[var(--t1)]">Install {APP_NAME}</p>
+            <p className="mt-0.5 text-xs text-[var(--t3)] leading-5">
               Add to your home screen for quick access and offline support.
             </p>
             <div className="mt-3 flex gap-2">
@@ -73,7 +73,7 @@ export const PWAInstallPrompt = memo(function PWAInstallPrompt() {
               </button>
               <button
                 onClick={handleDismiss}
-                className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-100 transition-colors"
+                className="rounded-xl px-4 py-2 text-xs font-semibold text-[var(--t3)] hover:bg-[var(--surface-container)] transition-colors"
               >
                 Not now
               </button>
@@ -81,7 +81,7 @@ export const PWAInstallPrompt = memo(function PWAInstallPrompt() {
           </div>
           <button
             onClick={handleDismiss}
-            className="flex-shrink-0 p-1 tap-44 text-slate-400 hover:text-slate-600 transition-colors"
+            className="flex-shrink-0 p-1 tap-44 text-[var(--t3)] hover:text-[var(--t2)] transition-colors"
             aria-label="Dismiss install prompt"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>

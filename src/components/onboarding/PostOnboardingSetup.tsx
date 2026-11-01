@@ -550,11 +550,11 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
         <div className="fixed inset-x-0 bottom-0 z-[85] flex flex-col rounded-t-2xl bg-white shadow-2xl md:inset-x-auto md:inset-y-0 md:right-0 md:w-[360px] md:rounded-none md:max-h-full max-h-[78vh] transition-all duration-300">
           {/* Drag handle (mobile only) */}
           <div className="flex justify-center pt-2.5 pb-0 md:hidden flex-shrink-0">
-            <div className="h-1 w-10 rounded-full bg-slate-200" />
+            <div className="h-1 w-10 rounded-full bg-[var(--surface-container-high)]" />
           </div>
 
           {/* Header */}
-          <div className="flex-shrink-0 flex items-center justify-between border-b border-slate-100 px-4 py-3">
+          <div className="flex-shrink-0 flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
             <div>
               <h2 className="font-semibold text-sm text-[var(--on-surface)]">Optional Setup</h2>
               <p className="text-xs text-[var(--t3)]">
@@ -565,19 +565,19 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+              className="p-1.5 rounded-full hover:bg-[var(--surface-container)] text-[var(--t3)] hover:text-[var(--t2)]"
             >
               <MaterialIcon icon="close" className="text-lg" />
             </button>
           </div>
 
           {/* Progress bar */}
-          <div className="h-0.5 flex-shrink-0 bg-slate-100">
+          <div className="h-0.5 flex-shrink-0 bg-[var(--surface-container)]">
             <div className="h-full bg-[var(--primary)] transition-all duration-500" style={{ width: `${progress}%` }} />
           </div>
 
           {/* Steps */}
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+          <div className="flex-1 overflow-y-auto divide-y divide-[var(--border)]">
             {incompleteSteps.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-3 px-6 py-10 text-center">
                 <OwlMascot size={56} premium ring glow animated />
@@ -597,7 +597,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                   <div key={item.key}>
                     {/* Accordion header */}
                     <button
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50"
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--surface-container-low)]"
                       onClick={() => setExpandedKey(isExpanded ? null : item.key)}
                     >
                       <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-[#dbe3ed] bg-white shadow-sm">
@@ -609,23 +609,23 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                       </div>
                       <MaterialIcon
                         icon={isExpanded ? "expand_less" : "expand_more"}
-                        className="flex-shrink-0 text-slate-400"
+                        className="flex-shrink-0 text-[var(--t3)]"
                       />
                     </button>
 
                     {/* Expanded content */}
                     {isExpanded && (
-                      <div className="bg-slate-50/60 px-4 pb-4 pt-1 space-y-3">
+                      <div className="bg-[var(--surface-container-low)] px-4 pb-4 pt-1 space-y-3">
                         {/* SMS Automation */}
                         {item.key === "sms_automation" && (
                           <>
                             {smsAutomations.map((auto, i) => (
                               <div
                                 key={auto.event_type}
-                                className="rounded-xl border border-slate-200 bg-white p-3 space-y-2"
+                                className="rounded-xl border border-[var(--border)] bg-white p-3 space-y-2"
                               >
                                 <label className="flex items-center justify-between gap-2">
-                                  <span className="text-sm font-medium text-slate-700">{auto.name}</span>
+                                  <span className="text-sm font-medium text-[var(--t2)]">{auto.name}</span>
                                   <input
                                     type="checkbox"
                                     checked={auto.is_active}
@@ -645,7 +645,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                       next[i].message_template = e.target.value;
                                       setSmsAutomations(next);
                                     }}
-                                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                                    className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--primary)]"
                                     rows={2}
                                     placeholder="Optional message template..."
                                   />
@@ -663,11 +663,11 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                           <>
                             {importState.step === "upload" && (
                               <div className="space-y-2">
-                                <p className="text-xs text-slate-500">
+                                <p className="text-xs text-[var(--t3)]">
                                   CSV columns: first_name, last_name, gender (M/F), class_name, parent_name,
                                   parent_phone
                                 </p>
-                                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-white px-4 py-5 text-sm text-slate-600 hover:border-slate-400">
+                                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--border2)] bg-white px-4 py-5 text-sm text-[var(--t2)] hover:border-[var(--border2)]">
                                   <MaterialIcon icon="upload_file" className="text-lg" />
                                   Choose CSV file
                                   <input type="file" accept=".csv" onChange={handleImportFile} className="hidden" />
@@ -683,12 +683,12 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                             )}
                             {importState.step === "preview" && (
                               <div className="space-y-2">
-                                <p className="text-sm font-semibold text-slate-700">
+                                <p className="text-sm font-semibold text-[var(--t2)]">
                                   {importState.rows.length} students found
                                 </p>
-                                <div className="max-h-36 overflow-y-auto rounded-xl border border-slate-200 text-xs">
+                                <div className="max-h-36 overflow-y-auto rounded-xl border border-[var(--border)] text-xs">
                                   <table className="w-full">
-                                    <thead className="bg-slate-100 text-left">
+                                    <thead className="bg-[var(--surface-container)] text-left">
                                       <tr>
                                         <th className="px-2 py-1">Name</th>
                                         <th className="px-2 py-1">G</th>
@@ -697,7 +697,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                     </thead>
                                     <tbody>
                                       {importState.rows.slice(0, 10).map((r, i) => (
-                                        <tr key={i} className="border-t border-slate-100">
+                                        <tr key={i} className="border-t border-[var(--border)]">
                                           <td className="px-2 py-1">
                                             {r.first_name} {r.last_name}
                                           </td>
@@ -724,8 +724,8 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                             )}
                             {importState.step === "importing" && (
                               <div className="flex items-center justify-center py-4 gap-3">
-                                <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-[var(--primary)]" />
-                                <span className="text-sm text-slate-600">Importing...</span>
+                                <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--border2)] border-t-[var(--primary)]" />
+                                <span className="text-sm text-[var(--t2)]">Importing...</span>
                               </div>
                             )}
                             {importState.step === "complete" && (
@@ -759,7 +759,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                           <div className="space-y-3">
                             {(["headteacher", "class_teacher"] as const).map((type) => (
                               <div key={type}>
-                                <label className="mb-1 block text-xs font-semibold text-slate-600">
+                                <label className="mb-1 block text-xs font-semibold text-[var(--t2)]">
                                   {type === "headteacher" ? "Headteacher" : "Class Teacher"} Signature
                                 </label>
                                 {(type === "headteacher"
@@ -776,7 +776,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                       width={80}
                                       height={80}
                                       unoptimized
-                                      className="max-h-16 rounded border border-slate-200"
+                                      className="max-h-16 rounded border border-[var(--border)]"
                                     />
                                   </div>
                                 )}
@@ -823,9 +823,9 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                     hasBoarding: !prev.hasBoarding,
                                   }))
                                 }
-                                className="h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                                className="h-5 w-5 rounded border-[var(--border2)] text-teal-600 focus:ring-teal-500"
                               />
-                              <span className="text-sm font-semibold text-slate-700">
+                              <span className="text-sm font-semibold text-[var(--t2)]">
                                 Does your school have boarding facilities?
                               </span>
                             </label>
@@ -833,7 +833,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                             {dormConfig.hasBoarding && (
                               <>
                                 <div>
-                                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                                  <label className="block text-xs font-semibold text-[var(--t2)] mb-1">
                                     Number of Dormitories
                                   </label>
                                   <div className="flex items-center gap-3">
@@ -860,7 +860,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                       }}
                                       className="flex-1 accent-teal-600"
                                     />
-                                    <span className="text-xs font-semibold text-slate-700 w-5 text-center">
+                                    <span className="text-xs font-semibold text-[var(--t2)] w-5 text-center">
                                       {dormConfig.dormCount}
                                     </span>
                                   </div>
@@ -879,7 +879,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                             return { ...prev, dormitories: updated };
                                           })
                                         }
-                                        className="flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-800 outline-none focus:border-slate-400"
+                                        className="flex-1 rounded-lg border border-[var(--border)] bg-white px-2 py-1.5 text-xs text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                                       />
                                       <select
                                         value={dorm.type}
@@ -890,7 +890,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                             return { ...prev, dormitories: updated };
                                           })
                                         }
-                                        className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-800 outline-none focus:border-slate-400"
+                                        className="rounded-lg border border-[var(--border)] bg-white px-2 py-1.5 text-xs text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                                       >
                                         <option value="boys">Boys</option>
                                         <option value="girls">Girls</option>
@@ -908,7 +908,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                             return { ...prev, dormitories: updated };
                                           })
                                         }
-                                        className="w-14 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-800 outline-none focus:border-slate-400"
+                                        className="w-14 rounded-lg border border-[var(--border)] bg-white px-2 py-1.5 text-xs text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                                       />
                                     </div>
                                   ))}
@@ -924,7 +924,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
 
                         {item.key === "houses" && (
                           <div className="space-y-3">
-                            <p className="text-xs text-slate-500 mb-1">
+                            <p className="text-xs text-[var(--t3)] mb-1">
                               Set up competition/sports houses. Each student can be assigned a house.
                             </p>
                             <label className="flex items-center gap-2 cursor-pointer">
@@ -937,9 +937,9 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                     hasHouses: !prev.hasHouses,
                                   }))
                                 }
-                                className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                                className="h-4 w-4 rounded border-[var(--border2)] text-teal-600 focus:ring-teal-500"
                               />
-                              <span className="text-xs font-semibold text-slate-700">Enable competition houses</span>
+                              <span className="text-xs font-semibold text-[var(--t2)]">Enable competition houses</span>
                             </label>
 
                             {houseConfig.hasHouses && (
@@ -967,7 +967,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                     }}
                                     className="flex-1 accent-teal-600"
                                   />
-                                  <span className="text-xs font-semibold text-slate-700 w-5 text-center">
+                                  <span className="text-xs font-semibold text-[var(--t2)] w-5 text-center">
                                     {houseConfig.houseCount}
                                   </span>
                                 </div>
@@ -984,7 +984,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                             return { ...prev, houses: updated };
                                           })
                                         }
-                                        className="flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-800 outline-none focus:border-slate-400"
+                                        className="flex-1 rounded-lg border border-[var(--border)] bg-white px-2 py-1.5 text-xs text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                                       />
                                       <input
                                         type="color"
@@ -996,7 +996,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                             return { ...prev, houses: updated };
                                           })
                                         }
-                                        className="h-8 w-10 rounded border border-slate-200 bg-white"
+                                        className="h-8 w-10 rounded border border-[var(--border)] bg-white"
                                       />
                                     </div>
                                   ))}
@@ -1032,7 +1032,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
 
           {/* Footer */}
           {incompleteSteps.length > 0 && (
-            <div className="flex-shrink-0 border-t border-slate-100 px-4 py-3">
+            <div className="flex-shrink-0 border-t border-[var(--border)] px-4 py-3">
               <button
                 type="button"
                 onClick={async () => {

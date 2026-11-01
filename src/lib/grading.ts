@@ -264,7 +264,7 @@ export function getGradeColor(grade: string): string {
     O: "text-orange-500",
     F: "text-red-500",
   };
-  return colors[grade] || "text-gray-500";
+  return colors[grade] || "text-[var(--t3)]";
 }
 
 export function getDivisionColor(division: string): string {

@@ -61,17 +61,17 @@ export default function MessageAutomation({
             {triggers.map((trigger) => (
               <Card key={trigger.id} className="relative overflow-hidden p-6">
                 <div
-                  className={`absolute top-0 right-0 w-32 h-32 -mr-16 -mt-16 rounded-full blur-3xl opacity-20 transition-all ${trigger.is_active ? "bg-green-500" : "bg-gray-300"}`}
+                  className={`absolute top-0 right-0 w-32 h-32 -mr-16 -mt-16 rounded-full blur-3xl opacity-20 transition-all ${trigger.is_active ? "bg-green-500" : "bg-[var(--surface-container-highest)]"}`}
                 />
                 <div className="flex items-center justify-between mb-6">
                   <div
-                    className={`p-3 rounded-2xl ${trigger.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}
+                    className={`p-3 rounded-2xl ${trigger.is_active ? "bg-green-100 text-green-700" : "bg-[var(--surface-container)] text-[var(--t3)]"}`}
                   >
                     <MaterialIcon>{trigger.event_type === "fee_overdue" ? "payments" : "person_off"}</MaterialIcon>
                   </div>
                   <button
                     onClick={() => onToggleTrigger(trigger.id, trigger.is_active)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${trigger.is_active ? "bg-green-600" : "bg-gray-300"}`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${trigger.is_active ? "bg-green-600" : "bg-[var(--surface-container-highest)]"}`}
                   >
                     <span
                       className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${trigger.is_active ? "translate-x-6" : "translate-x-1"}`}

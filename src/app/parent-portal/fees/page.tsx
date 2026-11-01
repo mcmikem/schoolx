@@ -39,7 +39,7 @@ const WALLET_BADGE_STYLES: Record<ParentPortalWalletTransaction["type"], string>
   topup: "bg-emerald-50 text-emerald-700 border-emerald-200",
   spend: "bg-amber-50 text-amber-700 border-amber-200",
   refund: "bg-blue-50 text-blue-700 border-blue-200",
-  adjustment: "bg-slate-100 text-slate-700 border-slate-200",
+  adjustment: "bg-[var(--surface-container)] text-[var(--t2)] border-[var(--border)]",
 };
 
 const QUICK_TOPUP_AMOUNTS = [5000, 10000, 20000, 50000] as const;

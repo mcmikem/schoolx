@@ -38,10 +38,10 @@ export default function DemoStudentClient() {
   }, []);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
-      <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-        <h1 className="text-lg font-semibold text-slate-900">Opening student demo</h1>
-        <p className="mt-2 text-sm text-slate-600">Setting up a demo session and redirecting you now.</p>
+    <main className="flex min-h-screen items-center justify-center bg-[var(--surface-container-low)] p-6">
+      <div className="w-full max-w-sm rounded-xl border border-[var(--border)] bg-white p-6 text-center shadow-sm">
+        <h1 className="text-lg font-semibold text-[var(--t1)]">Opening student demo</h1>
+        <p className="mt-2 text-sm text-[var(--t2)]">Setting up a demo session and redirecting you now.</p>
         {ready && (
           <a className="mt-4 inline-block text-sm font-medium text-blue-700 underline" href="/student-portal/">
             Continue to the student portal

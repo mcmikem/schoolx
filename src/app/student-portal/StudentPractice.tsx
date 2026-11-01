@@ -258,7 +258,7 @@ export default function StudentPractice({
   if (loading) {
     return (
       <Card className="p-4">
-        <p className="text-sm text-gray-500">Loading practice papers…</p>
+        <p className="text-sm text-[var(--t3)]">Loading practice papers…</p>
       </Card>
     );
   }
@@ -266,11 +266,13 @@ export default function StudentPractice({
   if (!selected) {
     return (
       <Card className="overflow-hidden">
-        <div className="border-b border-gray-100 p-4">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+        <div className="border-b border-[var(--border)] p-4">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--t1)]">
             <MaterialIcon className="text-purple-600">assignment</MaterialIcon>Practice & holiday work
           </h2>
-          <p className="mt-1 text-xs text-gray-500">Open a paper, answer when ready, and hand it in to your teacher.</p>
+          <p className="mt-1 text-xs text-[var(--t3)]">
+            Open a paper, answer when ready, and hand it in to your teacher.
+          </p>
         </div>
         {message && (
           <div role="status" className="flex items-center justify-between gap-3 p-4 text-sm text-amber-800">
@@ -285,19 +287,19 @@ export default function StudentPractice({
           </div>
         )}
         {papers.length === 0 ? (
-          <p className="p-4 text-sm text-gray-500">No practice papers have been assigned to your class yet.</p>
+          <p className="p-4 text-sm text-[var(--t3)]">No practice papers have been assigned to your class yet.</p>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-[var(--border)]">
             {papers.map((paper) => (
               <button
                 key={paper.id}
                 onClick={() => void openPaper(paper)}
-                className="tap-44 flex w-full items-center gap-3 p-4 text-left hover:bg-gray-50"
+                className="tap-44 flex w-full items-center gap-3 p-4 text-left hover:bg-[var(--surface-container-low)]"
               >
                 <MaterialIcon className="text-xl text-purple-600">description</MaterialIcon>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-gray-900">{paper.name}</span>
-                  <span className="text-xs text-gray-500">
+                  <span className="block truncate text-sm font-semibold text-[var(--t1)]">{paper.name}</span>
+                  <span className="text-xs text-[var(--t3)]">
                     Due {paper.paper_model.assignment?.due_date || paper.exam_date} ·{" "}
                     {paper.paper_model.questions.length} questions
                   </span>
@@ -321,8 +323,12 @@ export default function StudentPractice({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-white text-gray-900" role="main" aria-label="Practice paper">
-      <header className="shrink-0 border-b border-gray-200 bg-white px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6">
+    <div
+      className="fixed inset-0 z-[60] flex flex-col bg-white text-[var(--t1)]"
+      role="main"
+      aria-label="Practice paper"
+    >
+      <header className="shrink-0 border-b border-[var(--border)] bg-white px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6">
         <div className="mx-auto flex max-w-3xl items-center gap-3">
           <button
             type="button"
@@ -332,13 +338,13 @@ export default function StudentPractice({
               else setSelected(null);
             }}
             aria-label={reviewing ? "Back to questions" : "Back to practice papers"}
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-gray-200 text-gray-700"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-[var(--border)] text-[var(--t2)]"
           >
             <MaterialIcon>arrow_back</MaterialIcon>
           </button>
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-sm font-bold sm:text-base">{selected.name}</h2>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-[var(--t2)]">
               {alreadySubmitted
                 ? "Handed in"
                 : draftStatus === "saving"
@@ -356,9 +362,9 @@ export default function StudentPractice({
       </header>
 
       {!alreadySubmitted && !reviewing && currentPaperQuestions.length > 0 && (
-        <div className="shrink-0 border-b border-gray-100 bg-white px-4 py-3 sm:px-6">
+        <div className="shrink-0 border-b border-[var(--border)] bg-white px-4 py-3 sm:px-6">
           <div className="mx-auto max-w-3xl">
-            <div className="mb-2 flex items-center justify-between gap-3 text-xs font-semibold text-gray-600">
+            <div className="mb-2 flex items-center justify-between gap-3 text-xs font-semibold text-[var(--t2)]">
               <span>
                 Question {activeQuestionIndex + 1} of {currentPaperQuestions.length}
               </span>
@@ -374,7 +380,7 @@ export default function StudentPractice({
               </button>
             </div>
             <div
-              className="h-2 overflow-hidden rounded-full bg-gray-200"
+              className="h-2 overflow-hidden rounded-full bg-[var(--surface-container-high)]"
               role="progressbar"
               aria-label="Paper progress"
               aria-valuenow={progress}
@@ -414,10 +420,10 @@ export default function StudentPractice({
           ) : reviewing ? (
             <section>
               <h3 className="text-xl font-bold">Check your answers</h3>
-              <p className="mt-1 text-sm text-gray-600">
+              <p className="mt-1 text-sm text-[var(--t2)]">
                 Tap a question to check or change your answer before handing in.
               </p>
-              <div className="mt-4 divide-y divide-gray-100 rounded-2xl border border-gray-200 bg-white">
+              <div className="mt-4 divide-y divide-[var(--border)] rounded-2xl border border-[var(--border)] bg-white">
                 {currentPaperQuestions.map((question, index) => {
                   const answered = isQuestionAnswered(question, answers);
                   return (
@@ -444,12 +450,12 @@ export default function StudentPractice({
                           {answered ? "Answer saved" : "Not answered yet"}
                         </span>
                       </span>
-                      <MaterialIcon className="text-gray-500">chevron_right</MaterialIcon>
+                      <MaterialIcon className="text-[var(--t3)]">chevron_right</MaterialIcon>
                     </button>
                   );
                 })}
               </div>
-              <p className="mt-4 text-sm text-gray-600">
+              <p className="mt-4 text-sm text-[var(--t2)]">
                 {currentPaperQuestions.length - answeredCount} question
                 {currentPaperQuestions.length - answeredCount === 1 ? "" : "s"} still unanswered.
               </p>
@@ -486,7 +492,7 @@ export default function StudentPractice({
       {!alreadySubmitted && (
         <footer
           data-page-action-bar=""
-          className="shrink-0 border-t border-gray-200 bg-white/95 px-4 pt-3 backdrop-blur sm:px-6"
+          className="shrink-0 border-t border-[var(--border)] bg-white/95 px-4 pt-3 backdrop-blur sm:px-6"
           style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}
         >
           <div className="mx-auto flex max-w-3xl items-center gap-3">
@@ -564,7 +570,7 @@ export default function StudentPractice({
             <h3 id="hand-in-title" className="text-lg font-bold">
               Hand in this paper?
             </h3>
-            <p className="mt-2 text-sm leading-6 text-gray-700">
+            <p className="mt-2 text-sm leading-6 text-[var(--t2)]">
               {currentPaperQuestions.length - answeredCount > 0
                 ? `${currentPaperQuestions.length - answeredCount} question${currentPaperQuestions.length - answeredCount === 1 ? " is" : "s are"} still unanswered. You can go back and finish, or hand in what you have.`
                 : "You have answered every question. After handing in, you cannot change your answers."}
@@ -627,21 +633,21 @@ function QuestionScreen({
     return (
       <div
         key={`${question.id}-table-${tableIndex}`}
-        className="mt-4 max-w-full overflow-x-auto rounded-lg border border-gray-200"
+        className="mt-4 max-w-full overflow-x-auto rounded-lg border border-[var(--border)]"
       >
         <table
           className="w-full border-collapse text-left text-sm"
           aria-label={`Question ${question.number ?? questionIndex + 1} data table ${tableIndex + 1}`}
         >
           {table.headerRows > 0 && (
-            <thead className="bg-gray-100">
+            <thead className="bg-[var(--surface-container)]">
               {table.rows.slice(0, table.headerRows).map((row, rowIndex) => (
                 <tr key={`head-${rowIndex}`}>
                   {row.map((cell, cellIndex) => (
                     <th
                       key={cellIndex}
                       scope="col"
-                      className="border-b border-r border-gray-200 px-3 py-2 font-semibold last:border-r-0"
+                      className="border-b border-r border-[var(--border)] px-3 py-2 font-semibold last:border-r-0"
                     >
                       {cell}
                     </th>
@@ -652,9 +658,12 @@ function QuestionScreen({
           )}
           <tbody>
             {table.rows.slice(table.headerRows).map((row, rowIndex) => (
-              <tr key={`row-${rowIndex}`} className="odd:bg-white even:bg-gray-50">
+              <tr key={`row-${rowIndex}`} className="odd:bg-white even:bg-[var(--surface-container-low)]">
                 {row.map((cell, cellIndex) => (
-                  <td key={cellIndex} className="border-t border-r border-gray-200 px-3 py-2 align-top last:border-r-0">
+                  <td
+                    key={cellIndex}
+                    className="border-t border-r border-[var(--border)] px-3 py-2 align-top last:border-r-0"
+                  >
                     {cell}
                   </td>
                 ))}
@@ -662,7 +671,7 @@ function QuestionScreen({
             ))}
           </tbody>
         </table>
-        <p className="px-3 py-1 text-xs text-gray-500 sm:hidden">Swipe sideways to see all columns.</p>
+        <p className="px-3 py-1 text-xs text-[var(--t3)] sm:hidden">Swipe sideways to see all columns.</p>
       </div>
     );
   };
@@ -673,7 +682,7 @@ function QuestionScreen({
         <p className="text-xs font-bold uppercase tracking-wide text-purple-800">
           Question {question.number ?? questionIndex + 1}
         </p>
-        <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+        <span className="rounded-full bg-[var(--surface-container)] px-3 py-1 text-xs font-semibold text-[var(--t2)]">
           {question.marks !== null ? `${question.marks} marks` : "Marks not stated"}
         </span>
       </div>
@@ -682,7 +691,7 @@ function QuestionScreen({
           block.type === "text" ? (
             <p
               key={`${question.id}-text-${blockIndex}`}
-              className="mt-3 whitespace-pre-wrap text-lg font-semibold leading-7 text-gray-950 sm:text-xl"
+              className="mt-3 whitespace-pre-wrap text-lg font-semibold leading-7 text-[var(--t3)] sm:text-xl"
             >
               {block.text}
             </p>
@@ -693,7 +702,7 @@ function QuestionScreen({
       ) : (
         <>
           {prompt && (
-            <h3 className="mt-3 whitespace-pre-wrap text-lg font-semibold leading-7 text-gray-950 sm:text-xl">
+            <h3 className="mt-3 whitespace-pre-wrap text-lg font-semibold leading-7 text-[var(--t3)] sm:text-xl">
               {prompt}
             </h3>
           )}
@@ -743,13 +752,16 @@ function QuestionScreen({
 
       {question.diagrams.map((diagram) =>
         diagram.imageDataUri ? (
-          <figure key={diagram.label} className="my-4 rounded-xl border border-gray-200 bg-gray-50 p-2">
+          <figure
+            key={diagram.label}
+            className="my-4 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] p-2"
+          >
             <img
               src={diagram.imageDataUri}
               alt={diagram.label}
               className="mx-auto max-h-72 max-w-full object-contain"
             />
-            <figcaption className="mt-1 text-center text-xs text-gray-600">{diagram.label}</figcaption>
+            <figcaption className="mt-1 text-center text-xs text-[var(--t2)]">{diagram.label}</figcaption>
           </figure>
         ) : null,
       )}
@@ -759,8 +771,8 @@ function QuestionScreen({
           {question.subTasks.map((part, partIndex) => {
             const key = subTaskAnswerKey(question, partIndex);
             return (
-              <div key={key} className="rounded-xl border border-gray-200 p-3 sm:p-4">
-                <label htmlFor={`answer-${key}`} className="block text-sm font-semibold leading-6 text-gray-900">
+              <div key={key} className="rounded-xl border border-[var(--border)] p-3 sm:p-4">
+                <label htmlFor={`answer-${key}`} className="block text-sm font-semibold leading-6 text-[var(--t1)]">
                   {displayQuestionSubTaskLabel(question.number ?? questionIndex + 1, question, partIndex)} {part.text}
                 </label>
                 <textarea
@@ -770,7 +782,7 @@ function QuestionScreen({
                   onChange={(event) => onAnswer(key, event.target.value)}
                   rows={3}
                   placeholder="Write your answer here"
-                  className="mt-3 w-full rounded-xl border border-gray-300 bg-white p-3 text-base leading-6 focus:border-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-200 disabled:bg-gray-100"
+                  className="mt-3 w-full rounded-xl border border-[var(--border2)] bg-white p-3 text-base leading-6 focus:border-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-200 disabled:bg-[var(--surface-container)]"
                 />
               </div>
             );
@@ -778,11 +790,11 @@ function QuestionScreen({
         </div>
       ) : question.choices.length ? (
         <fieldset className="mt-5 space-y-2">
-          <legend className="mb-2 text-sm font-semibold text-gray-700">Choose one answer</legend>
+          <legend className="mb-2 text-sm font-semibold text-[var(--t2)]">Choose one answer</legend>
           {question.choices.map((choice) => (
             <label
               key={choice.label}
-              className={`flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border p-3 text-base ${value[question.id] === choice.label ? "border-purple-700 bg-purple-50" : "border-gray-200 bg-white"}`}
+              className={`flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border p-3 text-base ${value[question.id] === choice.label ? "border-purple-700 bg-purple-50" : "border-[var(--border)] bg-white"}`}
             >
               <input
                 disabled={disabled}
@@ -799,7 +811,7 @@ function QuestionScreen({
           ))}
         </fieldset>
       ) : (
-        <label className="mt-5 block text-sm font-semibold text-gray-700" htmlFor={`answer-${question.id}`}>
+        <label className="mt-5 block text-sm font-semibold text-[var(--t2)]" htmlFor={`answer-${question.id}`}>
           Your answer
           <textarea
             id={`answer-${question.id}`}
@@ -808,7 +820,7 @@ function QuestionScreen({
             onChange={(event) => onAnswer(question.id, event.target.value)}
             rows={question.kind === "long_answer" ? 6 : 4}
             placeholder="Write your answer here"
-            className="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-base font-normal leading-6 focus:border-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-200 disabled:bg-gray-100"
+            className="mt-2 w-full rounded-xl border border-[var(--border2)] bg-white p-3 text-base font-normal leading-6 focus:border-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-200 disabled:bg-[var(--surface-container)]"
           />
         </label>
       )}

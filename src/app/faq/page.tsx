@@ -25,23 +25,23 @@ export default function FAQPage() {
             <Link href="/">
               <SkoolMateLogo size="md" variant="default" />
             </Link>
-            <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
-              <Link href="/features" className="transition hover:text-slate-950">
+            <div className="hidden items-center gap-8 text-sm font-medium text-[var(--t2)] md:flex">
+              <Link href="/features" className="transition hover:text-[var(--t3)]">
                 Features
               </Link>
-              <Link href="/pricing" className="transition hover:text-slate-950">
+              <Link href="/pricing" className="transition hover:text-[var(--t3)]">
                 Pricing
               </Link>
-              <Link href="/demo" className="transition hover:text-slate-950">
+              <Link href="/demo" className="transition hover:text-[var(--t3)]">
                 Demo
               </Link>
-              <Link href="/blog" className="transition hover:text-slate-950">
+              <Link href="/blog" className="transition hover:text-[var(--t3)]">
                 Blog
               </Link>
-              <Link href="/about" className="transition hover:text-slate-950">
+              <Link href="/about" className="transition hover:text-[var(--t3)]">
                 About
               </Link>
-              <Link href="/contact" className="transition hover:text-slate-950">
+              <Link href="/contact" className="transition hover:text-[var(--t3)]">
                 Contact
               </Link>
             </div>
@@ -59,10 +59,10 @@ export default function FAQPage() {
         <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <FadeIn>
             <div className="text-center mb-12">
-              <h1 className="font-['Sora'] text-4xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-5xl">
+              <h1 className="font-['Sora'] text-4xl font-semibold tracking-[-0.05em] text-[var(--t3)] sm:text-5xl">
                 Frequently asked questions
               </h1>
-              <p className="mt-4 text-lg text-slate-600">Everything you need to know about SkoolMate OS.</p>
+              <p className="mt-4 text-lg text-[var(--t2)]">Everything you need to know about SkoolMate OS.</p>
             </div>
             <div className="space-y-3">
               {faqItems.map((item, i) => (
@@ -76,9 +76,9 @@ export default function FAQPage() {
 
         <section className="mx-auto max-w-3xl px-4 pb-16 sm:px-6 lg:px-8">
           <FadeIn>
-            <div className="rounded-[28px] border border-slate-200 bg-[var(--surface-bright)] p-6 text-center">
-              <h2 className="font-['Sora'] text-xl font-semibold text-slate-900">Still have questions?</h2>
-              <p className="mt-2 text-sm text-slate-600">We are happy to help.</p>
+            <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface-bright)] p-6 text-center">
+              <h2 className="font-['Sora'] text-xl font-semibold text-[var(--t1)]">Still have questions?</h2>
+              <p className="mt-2 text-sm text-[var(--t2)]">We are happy to help.</p>
               <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
                 <Link href="/contact" className="btn btn-primary px-6 py-3 text-sm">
                   Contact us
@@ -91,78 +91,78 @@ export default function FAQPage() {
           </FadeIn>
         </section>
 
-        <footer className="border-t border-slate-200 bg-white">
+        <footer className="border-t border-[var(--border)] bg-white">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <SkoolMateLogo size="md" variant="default" />
-                <p className="mt-4 text-sm leading-6 text-slate-500">
+                <p className="mt-4 text-sm leading-6 text-[var(--t3)]">
                   The school operating system built from real experience in Ugandan schools.
                 </p>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Product</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Product</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/features" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/features" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Features
                     </Link>
                   </li>
                   <li>
-                    <Link href="/pricing" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/pricing" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Pricing
                     </Link>
                   </li>
                   <li>
-                    <Link href="/demo" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/demo" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Demo
                     </Link>
                   </li>
                 </ul>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Resources</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Resources</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/blog" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/blog" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Blog
                     </Link>
                   </li>
                   <li>
-                    <Link href="/faq" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/faq" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       FAQ
                     </Link>
                   </li>
                   <li>
-                    <Link href="/case-studies" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/case-studies" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Case Studies
                     </Link>
                   </li>
                   <li>
-                    <Link href="/contact" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/contact" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Contact
                     </Link>
                   </li>
                 </ul>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Legal</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Legal</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/privacy" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/privacy" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Privacy Policy
                     </Link>
                   </li>
                   <li>
-                    <Link href="/terms" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/terms" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Terms of Service
                     </Link>
                   </li>
                 </ul>
               </div>
             </div>
-            <div className="mt-10 border-t border-slate-200 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-sm text-slate-400">
+            <div className="mt-10 border-t border-[var(--border)] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-[var(--t3)]">
                 &copy; {new Date().getFullYear()} Omuto Foundation. All rights reserved.
               </p>
             </div>

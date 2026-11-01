@@ -19,21 +19,23 @@ export default function SetupPage() {
           </div>
           <div className="p-8 lg:p-10">
             <div className="mb-8 flex items-center gap-4">
-              <div className="inline-flex items-center justify-center h-16 w-16 rounded-[20px] border border-[#e1e8f0] bg-white shadow-lg ring-1 ring-slate-100">
+              <div className="inline-flex items-center justify-center h-16 w-16 rounded-[20px] border border-[#e1e8f0] bg-white shadow-lg ring-1 ring-[var(--border)]">
                 <AnimatedLogo type="logo" className="w-10 h-10" />
               </div>
               <div>
-                <h1 className="text-3xl font-black tracking-tight text-slate-800">Configuration Required</h1>
-                <p className="mt-1 text-sm leading-relaxed text-slate-500">Finish these values and return to login.</p>
+                <h1 className="text-3xl font-black tracking-tight text-[var(--t1)]">Configuration Required</h1>
+                <p className="mt-1 text-sm leading-relaxed text-[var(--t3)]">
+                  Finish these values and return to login.
+                </p>
               </div>
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-[26px] border border-slate-200 bg-[#fbfcfe] p-5 shadow-sm">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">
+              <div className="rounded-[26px] border border-[var(--border)] bg-[#fbfcfe] p-5 shadow-sm">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--t3)]">
                   Required Environment Variables
                 </p>
-                <ul className="space-y-3 text-sm font-mono text-slate-700">
+                <ul className="space-y-3 text-sm font-mono text-[var(--t2)]">
                   <li className="flex items-start gap-3 rounded-2xl border border-[#f2dede] bg-white px-4 py-3">
                     <OwlMascot size={28} premium />
                     <span>NEXT_PUBLIC_SUPABASE_URL</span>
@@ -58,7 +60,7 @@ export default function SetupPage() {
             </div>
 
             <div className="mt-8 text-center">
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[var(--t3)]">
                 Already configured?{" "}
                 <Link href="/login" className="font-semibold text-[var(--primary)] hover:underline">
                   Go to Login

@@ -194,23 +194,23 @@ export default function HomePage() {
             {/* Nav */}
             <nav className="flex items-center justify-between rounded-full border border-white/70 bg-white/80 px-4 py-3 shadow-[0_8px_30px_rgba(15,23,42,0.06)] backdrop-blur sm:px-6">
               <SkoolMateLogo size="md" variant="default" />
-              <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
-                <Link href="/features" className="transition hover:text-slate-950">
+              <div className="hidden items-center gap-8 text-sm font-medium text-[var(--t2)] md:flex">
+                <Link href="/features" className="transition hover:text-[var(--t3)]">
                   Features
                 </Link>
-                <Link href="/pricing" className="transition hover:text-slate-950">
+                <Link href="/pricing" className="transition hover:text-[var(--t3)]">
                   Pricing
                 </Link>
-                <Link href="/demo" className="transition hover:text-slate-950">
+                <Link href="/demo" className="transition hover:text-[var(--t3)]">
                   Demo
                 </Link>
-                <Link href="/blog" className="transition hover:text-slate-950">
+                <Link href="/blog" className="transition hover:text-[var(--t3)]">
                   Blog
                 </Link>
-                <Link href="/about" className="transition hover:text-slate-950">
+                <Link href="/about" className="transition hover:text-[var(--t3)]">
                   About
                 </Link>
-                <Link href="/contact" className="transition hover:text-slate-950">
+                <Link href="/contact" className="transition hover:text-[var(--t3)]">
                   Contact
                 </Link>
               </div>
@@ -222,7 +222,7 @@ export default function HomePage() {
                   Start free trial
                 </Link>
                 <button
-                  className="tap-44 flex md:hidden items-center justify-center w-9 h-9 rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition"
+                  className="tap-44 flex md:hidden items-center justify-center w-9 h-9 rounded-full border border-[var(--border)] bg-white text-[var(--t2)] hover:bg-[var(--surface-container-low)] transition"
                   aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
                   aria-expanded={mobileMenuOpen}
                   onClick={() => setMobileMenuOpen((prev) => !prev)}
@@ -254,46 +254,46 @@ export default function HomePage() {
                     <Link
                       href="/features"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                      className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-[var(--t2)] hover:bg-[var(--surface-container-low)] transition"
                     >
                       Features
                     </Link>
                     <Link
                       href="/pricing"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                      className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-[var(--t2)] hover:bg-[var(--surface-container-low)] transition"
                     >
                       Pricing
                     </Link>
                     <Link
                       href="/demo"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                      className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-[var(--t2)] hover:bg-[var(--surface-container-low)] transition"
                     >
                       Request Demo
                     </Link>
                     <Link
                       href="/blog"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                      className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-[var(--t2)] hover:bg-[var(--surface-container-low)] transition"
                     >
                       Blog
                     </Link>
                     <Link
                       href="/about"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                      className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-[var(--t2)] hover:bg-[var(--surface-container-low)] transition"
                     >
                       About
                     </Link>
                     <Link
                       href="/contact"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                      className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-[var(--t2)] hover:bg-[var(--surface-container-low)] transition"
                     >
                       Contact
                     </Link>
-                    <div className="mt-2 pt-3 border-t border-slate-100">
+                    <div className="mt-2 pt-3 border-t border-[var(--border)]">
                       <Link
                         href="/register"
                         className="btn btn-primary w-full justify-center py-3 text-sm"
@@ -373,16 +373,21 @@ export default function HomePage() {
                   className="floating-note pointer-events-none absolute right-0 top-0 z-20 w-52 rounded-[28px] border border-white/70 bg-white/88 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.14)] backdrop-blur xl:block hidden"
                   aria-hidden="true"
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Today at a glance</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--t3)]">
+                    Today at a glance
+                  </p>
                   <div className="mt-4 space-y-3">
                     {[
                       ["Attendance filed", "12 classes by 8:05 AM"],
                       ["Fee follow-up", "426 parents queued"],
                       ["Candidate review", "S.4 report cards ready"],
                     ].map(([label, note]) => (
-                      <div key={label} className="rounded-[20px] bg-slate-50 p-3 ring-1 ring-slate-200">
-                        <p className="text-sm font-semibold text-slate-900">{label}</p>
-                        <p className="mt-1 text-xs leading-5 text-slate-500">{note}</p>
+                      <div
+                        key={label}
+                        className="rounded-[20px] bg-[var(--surface-container-low)] p-3 ring-1 ring-[var(--border)]"
+                      >
+                        <p className="text-sm font-semibold text-[var(--t1)]">{label}</p>
+                        <p className="mt-1 text-xs leading-5 text-[var(--t3)]">{note}</p>
                       </div>
                     ))}
                   </div>
@@ -417,7 +422,7 @@ export default function HomePage() {
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
                 Get started in 3 steps
               </p>
-              <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
+              <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-[var(--t3)] sm:text-3xl">
                 From signup to running your school
               </h2>
             </div>
@@ -443,15 +448,15 @@ export default function HomePage() {
                 },
               ].map((item, i) => (
                 <FadeIn key={item.step} delay={i * 150}>
-                  <div className="relative rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow text-center">
+                  <div className="relative rounded-[28px] border border-[var(--border)] bg-white p-6 shadow-sm hover:shadow-md transition-shadow text-center">
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-[var(--brand-ink)] text-white text-xs font-bold flex items-center justify-center">
                       {item.step}
                     </div>
                     <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)] mx-auto mt-2">
                       <MaterialIcon icon={item.icon} className="text-[26px]" />
                     </div>
-                    <h3 className="mt-4 text-base font-semibold text-slate-900">{item.title}</h3>
-                    <p className="mt-2 text-sm text-slate-600">{item.desc}</p>
+                    <h3 className="mt-4 text-base font-semibold text-[var(--t1)]">{item.title}</h3>
+                    <p className="mt-2 text-sm text-[var(--t2)]">{item.desc}</p>
                   </div>
                 </FadeIn>
               ))}
@@ -471,12 +476,12 @@ export default function HomePage() {
                   See it for yourself
                 </span>
               </div>
-              <h2 className="text-center font-['Sora'] text-3xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-4xl">
+              <h2 className="text-center font-['Sora'] text-3xl font-semibold tracking-[-0.03em] text-[var(--t3)] sm:text-4xl">
                 Your school dashboard,
                 <br />
                 <span className="text-[var(--brand-green)]">fully interactive</span>
               </h2>
-              <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-slate-600">
+              <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-[var(--t2)]">
                 Click through the tabs below. This is exactly what you and your staff will see every morning — no
                 sign-up required.
               </p>
@@ -486,7 +491,7 @@ export default function HomePage() {
             </div>
             <FadeIn delay={200}>
               <div className="mt-10 text-center">
-                <p className="text-sm text-slate-500 mb-4">No catch. No credit card. Start your 30-day free trial.</p>
+                <p className="text-sm text-[var(--t3)] mb-4">No catch. No credit card. Start your 30-day free trial.</p>
                 <Link href="/register" className="btn btn-primary px-8 py-4 text-base inline-flex items-center gap-2">
                   Start free trial
                   <MaterialIcon icon="arrow_forward" className="text-lg" />
@@ -530,14 +535,14 @@ export default function HomePage() {
 
             <div className="grid gap-5">
               <FadeIn>
-                <div className="rounded-[34px] border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
+                <div className="rounded-[34px] border border-[var(--border)] bg-white p-6 shadow-sm lg:p-8">
                   <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
                     What became obvious
                   </p>
-                  <h3 className="mt-4 font-['Sora'] text-2xl font-semibold leading-tight tracking-[-0.03em] text-slate-950">
+                  <h3 className="mt-4 font-['Sora'] text-2xl font-semibold leading-tight tracking-[-0.03em] text-[var(--t3)]">
                     Schools do not need more pressure. They need better tools.
                   </h3>
-                  <p className="mt-4 text-base leading-7 text-slate-600">
+                  <p className="mt-4 text-base leading-7 text-[var(--t2)]">
                     SkoolMate OS was built to match the real flow of school life: attendance, marks, fees,
                     communication, and decision-making in one place. Not another generic system. A calmer operating
                     layer for schools that are already working hard.
@@ -548,11 +553,11 @@ export default function HomePage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 {storyPrinciples.map((item, i) => (
                   <FadeIn key={item.label} delay={i * 100}>
-                    <div className="story-card rounded-[28px] border border-slate-200 bg-[var(--brand-surface)] p-5 shadow-sm h-full">
+                    <div className="story-card rounded-[28px] border border-[var(--border)] bg-[var(--brand-surface)] p-5 shadow-sm h-full">
                       <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--brand-ink)]/8 text-[var(--brand-ink)]">
                         <MaterialIcon icon={item.icon} className="text-[20px]" />
                       </div>
-                      <p className="mt-4 text-base font-semibold leading-7 text-slate-900">{item.label}</p>
+                      <p className="mt-4 text-base font-semibold leading-7 text-[var(--t1)]">{item.label}</p>
                     </div>
                   </FadeIn>
                 ))}
@@ -563,7 +568,7 @@ export default function HomePage() {
                   <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
                     What changes when the system runs well
                   </p>
-                  <p className="mt-4 text-base leading-7 text-slate-600">
+                  <p className="mt-4 text-base leading-7 text-[var(--t2)]">
                     Teachers get more time to focus on students. Leaders can see what is working and what is not.
                     Parents stay informed. Students are noticed early instead of slipping through the cracks. The X in
                     SkoolMate OS stands for Xperience, because this system comes from what has been seen, learned, and
@@ -583,10 +588,10 @@ export default function HomePage() {
                 <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
                   Inside the platform
                 </p>
-                <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
+                <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-[var(--t3)] sm:text-4xl">
                   Every major school unit connected in one system.
                 </h2>
-                <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
+                <p className="mt-5 max-w-xl text-lg leading-8 text-[var(--t2)]">
                   From academics to administration, SkoolMate OS is designed to reduce duplicate work. Enter data once,
                   then reuse it across report cards, parent communication, financial follow-up, UNEB prep, and board
                   reporting.
@@ -596,12 +601,12 @@ export default function HomePage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 {modules.map((module, i) => (
                   <FadeIn key={module.label} delay={i * 80}>
-                    <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-sm hover:shadow-md hover:border-[var(--brand-green)]/30 transition-all cursor-default">
+                    <div className="rounded-[24px] border border-[var(--border)] bg-white px-4 py-4 shadow-sm hover:shadow-md hover:border-[var(--brand-green)]/30 transition-all cursor-default">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)]">
                           <MaterialIcon icon={module.icon} className="text-[20px]" />
                         </div>
-                        <p className="text-sm font-semibold text-slate-800">{module.label}</p>
+                        <p className="text-sm font-semibold text-[var(--t1)]">{module.label}</p>
                       </div>
                     </div>
                   </FadeIn>
@@ -621,10 +626,10 @@ export default function HomePage() {
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
                 Install on any device
               </p>
-              <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
+              <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-[var(--t3)] sm:text-3xl">
                 Use SkoolMate OS everywhere
               </h2>
-              <p className="mt-4 max-w-xl mx-auto text-base text-slate-600">
+              <p className="mt-4 max-w-xl mx-auto text-base text-[var(--t2)]">
                 Install on your phone, tablet, or computer for quick access — even works offline.
               </p>
             </div>
@@ -634,7 +639,7 @@ export default function HomePage() {
                   icon: "phone_iphone",
                   platform: "iPhone & iPad",
                   desc: "Open in Safari, tap Share, then Add to Home Screen.",
-                  color: "bg-slate-100 text-slate-700",
+                  color: "bg-[var(--surface-container)] text-[var(--t2)]",
                 },
                 {
                   icon: "android",
@@ -656,16 +661,16 @@ export default function HomePage() {
                   icon: "laptop_mac",
                   platform: "Mac",
                   desc: MAC_APP_URL ? "Download the macOS desktop build." : "Use Chrome address bar install icon.",
-                  color: "bg-slate-100 text-slate-700",
+                  color: "bg-[var(--surface-container)] text-[var(--t2)]",
                 },
               ].map((item, i) => (
                 <FadeIn key={item.platform} delay={i * 100}>
-                  <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-all h-full">
+                  <div className="rounded-[24px] border border-[var(--border)] bg-white p-5 shadow-sm hover:shadow-md transition-all h-full">
                     <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${item.color}`}>
                       <MaterialIcon icon={item.icon} className="text-[22px]" />
                     </div>
-                    <p className="mt-4 text-sm font-semibold text-slate-900">{item.platform}</p>
-                    <p className="mt-1 text-xs text-slate-500 leading-5">{item.desc}</p>
+                    <p className="mt-4 text-sm font-semibold text-[var(--t1)]">{item.platform}</p>
+                    <p className="mt-1 text-xs text-[var(--t3)] leading-5">{item.desc}</p>
                   </div>
                 </FadeIn>
               ))}
@@ -682,10 +687,10 @@ export default function HomePage() {
                   <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
                     SkoolMate OS and OSX
                   </p>
-                  <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
+                  <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-[var(--t3)] sm:text-4xl">
                     SkoolMate OS is the system layer inside the wider SkoolMate School Xperience.
                   </h2>
-                  <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
+                  <p className="mt-5 max-w-xl text-lg leading-8 text-[var(--t2)]">
                     OSX is the broader transformation model. SkoolMate OS is the layer that helps that transformation
                     hold, because progress is hard to sustain when the underlying school systems stay scattered and
                     manual.
@@ -693,14 +698,14 @@ export default function HomePage() {
                 </div>
 
                 <div className="grid gap-4">
-                  <div className="rounded-[32px] border border-slate-200 bg-[var(--brand-surface-cool)] p-6 shadow-sm lg:p-8">
+                  <div className="rounded-[32px] border border-[var(--border)] bg-[var(--brand-surface-cool)] p-6 shadow-sm lg:p-8">
                     <div className="grid gap-4 md:grid-cols-2">
-                      <div className="rounded-[24px] bg-white p-5 ring-1 ring-slate-200 hover:shadow-md transition-shadow">
-                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">OSX</p>
-                        <p className="mt-3 text-xl font-semibold tracking-tight text-slate-950">
+                      <div className="rounded-[24px] bg-white p-5 ring-1 ring-[var(--border)] hover:shadow-md transition-shadow">
+                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--t3)]">OSX</p>
+                        <p className="mt-3 text-xl font-semibold tracking-tight text-[var(--t3)]">
                           Drives transformation
                         </p>
-                        <p className="mt-3 text-sm leading-6 text-slate-600">
+                        <p className="mt-3 text-sm leading-6 text-[var(--t2)]">
                           Leadership, student engagement, accountability, and a culture where schools do not just
                           operate, but perform.
                         </p>
@@ -718,11 +723,11 @@ export default function HomePage() {
 
                   {osxLinks.map((item, i) => (
                     <FadeIn key={item} delay={i * 100}>
-                      <div className="story-card flex items-start gap-3 rounded-[26px] border border-slate-200 bg-white px-5 py-4 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="story-card flex items-start gap-3 rounded-[26px] border border-[var(--border)] bg-white px-5 py-4 shadow-sm hover:shadow-md transition-shadow">
                         <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)] flex-shrink-0">
                           <MaterialIcon icon="north_east" className="text-[18px]" />
                         </div>
-                        <p className="text-sm leading-6 text-slate-700">{item}</p>
+                        <p className="text-sm leading-6 text-[var(--t2)]">{item}</p>
                       </div>
                     </FadeIn>
                   ))}
@@ -731,7 +736,7 @@ export default function HomePage() {
                     <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
                       The result
                     </p>
-                    <p className="mt-4 text-base leading-7 text-slate-700">
+                    <p className="mt-4 text-base leading-7 text-[var(--t2)]">
                       Together, OSX drives the transformation and SkoolMate OS makes it visible, usable, and measurable.
                       That is the complete school experience: organised systems, informed decisions, earlier support,
                       and progress that leaders can actually track.
@@ -750,10 +755,10 @@ export default function HomePage() {
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
                 Security &amp; Data Protection
               </p>
-              <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
+              <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-[var(--t3)] sm:text-4xl">
                 Your school data is safe with us.
               </h2>
-              <p className="mt-5 max-w-2xl mx-auto text-lg leading-8 text-slate-600">
+              <p className="mt-5 max-w-2xl mx-auto text-lg leading-8 text-[var(--t2)]">
                 Student records, grades, and financial data are sensitive. Here is exactly how we protect your school —
                 in plain language.
               </p>
@@ -763,12 +768,12 @@ export default function HomePage() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {securityDetails.map((feature, i) => (
               <FadeIn key={feature.title} delay={i * 100}>
-                <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md hover:border-[var(--brand-green)]/30 transition-all h-full">
+                <div className="rounded-[28px] border border-[var(--border)] bg-white p-6 shadow-sm hover:shadow-md hover:border-[var(--brand-green)]/30 transition-all h-full">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)]">
                     <MaterialIcon icon={feature.icon} className="text-[24px]" />
                   </div>
-                  <h3 className="mt-4 text-lg font-semibold text-slate-900">{feature.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{feature.desc}</p>
+                  <h3 className="mt-4 text-lg font-semibold text-[var(--t1)]">{feature.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--t2)]">{feature.desc}</p>
                 </div>
               </FadeIn>
             ))}
@@ -807,12 +812,12 @@ export default function HomePage() {
                   <div
                     className={`rounded-[32px] border p-6 h-full flex flex-col ${
                       plan.featured
-                        ? "border-white/20 bg-white text-slate-950 shadow-[0_24px_60px_rgba(0,0,0,0.28)]"
+                        ? "border-white/20 bg-white text-[var(--t3)] shadow-[0_24px_60px_rgba(0,0,0,0.28)]"
                         : "border-white/12 bg-white/6 backdrop-blur"
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <p className={`text-lg font-semibold ${plan.featured ? "text-slate-950" : "text-white"}`}>
+                      <p className={`text-lg font-semibold ${plan.featured ? "text-[var(--t3)]" : "text-white"}`}>
                         {plan.name}
                       </p>
                       {plan.featured && (
@@ -827,14 +832,14 @@ export default function HomePage() {
                       )}
                     </div>
                     <p
-                      className={`mt-4 font-['Sora'] text-4xl font-semibold tracking-[-0.05em] ${plan.featured ? "text-slate-950" : "text-white"}`}
+                      className={`mt-4 font-['Sora'] text-4xl font-semibold tracking-[-0.05em] ${plan.featured ? "text-[var(--t3)]" : "text-white"}`}
                     >
                       {plan.price}
                     </p>
-                    <p className={`mt-1 text-sm ${plan.featured ? "text-slate-500" : "text-white/60"}`}>
+                    <p className={`mt-1 text-sm ${plan.featured ? "text-[var(--t3)]" : "text-white/60"}`}>
                       {plan.cadence}
                     </p>
-                    <p className={`mt-1 text-xs ${plan.featured ? "text-slate-400" : "text-white/50"}`}>
+                    <p className={`mt-1 text-xs ${plan.featured ? "text-[var(--t3)]" : "text-white/50"}`}>
                       {plan.contrastLabel}
                     </p>
                     <p
@@ -844,7 +849,7 @@ export default function HomePage() {
                     </p>
                     <div className="mt-6 space-y-3 flex-1">
                       <p
-                        className={`text-xs font-semibold uppercase tracking-wider ${plan.featured ? "text-slate-500" : "text-white/60"}`}
+                        className={`text-xs font-semibold uppercase tracking-wider ${plan.featured ? "text-[var(--t3)]" : "text-white/60"}`}
                       >
                         What's included
                       </p>
@@ -854,12 +859,14 @@ export default function HomePage() {
                             icon="check"
                             className={`mt-0.5 text-[18px] ${plan.featured ? "text-[var(--brand-green)]" : "text-white"}`}
                           />
-                          <p className={`text-sm ${plan.featured ? "text-slate-700" : "text-white/80"}`}>{feature}</p>
+                          <p className={`text-sm ${plan.featured ? "text-[var(--t2)]" : "text-white/80"}`}>{feature}</p>
                         </div>
                       ))}
                       {(plan as any).lossItems && (plan as any).lossItems.length > 0 && (
                         <>
-                          <div className={`my-3 border-t ${plan.featured ? "border-slate-200" : "border-white/10"}`} />
+                          <div
+                            className={`my-3 border-t ${plan.featured ? "border-[var(--border)]" : "border-white/10"}`}
+                          />
                           <p
                             className={`text-xs font-semibold uppercase tracking-wider ${plan.featured ? "text-amber-600" : "text-amber-400"}`}
                           >
@@ -871,7 +878,9 @@ export default function HomePage() {
                                 icon="close"
                                 className={`mt-0.5 text-[16px] ${plan.featured ? "text-amber-400" : "text-amber-500"}`}
                               />
-                              <p className={`text-sm ${plan.featured ? "text-slate-500" : "text-white/60"}`}>{item}</p>
+                              <p className={`text-sm ${plan.featured ? "text-[var(--t3)]" : "text-white/60"}`}>
+                                {item}
+                              </p>
                             </div>
                           ))}
                         </>
@@ -901,25 +910,25 @@ export default function HomePage() {
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
                 Feature Comparison
               </p>
-              <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
+              <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-[var(--t3)] sm:text-3xl">
                 How SkoolMate OS compares
               </h2>
             </div>
-            <p className="text-center text-sm text-slate-500 mb-2">
+            <p className="text-center text-sm text-[var(--t3)] mb-2">
               ✓ = Included &nbsp;&nbsp; ✗ = Not available &nbsp;&nbsp; ~ = Partial
             </p>
-            <p className="text-center text-xs text-slate-400 mb-8">
+            <p className="text-center text-xs text-[var(--t3)] mb-8">
               Based on publicly available information, April 2026. Competitor columns are illustrative.
             </p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200">
-                    <th className="text-left py-3 px-4 font-semibold text-slate-900">Feature</th>
+                  <tr className="border-b border-[var(--border)]">
+                    <th className="text-left py-3 px-4 font-semibold text-[var(--t1)]">Feature</th>
                     <th className="py-3 px-4 font-bold text-[var(--brand-green)] bg-green-50">SkoolMate</th>
-                    <th className="py-3 px-4 text-slate-500">Alt A</th>
-                    <th className="py-3 px-4 text-slate-500">Alt B</th>
-                    <th className="py-3 px-4 text-slate-500">Alt C</th>
+                    <th className="py-3 px-4 text-[var(--t3)]">Alt A</th>
+                    <th className="py-3 px-4 text-[var(--t3)]">Alt B</th>
+                    <th className="py-3 px-4 text-[var(--t3)]">Alt C</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -935,12 +944,12 @@ export default function HomePage() {
                     ["UNEB registration", "✓", "~", "✗", "✗"],
                     ["Full payroll", "✓", "✓", "✓", "~"],
                   ].map((row, i) => (
-                    <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="py-3 px-4 text-slate-700">{row[0]}</td>
+                    <tr key={i} className="border-b border-[var(--border)] hover:bg-[var(--surface-container-low)]">
+                      <td className="py-3 px-4 text-[var(--t2)]">{row[0]}</td>
                       <td className="py-3 px-4 text-center font-bold bg-green-50/50">{row[1]}</td>
-                      <td className="py-3 px-4 text-center text-slate-500">{row[2]}</td>
-                      <td className="py-3 px-4 text-center text-slate-500">{row[3]}</td>
-                      <td className="py-3 px-4 text-center text-slate-500">{row[4]}</td>
+                      <td className="py-3 px-4 text-center text-[var(--t3)]">{row[2]}</td>
+                      <td className="py-3 px-4 text-center text-[var(--t3)]">{row[3]}</td>
+                      <td className="py-3 px-4 text-center text-[var(--t3)]">{row[4]}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -956,7 +965,7 @@ export default function HomePage() {
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
                 Frequently asked questions
               </p>
-              <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
+              <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-[var(--t3)] sm:text-3xl">
                 Questions schools ask before signing up
               </h2>
             </div>
@@ -999,34 +1008,34 @@ export default function HomePage() {
         </section>
 
         {/* ===== FOOTER ===== */}
-        <footer className="border-t border-slate-200 bg-white pb-24 sm:pb-0">
+        <footer className="border-t border-[var(--border)] bg-white pb-24 sm:pb-0">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <SkoolMateLogo size="md" variant="default" />
-                <p className="mt-4 text-sm leading-6 text-slate-500">
+                <p className="mt-4 text-sm leading-6 text-[var(--t3)]">
                   The school operating system built from real experience in Ugandan schools.
                 </p>
                 <div className="mt-6 space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <div className="flex items-center gap-2 text-sm text-[var(--t2)]">
                     <MaterialIcon icon="mail" className="text-[14px] text-[var(--brand-ink)]" />
-                    <a href="mailto:os@omuto.org" className="hover:text-slate-900 transition">
+                    <a href="mailto:os@omuto.org" className="hover:text-[var(--t1)] transition">
                       os@omuto.org
                     </a>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <div className="flex items-center gap-2 text-sm text-[var(--t2)]">
                     <MaterialIcon icon="phone" className="text-[14px] text-[var(--brand-ink)]" />
-                    <a href="tel:0750028703" className="hover:text-slate-900 transition">
+                    <a href="tel:0750028703" className="hover:text-[var(--t1)] transition">
                       0750 028 703
                     </a>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <div className="flex items-center gap-2 text-sm text-[var(--t2)]">
                     <MaterialIcon icon="chat" className="text-[14px] text-[var(--brand-whatsapp)]" />
                     <a
                       href="https://wa.me/256750028703"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-slate-900 transition"
+                      className="hover:text-[var(--t1)] transition"
                     >
                       WhatsApp
                     </a>
@@ -1034,81 +1043,81 @@ export default function HomePage() {
                 </div>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Product</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Product</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/features" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/features" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Features
                     </Link>
                   </li>
                   <li>
-                    <Link href="/pricing" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/pricing" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Pricing
                     </Link>
                   </li>
                   <li>
-                    <Link href="/about" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/about" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       About
                     </Link>
                   </li>
                   <li>
-                    <Link href="/demo" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/demo" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Request Demo
                     </Link>
                   </li>
                 </ul>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Resources</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Resources</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/blog" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/blog" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Blog
                     </Link>
                   </li>
                   <li>
-                    <a href="/login" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <a href="/login" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Sign In
                     </a>
                   </li>
                   <li>
-                    <a href="/register" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <a href="/register" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Register School
                     </a>
                   </li>
                   <li>
-                    <Link href="/contact" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/contact" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Contact Us
                     </Link>
                   </li>
                   <li>
-                    <Link href="/parent-portal" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/parent-portal" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Parent Portal
                     </Link>
                   </li>
                 </ul>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Legal</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Legal</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/privacy" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/privacy" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Privacy Policy
                     </Link>
                   </li>
                   <li>
-                    <Link href="/terms" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/terms" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Terms of Service
                     </Link>
                   </li>
                 </ul>
               </div>
             </div>
-            <div className="mt-10 border-t border-slate-200 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-sm text-slate-400" suppressHydrationWarning>
+            <div className="mt-10 border-t border-[var(--border)] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-[var(--t3)]" suppressHydrationWarning>
                 &copy; {new Date().getFullYear()} Omuto Foundation. All rights reserved.
               </p>
-              <div className="flex items-center gap-2 text-sm text-slate-400">
+              <div className="flex items-center gap-2 text-sm text-[var(--t3)]">
                 <MaterialIcon icon="lock" className="text-[14px]" />
                 <span>Your data is encrypted and never shared.</span>
               </div>
@@ -1117,7 +1126,7 @@ export default function HomePage() {
         </footer>
 
         {/* ===== STICKY MOBILE CTA ===== */}
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 border-t border-slate-200 px-4 py-3 shadow-[0_-4px_24px_rgba(15,23,42,0.10)]">
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 border-t border-[var(--border)] px-4 py-3 shadow-[0_-4px_24px_rgba(15,23,42,0.10)]">
           <div className="flex gap-3 max-w-sm mx-auto">
             <Link href="/register" className="btn btn-primary flex-1 justify-center py-3 text-sm">
               Start free trial
@@ -1153,8 +1162,8 @@ export default function HomePage() {
               className="bg-white rounded-2xl w-full max-w-sm max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto p-6 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-lg font-bold text-slate-800 mb-3">Add to Home Screen</h3>
-              <p className="text-sm text-slate-600 mb-4">
+              <h3 className="text-lg font-bold text-[var(--t1)] mb-3">Add to Home Screen</h3>
+              <p className="text-sm text-[var(--t2)] mb-4">
                 On iPhone or iPad: Open this page in <strong>Safari</strong>, tap the <strong>Share Button</strong> (the
                 square with arrow pointing up), then tap <strong>&quot;Add to Home Screen&quot;</strong>.
               </p>

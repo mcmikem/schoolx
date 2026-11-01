@@ -150,7 +150,7 @@ export default function ParentAttendancePage() {
                       </div>
                     </div>
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border ${STATUS_STYLES[r.status] || "bg-gray-50 text-gray-600 border-gray-200"}`}
+                      className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border ${STATUS_STYLES[r.status] || "bg-[var(--surface-container-low)] text-[var(--t2)] border-[var(--border)]"}`}
                     >
                       {r.status}
                     </span>

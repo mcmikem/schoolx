@@ -41,6 +41,6 @@ export function competencyBadge(level: string | undefined): CompetencyBadge {
     case "extended":
       return { label: "Extended", emoji: "🏆", color: "text-purple-600" };
     default:
-      return { label: "Not Started", emoji: "—", color: "text-gray-400" };
+      return { label: "Not Started", emoji: "—", color: "text-[var(--t3)]" };
   }
 }

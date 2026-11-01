@@ -101,17 +101,17 @@ export default function PdfSourceViewer({
   }, [documentProxy, page, zoom]);
 
   return (
-    <div className="mt-3 overflow-hidden rounded-xl border border-gray-300 bg-gray-100 p-2 sm:p-3">
+    <div className="mt-3 overflow-hidden rounded-xl border border-[var(--border2)] bg-[var(--surface-container)] p-2 sm:p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <button
           type="button"
           disabled={page <= 1}
           onClick={() => setPage((current) => Math.max(1, current - 1))}
-          className="min-h-11 rounded-lg border border-gray-300 bg-white px-3 text-sm font-semibold disabled:opacity-50"
+          className="min-h-11 rounded-lg border border-[var(--border2)] bg-white px-3 text-sm font-semibold disabled:opacity-50"
         >
           Previous page
         </button>
-        <span aria-live="polite" className="text-sm font-semibold text-gray-700">
+        <span aria-live="polite" className="text-sm font-semibold text-[var(--t2)]">
           Page {page}
           {pageCount ? ` of ${pageCount}` : ""}
         </span>
@@ -119,7 +119,7 @@ export default function PdfSourceViewer({
           type="button"
           disabled={pageCount > 0 && page >= pageCount}
           onClick={() => setPage((current) => Math.min(pageCount || current + 1, current + 1))}
-          className="min-h-11 rounded-lg border border-gray-300 bg-white px-3 text-sm font-semibold disabled:opacity-50"
+          className="min-h-11 rounded-lg border border-[var(--border2)] bg-white px-3 text-sm font-semibold disabled:opacity-50"
         >
           Next page
         </button>
@@ -130,7 +130,7 @@ export default function PdfSourceViewer({
           aria-label="Zoom out"
           disabled={zoom <= 1}
           onClick={() => setZoom((value) => Math.max(1, value - 0.25))}
-          className="min-h-11 min-w-11 rounded-lg border border-gray-300 bg-white text-lg disabled:opacity-50"
+          className="min-h-11 min-w-11 rounded-lg border border-[var(--border2)] bg-white text-lg disabled:opacity-50"
         >
           −
         </button>
@@ -139,7 +139,7 @@ export default function PdfSourceViewer({
           aria-label="Zoom in"
           disabled={zoom >= 2}
           onClick={() => setZoom((value) => Math.min(2, value + 0.25))}
-          className="min-h-11 min-w-11 rounded-lg border border-gray-300 bg-white text-lg disabled:opacity-50"
+          className="min-h-11 min-w-11 rounded-lg border border-[var(--border2)] bg-white text-lg disabled:opacity-50"
         >
           +
         </button>
@@ -152,7 +152,7 @@ export default function PdfSourceViewer({
       <div className="flex max-h-[72vh] justify-center overflow-auto">
         <canvas ref={canvasRef} aria-label={`Original exam page ${page}`} className="h-auto shadow-md" />
       </div>
-      <p className="mt-2 text-center text-xs text-gray-600">
+      <p className="mt-2 text-center text-xs text-[var(--t2)]">
         Original page shown as printed. Use + to read small details.
       </p>
     </div>

@@ -52,11 +52,13 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
             <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <MaterialIcon icon="warning" className="text-red-500" size={32} />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Something went wrong</h2>
-            <p className="text-gray-500 text-sm mb-6">An unexpected error occurred. Please try refreshing the page.</p>
+            <h2 className="text-xl font-bold text-[var(--t1)] mb-2">Something went wrong</h2>
+            <p className="text-[var(--t3)] text-sm mb-6">
+              An unexpected error occurred. Please try refreshing the page.
+            </p>
             {this.state.error && process.env.NODE_ENV === "development" && (
-              <div className="bg-gray-50 rounded-xl p-4 mb-6 text-left">
-                <p className="text-xs font-mono text-gray-600 break-all">{this.state.error.message}</p>
+              <div className="bg-[var(--surface-container-low)] rounded-xl p-4 mb-6 text-left">
+                <p className="text-xs font-mono text-[var(--t2)] break-all">{this.state.error.message}</p>
               </div>
             )}
             <div className="flex gap-3 justify-center">

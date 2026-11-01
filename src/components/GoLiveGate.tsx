@@ -98,7 +98,7 @@ export default function GoLiveGate({ onDismiss }: { onDismiss: () => void }) {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 z-[90] bg-white/95 dark:bg-gray-900/95 flex items-center justify-center">
+      <div className="fixed inset-0 z-[90] bg-white/95 dark:bg-[var(--surface-container-high)] flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-[var(--navy)] border-t-transparent rounded-full" />
       </div>
     );
@@ -109,16 +109,16 @@ export default function GoLiveGate({ onDismiss }: { onDismiss: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[90] bg-white/95 dark:bg-gray-900/95 flex items-center justify-center p-4 overflow-auto">
+    <div className="fixed inset-0 z-[90] bg-white/95 dark:bg-[var(--surface-container-high)] flex items-center justify-center p-4 overflow-auto">
       <div className="w-full max-w-lg">
         <div className="text-center mb-6">
           <div className="w-16 h-16 rounded-2xl bg-[var(--navy)]/10 flex items-center justify-center mx-auto mb-4">
             <MaterialIcon icon="rocket_launch" className="text-3xl text-[var(--navy)]" />
           </div>
-          <h2 className="font-['Sora'] text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+          <h2 className="font-['Sora'] text-2xl font-bold text-[var(--t1)] dark:text-[var(--t4)] mb-2">
             Almost ready to go live!
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-[var(--t3)] dark:text-[var(--t3)]">
             Complete these {checks.length - passedCount} remaining setup items so your school can start using SkoolMate
             effectively.
           </p>
@@ -131,26 +131,28 @@ export default function GoLiveGate({ onDismiss }: { onDismiss: () => void }) {
               className={`flex items-start gap-3 p-3 rounded-xl border ${
                 check.check
                   ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
-                  : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                  : "bg-white dark:bg-[var(--surface-container-high)] border-[var(--border)] dark:border-[var(--border)]"
               }`}
             >
               <div
                 className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                  check.check ? "bg-emerald-100 dark:bg-emerald-800" : "bg-gray-100 dark:bg-gray-700"
+                  check.check
+                    ? "bg-emerald-100 dark:bg-emerald-800"
+                    : "bg-[var(--surface-container)] dark:bg-[var(--surface-container-high)]"
                 }`}
               >
                 <MaterialIcon
                   icon={check.check ? "check_circle" : check.icon}
-                  className={`text-lg ${check.check ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400"}`}
+                  className={`text-lg ${check.check ? "text-emerald-600 dark:text-emerald-400" : "text-[var(--t3)]"}`}
                 />
               </div>
               <div className="flex-1 min-w-0">
                 <div
-                  className={`text-sm font-semibold ${check.check ? "text-emerald-700 dark:text-emerald-300 line-through" : "text-gray-900 dark:text-gray-100"}`}
+                  className={`text-sm font-semibold ${check.check ? "text-emerald-700 dark:text-emerald-300 line-through" : "text-[var(--t1)] dark:text-[var(--t4)]"}`}
                 >
                   {check.label}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{check.description}</div>
+                <div className="text-xs text-[var(--t3)] dark:text-[var(--t3)] mt-0.5">{check.description}</div>
                 {!check.check && (
                   <a
                     href={check.href}
@@ -166,12 +168,12 @@ export default function GoLiveGate({ onDismiss }: { onDismiss: () => void }) {
         </div>
 
         <div className="text-center">
-          <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
+          <p className="text-xs text-[var(--t3)] dark:text-[var(--t3)] mb-3">
             {passedCount} of {checks.length} complete
           </p>
           <button
             onClick={onDismiss}
-            className="text-sm text-gray-500 dark:text-gray-400 hover:text-[var(--navy)] dark:hover:text-white underline underline-offset-2"
+            className="text-sm text-[var(--t3)] dark:text-[var(--t3)] hover:text-[var(--navy)] dark:hover:text-white underline underline-offset-2"
           >
             Skip for now &mdash; I&apos;ll set up later
           </button>

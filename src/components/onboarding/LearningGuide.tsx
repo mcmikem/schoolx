@@ -21,18 +21,18 @@ function AttendancePractice() {
   return (
     <div className="space-y-3">
       <p className="font-bold">P.3 practice register</p>
-      <div className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-3">
+      <div className="flex items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-white p-3">
         <span>Amina</span>
         <span className="font-semibold text-emerald-800">Present</span>
       </div>
-      <div className="rounded-xl border border-slate-200 bg-white p-3">
+      <div className="rounded-xl border border-[var(--border)] bg-white p-3">
         <p className="mb-2 font-semibold">John</p>
         <div className="flex flex-wrap gap-2" role="group" aria-label="John’s practice attendance">
           <button
             type="button"
             aria-pressed={!absent}
             onClick={() => setAbsent(false)}
-            className={`min-h-12 flex-1 rounded-xl border px-3 ${!absent ? "border-emerald-700 bg-emerald-50 font-bold text-emerald-900" : "border-slate-300"}`}
+            className={`min-h-12 flex-1 rounded-xl border px-3 ${!absent ? "border-emerald-700 bg-emerald-50 font-bold text-emerald-900" : "border-[var(--border2)]"}`}
           >
             Present
           </button>
@@ -40,7 +40,7 @@ function AttendancePractice() {
             type="button"
             aria-pressed={absent}
             onClick={() => setAbsent(true)}
-            className={`min-h-12 flex-1 rounded-xl border px-3 ${absent ? "border-amber-700 bg-amber-50 font-bold text-amber-900" : "border-slate-300"}`}
+            className={`min-h-12 flex-1 rounded-xl border px-3 ${absent ? "border-amber-700 bg-amber-50 font-bold text-amber-900" : "border-[var(--border2)]"}`}
           >
             Absent
           </button>
@@ -100,7 +100,7 @@ function PaymentPractice() {
           }}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? "practice-payment-error" : undefined}
-          className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-base text-slate-900"
+          className="min-h-12 w-full rounded-xl border border-[var(--border2)] bg-white px-3 text-base text-[var(--t1)]"
         />
       </div>
       <div>
@@ -117,7 +117,7 @@ function PaymentPractice() {
             setSaved(false);
             setError("");
           }}
-          className="min-h-12 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 text-base text-slate-900"
+          className="min-h-12 w-full min-w-0 rounded-xl border border-[var(--border2)] bg-white px-3 text-base text-[var(--t1)]"
         />
       </div>
       {valid && (
@@ -291,9 +291,9 @@ function GuideSession({ schoolId, userId, track }: { schoolId: string; userId: s
           ) : null}
           <div
             aria-label="Practice example"
-            className="my-5 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-4 text-base text-slate-900"
+            className="my-5 rounded-2xl border-2 border-dashed border-[var(--border2)] bg-[var(--surface-container-low)] p-4 text-base text-[var(--t1)]"
           >
-            <p className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-600">
+            <p className="mb-4 flex items-center gap-2 text-sm font-bold text-[var(--t2)]">
               <MaterialIcon icon="school" />
               Example only — not your school records
             </p>
@@ -305,7 +305,10 @@ function GuideSession({ schoolId, userId, track }: { schoolId: string; userId: s
               ) : (
                 <ol className="space-y-3">
                   {step.example.map((line, index) => (
-                    <li key={line} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3">
+                    <li
+                      key={line}
+                      className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-white p-3"
+                    >
                       <span
                         className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-[var(--bot-navy-ink)]"
                         aria-hidden="true"

@@ -65,9 +65,9 @@ export function VideoLessonCard({
         type="button"
         onClick={() => setOpen(true)}
         data-video-lesson={lesson}
-        className="group block w-full overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--brand-green)]/40 hover:shadow-md"
+        className="group block w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-white text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--brand-green)]/40 hover:shadow-md"
       >
-        <span className="relative block aspect-video w-full overflow-hidden bg-slate-900">
+        <span className="relative block aspect-video w-full overflow-hidden bg-[var(--navy)]">
           <Image
             src={onboardingPosterUrl(lesson)}
             alt=""
@@ -75,18 +75,18 @@ export function VideoLessonCard({
             sizes="(max-width: 640px) 100vw, 380px"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
-          <span className="absolute inset-0 flex items-center justify-center bg-slate-950/25 transition-colors group-hover:bg-slate-950/35">
-            <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-white/95 text-slate-900 shadow-lg">
+          <span className="absolute inset-0 flex items-center justify-center bg-[var(--navy)] transition-colors group-hover:bg-[var(--navy)]">
+            <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-white/95 text-[var(--t1)] shadow-lg">
               <MaterialIcon icon="play_arrow" size={28} />
             </span>
           </span>
-          <span className="absolute bottom-2.5 right-2.5 rounded-full bg-slate-950/75 px-2 py-0.5 text-[11px] font-semibold text-white">
+          <span className="absolute bottom-2.5 right-2.5 rounded-full bg-[var(--navy)] px-2 py-0.5 text-[11px] font-semibold text-white">
             {meta.duration}s
           </span>
         </span>
         <span className="block px-4 py-3.5">
-          <span className="block text-sm font-semibold text-slate-900">{title ?? meta.title}</span>
-          <span className="mt-1 block text-sm leading-6 text-slate-600">{blurb ?? meta.blurb}</span>
+          <span className="block text-sm font-semibold text-[var(--t1)]">{title ?? meta.title}</span>
+          <span className="mt-1 block text-sm leading-6 text-[var(--t2)]">{blurb ?? meta.blurb}</span>
         </span>
       </button>
       {open ? <VideoLessonModal lesson={lesson} onClose={() => setOpen(false)} /> : null}

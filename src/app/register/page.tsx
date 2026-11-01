@@ -576,7 +576,7 @@ function RegisterPageContent() {
                         onChange={(e) => updateForm("billingMode", e.target.value)}
                         required
                       />
-                      <p className="text-xs text-slate-500 -mt-2">
+                      <p className="text-xs text-[var(--t3)] -mt-2">
                         Full Suite: pay per student/term, all features included. Modular: core features free, pay
                         annually for extras. Switch anytime.
                       </p>
@@ -682,7 +682,7 @@ function RegisterPageContent() {
                   {formValidation.isTouched("district") && formValidation.getFieldError("district") && (
                     <p className="text-sm text-[var(--error)]">{formValidation.getFieldError("district")}</p>
                   )}
-                  <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                  <div className="flex items-center gap-1 mt-1 text-xs text-[var(--t3)]">
                     <MaterialIcon icon="help" className="text-xs align-middle" />
                     We preload Uganda district, division, and parish options to reduce typing. If your area is missing,
                     switch to manual entry.
@@ -849,29 +849,33 @@ function RegisterPageContent() {
                       </div>
                       <div>
                         <p className="text-sm font-bold text-[var(--t1)]">Your school so far</p>
-                        <p className="text-xs text-slate-500">You've already set up:</p>
+                        <p className="text-xs text-[var(--t3)]">You've already set up:</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                       <div>
-                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">School</span>
-                        <p className="font-semibold text-slate-900 truncate">{form.schoolName || "—"}</p>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">School</span>
+                        <p className="font-semibold text-[var(--t1)] truncate">{form.schoolName || "—"}</p>
                       </div>
                       <div>
-                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Type</span>
-                        <p className="text-slate-700 capitalize">{form.schoolType}</p>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">Type</span>
+                        <p className="text-[var(--t2)] capitalize">{form.schoolType}</p>
                       </div>
                       <div>
-                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Plan</span>
-                        <p className="text-slate-700 capitalize">{form.selectedPackage}</p>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">Plan</span>
+                        <p className="text-[var(--t2)] capitalize">{form.selectedPackage}</p>
                       </div>
                       <div>
-                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Ownership</span>
-                        <p className="text-slate-700 capitalize">{form.ownership.replace(/_/g, " ")}</p>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">
+                          Ownership
+                        </span>
+                        <p className="text-[var(--t2)] capitalize">{form.ownership.replace(/_/g, " ")}</p>
                       </div>
                       <div className="col-span-2">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Location</span>
-                        <p className="text-slate-700 truncate">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">
+                          Location
+                        </span>
+                        <p className="text-[var(--t2)] truncate">
                           {form.district || "—"}
                           {form.subcounty ? `, ${form.subcounty}` : ""}
                         </p>

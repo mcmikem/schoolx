@@ -14,13 +14,13 @@ export function DayTimeline() {
         <FadeIn>
           <div className="text-center mb-12">
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--t1)]">A real school day</p>
-            <h2 className="mt-3 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
+            <h2 className="mt-3 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-[var(--t3)] sm:text-4xl">
               See how {APP_NAME} runs through your day
             </h2>
           </div>
 
           <div className="relative flex items-start gap-0 mb-10 overflow-x-auto pb-2">
-            <div className="absolute top-5 left-5 right-5 h-0.5 bg-slate-200 hidden sm:block" />
+            <div className="absolute top-5 left-5 right-5 h-0.5 bg-[var(--surface-container-high)] hidden sm:block" />
             <div className="flex gap-3 sm:gap-0 sm:flex-1 sm:justify-between w-full min-w-max sm:min-w-0">
               {DAY_STEPS.map((s, i) => (
                 <button
@@ -34,14 +34,14 @@ export function DayTimeline() {
                         ? "border-transparent text-white shadow-lg scale-110"
                         : activeStep > i
                           ? "border-transparent text-white"
-                          : "border-slate-200 bg-white text-slate-400"
+                          : "border-[var(--border)] bg-white text-[var(--t3)]"
                     }`}
                     style={activeStep >= i ? { background: s.color } : {}}
                   >
                     <span className="material-symbols-outlined text-[18px]">{s.icon}</span>
                   </div>
                   <span
-                    className={`text-xs font-semibold whitespace-nowrap ${activeStep === i ? "text-slate-900" : "text-slate-400"}`}
+                    className={`text-xs font-semibold whitespace-nowrap ${activeStep === i ? "text-[var(--t1)]" : "text-[var(--t3)]"}`}
                   >
                     {s.time}
                   </span>
@@ -65,19 +65,19 @@ export function DayTimeline() {
             </div>
 
             <div className="flex flex-col gap-5">
-              <div className="rounded-[28px] border border-slate-200 bg-[var(--surface-bright)] p-6 flex-1">
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface-bright)] p-6 flex-1">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="material-symbols-outlined text-[20px] text-[var(--t1)]">check_circle</span>
-                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Result</p>
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--t3)]">Result</p>
                 </div>
-                <p className="text-slate-800 text-base leading-7 font-medium">{step.result}</p>
+                <p className="text-[var(--t1)] text-base leading-7 font-medium">{step.result}</p>
               </div>
 
               <div className="flex items-center justify-between">
                 <button
                   onClick={() => setActiveStep((p) => Math.max(0, p - 1))}
                   disabled={activeStep === 0}
-                  className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium text-[var(--t2)] hover:bg-[var(--surface-container-low)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <span className="material-symbols-outlined text-[16px]">arrow_back</span>
                   Previous

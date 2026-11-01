@@ -14,6 +14,7 @@ import type { FeeFormData } from "@/components/fees/FeeFormModal";
 import FeeStats from "@/components/fees/FeeStats";
 import FeeTable, { StudentBalance } from "@/components/fees/FeeTable";
 import MaterialIcon from "@/components/MaterialIcon";
+import { VideoLessonButton } from "@/components/onboarding/VideoLesson";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useToast } from "@/components/Toast";
 import { FilterBar } from "@/components/ui/FilterBar";
@@ -2010,6 +2011,7 @@ export default function FinanceHubPage() {
                 <MaterialIcon icon="payments" />
                 Add Payment
               </Button>
+              <VideoLessonButton lesson="fees" label="Watch how" />
               {/* Six free-standing buttons pushed "Add Payment" off the
                   first screenful and made every action look equally urgent.
                   One primary, the rest behind a menu. */}

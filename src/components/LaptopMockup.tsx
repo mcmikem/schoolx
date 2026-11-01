@@ -289,11 +289,11 @@ function AnimatedDashboard({ isActive }: AnimatedScreenProps) {
   }, [isActive]);
 
   return (
-    <div className="w-full h-full bg-slate-50 p-4">
+    <div className="w-full h-full bg-[var(--surface-container-low)] p-4">
       <div className="flex gap-3 mb-4">
         {stats.map((stat, i) => (
-          <div key={i} className="bg-white rounded-xl p-3 shadow-sm border border-slate-200 flex-1">
-            <div className="text-xs text-slate-500 mb-1">{stat.label}</div>
+          <div key={i} className="bg-white rounded-xl p-3 shadow-sm border border-[var(--border)] flex-1">
+            <div className="text-xs text-[var(--t3)] mb-1">{stat.label}</div>
             <div className="text-lg font-bold rounded-lg px-3 py-1 text-white" style={{ backgroundColor: stat.color }}>
               {stat.value}
             </div>
@@ -301,10 +301,10 @@ function AnimatedDashboard({ isActive }: AnimatedScreenProps) {
         ))}
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="bg-slate-100 px-4 py-2 border-b border-slate-200 flex gap-8">
+      <div className="bg-white rounded-xl border border-[var(--border)] overflow-hidden">
+        <div className="bg-[var(--surface-container)] px-4 py-2 border-b border-[var(--border)] flex gap-8">
           {["Name", "Class", "Status", "Fees"].map((h) => (
-            <div key={h} className="text-xs font-medium text-slate-500">
+            <div key={h} className="text-xs font-medium text-[var(--t3)]">
               {h}
             </div>
           ))}
@@ -330,9 +330,9 @@ function AnimatedDashboard({ isActive }: AnimatedScreenProps) {
             color: "amber",
           },
         ].map((row, i) => (
-          <div key={i} className="flex items-center px-4 py-2 border-b border-slate-100">
-            <div className="w-24 text-xs font-medium text-slate-700">{row.name}</div>
-            <div className="w-12 text-xs text-slate-500">{row.cls}</div>
+          <div key={i} className="flex items-center px-4 py-2 border-b border-[var(--border)]">
+            <div className="w-24 text-xs font-medium text-[var(--t2)]">{row.name}</div>
+            <div className="w-12 text-xs text-[var(--t3)]">{row.cls}</div>
             <div className="w-16">
               <span
                 className={`text-xs px-2 py-0.5 rounded-full ${

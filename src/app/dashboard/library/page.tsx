@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
+import { VideoLessonButton } from "@/components/onboarding/VideoLesson";
 import { useToast } from "@/components/Toast";
 import { getErrorMessage } from "@/lib/validation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -207,11 +208,14 @@ export default function LibraryPage() {
               : `${books.length} title${books.length === 1 ? "" : "s"} · ${availableBooks} of ${totalBooks} copies on the shelf`
           }
           actions={
-            canManageCatalog && (
-              <Button onClick={() => setShowAdd(true)} icon={<MaterialIcon icon="add" />}>
-                New volume
-              </Button>
-            )
+            <>
+              <VideoLessonButton lesson="library" label="Watch how" />
+              {canManageCatalog && (
+                <Button onClick={() => setShowAdd(true)} icon={<MaterialIcon icon="add" />}>
+                  New volume
+                </Button>
+              )}
+            </>
           }
         />
 

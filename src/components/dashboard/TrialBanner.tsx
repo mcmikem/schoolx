@@ -37,7 +37,7 @@ export default function TrialBanner() {
   if (dismissed || isDemo || school?.is_tester || school?.subscription_status !== "trial") return null;
 
   return (
-    <div className="bg-slate-900 border-b border-slate-700 px-3 py-2">
+    <div className="bg-[var(--navy)] border-b border-[var(--navy)] px-3 py-2">
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <div className="w-7 h-7 bg-amber-400 rounded-lg flex items-center justify-center shrink-0">
@@ -49,7 +49,7 @@ export default function TrialBanner() {
                 ? `${daysLeft} day${daysLeft > 1 ? "s" : ""} left in free trial`
                 : "Trial expired - Upgrade now!"}
             </div>
-            <div className="text-xs text-slate-400 mt-0.5 hidden sm:block">
+            <div className="text-xs text-[var(--t3)] mt-0.5 hidden sm:block">
               Powered by{" "}
               <a
                 href="https://omuto.org/osx.php"
@@ -68,7 +68,7 @@ export default function TrialBanner() {
             href="https://essentials.omuto.org"
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-slate-300 hover:text-white px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors"
+            className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-[var(--t4)] hover:text-white px-2 py-1.5 rounded-lg bg-[var(--navy)] hover:bg-[var(--navy)] transition-colors"
           >
             <MaterialIcon icon="shopping_bag" style={{ fontSize: 14 }} />
             Shop Omuto Essentials
@@ -76,17 +76,20 @@ export default function TrialBanner() {
           {canOpenSettingsPage(user?.role) ? (
             <a
               href="/dashboard/billing"
-              className="inline-flex items-center gap-1 text-xs font-bold text-slate-900 px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-500 transition-all shadow-lg shadow-amber-500/20"
+              className="inline-flex items-center gap-1 text-xs font-bold text-[var(--t1)] px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-500 transition-all shadow-lg shadow-amber-500/20"
             >
               <MaterialIcon icon="rocket_launch" style={{ fontSize: 14 }} />
               Upgrade Now
             </a>
           ) : (
-            <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-amber-200 px-3 py-1.5 rounded-lg bg-slate-800">
+            <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-amber-200 px-3 py-1.5 rounded-lg bg-[var(--navy)]">
               Ask an administrator to upgrade
             </span>
           )}
-          <button onClick={handleDismiss} className="tap-44 p-1 text-slate-500 hover:text-slate-300 transition-colors">
+          <button
+            onClick={handleDismiss}
+            className="tap-44 p-1 text-[var(--t3)] hover:text-[var(--t4)] transition-colors"
+          >
             <MaterialIcon icon="close" style={{ fontSize: 16 }} />
           </button>
         </div>

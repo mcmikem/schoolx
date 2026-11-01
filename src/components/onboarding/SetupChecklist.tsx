@@ -232,7 +232,7 @@ export default function SetupChecklist({ onComplete, showAll = false, autoHide =
 
   // Dashboards must not flash a placeholder that vanishes a second later:
   // when guidance will auto-hide, render nothing until loading resolves.
-  if (loading) return autoHide ? null : <div className="p-4 text-center text-slate-500">Loading checklist...</div>;
+  if (loading) return autoHide ? null : <div className="p-4 text-center text-[var(--t3)]">Loading checklist...</div>;
 
   if (autoHide && (progress === 100 || schoolAgeDays > NEW_SCHOOL_DAYS)) return null;
 
@@ -299,7 +299,7 @@ export default function SetupChecklist({ onComplete, showAll = false, autoHide =
                 item.is_completed
                   ? "border-green-200 bg-green-50"
                   : item.skipped
-                    ? "border-slate-200 bg-slate-50 opacity-60"
+                    ? "border-[var(--border)] bg-[var(--surface-container-low)] opacity-60"
                     : "border-[var(--border)] bg-[var(--surface-container)]"
               }`}
             >

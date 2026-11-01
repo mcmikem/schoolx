@@ -39,7 +39,7 @@ describe("competencyBadge", () => {
     expect(competencyBadge(undefined)).toEqual({
       label: "Not Started",
       emoji: "—",
-      color: "text-gray-400",
+      color: "text-[var(--t3)]",
     });
   });
 });

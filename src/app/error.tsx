@@ -25,24 +25,24 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-8 bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center p-8 bg-[var(--surface-container-low)]">
       <div className="text-center max-w-md">
         <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
           <span className="material-symbols-rounded text-red-500 text-3xl">error</span>
         </div>
-        <h2 className="text-xl font-bold text-gray-900 mb-2">Something went wrong</h2>
+        <h2 className="text-xl font-bold text-[var(--t1)] mb-2">Something went wrong</h2>
         <ErrorDetails error={error} source="app-error" className="mb-6" />
         <div className="flex gap-3 justify-center flex-wrap">
           <button
             onClick={reset}
-            className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium hover:bg-gray-50"
+            className="px-4 py-2 rounded-lg bg-white border border-[var(--border)] text-sm font-medium hover:bg-[var(--surface-container-low)]"
           >
             Try Again
           </button>
           <button
             onClick={clearCacheAndReload}
             disabled={recovering}
-            className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium hover:bg-gray-50 disabled:opacity-60"
+            className="px-4 py-2 rounded-lg bg-white border border-[var(--border)] text-sm font-medium hover:bg-[var(--surface-container-low)] disabled:opacity-60"
           >
             {recovering ? "Clearing…" : "Clear cache & reload"}
           </button>

@@ -80,23 +80,23 @@ export default function CaseStudiesPage() {
             <Link href="/">
               <SkoolMateLogo size="md" variant="default" />
             </Link>
-            <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
-              <Link href="/features" className="transition hover:text-slate-950">
+            <div className="hidden items-center gap-8 text-sm font-medium text-[var(--t2)] md:flex">
+              <Link href="/features" className="transition hover:text-[var(--t3)]">
                 Features
               </Link>
-              <Link href="/pricing" className="transition hover:text-slate-950">
+              <Link href="/pricing" className="transition hover:text-[var(--t3)]">
                 Pricing
               </Link>
-              <Link href="/demo" className="transition hover:text-slate-950">
+              <Link href="/demo" className="transition hover:text-[var(--t3)]">
                 Demo
               </Link>
-              <Link href="/blog" className="transition hover:text-slate-950">
+              <Link href="/blog" className="transition hover:text-[var(--t3)]">
                 Blog
               </Link>
-              <Link href="/about" className="transition hover:text-slate-950">
+              <Link href="/about" className="transition hover:text-[var(--t3)]">
                 About
               </Link>
-              <Link href="/contact" className="transition hover:text-slate-950">
+              <Link href="/contact" className="transition hover:text-[var(--t3)]">
                 Contact
               </Link>
             </div>
@@ -118,10 +118,10 @@ export default function CaseStudiesPage() {
                 <MaterialIcon icon="stars" className="text-sm" />
                 Use cases
               </span>
-              <h1 className="mt-6 font-['Sora'] text-4xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-5xl lg:text-6xl">
+              <h1 className="mt-6 font-['Sora'] text-4xl font-semibold tracking-[-0.05em] text-[var(--t3)] sm:text-5xl lg:text-6xl">
                 How schools run better with SkoolMate OS.
               </h1>
-              <p className="mt-6 text-lg leading-8 text-slate-600 max-w-2xl mx-auto">
+              <p className="mt-6 text-lg leading-8 text-[var(--t2)] max-w-2xl mx-auto">
                 Illustrative scenarios of how Ugandan schools can use SkoolMate OS to save time, improve accuracy, and
                 keep parents informed.
               </p>
@@ -133,26 +133,26 @@ export default function CaseStudiesPage() {
           <div className="grid gap-6 md:grid-cols-2">
             {caseStudies.map((cs, i) => (
               <FadeIn key={cs.school} delay={i * 100}>
-                <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all h-full flex flex-col">
+                <div className="rounded-[28px] border border-[var(--border)] bg-white p-6 shadow-sm hover:shadow-md transition-all h-full flex flex-col">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)]">
                       <MaterialIcon icon={cs.icon} className="text-[20px]" />
                     </div>
                     <div>
-                      <h3 className="font-['Sora'] text-base font-semibold text-slate-900">{cs.school}</h3>
-                      <p className="text-xs text-slate-500">{cs.type}</p>
+                      <h3 className="font-['Sora'] text-base font-semibold text-[var(--t1)]">{cs.school}</h3>
+                      <p className="text-xs text-[var(--t3)]">{cs.type}</p>
                     </div>
                   </div>
                   <blockquote className="flex-1">
-                    <p className="text-sm leading-6 text-slate-600 italic">&ldquo;{cs.quote}&rdquo;</p>
+                    <p className="text-sm leading-6 text-[var(--t2)] italic">&ldquo;{cs.quote}&rdquo;</p>
                   </blockquote>
-                  <div className="mt-4 pt-4 border-t border-slate-100">
-                    <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">
+                  <div className="mt-4 pt-4 border-t border-[var(--border)]">
+                    <p className="text-xs font-bold uppercase tracking-widest text-[var(--t3)] mb-2">
                       What it looks like
                     </p>
                     <ul className="space-y-1.5">
                       {cs.results.map((r) => (
-                        <li key={r} className="flex items-start gap-2 text-xs text-slate-700">
+                        <li key={r} className="flex items-start gap-2 text-xs text-[var(--t2)]">
                           <MaterialIcon icon="check" className="text-[var(--green)] text-[14px] mt-0.5 flex-shrink-0" />
                           {r}
                         </li>
@@ -188,78 +188,78 @@ export default function CaseStudiesPage() {
           </FadeIn>
         </section>
 
-        <footer className="border-t border-slate-200 bg-white">
+        <footer className="border-t border-[var(--border)] bg-white">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <SkoolMateLogo size="md" variant="default" />
-                <p className="mt-4 text-sm leading-6 text-slate-500">
+                <p className="mt-4 text-sm leading-6 text-[var(--t3)]">
                   The school operating system built from real experience in Ugandan schools.
                 </p>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Product</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Product</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/features" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/features" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Features
                     </Link>
                   </li>
                   <li>
-                    <Link href="/pricing" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/pricing" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Pricing
                     </Link>
                   </li>
                   <li>
-                    <Link href="/demo" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/demo" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Demo
                     </Link>
                   </li>
                 </ul>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Resources</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Resources</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/blog" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/blog" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Blog
                     </Link>
                   </li>
                   <li>
-                    <Link href="/faq" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/faq" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       FAQ
                     </Link>
                   </li>
                   <li>
-                    <Link href="/case-studies" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/case-studies" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Case Studies
                     </Link>
                   </li>
                   <li>
-                    <Link href="/contact" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/contact" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Contact
                     </Link>
                   </li>
                 </ul>
               </div>
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Legal</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--t3)]">Legal</h4>
                 <ul className="mt-4 space-y-3">
                   <li>
-                    <Link href="/privacy" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/privacy" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Privacy Policy
                     </Link>
                   </li>
                   <li>
-                    <Link href="/terms" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                    <Link href="/terms" className="text-sm text-[var(--t2)] hover:text-[var(--t1)] transition">
                       Terms of Service
                     </Link>
                   </li>
                 </ul>
               </div>
             </div>
-            <div className="mt-10 border-t border-slate-200 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-sm text-slate-400">
+            <div className="mt-10 border-t border-[var(--border)] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-[var(--t3)]">
                 &copy; {new Date().getFullYear()} Omuto Foundation. All rights reserved.
               </p>
             </div>

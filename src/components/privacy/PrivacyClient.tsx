@@ -84,30 +84,30 @@ export default function PrivacyPage() {
     <div className="min-h-screen bg-[var(--bg)]">
       <div className="max-w-3xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="font-['Sora'] text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="font-['Sora'] text-2xl font-bold text-[var(--t1)] dark:text-[var(--t4)]">
             Privacy & Data Protection
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-sm text-[var(--t3)] dark:text-[var(--t3)] mt-1">
             Your rights under the Uganda Data Protection and Privacy Act, 2019
           </p>
         </div>
 
         {/* Privacy Notice */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 mb-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-[var(--surface-container-high)] rounded-xl border border-[var(--border)] dark:border-[var(--border)] p-6 mb-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-[var(--t1)] dark:text-[var(--t4)] mb-4 flex items-center gap-2">
             <MaterialIcon icon="policy" className="text-[var(--navy)]" />
             Privacy Notice
           </h2>
-          <div className="space-y-4 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+          <div className="space-y-4 text-sm text-[var(--t2)] dark:text-[var(--t4)] leading-relaxed">
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Data Controller</h3>
+              <h3 className="font-semibold text-[var(--t1)] dark:text-[var(--t4)] mb-1">Data Controller</h3>
               <p>
                 Your school (&ldquo;{school?.name || "the school"}&rdquo;) is the data controller responsible for your
                 personal data. {APP_NAME} acts as a data processor on behalf of the school.
               </p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">What We Collect</h3>
+              <h3 className="font-semibold text-[var(--t1)] dark:text-[var(--t4)] mb-1">What We Collect</h3>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Identity: name, phone number, email address</li>
                 <li>Education: grades, attendance, class assignments</li>
@@ -117,14 +117,14 @@ export default function PrivacyPage() {
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Purpose of Processing</h3>
+              <h3 className="font-semibold text-[var(--t1)] dark:text-[var(--t4)] mb-1">Purpose of Processing</h3>
               <p>
                 Data is processed to: manage student records, track academic progress, collect fees, communicate with
                 parents, comply with MoES/UNEB reporting requirements, and provide the SkoolMate service.
               </p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Data Retention</h3>
+              <h3 className="font-semibold text-[var(--t1)] dark:text-[var(--t4)] mb-1">Data Retention</h3>
               <p>
                 Student records are retained for the duration of enrollment plus 7 years (per UNEB requirements).
                 Parent/guardian contact data is retained while the student is enrolled. You may request deletion at any
@@ -132,21 +132,21 @@ export default function PrivacyPage() {
               </p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Third-Party Sharing</h3>
+              <h3 className="font-semibold text-[var(--t1)] dark:text-[var(--t4)] mb-1">Third-Party Sharing</h3>
               <p>
                 Data is shared only with: school administrators, UNEB (for exam registration), MoES (for statutory
                 reports), and payment processors (for fee collection). We do not sell personal data.
               </p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Data Storage & Security</h3>
+              <h3 className="font-semibold text-[var(--t1)] dark:text-[var(--t4)] mb-1">Data Storage & Security</h3>
               <p>
                 Data is stored on encrypted servers with role-based access control. All transmissions use TLS
                 encryption. Backups are encrypted and access-logged.
               </p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Children&apos;s Data</h3>
+              <h3 className="font-semibold text-[var(--t1)] dark:text-[var(--t4)] mb-1">Children&apos;s Data</h3>
               <p>
                 Student data is processed under legitimate interest and contractual necessity. Schools must obtain
                 informed consent from parents/guardians before entering student data. Students under 18 have additional
@@ -154,14 +154,14 @@ export default function PrivacyPage() {
               </p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Your Rights</h3>
+              <h3 className="font-semibold text-[var(--t1)] dark:text-[var(--t4)] mb-1">Your Rights</h3>
               <p>
                 Under the PDPA, you have the right to: access your data, correct inaccuracies, withdraw consent, request
                 data portability, and request deletion. Use the tools below or contact your school administrator.
               </p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Complaints</h3>
+              <h3 className="font-semibold text-[var(--t1)] dark:text-[var(--t4)] mb-1">Complaints</h3>
               <p>
                 You may lodge a complaint with the National Information Technology Authority (NITA-U) or the Office of
                 the Data Protection & Privacy Officer, PDPO, Kampala.
@@ -171,12 +171,12 @@ export default function PrivacyPage() {
         </div>
 
         {/* Data Export */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 mb-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+        <div className="bg-white dark:bg-[var(--surface-container-high)] rounded-xl border border-[var(--border)] dark:border-[var(--border)] p-6 mb-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-[var(--t1)] dark:text-[var(--t4)] mb-2 flex items-center gap-2">
             <MaterialIcon icon="download" className="text-[var(--green)]" />
             Export Your Data
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          <p className="text-sm text-[var(--t3)] dark:text-[var(--t3)] mb-4">
             Download a copy of all your personal data stored in SkoolMate, including profile, academic records, and
             financial history. This is your right under Section 19 of the PDPA.
           </p>
@@ -199,12 +199,12 @@ export default function PrivacyPage() {
         </div>
 
         {/* Data Deletion */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-red-200 dark:border-red-900/50 p-6 shadow-sm">
+        <div className="bg-white dark:bg-[var(--surface-container-high)] rounded-xl border border-red-200 dark:border-red-900/50 p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-2 flex items-center gap-2">
             <MaterialIcon icon="delete_forever" className="text-red-600 dark:text-red-400" />
             Request Account Deletion
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          <p className="text-sm text-[var(--t3)] dark:text-[var(--t3)] mb-4">
             Permanently delete your account and all associated data.{" "}
             <strong className="text-red-600 dark:text-red-400">This action cannot be undone.</strong> Under PDPA Section
             21, you have the right to request erasure of your personal data.
@@ -240,7 +240,7 @@ export default function PrivacyPage() {
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="px-4 py-2 rounded-xl border border-[var(--border2)] dark:border-[var(--border)] text-sm font-medium text-[var(--t2)] dark:text-[var(--t4)] hover:bg-[var(--surface-container-low)] dark:hover:bg-[var(--navy)] transition-colors"
                 >
                   Cancel
                 </button>
@@ -249,7 +249,7 @@ export default function PrivacyPage() {
           )}
         </div>
 
-        <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-8">
+        <p className="text-xs text-[var(--t3)] dark:text-[var(--t3)] text-center mt-8">
           {APP_NAME} &mdash; Compliant with Uganda&apos;s Data Protection & Privacy Act, 2019
         </p>
       </div>

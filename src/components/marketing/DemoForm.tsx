@@ -49,8 +49,8 @@ export function DemoForm() {
     return (
       <div className="rounded-[24px] bg-[var(--brand-green-soft)] p-6 text-center">
         <MaterialIcon icon="check_circle" className="text-[var(--brand-green)] text-4xl mx-auto" />
-        <h3 className="mt-3 text-lg font-semibold text-slate-900">Demo requested!</h3>
-        <p className="mt-2 text-sm text-slate-600">We&apos;ll reach out shortly to schedule your demo.</p>
+        <h3 className="mt-3 text-lg font-semibold text-[var(--t1)]">Demo requested!</h3>
+        <p className="mt-2 text-sm text-[var(--t2)]">We&apos;ll reach out shortly to schedule your demo.</p>
       </div>
     );
   }
@@ -65,31 +65,31 @@ export function DemoForm() {
         <input name="_website" tabIndex={-1} autoComplete="off" />
       </div>
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-1">
+        <label htmlFor="name" className="block text-sm font-medium text-[var(--t2)] mb-1">
           Your name
         </label>
         <input id="name" name="name" type="text" required className="input" placeholder="e.g. Sarah Nakamya" />
       </div>
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">
+        <label htmlFor="email" className="block text-sm font-medium text-[var(--t2)] mb-1">
           Email address
         </label>
         <input id="email" name="email" type="email" required className="input" placeholder="you@school.ac.ug" />
       </div>
       <div>
-        <label htmlFor="phone" className="block text-sm font-medium text-slate-700 mb-1">
+        <label htmlFor="phone" className="block text-sm font-medium text-[var(--t2)] mb-1">
           Phone number
         </label>
         <input id="phone" name="phone" type="tel" inputMode="tel" className="input" placeholder="e.g. 0750 000 000" />
       </div>
       <div>
-        <label htmlFor="school" className="block text-sm font-medium text-slate-700 mb-1">
+        <label htmlFor="school" className="block text-sm font-medium text-[var(--t2)] mb-1">
           School name
         </label>
         <input id="school" name="school" type="text" className="input" placeholder="e.g. Kampala High School" />
       </div>
       <div>
-        <label htmlFor="students" className="block text-sm font-medium text-slate-700 mb-1">
+        <label htmlFor="students" className="block text-sm font-medium text-[var(--t2)] mb-1">
           Number of students
         </label>
         <select id="students" name="students" className="input">
@@ -113,7 +113,7 @@ export function DemoForm() {
       >
         {status === "loading" ? "Sending..." : "Book a demo"}
       </button>
-      <p className="text-xs text-slate-400 text-center">Free &middot; No obligation &middot; 30 minutes</p>
+      <p className="text-xs text-[var(--t3)] text-center">Free &middot; No obligation &middot; 30 minutes</p>
     </form>
   );
 }

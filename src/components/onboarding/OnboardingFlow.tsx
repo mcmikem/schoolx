@@ -1187,26 +1187,26 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
       className="fixed inset-0 z-[10000] flex flex-col overflow-y-auto bg-white md:overflow-hidden md:bg-[var(--bg)]/90 md:items-center md:justify-center [&_input]:!text-base [&_select]:!text-base [&_button]:min-h-11"
     >
       {/* Mobile header with progress */}
-      <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-slate-100 bg-white sticky top-0 z-10">
+      <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-[var(--border)] bg-white sticky top-0 z-10">
         <button
           onClick={() => {
             if (step > 1) handleBack(step - 1);
             else (onDismiss ?? onComplete)();
           }}
-          className="p-2 -ml-2 rounded-full hover:bg-slate-100 active:bg-slate-200"
+          className="p-2 -ml-2 rounded-full hover:bg-[var(--surface-container)] active:bg-[var(--surface-container-high)]"
           aria-label="Go back"
           disabled={saving || loading}
         >
-          <MaterialIcon icon="arrow_back" className="text-slate-600" />
+          <MaterialIcon icon="arrow_back" className="text-[var(--t2)]" />
         </button>
         <div className="flex-1">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-semibold text-slate-500">
+            <span className="text-xs font-semibold text-[var(--t3)]">
               Step {step} of {TOTAL_STEPS}: {steps[step - 1].title}
             </span>
             <span className="text-xs font-semibold text-teal-600">{progressPercent}%</span>
           </div>
-          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-[var(--surface-container)] rounded-full overflow-hidden">
             <div
               className="h-full bg-teal-500 rounded-full transition-all duration-300"
               style={{ width: `${progressPercent}%` }}
@@ -1215,16 +1215,16 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
         </div>
         <button
           onClick={onDismiss ?? onComplete}
-          className="tap-44 p-2 -mr-2 rounded-full hover:bg-slate-100 active:bg-slate-200"
+          className="tap-44 p-2 -mr-2 rounded-full hover:bg-[var(--surface-container)] active:bg-[var(--surface-container-high)]"
           aria-label="Close onboarding"
           disabled={saving || loading}
         >
-          <MaterialIcon icon="close" className="text-slate-400" />
+          <MaterialIcon icon="close" className="text-[var(--t3)]" />
         </button>
       </div>
 
       {/* Mobile step dots */}
-      <div className="md:hidden flex items-center justify-center gap-1.5 py-2 bg-white border-b border-slate-100">
+      <div className="md:hidden flex items-center justify-center gap-1.5 py-2 bg-white border-b border-[var(--border)]">
         {steps.map((s, idx) => {
           const stepNum = idx + 1;
           const isActive = stepNum === step;
@@ -1238,7 +1238,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                 }
               }}
               disabled={saving || loading || (!isActive && !isPassed)}
-              className={`flex h-11 min-w-11 items-center justify-center rounded-xl border text-base font-bold ${isActive ? "border-teal-700 bg-teal-50 text-teal-900" : "border-slate-200 text-slate-600"}`}
+              className={`flex h-11 min-w-11 items-center justify-center rounded-xl border text-base font-bold ${isActive ? "border-teal-700 bg-teal-50 text-teal-900" : "border-[var(--border)] text-[var(--t2)]"}`}
               aria-label={`Go to step ${stepNum}: ${s.title}`}
               aria-current={isActive ? "step" : undefined}
             >
@@ -1330,20 +1330,20 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                     className="mb-6"
                   />
 
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 mb-6">
-                    <p className="font-semibold text-slate-900">Before you start</p>
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4 text-sm text-[var(--t2)] mb-6">
+                    <p className="font-semibold text-[var(--t1)]">Before you start</p>
                     <p className="mt-1">
                       Have your school name, term calendar and fee list ready. Open “Show me an example” above if a step
                       is not clear.
                     </p>
                   </div>
 
-                  <hr className="border-slate-200 mb-6" />
-                  <h3 className="text-lg font-bold text-slate-800 mb-4">School Details</h3>
+                  <hr className="border-[var(--border)] mb-6" />
+                  <h3 className="text-lg font-bold text-[var(--t1)] mb-4">School Details</h3>
 
                   <div className="space-y-4 mb-6">
                     <div>
-                      <label htmlFor="setup-school-name" className="block text-sm font-semibold text-slate-700 mb-2">
+                      <label htmlFor="setup-school-name" className="block text-sm font-semibold text-[var(--t2)] mb-2">
                         School Name <span className="text-red-500">*</span>
                       </label>
                       <Input
@@ -1357,7 +1357,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Ownership Type</label>
+                      <label className="block text-sm font-semibold text-[var(--t2)] mb-2">Ownership Type</label>
                       <select
                         value={schoolDetails.ownership}
                         onChange={(e) =>
@@ -1366,7 +1366,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                             ownership: e.target.value as "private" | "government" | "government_aided",
                           })
                         }
-                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-400"
+                        className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                       >
                         <option value="private">Private</option>
                         <option value="government">Government</option>
@@ -1374,14 +1374,14 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                       </select>
                     </div>
 
-                    <details className="rounded-xl border border-slate-200 bg-slate-50">
-                      <summary className="min-h-12 cursor-pointer px-4 py-3 text-base font-semibold text-slate-800">
+                    <details className="rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)]">
+                      <summary className="min-h-12 cursor-pointer px-4 py-3 text-base font-semibold text-[var(--t1)]">
                         Other school details (optional)
                       </summary>
                       <div className="space-y-4 p-4">
                         <div>
-                          <label className="block text-sm font-semibold text-slate-700 mb-2">
-                            School Motto <span className="text-slate-400 font-normal">(optional)</span>
+                          <label className="block text-sm font-semibold text-[var(--t2)] mb-2">
+                            School Motto <span className="text-[var(--t3)] font-normal">(optional)</span>
                           </label>
                           <Input
                             value={schoolDetails.motto}
@@ -1391,8 +1391,8 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                         </div>
 
                         <div>
-                          <label className="block text-sm font-semibold text-slate-700 mb-2">
-                            School Phone <span className="text-slate-400 font-normal">(optional)</span>
+                          <label className="block text-sm font-semibold text-[var(--t2)] mb-2">
+                            School Phone <span className="text-[var(--t3)] font-normal">(optional)</span>
                           </label>
                           <Input
                             value={schoolDetails.phone}
@@ -1404,8 +1404,8 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                         </div>
 
                         <div>
-                          <label className="block text-sm font-semibold text-slate-700 mb-2">
-                            School Email <span className="text-slate-400 font-normal">(optional)</span>
+                          <label className="block text-sm font-semibold text-[var(--t2)] mb-2">
+                            School Email <span className="text-[var(--t3)] font-normal">(optional)</span>
                           </label>
                           <Input
                             value={schoolDetails.email}
@@ -1415,8 +1415,8 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                         </div>
 
                         <div>
-                          <label className="block text-sm font-semibold text-slate-700 mb-2">
-                            UNEB Center Number <span className="text-slate-400 font-normal">(optional)</span>
+                          <label className="block text-sm font-semibold text-[var(--t2)] mb-2">
+                            UNEB Center Number <span className="text-[var(--t3)] font-normal">(optional)</span>
                           </label>
                           <Input
                             value={schoolDetails.uneb_center_number}
@@ -1473,7 +1473,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                     />
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">School Type</label>
+                      <label className="block text-sm font-semibold text-[var(--t2)] mb-2">School Type</label>
                       <div className="grid grid-cols-3 gap-2">
                         {(
                           [
@@ -1489,7 +1489,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                             className={`flex flex-col items-center gap-1 rounded-xl border-2 p-3 text-xs font-semibold transition-all ${
                               localSchoolType === opt.key
                                 ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
-                                : "border-slate-200 text-slate-500 hover:border-slate-300"
+                                : "border-[var(--border)] text-[var(--t3)] hover:border-[var(--border2)]"
                             }`}
                           >
                             <MaterialIcon icon={opt.icon} className="text-[22px]" />
@@ -1502,8 +1502,8 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
 
                     {localSchoolType !== "secondary" && (
                       <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                          Nursery Section <span className="text-slate-400 font-normal">(optional)</span>
+                        <label className="block text-sm font-semibold text-[var(--t2)] mb-2">
+                          Nursery Section <span className="text-[var(--t3)] font-normal">(optional)</span>
                         </label>
                         <button
                           type="button"
@@ -1512,7 +1512,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                           className={`flex w-full items-center justify-between rounded-xl border-2 px-4 py-3 text-left transition-all ${
                             localHasNursery
                               ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
-                              : "border-slate-200 text-slate-500 hover:border-slate-300"
+                              : "border-[var(--border)] text-[var(--t3)] hover:border-[var(--border2)]"
                           }`}
                         >
                           <span className="flex items-center gap-2 text-sm font-semibold">
@@ -1527,8 +1527,8 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                     )}
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        School Logo <span className="text-slate-400 font-normal">(optional)</span>
+                      <label className="block text-sm font-semibold text-[var(--t2)] mb-2">
+                        School Logo <span className="text-[var(--t3)] font-normal">(optional)</span>
                       </label>
                       <div className="flex items-center gap-4">
                         {branding.logo_url ? (
@@ -1537,14 +1537,14 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                             alt="School logo"
                             width={64}
                             height={64}
-                            className="h-16 w-16 rounded-xl border border-slate-200 object-cover"
+                            className="h-16 w-16 rounded-xl border border-[var(--border)] object-cover"
                           />
                         ) : (
-                          <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50">
-                            <MaterialIcon icon="school" className="text-slate-400" />
+                          <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-dashed border-[var(--border2)] bg-[var(--surface-container-low)]">
+                            <MaterialIcon icon="school" className="text-[var(--t3)]" />
                           </div>
                         )}
-                        <label className="cursor-pointer rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200">
+                        <label className="cursor-pointer rounded-lg bg-[var(--surface-container)] px-4 py-2 text-sm font-semibold text-[var(--t2)] hover:bg-[var(--surface-container-high)]">
                           {uploadingLogo ? "Uploading..." : "Choose file"}
                           <input
                             type="file"
@@ -1567,7 +1567,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Primary Color</label>
+                      <label className="block text-sm font-semibold text-[var(--t2)] mb-2">Primary Color</label>
                       <div className="flex gap-3 flex-wrap">
                         {["#0d9488", "#2563eb", "#0f172a", "#16a34a", "#dc2626"].map((color) => (
                           <button
@@ -1575,7 +1575,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                             onClick={() => setBranding({ ...branding, primary_color: color })}
                             className={`w-10 h-10 rounded-full border-[3px] transition-transform hover:scale-110 ${
                               branding.primary_color === color
-                                ? "border-slate-800 ring-2 ring-offset-2 ring-slate-200"
+                                ? "border-[var(--navy)] ring-2 ring-offset-2 ring-[var(--border)]"
                                 : "border-transparent"
                             }`}
                             style={{ backgroundColor: color }}
@@ -1588,16 +1588,16 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                             onChange={(e) => setBranding({ ...branding, primary_color: e.target.value })}
                             className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
                           />
-                          <div className="w-10 h-10 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center">
-                            <MaterialIcon icon="add" className="text-slate-400" />
+                          <div className="w-10 h-10 rounded-full border-2 border-dashed border-[var(--border2)] flex items-center justify-center">
+                            <MaterialIcon icon="add" className="text-[var(--t3)]" />
                           </div>
                         </div>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        Accent Color <span className="text-slate-400 font-normal">(optional)</span>
+                      <label className="block text-sm font-semibold text-[var(--t2)] mb-2">
+                        Accent Color <span className="text-[var(--t3)] font-normal">(optional)</span>
                       </label>
                       <div className="flex gap-3 flex-wrap">
                         {["#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981"].map((color) => (
@@ -1606,7 +1606,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                             onClick={() => setBranding({ ...branding, accent_color: color })}
                             className={`w-10 h-10 rounded-full border-[3px] transition-transform hover:scale-110 ${
                               branding.accent_color === color
-                                ? "border-slate-800 ring-2 ring-offset-2 ring-slate-200"
+                                ? "border-[var(--navy)] ring-2 ring-offset-2 ring-[var(--border)]"
                                 : "border-transparent"
                             }`}
                             style={{ backgroundColor: color }}
@@ -1619,25 +1619,25 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                             onChange={(e) => setBranding({ ...branding, accent_color: e.target.value })}
                             className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
                           />
-                          <div className="w-10 h-10 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center">
-                            <MaterialIcon icon="add" className="text-slate-400" />
+                          <div className="w-10 h-10 rounded-full border-2 border-dashed border-[var(--border2)] flex items-center justify-center">
+                            <MaterialIcon icon="add" className="text-[var(--t3)]" />
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 mb-6">
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4 text-sm text-[var(--t2)] mb-6">
                     We preload common Uganda district, division, and parish options so school leaders can finish setup
                     quickly even on slow connections.
                   </div>
 
-                  <hr className="border-slate-200 mb-6" />
-                  <h3 className="text-lg font-bold text-slate-800 mb-4">Curriculum & Subjects</h3>
+                  <hr className="border-[var(--border)] mb-6" />
+                  <h3 className="text-lg font-bold text-[var(--t1)] mb-4">Curriculum & Subjects</h3>
 
-                  <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm max-h-[50vh] overflow-y-auto">
+                  <div className="mb-6 rounded-2xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4 shadow-sm max-h-[50vh] overflow-y-auto">
                     <div className="mb-4">
-                      <h4 className="text-sm font-semibold text-slate-700 mb-2">Core Subjects</h4>
+                      <h4 className="text-sm font-semibold text-[var(--t2)] mb-2">Core Subjects</h4>
                       <div className="flex flex-wrap gap-2">
                         {getTemplateForType(localSchoolType)
                           .subjects.filter((s) => s.is_compulsory)
@@ -1655,8 +1655,8 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
 
                     {getTemplateForType(localSchoolType).subjects.filter((s) => !s.is_compulsory).length > 0 && (
                       <div className="mb-4">
-                        <h4 className="text-sm font-semibold text-slate-700 mb-2">
-                          Optional Subjects <span className="text-slate-400 font-normal">(toggle on/off)</span>
+                        <h4 className="text-sm font-semibold text-[var(--t2)] mb-2">
+                          Optional Subjects <span className="text-[var(--t3)] font-normal">(toggle on/off)</span>
                         </h4>
                         <div className="space-y-1.5">
                           {getTemplateForType(localSchoolType)
@@ -1667,7 +1667,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                                 className={`flex items-center gap-3 cursor-pointer rounded-xl border-2 p-3 transition-all ${
                                   selectedSubjects.includes(subj.name)
                                     ? "border-teal-400 bg-teal-50/50"
-                                    : "border-slate-200 hover:border-slate-300"
+                                    : "border-[var(--border)] hover:border-[var(--border2)]"
                                 }`}
                               >
                                 <input
@@ -1680,9 +1680,9 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                                         : [...prev, subj.name],
                                     )
                                   }
-                                  className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                                  className="h-4 w-4 rounded border-[var(--border2)] text-teal-600 focus:ring-teal-500"
                                 />
-                                <span className="text-sm font-medium text-slate-700">{subj.name}</span>
+                                <span className="text-sm font-medium text-[var(--t2)]">{subj.name}</span>
                               </label>
                             ))}
                         </div>
@@ -1691,8 +1691,8 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
 
                     {ADDITIONAL_OPTIONAL_SUBJECTS.length > 0 && (
                       <div>
-                        <h4 className="text-sm font-semibold text-slate-700 mb-2">
-                          More Subjects <span className="text-slate-400 font-normal">(optional)</span>
+                        <h4 className="text-sm font-semibold text-[var(--t2)] mb-2">
+                          More Subjects <span className="text-[var(--t3)] font-normal">(optional)</span>
                         </h4>
                         <div className="space-y-1.5">
                           {ADDITIONAL_OPTIONAL_SUBJECTS.map((subj, idx) => (
@@ -1701,7 +1701,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                               className={`flex items-center gap-3 cursor-pointer rounded-xl border-2 p-3 transition-all ${
                                 selectedSubjects.includes(subj.name)
                                   ? "border-teal-400 bg-teal-50/50"
-                                  : "border-slate-200 hover:border-slate-300"
+                                  : "border-[var(--border)] hover:border-[var(--border2)]"
                               }`}
                             >
                               <input
@@ -1714,17 +1714,17 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                                       : [...prev, subj.name],
                                   )
                                 }
-                                className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                                className="h-4 w-4 rounded border-[var(--border2)] text-teal-600 focus:ring-teal-500"
                               />
-                              <span className="text-sm font-medium text-slate-700">{subj.name}</span>
+                              <span className="text-sm font-medium text-[var(--t2)]">{subj.name}</span>
                             </label>
                           ))}
                         </div>
                       </div>
                     )}
 
-                    <div className="mt-4 border-t border-slate-200 pt-4">
-                      <h4 className="text-sm font-semibold text-slate-700 mb-2">Custom Subject</h4>
+                    <div className="mt-4 border-t border-[var(--border)] pt-4">
+                      <h4 className="text-sm font-semibold text-[var(--t2)] mb-2">Custom Subject</h4>
                       <div className="flex gap-2">
                         <input
                           type="text"
@@ -1737,7 +1737,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                             }
                           }}
                           placeholder="e.g. Luganda"
-                          className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
+                          className="flex-1 rounded-xl border border-[var(--border)] bg-white px-3 py-2.5 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                         />
                         <Button type="button" size="sm" onClick={addCustomSubject}>
                           Add
@@ -1753,7 +1753,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                                 setCustomSubjects((prev) => prev.filter((s) => s !== subject));
                                 setSelectedSubjects((prev) => prev.filter((s) => s !== subject));
                               }}
-                              className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-2.5 py-1 text-xs text-slate-700"
+                              className="inline-flex items-center gap-1 rounded-full border border-[var(--border2)] bg-white px-2.5 py-1 text-xs text-[var(--t2)]"
                             >
                               {subject}
                               <MaterialIcon icon="close" className="text-[14px]" />
@@ -1778,16 +1778,16 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                     className="mb-6"
                   />
 
-                  <hr className="border-slate-200 mb-6" />
-                  <h3 className="text-lg font-bold text-slate-800 mb-4">Term Dates</h3>
+                  <hr className="border-[var(--border)] mb-6" />
+                  <h3 className="text-lg font-bold text-[var(--t1)] mb-4">Term Dates</h3>
 
-                  <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm space-y-3">
+                  <div className="mb-6 rounded-2xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4 shadow-sm space-y-3">
                     {terms.map((term, i) => (
-                      <div key={i} className="rounded-xl bg-white border border-slate-200 p-3">
-                        <p className="text-sm font-semibold text-slate-700 mb-2">{term.name}</p>
+                      <div key={i} className="rounded-xl bg-white border border-[var(--border)] p-3">
+                        <p className="text-sm font-semibold text-[var(--t2)] mb-2">{term.name}</p>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="text-xs text-slate-500 mb-1 block">Start Date</label>
+                            <label className="text-xs text-[var(--t3)] mb-1 block">Start Date</label>
                             <input
                               type="date"
                               value={term.start}
@@ -1796,11 +1796,11 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                                 newTerms[i].start = e.target.value;
                                 setTerms(newTerms);
                               }}
-                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                              className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                             />
                           </div>
                           <div>
-                            <label className="text-xs text-slate-500 mb-1 block">End Date</label>
+                            <label className="text-xs text-[var(--t3)] mb-1 block">End Date</label>
                             <input
                               type="date"
                               value={term.end}
@@ -1809,7 +1809,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                                 newTerms[i].end = e.target.value;
                                 setTerms(newTerms);
                               }}
-                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                              className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                             />
                           </div>
                         </div>
@@ -1817,16 +1817,16 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                     ))}
                   </div>
 
-                  <hr className="border-slate-200 mb-6" />
-                  <h3 className="text-lg font-bold text-slate-800 mb-4">Fee Structure</h3>
+                  <hr className="border-[var(--border)] mb-6" />
+                  <h3 className="text-lg font-bold text-[var(--t1)] mb-4">Fee Structure</h3>
 
-                  <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm space-y-3">
-                    <p className="text-xs font-medium text-slate-500">
+                  <div className="mb-6 rounded-2xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4 shadow-sm space-y-3">
+                    <p className="text-xs font-medium text-[var(--t3)]">
                       Assign each fee to a specific class or all classes.
                     </p>
 
                     {fees.map((fee, i) => (
-                      <div key={i} className="space-y-2 rounded-xl border border-slate-200 bg-white p-3">
+                      <div key={i} className="space-y-2 rounded-xl border border-[var(--border)] bg-white p-3">
                         <div className="flex gap-2">
                           <input
                             type="text"
@@ -1836,7 +1836,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                               newFees[i].name = e.target.value;
                               setFees(newFees);
                             }}
-                            className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                            className="flex-1 rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                             placeholder="Fee name"
                           />
                           <input
@@ -1848,7 +1848,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                               newFees[i].amount = e.target.value;
                               setFees(newFees);
                             }}
-                            className="w-28 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                            className="w-28 rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                             placeholder="UGX"
                           />
                         </div>
@@ -1859,7 +1859,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                             newFees[i].category = e.target.value;
                             setFees(newFees);
                           }}
-                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                          className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                         >
                           <option value="Tuition">Tuition</option>
                           <option value="Development">Development</option>
@@ -1876,7 +1876,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                               newFees[i].class_id = e.target.value;
                               setFees(newFees);
                             }}
-                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                            className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                           >
                             <option value="all">All classes</option>
                             {feeClassOptions.map((classOption) => (
@@ -1893,7 +1893,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                               newFees[i].term = Number(e.target.value) as 1 | 2 | 3;
                               setFees(newFees);
                             }}
-                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                            className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                           >
                             <option value={1}>Term 1</option>
                             <option value={2}>Term 2</option>
@@ -1948,12 +1948,12 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                     className="mb-6"
                   />
 
-                  <hr className="border-slate-200 mb-6" />
-                  <h3 className="text-lg font-bold text-slate-800 mb-4">Grading System</h3>
+                  <hr className="border-[var(--border)] mb-6" />
+                  <h3 className="text-lg font-bold text-[var(--t1)] mb-4">Grading System</h3>
 
-                  <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm space-y-3">
+                  <div className="mb-6 rounded-2xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4 shadow-sm space-y-3">
                     <div>
-                      <label className="text-sm font-semibold text-slate-700 mb-2 block">Passing Mark (%)</label>
+                      <label className="text-sm font-semibold text-[var(--t2)] mb-2 block">Passing Mark (%)</label>
                       <input
                         type="number"
                         inputMode="numeric"
@@ -1961,14 +1961,14 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                         onChange={(e) =>
                           setGradingPrefs({ ...gradingPrefs, passing_mark: parseInt(e.target.value) || 0 })
                         }
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
+                        className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2.5 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                         min={0}
                         max={100}
                       />
                     </div>
 
                     <div>
-                      <label className="text-sm font-semibold text-slate-700 mb-2 block">
+                      <label className="text-sm font-semibold text-[var(--t2)] mb-2 block">
                         Grade Labels & Score Ranges
                       </label>
                       {gradingPrefs.grades.map((g, i) => (
@@ -1983,10 +1983,10 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                               newGrades[i].min = parseInt(e.target.value) || 0;
                               setGradingPrefs({ ...gradingPrefs, grades: newGrades });
                             }}
-                            className="w-20 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                            className="w-20 rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                             placeholder="Min"
                           />
-                          <span className="text-xs text-slate-400">to</span>
+                          <span className="text-xs text-[var(--t3)]">to</span>
                           <input
                             type="number"
                             inputMode="numeric"
@@ -1996,7 +1996,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                               newGrades[i].max = parseInt(e.target.value) || 0;
                               setGradingPrefs({ ...gradingPrefs, grades: newGrades });
                             }}
-                            className="w-20 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                            className="w-20 rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                             placeholder="Max"
                           />
                         </div>
@@ -2004,37 +2004,37 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                     </div>
                   </div>
 
-                  <hr className="border-slate-200 mb-6" />
-                  <h3 className="text-lg font-bold text-slate-800 mb-4">Report Card Branding</h3>
+                  <hr className="border-[var(--border)] mb-6" />
+                  <h3 className="text-lg font-bold text-[var(--t1)] mb-4">Report Card Branding</h3>
 
-                  <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm space-y-3">
+                  <div className="mb-6 rounded-2xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4 shadow-sm space-y-3">
                     <div>
-                      <label className="text-xs font-semibold text-slate-600 mb-1 block">Report Header Text</label>
+                      <label className="text-xs font-semibold text-[var(--t2)] mb-1 block">Report Header Text</label>
                       <input
                         type="text"
                         value={reportBrand.header}
                         onChange={(e) => setReportBrand({ ...reportBrand, header: e.target.value })}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                        className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                         placeholder="Annual Academic Report"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-slate-600 mb-1 block">Report Footer Text</label>
+                      <label className="text-xs font-semibold text-[var(--t2)] mb-1 block">Report Footer Text</label>
                       <input
                         type="text"
                         value={reportBrand.footer}
                         onChange={(e) => setReportBrand({ ...reportBrand, footer: e.target.value })}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                        className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                         placeholder="Education is the key to success"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-slate-600 mb-1 block">Receipt Footer Text</label>
+                      <label className="text-xs font-semibold text-[var(--t2)] mb-1 block">Receipt Footer Text</label>
                       <input
                         type="text"
                         value={reportBrand.receipt_footer}
                         onChange={(e) => setReportBrand({ ...reportBrand, receipt_footer: e.target.value })}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                        className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                         placeholder="Thank you for your payment"
                       />
                     </div>
@@ -2047,7 +2047,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                       ].map((item) => (
                         <label
                           key={item.key}
-                          className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-50"
+                          className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-xs font-medium text-[var(--t2)] cursor-pointer hover:bg-[var(--surface-container-low)]"
                         >
                           <input
                             type="checkbox"
@@ -2080,10 +2080,10 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                     className="mb-6"
                   />
 
-                  <h3 className="text-lg font-bold text-slate-800 mb-4">Feature Selection</h3>
+                  <h3 className="text-lg font-bold text-[var(--t1)] mb-4">Feature Selection</h3>
 
                   <div className="space-y-3 mb-6">
-                    <p className="text-xs text-slate-500 mb-3">
+                    <p className="text-xs text-[var(--t3)] mb-3">
                       Turn on the modules your school needs immediately. Start lean or go full-suite, then expand later.
                     </p>
                     {[
@@ -2118,17 +2118,17 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                         className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${
                           featureStage === option.key
                             ? "border-purple-500 bg-purple-50 shadow-sm"
-                            : "border-slate-200 hover:border-slate-300"
+                            : "border-[var(--border)] hover:border-[var(--border2)]"
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <MaterialIcon
                             icon={option.icon}
-                            className={featureStage === option.key ? "text-purple-600" : "text-slate-400"}
+                            className={featureStage === option.key ? "text-purple-600" : "text-[var(--t3)]"}
                           />
                           <div>
-                            <h4 className="font-semibold text-slate-800">{option.label}</h4>
-                            <p className="text-xs text-slate-500">{option.desc}</p>
+                            <h4 className="font-semibold text-[var(--t1)]">{option.label}</h4>
+                            <p className="text-xs text-[var(--t3)]">{option.desc}</p>
                           </div>
                         </div>
                       </div>
@@ -2140,8 +2140,8 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
               {/* Step 5: Launch */}
               {step === 5 && (
                 <div className="flex-1 flex flex-col max-w-md mx-auto">
-                  <h3 className="text-2xl font-bold text-slate-800 mb-2">Check your choices</h3>
-                  <p className="text-slate-500 mb-6">
+                  <h3 className="text-2xl font-bold text-[var(--t1)] mb-2">Check your choices</h3>
+                  <p className="text-[var(--t3)] mb-6">
                     You have reached the last step. Use Back if you want to change anything. Tap Finish setup once and
                     wait for confirmation.
                   </p>
@@ -2149,21 +2149,21 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                   <div className="grid grid-cols-1 gap-4 mb-6">
                     <div className="rounded-2xl border border-teal-200 bg-teal-50/70 p-5">
                       <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-bold text-slate-800">Chosen Package</h4>
+                        <h4 className="font-bold text-[var(--t1)]">Chosen Package</h4>
                         <MaterialIcon icon="workspace_premium" className="text-teal-600" />
                       </div>
-                      <p className="text-sm font-semibold text-slate-800">{selectedPlan.name}</p>
-                      <p className="text-sm text-slate-500 mt-2">
+                      <p className="text-sm font-semibold text-[var(--t1)]">{selectedPlan.name}</p>
+                      <p className="text-sm text-[var(--t3)] mt-2">
                         The school selected this package during registration. Billing can be refined later.
                       </p>
                     </div>
 
                     <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-5">
                       <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-bold text-slate-800">Check your calendar</h4>
+                        <h4 className="font-bold text-[var(--t1)]">Check your calendar</h4>
                         <MaterialIcon icon="calendar_month" className="text-blue-600" />
                       </div>
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-[var(--t3)]">
                         Suggested dates are preloaded. Compare them with your school’s approved calendar before
                         finishing.
                       </p>
@@ -2181,7 +2181,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
           {/* Bottom Navigation - Mobile */}
           {step < TOTAL_STEPS && (
             <div
-              className="md:hidden sticky bottom-0 bg-white border-t border-slate-100 px-4 py-3"
+              className="md:hidden sticky bottom-0 bg-white border-t border-[var(--border)] px-4 py-3"
               style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}
             >
               <div className="flex gap-3">
@@ -2203,7 +2203,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                 type="button"
                 onClick={onDismiss ?? onComplete}
                 disabled={saving || loading}
-                className="w-full mt-2 text-center text-xs text-slate-500 underline-offset-2 hover:underline"
+                className="w-full mt-2 text-center text-xs text-[var(--t3)] underline-offset-2 hover:underline"
               >
                 Pause setup — come back later
               </button>
@@ -2227,7 +2227,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                 type="button"
                 onClick={onDismiss ?? onComplete}
                 disabled={saving || loading}
-                className="self-start text-xs text-slate-500 underline-offset-2 hover:underline"
+                className="self-start text-xs text-[var(--t3)] underline-offset-2 hover:underline"
               >
                 Pause setup — come back later
               </button>
