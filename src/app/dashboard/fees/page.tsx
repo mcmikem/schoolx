@@ -313,6 +313,14 @@ export default function FinanceHubPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [editingPayment, setEditingPayment] = useState<EditablePayment | null>(null);
   const [paymentSavedAt, setPaymentSavedAt] = useState<number | null>(null);
+  const [recentStudentIds, setRecentStudentIds] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem("skoolmate_recent_payment_students");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
   const isOnline = useOnlineStatus();
 
   /**
@@ -1235,6 +1243,14 @@ export default function FinanceHubPage() {
         );
       }
       setPaymentSavedAt(Date.now());
+      // Track recent students for quick-pick
+      setRecentStudentIds((prev) => {
+        const next = [newPayment.student_id, ...prev.filter((id) => id !== newPayment.student_id)].slice(0, 5);
+        try {
+          localStorage.setItem("skoolmate_recent_payment_students", JSON.stringify(next));
+        } catch {}
+        return next;
+      });
       if (!isDemo && !offlinePayment) void refetchPayments();
       setShowPaymentModal(false);
       setNewPayment({
@@ -2529,6 +2545,7 @@ export default function FinanceHubPage() {
             student_number: s.student_number,
             class_name: s.class_name,
           }))}
+          recentStudentIds={recentStudentIds}
           parentNamesByStudent={parentNamesByStudent}
           fees={paymentFees}
           defaultFeeId={paymentDefaultFeeId}

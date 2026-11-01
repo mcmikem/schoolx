@@ -27,6 +27,7 @@ interface PaymentModalProps {
   isOpen: boolean;
   isEditing?: boolean;
   editingAmount?: number;
+  recentStudentIds?: string[];
   onClose: () => void;
   students: PaymentStudentOption[];
   /**
@@ -54,6 +55,7 @@ export default function PaymentModal({
   isOpen,
   isEditing = false,
   editingAmount = 0,
+  recentStudentIds = [],
   onClose,
   students,
   parentNamesByStudent,
@@ -271,13 +273,38 @@ export default function PaymentModal({
                 No students found. Add students before recording payments.
               </div>
             ) : (
-              <PaymentStudentSearch
-                students={students}
-                value={newPayment.student_id}
-                onChange={(studentId) => onPaymentChange({ student_id: studentId, allow_overpayment: false })}
-                error={fieldError("student_id")}
-                disabled={saving || isEditing}
-              />
+              <>
+                {recentStudentIds.length > 0 && !isEditing && (
+                  <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                    <span className="text-xs text-[var(--t3)]">Recent:</span>
+                    {recentStudentIds.map((id) => {
+                      const s = students.find((st) => st.id === id);
+                      if (!s) return null;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => onPaymentChange({ student_id: id, allow_overpayment: false })}
+                          className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
+                            newPayment.student_id === id
+                              ? "bg-[var(--primary)] text-white"
+                              : "bg-[var(--surface-container-low)] text-[var(--t2)] hover:bg-[var(--surface-container)]"
+                          }`}
+                        >
+                          {s.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <PaymentStudentSearch
+                  students={students}
+                  value={newPayment.student_id}
+                  onChange={(studentId) => onPaymentChange({ student_id: studentId, allow_overpayment: false })}
+                  error={fieldError("student_id")}
+                  disabled={saving || isEditing}
+                />
+              </>
             )}
             <div>
               <label
