@@ -25,23 +25,23 @@ describe("owly status comms", () => {
   it("warns on slow signal once with the offline-copy reassurance", () => {
     const comm = slowInternetComm({ effectiveType: "2g" });
     expect(comm?.severity).toBe("warning");
-    expect(comm?.title).toBe("Slow connection detected");
+    expect(comm?.title).toBe("Slow signal detected 🐢");
     expect(comm?.detail).toMatch(/syncs when the signal improves/);
     expect(slowInternetComm({ effectiveType: "4g" })).toBeNull();
   });
 
   it("describes offline save-now-sync-later", () => {
-    expect(offlineComm()).toMatchObject({ severity: "warning", title: "You are offline" });
+    expect(offlineComm()).toMatchObject({ severity: "info", title: "No signal? No problem! 📡" });
   });
 
   it("is quieter back online when there was nothing to sync", () => {
-    expect(backOnlineComm(0)).toEqual({ severity: "success", title: "Back online" });
+    expect(backOnlineComm(0)).toEqual({ severity: "success", title: "You're back online! 🎉" });
     expect(backOnlineComm(3)).toMatchObject({ severity: "info", detail: /3 changes/ });
   });
 
   it("reports drained queue as success and failures with a next step", () => {
-    expect(syncedComm(1).title).toBe("1 change synced");
-    expect(syncedComm(2).title).toBe("2 changes synced");
+    expect(syncedComm(1).title).toBe("1 change synced! ✅");
+    expect(syncedComm(2).title).toBe("2 changes synced! ✅");
     expect(failedSyncComm(1).detail).toMatch(/Sync Center/);
   });
 

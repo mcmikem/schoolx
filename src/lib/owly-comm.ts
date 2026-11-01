@@ -34,17 +34,18 @@ export function slowInternetComm(conn?: SlowConnectionLike | null): OwlyComm | n
   if (!isSlowConnection(conn)) return null;
   return {
     severity: "warning",
-    title: "Slow connection detected",
+    title: "Slow signal detected 🐢",
     detail:
-      "SkoolMate keeps your work on this phone and syncs when the signal improves. Avoid closing the app in the middle of entering marks or fees.",
+      "SkoolMate keeps your work on this phone and syncs when the signal improves. Take your time — nothing is lost.",
   };
 }
 
 export function offlineComm(): OwlyComm {
   return {
-    severity: "warning",
-    title: "You are offline",
-    detail: "Your changes save on this phone and sync once signal returns — nothing is lost.",
+    severity: "info",
+    title: "No signal? No problem! 📡",
+    detail:
+      "Everything you do is saved on this phone and will sync automatically when you're back online. Keep working — nothing is lost!",
   };
 }
 
@@ -52,34 +53,34 @@ export function backOnlineComm(pendingCount: number): OwlyComm {
   return pendingCount > 0
     ? {
         severity: "info",
-        title: "Back online",
-        detail: `Syncing ${pendingCount} change${pendingCount === 1 ? "" : "s"} saved on this phone…`,
+        title: "You're back online! 🎉",
+        detail: `Syncing ${pendingCount} change${pendingCount === 1 ? "" : "s"} saved on this phone… Almost there!`,
       }
-    : { severity: "success", title: "Back online" };
+    : { severity: "success", title: "You're back online! 🎉" };
 }
 
 export function refreshFailedComm(): OwlyComm {
   return {
     severity: "warning",
-    title: "Some dashboard data couldn't refresh",
+    title: "Couldn't refresh some data 🔄",
     detail:
-      "Showing the most recent available data. This usually means slow internet or a slow school server — it will retry automatically.",
+      "Showing the most recent saved data. This usually means slow internet — it will retry automatically. Your work is safe.",
   };
 }
 
 export function syncedComm(count: number): OwlyComm {
   return {
     severity: "success",
-    title: `${count} change${count === 1 ? "" : "s"} synced`,
-    detail: "Everything saved on this phone is now on the server.",
+    title: `${count} change${count === 1 ? "" : "s"} synced! ✅`,
+    detail: "Everything saved on this phone is now on the server. Great work!",
   };
 }
 
 export function failedSyncComm(failed: number): OwlyComm {
   return {
     severity: "error",
-    title: `${failed} change${failed === 1 ? "" : "s"} could not sync`,
-    detail: "Open Sync Center to see why. Your work stays saved on this phone.",
+    title: `${failed} change${failed === 1 ? "" : "s"} need attention ⚠️`,
+    detail: "Open Sync Center to see why. Don't worry — your work stays saved on this phone.",
   };
 }
 
