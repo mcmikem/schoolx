@@ -71,7 +71,7 @@ export const WALKTHROUGHS: Record<string, Walkthrough> = {
       },
       {
         href: "/dashboard/homework",
-        video: "tests",
+        video: "homework",
         title: "Set homework",
         how: "Open Homework. Pick the class and subject. Write the task. Choose the date it is due.",
         done: "The homework appears in the list. You can see how many pupils have handed it in.",
@@ -110,6 +110,7 @@ export const WALKTHROUGHS: Record<string, Walkthrough> = {
       },
       {
         href: "/dashboard/reports",
+        video: "reportCards",
         title: "Print the first report cards",
         how: "Open Reports. Choose the term and class. Write the head teacher remarks. You can write them for the whole class at once, then edit only the ones you want. Preview before you print.",
         done: "The preview matches the Uganda report format. It shows your school name, logo and colours.",
@@ -130,6 +131,7 @@ export const WALKTHROUGHS: Record<string, Walkthrough> = {
       },
       {
         href: "/dashboard/fees",
+        video: "fees",
         title: "Record a payment",
         how: "Open Fees. Tap the pupil. Tap Payments. Tap Record Payment. Type the amount and how it was paid.",
         done: "The balance goes down. A receipt appears under that pupil's payments.",

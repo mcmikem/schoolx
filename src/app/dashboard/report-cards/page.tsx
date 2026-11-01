@@ -2467,6 +2467,7 @@ export default function ReportCardsPage() {
         Generate Now
       </Button>
       <VideoLessonButton lesson="comments" label="Watch how comments are written" />
+      <VideoLessonButton lesson="reportCards" label="Watch how to print" />
     </div>
   );
 

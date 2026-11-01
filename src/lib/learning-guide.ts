@@ -274,6 +274,7 @@ const bursar: LearningLesson[] = [
     id: "bursar-payment",
     title: "Record a payment correctly",
     icon: "receipt_long",
+    video: "fees",
     href: "/dashboard/fees",
     action: "Open fee payments",
     steps: [

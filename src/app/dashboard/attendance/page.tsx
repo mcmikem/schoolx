@@ -8,6 +8,7 @@ import { RollCallPhoto } from "@/components/attendance/RollCallPhoto";
 import { ABSENT_SWIPE, PRESENT_SWIPE, SwipeRow } from "@/components/attendance/SwipeRow";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
+import SavedIndicator from "@/components/ui/SavedIndicator";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { OwlyTrigger } from "@/components/owly/OwlyTrigger";
@@ -173,6 +174,7 @@ export default function AttendancePage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
   // Post-save done state: after a save the register is replaced by a summary
   // (counts + next actions) instead of dropping the teacher back on the same
   // list with nothing changed. Cleared on class/date change or explicit back.
@@ -682,6 +684,7 @@ export default function AttendancePage() {
           );
         }
         toast.success("Attendance saved");
+        setSavedAt(Date.now());
         notifyDashboardStatsChanged(school?.id);
         await loadOfflineCount();
         const summaryCounts = countStatuses(Object.values(effective));
@@ -1216,6 +1219,7 @@ export default function AttendancePage() {
                   >
                     Save
                   </Button>
+                  <SavedIndicator savedAt={savedAt} />
                   {canExport && (
                     <Button
                       onClick={exportAttendance}
@@ -1617,6 +1621,7 @@ export default function AttendancePage() {
                   <div className="mt-2 flex gap-3">
                     <OwlyTrigger guideId="attendance" label="How do I mark attendance?" />
                     <VideoLessonButton lesson="attendance" />
+                    <VideoLessonButton lesson="qrAttendance" label="Watch QR scan" />
                   </div>
                 </div>
               )}

@@ -339,6 +339,7 @@ export default function HomeworkPage() {
           actions={
             <div className="flex flex-wrap items-center gap-2">
               <VideoLessonButton lesson="tests" label="Watch how" />
+              <VideoLessonButton lesson="homework" label="Watch how to set" />
               <Button onClick={() => setShowModal(true)} icon={<MaterialIcon icon="add" />}>
                 Add class test
               </Button>

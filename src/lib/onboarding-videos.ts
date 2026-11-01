@@ -10,7 +10,17 @@
  * ask for.
  */
 
-export type OnboardingVideoKey = "attendance" | "marks" | "comments" | "tests";
+export type OnboardingVideoKey =
+  | "attendance"
+  | "marks"
+  | "comments"
+  | "tests"
+  | "fees"
+  | "timetable"
+  | "qrAttendance"
+  | "library"
+  | "reportCards"
+  | "homework";
 
 export type OnboardingVideo = {
   key: OnboardingVideoKey;
@@ -59,10 +69,72 @@ export const ONBOARDING_VIDEOS: Record<OnboardingVideoKey, OnboardingVideo> = {
     duration: 28,
     surface: "Class tests",
   },
+  fees: {
+    key: "fees",
+    title: "Recording a fee payment",
+    blurb: "Find the pupil, enter the amount and method — the receipt is saved and the balance updates.",
+    duration: 28,
+    surface: "Fees & payments",
+  },
+  timetable: {
+    key: "timetable",
+    title: "Building the class timetable",
+    blurb: "Set the bell day, assign subjects, then print for the class.",
+    duration: 28,
+    surface: "Timetable",
+  },
+  qrAttendance: {
+    key: "qrAttendance",
+    title: "Scanning a student ID card",
+    blurb: "Open the scanner, point at the card — attendance marked in one tap.",
+    duration: 28,
+    surface: "Attendance",
+  },
+  library: {
+    key: "library",
+    title: "Finding a book in the library",
+    blurb: "Search the catalogue, borrow in one tap, track returns.",
+    duration: 28,
+    surface: "Library",
+  },
+  reportCards: {
+    key: "reportCards",
+    title: "Printing report cards",
+    blurb: "Choose term and class, write remarks, preview, then print.",
+    duration: 28,
+    surface: "Report cards",
+  },
+  homework: {
+    key: "homework",
+    title: "Setting homework",
+    blurb: "Pick class and subject, write the task and due date — pupils see it on time.",
+    duration: 28,
+    surface: "Homework",
+  },
 };
 
-const slug = (key: OnboardingVideoKey) =>
-  key === "comments" ? "teacher-report-comments" : key === "tests" ? "teacher-class-tests" : `teacher-${key}`;
+const slug = (key: OnboardingVideoKey) => {
+  switch (key) {
+    case "comments":
+      return "teacher-report-comments";
+    case "tests":
+      return "teacher-class-tests";
+    case "fees":
+      return "teacher-fees";
+    case "timetable":
+      return "class-timetable";
+    case "qrAttendance":
+      return "teacher-qr-attendance";
+    case "library":
+      return "library-catalogue";
+    case "reportCards":
+      return "report-cards";
+    case "homework":
+      return "homework-set";
+    default:
+      return `teacher-${key}`;
+  }
+};
 
 export const onboardingVideoUrl = (key: OnboardingVideoKey) => asset(`${slug(key)}.mp4`);
 

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
+import SavedIndicator from "@/components/ui/SavedIndicator";
 import type { FeeOption } from "@/components/fees/FeePicker";
 import { pickDefaultFee } from "@/lib/fee-default";
 import { isMealFee } from "@/lib/meal-fee";
@@ -311,6 +312,7 @@ export default function FinanceHubPage() {
   };
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [editingPayment, setEditingPayment] = useState<EditablePayment | null>(null);
+  const [paymentSavedAt, setPaymentSavedAt] = useState<number | null>(null);
   const isOnline = useOnlineStatus();
 
   /**
@@ -1232,6 +1234,7 @@ export default function FinanceHubPage() {
             : "Payment recorded successfully",
         );
       }
+      setPaymentSavedAt(Date.now());
       if (!isDemo && !offlinePayment) void refetchPayments();
       setShowPaymentModal(false);
       setNewPayment({
@@ -1986,6 +1989,7 @@ export default function FinanceHubPage() {
           variant="premium"
           actions={
             <div className="flex items-center gap-2 justify-start lg:justify-end">
+              <SavedIndicator savedAt={paymentSavedAt} label="Payment saved" />
               <Button variant="primary" size="sm" onClick={() => openPaymentModal()}>
                 <MaterialIcon icon="payments" />
                 Add Payment

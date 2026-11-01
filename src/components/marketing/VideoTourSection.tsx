@@ -32,6 +32,36 @@ const CLIPS: { lesson: OnboardingVideoKey; title: string; blurb: string }[] = [
     title: "Set class tests",
     blurb: "Add the topic and the total marks. The class sees it on the day.",
   },
+  {
+    lesson: "fees",
+    title: "Record a fee payment",
+    blurb: "Find the pupil, enter amount and method — receipt saved, balance updated.",
+  },
+  {
+    lesson: "timetable",
+    title: "Build the class timetable",
+    blurb: "Set the bell day, assign subjects, then print for the class.",
+  },
+  {
+    lesson: "qrAttendance",
+    title: "Scan a student ID card",
+    blurb: "Open the scanner, point at the card — attendance marked in one tap.",
+  },
+  {
+    lesson: "library",
+    title: "Find a book in the library",
+    blurb: "Search the catalogue, borrow in one tap, track returns.",
+  },
+  {
+    lesson: "reportCards",
+    title: "Print report cards",
+    blurb: "Choose term and class, write remarks, preview, then print.",
+  },
+  {
+    lesson: "homework",
+    title: "Set homework",
+    blurb: "Pick class and subject, write the task and due date.",
+  },
 ];
 
 export function VideoTourSection() {
