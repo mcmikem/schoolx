@@ -471,7 +471,7 @@ export default function LoginPage() {
             {otpMode ? "Enter your phone number to receive an OTP." : "Use your phone number or email and password."}
           </p>
 
-          <form onSubmit={(e) => e.preventDefault()} className="mt-6 space-y-4">
+          <div className="mt-6 space-y-4">
             <Input
               id="identifier"
               label="Phone Number or Email"
@@ -574,7 +574,7 @@ export default function LoginPage() {
                 </Link>
               )}
             </div>
-          </form>
+          </div>
 
           <div className="mt-6">
             <div className="relative mb-4">
