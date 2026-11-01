@@ -695,17 +695,17 @@ export default function AttendancePage() {
         });
       } catch (err) {
         logger.warn("Failed to save attendance, saving offline:", err);
-        await saveOffline(records);
+        await saveOffline(records, finishDraft);
       } finally {
         setSaving(false);
       }
     } else {
-      await saveOffline(records);
+      await saveOffline(records, finishDraft);
       setSaving(false);
     }
   };
 
-  const saveOffline = async (records: Record<string, unknown>[]) => {
+  const saveOffline = async (records: Record<string, unknown>[], finishDraft: () => void) => {
     try {
       for (const record of records) {
         await offlineDB.save("attendance", record as unknown as Record<string, unknown>);
@@ -727,10 +727,7 @@ export default function AttendancePage() {
       toast.success(`Saved locally (${records.length} records)`);
       await loadOfflineCount();
       const summaryCounts = countStatuses(records.map((r) => String((r as { status?: unknown }).status ?? "")));
-      if (loadedDraftScope.current === attendanceDraftKey) {
-        dirtyRef.current = false;
-        clearDraft(attendanceDraftKey);
-      }
+      finishDraft();
       setSavedSummary({
         ...summaryCounts,
         total: records.length,

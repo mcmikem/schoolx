@@ -89,9 +89,8 @@ test.describe("Authenticated dashboard flows", () => {
     ).toBeVisible();
     await page.getByRole("button", { name: /cancel/i }).click();
 
-    await page
-      .getByRole("button", { name: "Scholarship/Discount", exact: true })
-      .click();
+    await page.getByRole("button", { name: "More fee actions", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Scholarship/Discount", exact: true }).click();
     await expect(
       page.getByRole("heading", { name: /record fee adjustment/i }),
     ).toBeVisible();

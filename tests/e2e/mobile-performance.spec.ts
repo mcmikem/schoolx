@@ -26,6 +26,18 @@ test.describe("small-phone daily work", () => {
     }
 
   });
+  test("attendance recovers an unfinished register after reload", async ({ page }) => {
+    await seedDemoSession(page, "headmaster");
+    await page.goto("/dashboard/attendance/");
+    await page.getByRole("combobox").first().selectOption("4");
+    const absent = page.getByRole("button", { name: "Absent", exact: true }).first();
+    await expect(absent).toBeVisible();
+    await absent.click();
+    await expect.poll(() => page.evaluate(() => Object.keys(localStorage).some(key =>
+      key.startsWith("skoolmate:draft:attendance:") && localStorage.getItem(key)?.includes('"absent"')))).toBe(true);
+    await page.reload();
+    await expect(page.getByRole("button", { name: "Absent", exact: true }).first()).toHaveAttribute("aria-pressed", "true");
+  });
   test("sync center explains offline preparation and partial coverage", async ({ page }) => {
     await seedDemoSession(page, "teacher");
     await page.goto("/dashboard/sync-center/");
