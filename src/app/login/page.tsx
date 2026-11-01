@@ -383,35 +383,16 @@ export default function LoginPage() {
     setOtpCode("");
   };
 
-  // Show the login form after a short grace period even if auth hasn't
-  // initialized yet. On old browsers (iOS 12) the auth client can hang
-  // indefinitely, and a permanent splash screen is worse than a form the user
-  // can actually interact with.
-  const [showForm, setShowForm] = useState(authInitialized);
-  useEffect(() => {
-    if (authInitialized) {
-      setShowForm(true);
-      return;
-    }
-    const timer = setTimeout(() => setShowForm(true), 3000);
-    return () => clearTimeout(timer);
-  }, [authInitialized]);
-
-  if (!authInitialized && !showForm) {
-    return (
-      <div className="min-h-screen bg-[#f0f5fc] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent" />
-          <p className="text-sm text-slate-600">Restoring your session…</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <PageErrorBoundary>
       <div className="min-h-screen bg-[#f0f5fc] flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-md rounded-3xl border border-white/60 bg-white/90 p-8 shadow-[0_24px_48px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+          {!authInitialized && (
+            <div className="mb-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent" />
+              <span>Restoring your session… if this takes too long, sign in below.</span>
+            </div>
+          )}
           <div className="mb-6">
             <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900">
               <MaterialIcon icon="arrow_back" size={16} />

@@ -133,7 +133,7 @@ export function timeoutSignal(ms: number): { signal: AbortSignal; cancel: () => 
   const controller = new AbortController();
   const timer = setTimeout(() => {
     try {
-      controller.abort(new Error(`fetch timed out after ${ms}ms`));
+      controller.abort();
     } catch {
       // ignore — abort on an old implementation must never throw
     }
