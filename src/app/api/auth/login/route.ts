@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const isProd = process.env.NODE_ENV === "production";
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +23,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.redirect(new URL("/login/?error=missing", request.url), 303);
     }
 
-    // Resolve identity + tokens via the existing signin endpoint.
     const signinRes = await fetch(new URL("/api/auth/signin/", request.url), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -36,11 +36,18 @@ export async function POST(request: NextRequest) {
 
     const session = signinData.data;
 
-    // Build the redirect response first, then let @supabase/ssr write the
-    // session cookies onto it. createServerClient handles chunking, which is
-    // required for iOS Safari (a single oversized cookie gets dropped, leaving
-    // the dashboard with no session -> stuck on the loading skeleton).
-    const response = NextResponse.redirect(new URL("/dashboard/", request.url), 303);
+    // Write the session cookies onto a 200 response (not a 303 redirect).
+    // iOS Safari has been observed to drop Set-Cookie headers carried by
+    // redirect responses, which left the dashboard with no session and stuck
+    // on the loading skeleton. A normal 200 response is processed fully
+    // (cookies stored) before the client-side redirect runs.
+    const response = new NextResponse(
+      `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=/dashboard/"><title>Signing in…</title></head><body><script>window.location.replace("/dashboard/");</script></body></html>`,
+      {
+        status: 200,
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      },
+    );
 
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       auth: {
@@ -57,6 +64,7 @@ export async function POST(request: NextRequest) {
               path: options?.path ?? "/",
               sameSite: options?.sameSite ?? "lax",
               httpOnly: options?.httpOnly ?? false,
+              secure: isProd ? true : (options?.secure ?? false),
             });
           });
         },
