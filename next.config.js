@@ -39,6 +39,7 @@ function supabaseImageHosts() {
 }
 
 const nextConfig = {
+  transpilePackages: ["@supabase/ssr", "@supabase/supabase-js", "@supabase/auth-js"],
   output: process.env.MOBILE_BUILD === "1" ? "export" : process.env.DOCKER_BUILD === "1" ? "standalone" : undefined,
   trailingSlash: true,
   poweredByHeader: false,

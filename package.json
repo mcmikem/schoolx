@@ -2,6 +2,13 @@
   "name": "schoolx",
   "version": "1.0.0",
   "private": true,
+  "browserslist": [
+    "ios 12",
+    "safari 12.1",
+    "chrome 70",
+    "firefox 68",
+    "edge 79"
+  ],
   "scripts": {
     "analyze": "ANALYZE=true npm run build",
     "audit:uiux": "node scripts/audit-uiux.mjs",
