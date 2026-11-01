@@ -401,25 +401,20 @@ export default function LoginPage() {
                   // Show loading
                   btn.disabled = true;
                   btn.textContent = 'Signing in...';
-                  fetch('/api/auth/signin/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ identifier: id, password: pw }),
-                    credentials: 'same-origin'
-                  }).then(function(r){ return r.json(); }).then(function(data) {
-                    if (data.success && data.data && data.data.access_token) {
-                      // The server set the session cookie. Redirect to dashboard.
-                      window.location.href = '/dashboard/';
-                    } else {
-                      alert(data.error || 'Sign in failed');
-                      btn.disabled = false;
-                      btn.textContent = 'Sign In';
-                    }
-                  }).catch(function(err) {
-                    alert('Network error: ' + (err.message || err));
-                    btn.disabled = false;
-                    btn.textContent = 'Sign In';
-                  });
+                  // Use a form submission so the browser handles cookies and
+                  // redirects natively (works on iOS 12 where fetch() cookie
+                  // storage is unreliable).
+                  var form = document.createElement('form');
+                  form.method = 'POST';
+                  form.action = '/api/auth/login/';
+                  form.style.display = 'none';
+                  var i1 = document.createElement('input');
+                  i1.name = 'identifier'; i1.value = id;
+                  var i2 = document.createElement('input');
+                  i2.name = 'password'; i2.value = pw;
+                  form.appendChild(i1); form.appendChild(i2);
+                  document.body.appendChild(form);
+                  form.submit();
                 });
               }
               if (document.readyState === 'loading') {
