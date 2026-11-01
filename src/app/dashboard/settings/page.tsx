@@ -4,6 +4,7 @@ import { clearHousesCache, loadSchoolHouses } from "@/lib/houses";
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { isWebPushSupported, subscribeWebPush } from "@/lib/web-push-client";
 import { useToast } from "@/components/Toast";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
@@ -1085,6 +1086,35 @@ export default function SettingsPage() {
         </TabPanel>
 
         <TabPanel activeTab={activeTab} tabId="notifications">
+          <Card>
+            <CardBody className="p-5 space-y-3">
+              <h3 className="font-semibold text-[var(--t1)]">Push Notifications</h3>
+              <p className="text-sm text-[var(--t3)]">
+                Get notified about fee reminders, attendance, and school updates even when the app is closed.
+              </p>
+              {isWebPushSupported() ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={async () => {
+                    if (!school?.id || !user?.id) return;
+                    const perm = await Notification.requestPermission();
+                    if (perm === "granted") {
+                      const sub = await subscribeWebPush(user.id);
+                      if (sub) toast.success("Push notifications enabled");
+                      else toast.error("Could not enable push notifications");
+                    } else {
+                      toast.error("Notification permission denied");
+                    }
+                  }}
+                >
+                  Enable push notifications
+                </Button>
+              ) : (
+                <p className="text-xs text-[var(--t3)]">Push notifications are not supported on this browser.</p>
+              )}
+            </CardBody>
+          </Card>
           <SystemPreferences settings={settings} onSettingChange={handleSettingChange} />
         </TabPanel>
 
