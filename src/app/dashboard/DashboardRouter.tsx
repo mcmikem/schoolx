@@ -219,6 +219,15 @@ export default function DashboardRouter() {
     return () => window.clearTimeout(redirectTimer);
   }, [authInitialized, requiresSetup, router]);
 
+  // If auth resolved but there is no session, bounce to login instead of
+  // spinning on the loading skeleton forever (common on iOS 12 when the
+  // session cookie is not readable).
+  useEffect(() => {
+    if (authInitialized && !user && !loading) {
+      router.replace("/login");
+    }
+  }, [authInitialized, user, loading, router]);
+
   useEffect(() => {
     if (!loading) {
       setLoadingTimedOut(false);
