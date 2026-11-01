@@ -407,9 +407,21 @@ export default function LoginPage() {
                     body: JSON.stringify({ identifier: id, password: pw })
                   }).then(function(r){ return r.json(); }).then(function(data) {
                     if (data.success && data.data && data.data.access_token) {
-                      // Store session and redirect
-                      try { localStorage.setItem('sb-session', JSON.stringify(data.data)); } catch(e){}
-                      window.location.href = '/dashboard/';
+                      // Store the session under Supabase's storage key so the
+                      // client picks it up on reload.
+                      try {
+                        var sessionObj = {
+                          access_token: data.data.access_token,
+                          refresh_token: data.data.refresh_token,
+                          expires_in: data.data.expires_in || 3600,
+                          expires_at: Math.floor(Date.now()/1000) + (data.data.expires_in || 3600),
+                          token_type: 'bearer',
+                          user: null
+                        };
+                        localStorage.setItem('sb-gucxpmgwvnbqykevucbi-auth-token', JSON.stringify(sessionObj));
+                      } catch(e){}
+                      // Reload so the auth context picks up the session.
+                      window.location.reload();
                     } else {
                       alert(data.error || 'Sign in failed');
                       btn.disabled = false;
@@ -590,21 +602,18 @@ export default function LoginPage() {
                 to continue.
               </div>
             )}
-            <Button
+            <button
               type="button"
-              variant="primary"
-              className="w-full"
-              loading={loading || otpLoading}
+              id="login-btn"
+              data-login-btn="1"
               disabled={loading || otpLoading}
               onClick={() => {
                 void handleSubmit();
               }}
-              id="login-btn"
-              data-login-btn="1"
-              icon={!loading && !otpLoading ? <MaterialIcon icon="login" size={18} /> : undefined}
+              className="w-full font-semibold rounded-xl transition-all duration-200 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 text-sm bg-[var(--primary)] text-[var(--on-primary)] hover:opacity-90 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {otpMode ? (otpSent ? "Verify OTP" : "Send OTP") : loading ? "Signing in..." : "Sign In"}
-            </Button>
+              {loading || otpLoading ? "Signing in..." : otpMode ? (otpSent ? "Verify OTP" : "Send OTP") : "Sign In"}
+            </button>
 
             <div className="flex flex-col items-center gap-2">
               <button
