@@ -383,12 +383,34 @@ export default function LoginPage() {
     setOtpCode("");
   };
 
+  useEffect(() => {
+    if (authInitialized) return;
+    const timer = setTimeout(() => {
+      // Last resort: if auth never initializes, force a reload.
+      window.location.reload();
+    }, 20000);
+    return () => clearTimeout(timer);
+  }, [authInitialized]);
+
   if (!authInitialized) {
     return (
       <div className="min-h-screen bg-[#f0f5fc] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent" />
           <p className="text-sm text-slate-600">Restoring your session…</p>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                localStorage.clear();
+                sessionStorage.clear();
+              } catch {}
+              window.location.href = "/login/";
+            }}
+            className="mt-4 rounded-lg border border-slate-300 px-4 py-2 text-xs text-slate-600 hover:bg-slate-100"
+          >
+            Taking too long? Tap to reset and retry
+          </button>
         </div>
       </div>
     );
