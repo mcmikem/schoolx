@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +22,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.redirect(new URL("/login/?error=missing", request.url), 303);
     }
 
-    // Use the signin API logic by calling it internally
+    // Resolve identity + tokens via the existing signin endpoint.
     const signinRes = await fetch(new URL("/api/auth/signin/", request.url), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -26,31 +30,48 @@ export async function POST(request: NextRequest) {
     });
 
     const signinData = await signinRes.json();
-    if (!signinData.success || !signinData.data?.access_token) {
+    if (!signinData.success || !signinData.data?.access_token || !signinData.data?.refresh_token) {
       return NextResponse.redirect(new URL("/login/?error=invalid", request.url), 303);
     }
 
     const session = signinData.data;
-    const cookieValue =
-      "base64-" +
-      Buffer.from(
-        JSON.stringify({
-          access_token: session.access_token,
-          refresh_token: session.refresh_token,
-          expires_in: session.expires_in,
-          expires_at: Math.floor(Date.now() / 1000) + (session.expires_in || 3600),
-          token_type: "bearer",
-          user: null,
-        }),
-      ).toString("base64url");
 
+    // Build the redirect response first, then let @supabase/ssr write the
+    // session cookies onto it. createServerClient handles chunking, which is
+    // required for iOS Safari (a single oversized cookie gets dropped, leaving
+    // the dashboard with no session -> stuck on the loading skeleton).
     const response = NextResponse.redirect(new URL("/dashboard/", request.url), 303);
-    response.cookies.set("sb-gucxpmgwvnbqykevucbi-auth-token", cookieValue, {
-      path: "/",
-      maxAge: session.expires_in || 3600,
-      sameSite: "lax",
-      httpOnly: false,
+
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        lock: async (_name: string, _acquireTimeout: number, fn: () => Promise<any>) => fn(),
+      },
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, {
+              ...options,
+              path: options?.path ?? "/",
+              sameSite: options?.sameSite ?? "lax",
+              httpOnly: options?.httpOnly ?? false,
+            });
+          });
+        },
+      },
+      cookieOptions: {
+        name: "sb-gucxpmgwvnbqykevucbi-auth-token",
+        maxAge: session.expires_in || 3600,
+      },
     });
+
+    await supabase.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+    });
+
     return response;
   } catch (error) {
     return NextResponse.redirect(new URL("/login/?error=server", request.url), 303);
