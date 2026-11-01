@@ -282,6 +282,12 @@ function requireSameOriginWriteOrDeny(request: NextRequest): { ok: true } | { ok
     return { ok: true };
   }
 
+  // Bearer-token (non-cookie) clients are not vulnerable to CSRF.
+  const authHeader = request.headers.get("authorization");
+  if (authHeader && authHeader.toLowerCase().startsWith("bearer ")) {
+    return { ok: true };
+  }
+
   if (!validateCSRFToken(request)) {
     return {
       ok: false,
@@ -404,6 +410,22 @@ export async function requireAuthenticatedUser(
   const demo = readDemoIdentity(request);
   if (demo) {
     return { ok: true, context: { authUserId: demo.userId } };
+  }
+
+  // Bearer token auth (for standalone scanner clients that cannot rely on
+  // cookies, e.g. old iPad WebViews). The token comes from /api/auth/signin.
+  const authHeader = request.headers.get("authorization");
+  if (authHeader && authHeader.toLowerCase().startsWith("bearer ")) {
+    const token = authHeader.slice(7).trim();
+    if (token) {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+      const sb = createClient(url, key, { auth: { persistSession: false } });
+      const { data, error } = await sb.auth.getUser(token);
+      if (!error && data?.user?.id) {
+        return { ok: true, context: { authUserId: data.user.id } };
+      }
+    }
   }
 
   const supabase = await createSupabaseServerClient();

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#001F3F">
+<title>SkoolMate Scanner</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #001F3F; color: #fff; min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .screen { width: 100%; max-width: 480px; padding: 16px; }
+  h1 { font-size: 20px; margin-bottom: 12px; text-align: center; }
+  input {
+    width: 100%; padding: 12px; margin: 6px 0; border: 1px solid #ccc;
+    border-radius: 8px; font-size: 16px; color: #000;
+  }
+  button {
+    width: 100%; padding: 14px; margin: 8px 0; border: 0; border-radius: 10px;
+    background: #16a34a; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
+  }
+  button.secondary { background: #3b82f6; }
+  button.danger { background: #dc2626; }
+  .video-wrap { position: relative; width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 12px; overflow: hidden; }
+  video { width: 100%; height: 100%; object-fit: cover; }
+  canvas { display: none; }
+  .result {
+    margin-top: 12px; padding: 12px; border-radius: 10px;
+    background: rgba(255,255,255,0.1); text-align: center; min-height: 60px;
+  }
+  .result.ok { background: #16a34a; }
+  .result.err { background: #dc2626; }
+  .result .name { font-size: 20px; font-weight: 700; }
+  .result .sub { font-size: 13px; opacity: 0.9; margin-top: 4px; }
+  .row { display: flex; gap: 8px; }
+  .row button { flex: 1; }
+  select { width: 100%; padding: 12px; margin: 6px 0; border-radius: 8px; font-size: 16px; }
+  .small { font-size: 12px; opacity: 0.7; text-align: center; margin-top: 8px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="screen" id="loginScreen">
+  <h1>SkoolMate Scanner</h1>
+  <p style="text-align:center;opacity:.8;margin-bottom:12px;">Staff sign in</p>
+  <input id="phone" type="tel" placeholder="Phone number" autocomplete="username">
+  <input id="pass" type="password" placeholder="Password" autocomplete="current-password">
+  <button id="loginBtn">Sign In</button>
+  <div class="result" id="loginMsg"></div>
+</div>
+
+<div class="screen hidden" id="scanScreen">
+  <h1 id="modeTitle">Meal Scanner</h1>
+  <select id="mealType">
+    <option value="breakfast">Breakfast</option>
+    <option value="lunch">Lunch</option>
+    <option value="supper">Supper</option>
+  </select>
+  <div class="video-wrap">
+    <video id="video" playsinline muted autoplay></video>
+  </div>
+  <canvas id="canvas"></canvas>
+  <div class="result" id="scanResult">Point camera at student ID card</div>
+  <div class="row">
+    <button id="stopBtn" class="danger">Stop Camera</button>
+    <button id="logoutBtn" class="secondary">Sign Out</button>
+  </div>
+  <div class="small" id="queueInfo"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+(function () {
+  "use strict";
+  var API = "";
+  var token = null;
+  var scanning = false;
+  var stream = null;
+  var rafId = null;
+  var lastScan = 0;
+  var SCAN_COOLDOWN = 2000;
+
+  function $(id) { return document.getElementById(id); }
+  function show(id) { $(id).classList.remove("hidden"); }
+  function hide(id) { $(id).classList.add("hidden"); }
+
+  function setMsg(el, text, ok) {
+    el.textContent = text;
+    el.className = "result " + (ok === true ? "ok" : ok === false ? "err" : "");
+  }
+
+  // ---- Auth ----
+  function loadToken() {
+    try { token = localStorage.getItem("sm_token"); } catch (e) { token = null; }
+  }
+  function saveToken(t) { try { localStorage.setItem("sm_token", t); } catch (e) {} }
+  function clearToken() { try { localStorage.removeItem("sm_token"); } catch (e) {} }
+
+  function login() {
+    var phone = $("phone").value.trim();
+    var pass = $("pass").value.trim();
+    if (!phone || !pass) { setMsg($("loginMsg"), "Enter phone and password", false); return; }
+    $("loginBtn").disabled = true;
+    $("loginBtn").textContent = "Signing in...";
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/auth/signin/", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState !== 4) return;
+      $("loginBtn").disabled = false;
+      $("loginBtn").textContent = "Sign In";
+      var data = null;
+      try { data = JSON.parse(xhr.responseText); } catch (e) {}
+      if (xhr.status === 200 && data && data.success && data.data && data.data.access_token) {
+        saveToken(data.data.access_token);
+        token = data.data.access_token;
+        startScanner();
+      } else {
+        setMsg($("loginMsg"), (data && data.error) || "Login failed", false);
+      }
+    };
+    xhr.send(JSON.stringify({ identifier: phone, password: pass }));
+  }
+
+  // ---- Offline queue ----
+  function queueScan(scan) {
+    try {
+      var q = JSON.parse(localStorage.getItem("sm_queue") || "[]");
+      q.push(scan);
+      localStorage.setItem("sm_queue", JSON.stringify(q));
+    } catch (e) {}
+    updateQueueInfo();
+  }
+  function updateQueueInfo() {
+    try {
+      var q = JSON.parse(localStorage.getItem("sm_queue") || "[]");
+      $("queueInfo").textContent = q.length ? (q.length + " scan(s) queued offline") : "";
+    } catch (e) {}
+  }
+  function syncQueue() {
+    try {
+      var q = JSON.parse(localStorage.getItem("sm_queue") || "[]");
+      if (!q.length) return;
+      var remaining = [];
+      var i;
+      for (i = 0; i < q.length; i++) {
+        (function (scan) {
+          var xhr = new XMLHttpRequest();
+          xhr.open("POST", scan.url, true);
+          xhr.setRequestHeader("Content-Type", "application/json");
+          xhr.setRequestHeader("Authorization", "Bearer " + token);
+          xhr.onreadystatechange = function () {
+            if (xhr.readyState !== 4) return;
+            if (xhr.status >= 200 && xhr.status < 300) {
+              // synced, drop
+            } else {
+              remaining.push(scan);
+            }
+            if (i === q.length - 1) {
+              try { localStorage.setItem("sm_queue", JSON.stringify(remaining)); } catch (e) {}
+              updateQueueInfo();
+            }
+          };
+          xhr.send(JSON.stringify(scan.body));
+        })(q[i]);
+      }
+    } catch (e) {}
+  }
+
+  // ---- Camera ----
+  function startCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setMsg($("scanResult"), "Camera not supported on this browser", false);
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      .then(function (s) {
+        stream = s;
+        var v = $("video");
+        v.srcObject = s;
+        v.setAttribute("playsinline", "true");
+        v.play();
+        scanning = true;
+        tick();
+      })
+      .catch(function (err) {
+        setMsg($("scanResult"), "Camera error: " + (err && err.message ? err.message : err), false);
+      });
+  }
+  function stopCamera() {
+    scanning = false;
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+  }
+
+  function tick() {
+    if (!scanning) return;
+    var video = $("video");
+    var canvas = $("canvas");
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      var ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      if (typeof jsQR !== "undefined") {
+        var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+        if (code && code.data) {
+          var now = Date.now();
+          if (now - lastScan > SCAN_COOLDOWN) {
+            lastScan = now;
+            handleScan(code.data);
+          }
+        }
+      }
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function handleScan(scanValue) {
+    var mealType = $("mealType").value;
+    var url = "/api/meals/scan/";
+    var body = { scanValue: scanValue, mealType: mealType };
+    setMsg($("scanResult"), "Scanning...", null);
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.setRequestHeader("Authorization", "Bearer " + token);
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState !== 4) return;
+      var data = null;
+      try { data = JSON.parse(xhr.responseText); } catch (e) {}
+      if (xhr.status >= 200 && xhr.status < 300 && data && data.success) {
+        var student = data.data && data.data.student;
+        var name = student ? (student.first_name + " " + student.last_name) : "Student";
+        setMsg($("scanResult"), name + " - " + (data.data && data.data.reasonCode ? data.data.reasonCode : "OK"), true);
+      } else if (xhr.status === 0 || xhr.status >= 500) {
+        // network/server error -> queue offline
+        queueScan({ url: url, body: body, at: Date.now() });
+        setMsg($("scanResult"), "Queued offline (network error)", false);
+      } else {
+        var err = (data && (data.error || data.reasonCode)) || ("Error " + xhr.status);
+        setMsg($("scanResult"), err, false);
+      }
+    };
+    xhr.send(JSON.stringify(body));
+  }
+
+  function startScanner() {
+    hide("loginScreen");
+    show("scanScreen");
+    setMsg($("scanResult"), "Point camera at student ID card", null);
+    updateQueueInfo();
+    startCamera();
+    syncQueue();
+  }
+
+  // ---- Events ----
+  $("loginBtn").addEventListener("click", login);
+  $("stopBtn").addEventListener("click", stopCamera);
+  $("logoutBtn").addEventListener("click", function () {
+    stopCamera();
+    clearToken();
+    token = null;
+    hide("scanScreen");
+    show("loginScreen");
+    setMsg($("loginMsg"), "", null);
+  });
+
+  // ---- Init ----
+  loadToken();
+  if (token) {
+    startScanner();
+  } else {
+    show("loginScreen");
+  }
+  updateQueueInfo();
+  window.addEventListener("online", syncQueue);
+})();
+</script>
+</body>
+</html>
