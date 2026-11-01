@@ -1093,9 +1093,7 @@ export default function StudentRegistryPanel({
                                     className="inline-flex items-center rounded-full bg-[var(--navy-soft)] px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--blue-ink)]"
                                     title={leader}
                                   >
-                                    {student.is_class_monitor && !student.prefect_role && !student.student_council_role
-                                      ? "Monitor"
-                                      : "Leader"}
+                                    {leader}
                                   </span>
                                 ) : null}
                               </div>
@@ -1295,9 +1293,7 @@ export default function StudentRegistryPanel({
                                 className="rounded-full bg-[var(--navy-soft)] px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--blue-ink)]"
                                 title={leader}
                               >
-                                {student.is_class_monitor && !student.prefect_role && !student.student_council_role
-                                  ? "Monitor"
-                                  : "Leader"}
+                                {leader}
                               </span>
                             ) : null}
                           </div>

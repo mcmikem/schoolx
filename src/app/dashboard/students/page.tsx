@@ -748,7 +748,7 @@ export default function StudentHubPage() {
                   className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/80 px-3.5 py-2 text-[13px] font-bold text-[var(--t2)] hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
                 >
                   <MaterialIcon size={16}>upload_file</MaterialIcon>
-                  Import CSV
+                  Quick import
                 </button>
               )}
               {canBulkAdmin && (

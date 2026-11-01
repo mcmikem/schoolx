@@ -60,7 +60,7 @@ function SyncStatus() {
           animation: isOnline && !isSyncing ? "blink 2.5s ease-in-out infinite" : "none",
         }}
       />
-      {isOnline ? (isSyncing ? "Syncing..." : "System Active") : "Offline"}
+      {isOnline ? (isSyncing ? "Syncing..." : "Online") : "Offline"}
       {pendingCount > 0 && (
         <span className="ml-auto text-xs text-[var(--amber)] font-[DM Mono]">{pendingCount} pending</span>
       )}

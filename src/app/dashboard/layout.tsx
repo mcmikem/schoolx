@@ -529,8 +529,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           </PageErrorBoundary>
           <footer className="mt-auto px-4 py-3 border-t border-[var(--border)] bg-[var(--surface)] text-center">
             <p className="text-xs text-[var(--t4)]">
-              Developed by <span className="font-semibold text-[var(--t3)]">IMAC Enterprises</span> · Powered by{" "}
-              <span className="font-semibold text-[var(--t3)]">Omuto Foundation</span>
+              Developed by <span className="font-semibold text-[var(--t3)]">IMAC Technologies</span> · Powered by{" "}
+              <a
+                href="https://omuto.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-[var(--t3)] hover:underline"
+              >
+                Omuto Foundation
+              </a>
             </p>
           </footer>
         </main>

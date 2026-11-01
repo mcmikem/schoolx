@@ -1686,17 +1686,59 @@ export default function StudentDetailPanel({
                         <select
                           id="leadership-role"
                           name="leadership_role"
-                          value={formData.prefect_role || formData.student_council_role || ""}
+                          value={(() => {
+                            const val = formData.prefect_role || formData.student_council_role || "";
+                            const known = [
+                              "head_boy",
+                              "head_girl",
+                              "deputy_head_boy",
+                              "deputy_head_girl",
+                              "sports_prefect",
+                              "dining_prefect",
+                              "library_prefect",
+                              "health_prefect",
+                              "academic_prefect",
+                              "discipline_prefect",
+                              "time_keeper",
+                              "prep_prefect",
+                              "entertainment_prefect",
+                              "environment_prefect",
+                              "chapel_prefect",
+                              "class_captain",
+                              "president",
+                              "vice_president",
+                              "secretary",
+                              "assistant_secretary",
+                              "treasurer",
+                              "publicity_secretary",
+                            ].includes(val);
+                            if (val && !known) return "__custom__";
+                            return val;
+                          })()}
                           onChange={(e) => {
                             const val = e.target.value;
+                            if (val === "__custom__") {
+                              handleFormChange({ prefect_role: "", student_council_role: "" });
+                              return;
+                            }
                             if (
                               [
                                 "head_boy",
                                 "head_girl",
+                                "deputy_head_boy",
+                                "deputy_head_girl",
                                 "sports_prefect",
                                 "dining_prefect",
                                 "library_prefect",
                                 "health_prefect",
+                                "academic_prefect",
+                                "discipline_prefect",
+                                "time_keeper",
+                                "prep_prefect",
+                                "entertainment_prefect",
+                                "environment_prefect",
+                                "chapel_prefect",
+                                "class_captain",
                               ].includes(val)
                             ) {
                               handleFormChange({
@@ -1721,18 +1763,77 @@ export default function StudentDetailPanel({
                           <optgroup label="Prefects">
                             <option value="head_boy">Head Boy</option>
                             <option value="head_girl">Head Girl</option>
-                            <option value="sports_prefect">Sports Prefect</option>
-                            <option value="dining_prefect">Dining Prefect</option>
+                            <option value="deputy_head_boy">Deputy Head Boy</option>
+                            <option value="deputy_head_girl">Deputy Head Girl</option>
+                            <option value="sports_prefect">Sports / Games Prefect</option>
+                            <option value="dining_prefect">Dining / Mess Prefect</option>
                             <option value="library_prefect">Library Prefect</option>
-                            <option value="health_prefect">Health Prefect</option>
+                            <option value="health_prefect">Health / Sanitation Prefect</option>
+                            <option value="academic_prefect">Academic Prefect</option>
+                            <option value="discipline_prefect">Discipline Prefect</option>
+                            <option value="time_keeper">Time Keeper</option>
+                            <option value="prep_prefect">Prep Prefect</option>
+                            <option value="entertainment_prefect">Entertainment Prefect</option>
+                            <option value="environment_prefect">Environment Prefect</option>
+                            <option value="chapel_prefect">Chapel / Religion Prefect</option>
+                            <option value="class_captain">Class Captain</option>
                           </optgroup>
                           <optgroup label="Student Council">
                             <option value="president">President</option>
                             <option value="vice_president">Vice President</option>
                             <option value="secretary">Secretary</option>
+                            <option value="assistant_secretary">Assistant Secretary</option>
                             <option value="treasurer">Treasurer</option>
+                            <option value="publicity_secretary">Publicity Secretary</option>
+                          </optgroup>
+                          <optgroup label="Other">
+                            <option value="__custom__">Other (type below)</option>
                           </optgroup>
                         </select>
+                        {(() => {
+                          const val = formData.prefect_role || formData.student_council_role || "";
+                          const isCustom =
+                            val !== "" &&
+                            ![
+                              "head_boy",
+                              "head_girl",
+                              "deputy_head_boy",
+                              "deputy_head_girl",
+                              "sports_prefect",
+                              "dining_prefect",
+                              "library_prefect",
+                              "health_prefect",
+                              "academic_prefect",
+                              "discipline_prefect",
+                              "time_keeper",
+                              "prep_prefect",
+                              "entertainment_prefect",
+                              "environment_prefect",
+                              "chapel_prefect",
+                              "class_captain",
+                              "president",
+                              "vice_president",
+                              "secretary",
+                              "assistant_secretary",
+                              "treasurer",
+                              "publicity_secretary",
+                            ].includes(val);
+                          if (!isCustom && val !== "__custom__") return null;
+                          return (
+                            <input
+                              type="text"
+                              placeholder="Type the position title"
+                              value={isCustom ? val : ""}
+                              onChange={(e) =>
+                                handleFormChange({
+                                  prefect_role: e.target.value,
+                                  student_council_role: "",
+                                })
+                              }
+                              className="input mt-2"
+                            />
+                          );
+                        })()}
                       </div>
                       <div>
                         <label
