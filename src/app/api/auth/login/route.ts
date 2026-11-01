@@ -1,33 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { apiError, supabaseClientOptions } from "@/lib/api-utils";
-import { normalizeAuthPhone } from "@/lib/validation";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData().catch(() => null);
-    const body = formData || (await request.json().catch(() => ({})));
-    const identifier = String((body as any).identifier || (body as any).phone || "").trim();
-    const password = String((body as any).password || "").trim();
-
-    if (!identifier || !password) {
-      return NextResponse.redirect(new URL("/login/?error=missing", request.url));
+    let identifier = "";
+    let password = "";
+    if (formData) {
+      identifier = String(formData.get("identifier") || formData.get("phone") || "").trim();
+      password = String(formData.get("password") || "").trim();
+    } else {
+      const body = await request.json().catch(() => ({}));
+      identifier = String((body as any).identifier || (body as any).phone || "").trim();
+      password = String((body as any).password || "").trim();
     }
 
-    const normalized = normalizeAuthPhone(identifier);
-    const candidates = [normalized, identifier];
-
-    // Resolve email
-    let email = `${normalized}@omuto.org`;
-    // Try candidate emails
-    const supabase = createClient(
-      supabaseUrl!,
-      supabaseAnonKey!,
-      supabaseClientOptions({ auth: { persistSession: false } }),
-    );
+    if (!identifier || !password) {
+      return NextResponse.redirect(new URL("/login/?error=missing", request.url), 303);
+    }
 
     // Use the signin API logic by calling it internally
     const signinRes = await fetch(new URL("/api/auth/signin/", request.url), {
@@ -38,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     const signinData = await signinRes.json();
     if (!signinData.success || !signinData.data?.access_token) {
-      return NextResponse.redirect(new URL("/login/?error=invalid", request.url));
+      return NextResponse.redirect(new URL("/login/?error=invalid", request.url), 303);
     }
 
     const session = signinData.data;
@@ -55,7 +44,7 @@ export async function POST(request: NextRequest) {
         }),
       ).toString("base64url");
 
-    const response = NextResponse.redirect(new URL("/dashboard/", request.url));
+    const response = NextResponse.redirect(new URL("/dashboard/", request.url), 303);
     response.cookies.set("sb-gucxpmgwvnbqykevucbi-auth-token", cookieValue, {
       path: "/",
       maxAge: session.expires_in || 3600,
@@ -64,6 +53,6 @@ export async function POST(request: NextRequest) {
     });
     return response;
   } catch (error) {
-    return NextResponse.redirect(new URL("/login/?error=server", request.url));
+    return NextResponse.redirect(new URL("/login/?error=server", request.url), 303);
   }
 }
