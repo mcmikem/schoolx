@@ -293,7 +293,7 @@ function FeeProgressBar({ paid, total }: { paid: number; total: number }) {
     <div>
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-semibold text-[var(--t1)]">
-          {isPaid ? "Fully Paid" : `UGX ${balance.toLocaleString()} outstanding`}
+          {total <= 0 ? "No fees recorded" : isPaid ? "Fully paid" : `UGX ${balance.toLocaleString()} outstanding`}
         </span>
         <span
           className={`text-xs font-bold px-2 py-0.5 rounded-full ${
@@ -480,7 +480,9 @@ export default function StudentProfilePage() {
 
   // Teachers have students:true (read) but not settings/messages. Editing a
   // student and messaging parents are admin concerns, so gate both.
-  const canEditStudent = user?.role ? canAccess(user.role as UserRole, "settings") : false;
+  const canEditStudent = user?.role
+    ? canAccess(user.role as UserRole, "settings") || canAccess(user.role as UserRole, "students")
+    : false;
   const canEditDetails = user?.role ? canAccess(user.role as UserRole, "students") : false;
   const canSmsParent = user?.role ? canAccess(user.role as UserRole, "messages") : false;
   // A pupil's fee position is financial data about a family. Teachers hold
@@ -490,6 +492,7 @@ export default function StudentProfilePage() {
   // bursar). A teacher should not learn what a family owes.
   const canSeeFeePosition = user?.role ? canAccess(user.role as UserRole, "fees") : false;
   const [isConstrainedNetwork, setIsConstrainedNetwork] = useState(false);
+  const [showDataSaver, setShowDataSaver] = useState(false);
 
   useEffect(() => {
     if (typeof navigator === "undefined") return;
@@ -516,6 +519,16 @@ export default function StudentProfilePage() {
     connection.addEventListener?.("change", evaluateConnection);
     return () => connection.removeEventListener?.("change", evaluateConnection);
   }, []);
+
+  useEffect(() => {
+    if (!isConstrainedNetwork) {
+      setShowDataSaver(false);
+      return;
+    }
+    setShowDataSaver(true);
+    const t = setTimeout(() => setShowDataSaver(false), 5000);
+    return () => clearTimeout(t);
+  }, [isConstrainedNetwork]);
 
   const toast = useToast();
   const router = useRouter();
@@ -747,6 +760,7 @@ export default function StudentProfilePage() {
     { id: "academics", label: "Academics", count: subjectScores.length > 0 ? subjectScores.length : undefined },
     ...(canSeeFeePosition ? [{ id: "fees", label: "Fees" }] : []),
     { id: "guardians", label: "Guardians", count: guardians.length > 0 ? guardians.length : undefined },
+    { id: "health", label: "Health" },
     { id: "messages", label: "Messages", count: smsHistory.length > 0 ? smsHistory.length : undefined },
   ];
 
@@ -762,9 +776,9 @@ export default function StudentProfilePage() {
   return (
     <PageErrorBoundary>
       <div className="space-y-6">
-        {isConstrainedNetwork && (
+        {isConstrainedNetwork && showDataSaver && (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
-            Data saver mode is active. This profile is showing lightweight analytics for faster loading.
+            Data saver mode is active — showing lightweight analytics for faster loading.
           </div>
         )}
         {detailsError && (
@@ -820,12 +834,7 @@ export default function StudentProfilePage() {
                         {student.student_number}
                       </span>
                     )}
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}
-                    >
-                      <span className={`h-1.5 w-1.5 rounded-full ${statusCfg.dot}`} />
-                      {statusCfg.label}
-                    </span>
+                    <span className={`text-xs font-semibold ${statusCfg.text}`}>{statusCfg.label}</span>
                     {student.repeating && (
                       <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                         Repeating
@@ -881,7 +890,12 @@ export default function StudentProfilePage() {
               ? [
                   {
                     label: "Balance",
-                    value: outstandingBalance > 0 ? `UGX ${outstandingBalance.toLocaleString()}` : "Cleared",
+                    value:
+                      (feePosition.total || 0) <= 0
+                        ? "No fees"
+                        : outstandingBalance > 0
+                          ? `UGX ${outstandingBalance.toLocaleString()}`
+                          : "Cleared",
                     tone:
                       outstandingBalance > 0
                         ? "text-red-600 dark:text-red-400"
@@ -929,14 +943,14 @@ export default function StudentProfilePage() {
                   <DetailRow label="Class" value={classLabel} />
                   <DetailRow label="Gender" value={genderLabel} />
                   <DetailRow label="Date of birth" value={fmtDate(student.date_of_birth)} />
-                  <DetailRow label="Nationality" value={student.nationality} />
+                  <DetailRow label="Nationality" value={student.nationality || "Ugandan"} />
                   <DetailRow label="Religion" value={student.religion} />
                   <DetailRow label="Blood type" value={student.blood_type} />
                   <DetailRow label="National ID (NIN)" value={student.nin} mono />
                   <DetailRow label="Admission date" value={fmtDate(student.admission_date)} />
                   <DetailRow label="Previous school" value={student.previous_school} />
                   <DetailRow label="Boarding" value={student.boarding_status} />
-                  <DetailRow label="Games house" value={student.games_house} />
+                  <DetailRow label="House" value={student.games_house || (student as any).house_name} />
                 </dl>
               </InfoCard>
 
@@ -1102,7 +1116,7 @@ export default function StudentProfilePage() {
                 </div>
               )}
             </div>
-            {canEditStudent && student.parent_phone && (
+            {canEditStudent && (
               <div className="mt-4">
                 <button
                   type="button"
@@ -1187,6 +1201,26 @@ export default function StudentProfilePage() {
               </div>
             )}
           </InfoCard>
+        </TabPanel>
+
+        <TabPanel activeTab={activeTab} tabId="health" lazy>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <InfoCard title="Medical profile" icon="favorite">
+              <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+                <DetailRow label="Blood type" value={student.blood_type} />
+              </dl>
+              <p className="mt-3 text-xs text-[var(--t3)]">
+                Full medical records, allergies, medications, and emergency contacts are managed in the Health module.
+              </p>
+              <Link
+                href="/dashboard/health"
+                className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary)] hover:underline"
+              >
+                <MaterialIcon icon="open_in_new" size={14} />
+                Open Health module
+              </Link>
+            </InfoCard>
+          </div>
         </TabPanel>
 
         <TabPanel activeTab={activeTab} tabId="messages" lazy>
