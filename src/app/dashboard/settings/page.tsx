@@ -1273,7 +1273,9 @@ export default function SettingsPage() {
                   <div>
                     <h2 className="text-lg font-semibold text-[var(--on-surface)]">Choose Your Modules</h2>
                     <p className="text-sm text-[var(--t3)]">
-                      Get all modules included, or pick only the ones your school needs.
+                      Two ways to pay: <strong>All Modules Included</strong> gives you every feature in one plan (per
+                      student, per term). <strong>Pick Individual Modules</strong> lets you buy only what your school
+                      needs (annual fee per module). Unpurchased modules are hidden from your menu.
                     </p>
                   </div>
                   <div className="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-[var(--surface-container-low)] text-[var(--t2)]">
@@ -1283,7 +1285,7 @@ export default function SettingsPage() {
 
                 {searchParams?.get("reason") === "module_locked" && (
                   <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                    This feature is locked for your current modular setup. Activate the needed module below.
+                    This feature needs a module your school hasn't activated yet. Activate it below to unlock it.
                   </div>
                 )}
 
