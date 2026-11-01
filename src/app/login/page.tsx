@@ -407,21 +407,8 @@ export default function LoginPage() {
                     body: JSON.stringify({ identifier: id, password: pw })
                   }).then(function(r){ return r.json(); }).then(function(data) {
                     if (data.success && data.data && data.data.access_token) {
-                      // Store the session under Supabase's storage key so the
-                      // client picks it up on reload.
-                      try {
-                        var sessionObj = {
-                          access_token: data.data.access_token,
-                          refresh_token: data.data.refresh_token,
-                          expires_in: data.data.expires_in || 3600,
-                          expires_at: Math.floor(Date.now()/1000) + (data.data.expires_in || 3600),
-                          token_type: 'bearer',
-                          user: null
-                        };
-                        localStorage.setItem('sb-gucxpmgwvnbqykevucbi-auth-token', JSON.stringify(sessionObj));
-                      } catch(e){}
-                      // Reload so the auth context picks up the session.
-                      window.location.reload();
+                      // The server set the session cookie. Redirect to dashboard.
+                      window.location.href = '/dashboard/';
                     } else {
                       alert(data.error || 'Sign in failed');
                       btn.disabled = false;

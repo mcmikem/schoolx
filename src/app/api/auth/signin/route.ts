@@ -249,7 +249,25 @@ export async function POST(request: NextRequest) {
   const firstPass = await Promise.all(candidates.map((email) => signInWithEmail(email, password)));
   const hit = firstPass.find((r) => r.session);
   if (hit?.session) {
-    return sessionResponse(hit.session);
+    const res = sessionResponse(hit.session);
+    // Set the session cookie server-side so the proxy can see it. This is
+    // critical for old browsers (iOS 12) where client-side setSession may
+    // not work reliably.
+    const cookieValue = JSON.stringify({
+      access_token: hit.session.access_token,
+      refresh_token: hit.session.refresh_token,
+      expires_in: hit.session.expires_in,
+      expires_at: Math.floor(Date.now() / 1000) + (hit.session.expires_in || 3600),
+      token_type: "bearer",
+      user: null,
+    });
+    res.cookies.set("sb-gucxpmgwvnbqykevucbi-auth-token", cookieValue, {
+      path: "/",
+      maxAge: hit.session.expires_in || 3600,
+      sameSite: "lax",
+      httpOnly: false,
+    });
+    return res;
   }
 
   // None of the obvious shapes worked. The school's own records know the
@@ -259,7 +277,22 @@ export async function POST(request: NextRequest) {
   if (profileEmail && !candidates.includes(profileEmail)) {
     const viaProfile = await signInWithEmail(profileEmail, password);
     if (viaProfile.session) {
-      return sessionResponse(viaProfile.session);
+      const res = sessionResponse(viaProfile.session);
+      const cookieValue = JSON.stringify({
+        access_token: viaProfile.session.access_token,
+        refresh_token: viaProfile.session.refresh_token,
+        expires_in: viaProfile.session.expires_in,
+        expires_at: Math.floor(Date.now() / 1000) + (viaProfile.session.expires_in || 3600),
+        token_type: "bearer",
+        user: null,
+      });
+      res.cookies.set("sb-gucxpmgwvnbqykevucbi-auth-token", cookieValue, {
+        path: "/",
+        maxAge: viaProfile.session.expires_in || 3600,
+        sameSite: "lax",
+        httpOnly: false,
+      });
+      return res;
     }
   }
 
