@@ -2391,6 +2391,7 @@ h6,
 
 .lite .portal-glass,
 .lite .parent-portal-shell .card,
+.lite .parent-portal-shell .card-header,
 .lite .card-premium,
 .lite .glass-premium,
 .lite .glass-card,
@@ -2563,10 +2564,10 @@ html.lite main#main-content {
 }
 
 html.lite .glass-premium {
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  background: var(--surface);
-  box-shadow: var(--sh1);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: var(--surface) !important;
+  box-shadow: var(--sh1) !important;
 }
 
 html.lite .bg-motif {
