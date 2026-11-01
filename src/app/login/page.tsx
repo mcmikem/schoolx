@@ -362,6 +362,7 @@ export default function LoginPage() {
       attemptsRef.current = 0;
       setFailedAttempts(0);
       setLockoutUntil(null);
+      submitInFlightRef.current = false;
       // Keep loading state active while we wait for the profile fetch
       // in onAuthStateChange — if it fails silently, the new useEffect
       // above will catch it and show an error to the user.
