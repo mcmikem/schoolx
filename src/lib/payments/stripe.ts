@@ -194,6 +194,9 @@ export async function createCheckoutSessionInline(params: {
   metadata?: Record<string, string>;
 }) {
   try {
+    if (params.amountUsdCents < 50) {
+      throw new Error("Minimum card charge is $0.50 — use mobile money or manual payment for smaller amounts");
+    }
     const session = await getStripeClientOrThrow().checkout.sessions.create({
       mode: "payment",
       line_items: [

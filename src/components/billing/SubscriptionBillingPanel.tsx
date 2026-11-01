@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/index";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useToast } from "@/components/Toast";
 import { useAuth } from "@/lib/auth-context";
+import { invalidateModuleAccessCache } from "@/lib/hooks/useModuleAccess";
 import {
   BILLING_CYCLES,
   PLANS_CONFIG,
@@ -172,6 +173,7 @@ export default function SubscriptionBillingPanel({ onRefresh }: { onRefresh?: ()
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.error || "Failed to schedule");
       toast.success(`Downgrade scheduled for ${formatDate(result.data?.effectiveAt)}`);
+      invalidateModuleAccessCache(school?.id || undefined);
       await fetchSchool();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Scheduling failed");
@@ -215,6 +217,7 @@ export default function SubscriptionBillingPanel({ onRefresh }: { onRefresh?: ()
       const newTab = window.open(target, "_blank", "noopener,noreferrer");
       if (!newTab) window.location.assign(target);
       toast.success("Complete the payment in PayPal — your subscription activates automatically.");
+      invalidateModuleAccessCache(school?.id || undefined);
       setCheckoutOpen(false);
     } catch (err) {
       toast.error(
@@ -250,6 +253,7 @@ export default function SubscriptionBillingPanel({ onRefresh }: { onRefresh?: ()
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.error || "Submission failed");
       toast.success("Payment submitted — we'll confirm and activate shortly");
+      invalidateModuleAccessCache(school?.id || undefined);
       setCheckoutOpen(false);
       setReference("");
       setNote("");
@@ -279,6 +283,7 @@ export default function SubscriptionBillingPanel({ onRefresh }: { onRefresh?: ()
           ? "Check your phone for the MTN MoMo prompt and enter your PIN"
           : "Check your phone for the Airtel Money prompt and enter your PIN",
       );
+      invalidateModuleAccessCache(school?.id || undefined);
       setCheckoutOpen(false);
       await fetchSchool();
     } catch (err) {

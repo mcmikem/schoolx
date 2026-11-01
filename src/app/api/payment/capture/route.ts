@@ -45,6 +45,10 @@ export async function GET(request: NextRequest) {
         await sendPaymentReceiptFor(applied.result.school.id, fallbackPlan, amount, ledgerRef);
         return true;
       }
+      // Idempotent retry: a previous capture already applied this payment.
+      if (!applied.applied && applied.reason === "already applied") {
+        return true;
+      }
       return false;
     } catch (err) {
       if (err instanceof BillingError && err.status === 404) {
@@ -58,7 +62,18 @@ export async function GET(request: NextRequest) {
     if (!fallbackSchoolId) return false;
     const plan = normalizePlanType(fallbackPlan || "starter");
     await activateSchoolSubscription(fallbackSchoolId, plan, provider === "stripe" ? "stripe" : "paypal", ledgerRef);
-    await sendPaymentReceiptFor(fallbackSchoolId, plan, 0, ledgerRef);
+    let legacyAmount = 0;
+    try {
+      const { data: payRow } = await resolveLedgerAdmin()
+        .from("subscription_payments")
+        .select("amount")
+        .eq("transaction_id", ledgerRef)
+        .maybeSingle();
+      legacyAmount = Number((payRow as { amount?: number } | null)?.amount) || 0;
+    } catch {
+      // non-fatal
+    }
+    await sendPaymentReceiptFor(fallbackSchoolId, plan, legacyAmount, ledgerRef);
     return true;
   }
 

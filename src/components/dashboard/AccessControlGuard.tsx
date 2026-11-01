@@ -15,7 +15,7 @@ import {
   type ModuleKey,
   type FeatureStage,
 } from "@/lib/modules/catalog";
-import { useModuleAccess } from "@/lib/hooks/useModuleAccess";
+import { useModuleAccess, invalidateModuleAccessCache } from "@/lib/hooks/useModuleAccess";
 import { deepFreeze } from "@/lib/deep-freeze";
 import { resolveRouteAccess, useRoleRouteOverrides } from "@/lib/role-access-overrides";
 import { canOpenSettingsPage } from "@/lib/role-tab-access";
@@ -267,7 +267,12 @@ export function useAccessControl() {
     // authoritative server-side gate; this only shapes UX.
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     const moduleKey = getRequiredModuleForPath(pathname);
-    const moduleAllowed = accessLoaded ? canAccessPath(pathname) : isModuleInFeatureStage(featureStage, moduleKey!);
+    if (!accessLoaded) {
+      // Context still loading — do not redirect; the proxy enforces server-side.
+      safeSessionStorage.removeItem("lastDeniedPath");
+      return;
+    }
+    const moduleAllowed = canAccessPath(pathname);
     if (moduleKey && !moduleAllowed) {
       const lastDenied = safeSessionStorage.getItem("lastDeniedPath");
       if (lastDenied !== pathname) {

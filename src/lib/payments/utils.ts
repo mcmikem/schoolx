@@ -63,7 +63,7 @@ const MIN_STUDENT_COUNT = 50;
 export async function calculateTotalPrice(plan: PlanType, studentCount?: number): Promise<number> {
   const basePrice = getPlanPrice(plan);
   if (plan === "lifetime") return basePrice;
-  const count = Math.max(studentCount || MIN_STUDENT_COUNT, MIN_STUDENT_COUNT);
+  const count = Math.max(studentCount || 1, 1);
   return basePrice * count;
 }
 

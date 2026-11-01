@@ -39,6 +39,7 @@ export interface PaymentIntent {
   moduleKeys?: ModuleKey[];
   studentCount?: number;
   credit?: number;
+  promoCode?: string | null;
 }
 
 export interface SchoolBillingContext {
@@ -153,7 +154,7 @@ export async function resolvePromoCode(
 
 export async function recordPromoRedemption(admin: Admin, code: string) {
   if (!code) return;
-  const { error } = await admin.rpc("increment_promo_redemption", { p_code: code });
+  const { data, error } = await admin.rpc("increment_promo_redemption", { p_code: code });
   if (error) {
     // Non-fatal: the quote already succeeded. Fall back to a direct read-modify.
     const { data: row } = await admin.from("promo_codes").select("times_redeemed").eq("code", code).maybeSingle();
@@ -163,6 +164,10 @@ export async function recordPromoRedemption(admin: Admin, code: string) {
         .update({ times_redeemed: (row.times_redeemed || 0) + 1 })
         .eq("code", code);
     }
+    return;
+  }
+  if (typeof data === "number" && data === 0) {
+    logger.warn(`Promo code ${code} reached its redemption cap; payment still activated.`);
   }
 }
 
@@ -215,7 +220,7 @@ export async function buildQuote(admin: Admin, params: QuoteParams): Promise<Bui
     }
 
     return {
-      intent: { type: "module", moduleKeys, months: 12 },
+      intent: { type: "module", moduleKeys, months: 12, promoCode: promo?.code ?? null },
       quote,
       context,
       promo,
@@ -295,6 +300,7 @@ export async function buildQuote(admin: Admin, params: QuoteParams): Promise<Bui
       months,
       studentCount: context.student_count,
       credit: upgradeCredit ? upgradeCredit.amount : 0,
+      promoCode: promo?.code ?? null,
     },
     quote,
     context,
@@ -437,7 +443,17 @@ export async function applyCompletedPayment(
   const intent = (payment.intent || {}) as PaymentIntent;
   const quote = (payment.line_items || {}) as Quote;
 
-  // 1) Flip the ledger row.
+  // 1) Apply to the school + entitlements FIRST. If this throws, the ledger
+  //    row stays pending so a retry can re-attempt activation instead of
+  //    leaving a "completed but never activated" payment stuck forever.
+  const result = await applyIntent(admin, payment.school_id, intent, {
+    amountPaid: Number(payment.amount) || 0,
+    paidAt,
+    quote,
+    skipSchoolUpdate: opts.skipSchoolUpdate,
+  });
+
+  // 2) Flip the ledger row only after the intent applied successfully.
   const { data: finalized, error: finalizeError } = await admin
     .from("subscription_payments")
     .update({
@@ -450,18 +466,13 @@ export async function applyCompletedPayment(
     .select()
     .single();
   if (finalizeError) throw new BillingError(`Failed to finalize payment: ${finalizeError.message}`, 500);
+  result.payment = finalized as unknown as Record<string, unknown>;
 
-  // 2) Apply to the school + entitlements.
-  const result = await applyIntent(admin, payment.school_id, intent, {
-    amountPaid: Number(payment.amount) || 0,
-    paidAt,
-    quote,
-    skipSchoolUpdate: opts.skipSchoolUpdate,
-  });
-
-  // 3) Promo redemption + audit.
+  // 3) Promo redemption + audit (non-blocking).
+  const promoCode = intent.promoCode || null;
+  if (promoCode) await recordPromoRedemption(admin, promoCode);
   const promo = (quote?.credits || []).find((c: any) => c?.id === "promo");
-  if (promo?.label) {
+  if (!promoCode && promo?.label) {
     const code = String(promo.label).match(/Promo code ([^ ]+)/)?.[1];
     if (code) await recordPromoRedemption(admin, code);
   }
@@ -515,18 +526,16 @@ async function applyIntent(
           })
           .eq("id", existing.id);
       } else {
-        await admin
-          .from("school_module_entitlements")
-          .upsert(
-            {
-              school_id: schoolId,
-              module_key: key,
-              status: "active",
-              starts_at: now.toISOString(),
-              ends_at: newEnd.toISOString(),
-            },
-            { onConflict: "school_id,module_key" },
-          );
+        await admin.from("school_module_entitlements").upsert(
+          {
+            school_id: schoolId,
+            module_key: key,
+            status: "active",
+            starts_at: now.toISOString(),
+            ends_at: newEnd.toISOString(),
+          },
+          { onConflict: "school_id,module_key" },
+        );
       }
     }
 

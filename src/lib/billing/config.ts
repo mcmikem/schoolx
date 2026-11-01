@@ -411,11 +411,7 @@ export function quoteAddOnPurchase(params: {
     if (!def) continue;
 
     if (billingMode !== "modular" && planStage && isModuleInFeatureStage(planStage, key)) {
-      credits.push({
-        id: `included:${key}`,
-        label: `${def.display_name} — included in the ${PLANS_CONFIG[plan!].name} plan`,
-        amount: 0,
-      });
+      // Already included by the plan — no charge, no noise line.
       continue;
     }
     const price = getAnnualModulePrice(def, sizeBand);

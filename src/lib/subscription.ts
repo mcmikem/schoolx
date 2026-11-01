@@ -194,6 +194,13 @@ export function getPlanForSchoolType(schoolType: "primary" | "secondary" | "comb
 
 // Database functions for subscription management
 import { createSupabaseServerClient } from "./supabase/server";
+import { createClient } from "@supabase/supabase-js";
+
+function createServiceRoleClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
+}
 
 export async function updateSchoolSubscription(
   schoolId: string,
@@ -243,7 +250,7 @@ export async function sendPaymentReceipt(
   try {
     const [receiptsModule, supabase] = await Promise.all([
       import("@/lib/payments/receipts"),
-      createSupabaseServerClient(),
+      createServiceRoleClient(),
     ]);
 
     const { data: school, error: schoolError } = await supabase

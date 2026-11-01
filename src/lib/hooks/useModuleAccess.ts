@@ -14,7 +14,7 @@
 // kicked out by the client guard.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import {
   getRequiredModuleForPath,
@@ -122,37 +122,6 @@ export function useModuleAccess() {
       cancelled = true;
     };
   }, [schoolId, user]);
-
-  const allowedModules = useMemo(() => {
-    return new Set<ModuleKey>(
-      (
-        [
-          "analytics",
-          "assets",
-          "attendance",
-          "canteen",
-          "communications",
-          "dashboard",
-          "discipline",
-          "dorm",
-          "exams",
-          "finance",
-          "health",
-          "library",
-          "marks",
-          "operations",
-          "parent_portal",
-          "payroll",
-          "reports",
-          "settings",
-          "staff",
-          "students",
-          "transport",
-        ] as ModuleKey[]
-      ).filter((key) => isModuleAllowed(key)),
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctx, featureStage]);
 
   function isModuleAllowed(moduleKey: ModuleKey): boolean {
     if (!ctx) {

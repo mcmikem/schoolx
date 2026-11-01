@@ -143,7 +143,7 @@ describe("quoteAddOnPurchase", () => {
     expect(quote.lines).toHaveLength(2);
   });
 
-  test("plan-included modules are credited, not charged", () => {
+  test("plan-included modules are not charged", () => {
     const quote = quoteAddOnPurchase({
       moduleKeys: ["marks", "finance"],
       sizeBand: "small",
@@ -151,7 +151,8 @@ describe("quoteAddOnPurchase", () => {
       billingMode: "full_suite",
     });
     expect(quote.lines.find((l) => l.id === "module:finance")).toBeTruthy();
-    expect(quote.credits.find((c) => c.id === "included:marks")).toBeTruthy();
+    expect(quote.lines.find((l) => l.id === "module:marks")).toBeUndefined();
+    expect(quote.credits.find((c) => c.id === "included:marks")).toBeUndefined();
     expect(quote.totalDue).toBe(200000); // finance small = 200k
   });
 
