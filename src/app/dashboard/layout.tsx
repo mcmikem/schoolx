@@ -40,6 +40,7 @@ import { readDemoStorage } from "@/lib/auth-demo";
 import { OFFLINE_USER_KEY } from "@/lib/auth-context-types";
 import { useSchoolColors } from "@/lib/useSchoolColors";
 import CommandPalette from "@/components/CommandPalette";
+import { motion, AnimatePresence } from "framer-motion";
 import { useSessionTimeout } from "@/lib/useSessionTimeout";
 
 const OwlAssistant = dynamic(() => import("@/components/OwlAssistant"), { ssr: false });
@@ -518,7 +519,14 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 </div>
               }
             >
-              {children}
+              <motion.div
+                key={pathname}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+              >
+                {children}
+              </motion.div>
             </Suspense>
           </PageErrorBoundary>
           <footer className="mt-auto px-4 py-3 border-t border-[var(--border)] bg-[var(--surface)] text-center">
