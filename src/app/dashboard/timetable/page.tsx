@@ -23,6 +23,8 @@ const TimetableCalendar = dynamic(() => import("@/components/timetable/Timetable
   loading: () => null,
 });
 import SchoolDaySetupModal from "@/components/timetable/SchoolDaySetupModal";
+import TimetablePrintSheet from "@/components/timetable/TimetablePrintSheet";
+import { useAcademic } from "@/lib/academic-context";
 import {
   SCHOOL_DAY_PRESETS,
   buildSchoolDay,
@@ -520,10 +522,11 @@ function mapDemoTimetable(classId?: string): TimetableEntry[] {
 
 export default function TimetablePage() {
   const { school, user, isDemo } = useAuth();
+  const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
   const { classes } = useClasses(school?.id);
   const { subjects } = useSubjects(school?.id);
-  const { slots, loading: loadingSlots, refetch: refetchSlots } = useTimetableManager(school?.id);
+  const { slots, loading: loadingSlots, refetch: refetchSlots } = useTimetableManager(school?.id, school?.school_type);
   const { staff } = useStaff(school?.id);
 
   // Only show teaching staff in the dropdown
@@ -549,6 +552,7 @@ export default function TimetablePage() {
   const [pendingDeleteEntryId, setPendingDeleteEntryId] = useState<string | null>(null);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showDaySetup, setShowDaySetup] = useState(false);
+  const [showPrint, setShowPrint] = useState(false);
   const TIMETABLE_EDIT_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "dean_of_studies"];
   const canAutoGenerate = !!user && TIMETABLE_EDIT_ROLES.includes(user.role);
   // Adding/removing lessons is a school-wide structural change, not a teacher's
@@ -1041,23 +1045,35 @@ export default function TimetablePage() {
                   </select>
                 </label>
               )}
-              {canAutoGenerate && (
-                <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {selectedClassId && (
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setShowDaySetup(true)}
-                    icon={<MaterialIcon icon="schedule" className="text-lg" />}
+                    onClick={() => setShowPrint(true)}
+                    icon={<MaterialIcon icon="print" className="text-lg" />}
                   >
-                    School day
+                    Print
                   </Button>
-                  <Button size="sm" variant="secondary" onClick={() => setShowGenerateModal(true)}>
-                    <span className="inline-flex items-center gap-2">
-                      <MaterialIcon icon="auto_awesome" className="text-lg" /> Auto-generate
-                    </span>
-                  </Button>
-                </div>
-              )}
+                )}
+                {canAutoGenerate && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowDaySetup(true)}
+                      icon={<MaterialIcon icon="schedule" className="text-lg" />}
+                    >
+                      School day
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => setShowGenerateModal(true)}>
+                      <span className="inline-flex items-center gap-2">
+                        <MaterialIcon icon="auto_awesome" className="text-lg" /> Auto-generate
+                      </span>
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
 
             <div className="border-b border-[var(--border)]">
@@ -1371,6 +1387,18 @@ export default function TimetablePage() {
           refetchSlots();
           fetchTimetable();
         }}
+      />
+      <TimetablePrintSheet
+        isOpen={showPrint}
+        onClose={() => setShowPrint(false)}
+        schoolName={school?.name}
+        className={selectedClass?.name}
+        academicYear={academicYear}
+        termLabel={`Term ${currentTerm}`}
+        slots={effectiveSlots}
+        days={DAYS}
+        entries={timetable}
+        teacherNameById={teacherNameById}
       />
     </PageErrorBoundary>
   );

@@ -6,7 +6,7 @@ import type { TimetableSlot, TimetableConstraint } from "@/types";
 import { getQuerySchoolId, withTimeout } from "./utils";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { DEMO_TIMETABLE, DEMO_SUBJECTS, DEMO_STAFF } from "@/lib/demo-data";
-import { buildDefaultTimetableSlots } from "@/lib/school-setup";
+import { buildDefaultTimetableSlots, type SchoolSetupType } from "@/lib/school-setup";
 import { logger } from "@/lib/logger";
 
 export function useTimetable(classId?: string) {
@@ -128,7 +128,7 @@ export function useTimetable(classId?: string) {
   return { timetable, loading, saveEntry, deleteEntry };
 }
 
-export function useTimetableManager(schoolId?: string) {
+export function useTimetableManager(schoolId?: string, schoolType: SchoolSetupType = "secondary") {
   const [slots, setSlots] = useState<TimetableSlot[]>([]);
   const [constraints, setConstraints] = useState<TimetableConstraint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,7 +146,7 @@ export function useTimetableManager(schoolId?: string) {
 
       if (isDemo || isDemoSchool(schoolId)) {
         setSlots(
-          buildDefaultTimetableSlots(schoolId).map((slot, index) => ({
+          buildDefaultTimetableSlots(schoolId, schoolType).map((slot, index) => ({
             ...slot,
             id: `demo-slot-${index + 1}`,
             is_break: slot.is_lesson === false,
@@ -184,7 +184,7 @@ export function useTimetableManager(schoolId?: string) {
 
         let slotRows = (slotsRes.data || []) as Array<Record<string, any>>;
         if (slotRows.length === 0) {
-          const defaults = buildDefaultTimetableSlots(querySchoolId);
+          const defaults = buildDefaultTimetableSlots(querySchoolId, schoolType);
           const { data: inserted, error: insertError } = await withTimeout(
             supabase
               .from("timetable_slots")
@@ -230,7 +230,7 @@ export function useTimetableManager(schoolId?: string) {
     }
 
     fetchData();
-  }, [schoolId, isDemo, reloadKey]);
+  }, [schoolId, schoolType, isDemo, reloadKey]);
 
   return { slots, constraints, loading, refetch };
 }

@@ -112,8 +112,12 @@ export function buildNurseryClasses(schoolId: string, academicYear: string) {
  *
  * Schools can change every part of it from Timetable → School day.
  */
-export function buildDefaultTimetableSlots(schoolId: string) {
-  return buildSchoolDay(SCHOOL_DAY_PRESETS.lower_secondary).map((slot) => ({
+export function buildDefaultTimetableSlots(schoolId: string, schoolType: SchoolSetupType = "secondary") {
+  // One bell schedule per school. Primary schools take the longer porridge
+  // break and finish earlier; combined schools follow the secondary day
+  // because they share the same timetable grid.
+  const level = schoolType === "primary" ? "primary" : "lower_secondary";
+  return buildSchoolDay(SCHOOL_DAY_PRESETS[level]).map((slot) => ({
     school_id: schoolId,
     name: slot.name,
     start_time: slot.start_time,

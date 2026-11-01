@@ -142,4 +142,26 @@ describe("school setup defaults", () => {
     expect(slots.some((slot) => slot.name === "Lunch")).toBe(true);
     expect(slots.some((slot) => slot.name === "Games / Clubs")).toBe(true);
   });
+
+  test("seeds primary schools with the primary bell day", () => {
+    const primary = buildDefaultTimetableSlots("school-1", "primary");
+    const secondary = buildDefaultTimetableSlots("school-1", "secondary");
+
+    // Primary takes the 30-minute porridge break, secondary the 20-minute one.
+    expect(primary.find((slot) => slot.name === "Break")).toMatchObject({
+      start_time: "10:15",
+      end_time: "10:45",
+    });
+    expect(secondary.find((slot) => slot.name === "Break")).toMatchObject({
+      start_time: "10:15",
+      end_time: "10:35",
+    });
+    expect(primary).not.toEqual(secondary);
+  });
+
+  test("combined schools follow the secondary day", () => {
+    expect(buildDefaultTimetableSlots("school-1", "combined")).toEqual(
+      buildDefaultTimetableSlots("school-1", "secondary"),
+    );
+  });
 });

@@ -96,6 +96,9 @@ jest.mock("@/components/ui/index", () => ({
 jest.mock("@/components/ui/Skeleton", () => ({ TableSkeleton: () => <div>Loading</div> }));
 jest.mock("@/components/ConfirmDialog", () => ({ ConfirmDialog: () => null }));
 jest.mock("@/components/timetable/GenerateTimetableModal", () => () => null);
+jest.mock("@/lib/academic-context", () => ({
+  useAcademic: () => ({ academicYear: "2026", currentTerm: 2 }),
+}));
 
 describe("Timetable mobile agenda", () => {
   beforeEach(() => {

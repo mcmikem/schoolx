@@ -954,7 +954,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
             if (!count) {
               const { error: slotError } = await supabase
                 .from("timetable_slots")
-                .insert(buildDefaultTimetableSlots(school!.id));
+                .insert(buildDefaultTimetableSlots(school!.id, school!.school_type));
               if (slotError) {
                 logger.warn("Timetable slots seeding failed:", slotError);
                 failedSeeding.push("Timetable Slots");

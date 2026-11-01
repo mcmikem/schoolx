@@ -2777,3 +2777,40 @@ body:has([aria-modal="true"]) [data-owl-float] {
     );
   }
 }
+
+/* ── Printed class timetables ──────────────────────────────────────────────
+   TimetablePrintSheet portals straight into <body> and expects to be the only
+   thing on the page when the browser prints. Hiding by `visibility` (rather
+   than `display`) keeps the sheet's own layout intact.
+
+   Everything here is scoped to `body:has(.timetable-print-sheet)` and to a
+   named page: report cards, ID cards, certificates and the exam timetable
+   print through the same globals.css and must keep their own page size and
+   their own chrome. */
+@page timetable {
+  size: A4 landscape;
+  margin: 10mm;
+}
+
+@media print {
+  body:has(.timetable-print-sheet) * {
+    visibility: hidden;
+  }
+  body:has(.timetable-print-sheet) .timetable-print-sheet,
+  body:has(.timetable-print-sheet) .timetable-print-sheet * {
+    visibility: visible;
+  }
+  .timetable-print-sheet {
+    page: timetable;
+    position: absolute !important;
+    inset: 0 auto auto 0;
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+    background: #fff;
+    color: #000;
+  }
+  .timetable-print-hide {
+    display: none !important;
+  }
+}
