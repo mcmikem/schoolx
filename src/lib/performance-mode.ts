@@ -33,16 +33,24 @@ export function readPerformanceMode(): PerformanceMode {
   }
 }
 export function isLiteMode(): boolean {
-  if (typeof navigator === "undefined" || typeof window === "undefined") return false;
-  return shouldUseLite({ ...deviceHints() }, readPerformanceMode());
+  if (typeof globalThis === "undefined") return false;
+  const w = (globalThis as any).window;
+  const n = (globalThis as any).navigator;
+  if (!w || !n) return false;
+  try {
+    return shouldUseLite({ ...deviceHints() }, readPerformanceMode());
+  } catch {
+    return false;
+  }
 }
 function deviceHints(): DeviceHints {
-  const nav = navigator as Navigator & DeviceHints;
+  const w = (globalThis as any).window;
+  const nav = ((globalThis as any).navigator || {}) as Navigator & DeviceHints;
   return {
     deviceMemory: nav.deviceMemory,
     hardwareConcurrency: nav.hardwareConcurrency,
     connection: nav.connection,
-    reducedData: typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-data: reduce)").matches,
+    reducedData: typeof w?.matchMedia === "function" && !!w.matchMedia("(prefers-reduced-data: reduce)")?.matches,
   };
 }
 export function applyPerformanceMode(mode: PerformanceMode): void {
