@@ -1,17 +1,81 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
+import { createClient } from "@supabase/supabase-js";
 import { capturePayPalOrder } from "@/lib/payments/paypal";
 import { normalizePlanType } from "@/lib/payments/subscription-client";
-import { PLAN_TYPES, type PlanType } from "@/lib/subscription";
-import { updatePaymentStatus } from "@/lib/payments/utils";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { activateSchoolSubscription } from "@/lib/payments/utils";
+import { BillingError, applyCompletedPayment } from "@/lib/billing/service";
+import { sendPaymentReceipt } from "@/lib/subscription";
 import { logger } from "@/lib/logger";
+
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+function resolveLedgerAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  return createClient(url, SERVICE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const provider = searchParams.get("provider") || "paypal";
   const planParam = searchParams.get("plan") || searchParams.get("custom");
+
+  /**
+   * Activates the school from the pending ledger row that carries the intent.
+   * Legacy rows (pre-intent) fall back to the old plan-based activation so
+   * historical in-flight payments never dead-end.
+   */
+  async function activateFromLedger(
+    ledgerRef: string,
+    fallbackSchoolId: string,
+    fallbackPlan: string,
+  ): Promise<boolean> {
+    if (!SERVICE_KEY) return false;
+    const admin = resolveLedgerAdmin();
+
+    try {
+      const applied = await applyCompletedPayment(admin, ledgerRef, {
+        provider: (provider as "stripe" | "paypal") || "paypal",
+      });
+      if (applied.applied && applied.result?.school) {
+        const amount = Number((applied.result.payment as { amount?: number } | null)?.amount) || 0;
+        await sendPaymentReceiptFor(applied.result.school.id, fallbackPlan, amount, ledgerRef);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      if (err instanceof BillingError && err.status === 404) {
+        logger.warn("[capture] no intent row for", ledgerRef, "— using legacy activation");
+      } else {
+        throw err;
+      }
+    }
+
+    // Legacy path: no ledger row at all — activate directly from provider data.
+    if (!fallbackSchoolId) return false;
+    const plan = normalizePlanType(fallbackPlan || "starter");
+    await activateSchoolSubscription(fallbackSchoolId, plan, provider === "stripe" ? "stripe" : "paypal", ledgerRef);
+    await sendPaymentReceiptFor(fallbackSchoolId, plan, 0, ledgerRef);
+    return true;
+  }
+
+  async function sendPaymentReceiptFor(schoolId: string, plan: string, amount: number, transactionId: string) {
+    try {
+      await sendPaymentReceipt(schoolId, {
+        amount,
+        currency: "UGX",
+        date: new Date().toISOString(),
+        plan: normalizePlanType(plan),
+        provider: provider === "stripe" ? "stripe" : "paypal",
+        transactionId,
+      });
+    } catch (err) {
+      logger.warn("[capture] receipt send failed (non-fatal):", err);
+    }
+  }
 
   if (provider === "stripe") {
     const sessionId = searchParams.get("session_id");
@@ -41,26 +105,19 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(new URL("/dashboard/settings?tab=subscription&error=no_school", baseUrl));
       }
 
-      const supabase = await createSupabaseServerClient();
       const plan = normalizePlanType(planParam || session.metadata?.plan || "starter");
 
-      const { error: updateError } = await supabase
-        .from("schools")
-        .update({
-          subscription_plan: plan,
-          subscription_status: "active",
-          last_payment_at: new Date().toISOString(),
-        })
-        .eq("id", schoolId);
+      // New sessions bind to their ledger row via metadata.intent_transaction_id;
+      // legacy sessions used the session id as the ledger transaction id.
+      const ledgerRef = session.metadata?.intent_transaction_id || sessionId;
 
-      if (updateError) {
-        logger.error("Stripe capture: failed to activate school subscription:", updateError);
+      let finalized = await activateFromLedger(ledgerRef, schoolId, plan);
+      if (!finalized && ledgerRef !== sessionId) {
+        finalized = await activateFromLedger(sessionId, schoolId, plan);
+      }
+      if (!finalized) {
         return NextResponse.redirect(new URL("/dashboard/settings?tab=subscription&error=capture_error", baseUrl));
       }
-
-      await updatePaymentStatus(sessionId, "completed", {
-        paid_at: new Date().toISOString(),
-      });
 
       logger.log(`Stripe session ${sessionId} captured successfully for school ${schoolId}`);
 
@@ -94,38 +151,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL("/dashboard/settings?tab=subscription&error=no_school", baseUrl));
     }
 
-    const supabase = await createSupabaseServerClient();
-    const { data: school } = await supabase
-      .from("schools")
-      .select("id, subscription_plan")
-      .eq("id", schoolId)
-      .maybeSingle();
-
-    if (!school) {
-      return NextResponse.redirect(new URL("/dashboard/settings?tab=subscription&error=school_not_found", baseUrl));
-    }
-
     const plan = normalizePlanType(planParam || "starter");
 
-    const { error: updateError } = await supabase
-      .from("schools")
-      .update({
-        subscription_plan: plan,
-        subscription_status: "active",
-        last_payment_at: new Date().toISOString(),
-      })
-      .eq("id", school.id);
+    // invoice_id carries our subscription_payments transaction ref (written
+    // when the order was created); legacy orders used the order id.
+    const ledgerRef = purchaseUnit?.invoice_id || token;
 
-    if (updateError) {
-      logger.error("PayPal capture: failed to activate school subscription:", updateError);
+    let finalized = await activateFromLedger(ledgerRef, schoolId, plan);
+    if (!finalized && ledgerRef !== token) {
+      finalized = await activateFromLedger(token, schoolId, plan);
+    }
+    if (!finalized) {
       return NextResponse.redirect(new URL("/dashboard/settings?tab=subscription&error=capture_error", baseUrl));
     }
 
-    await updatePaymentStatus(token, "completed", {
-      paid_at: new Date().toISOString(),
-    });
-
-    logger.log(`PayPal order ${token} captured successfully for school ${school.id}`);
+    logger.log(`PayPal order ${token} captured successfully for school ${schoolId}`);
 
     return NextResponse.redirect(
       new URL(`/dashboard/settings?tab=subscription&success=true&provider=paypal&plan=${plan}`, baseUrl),

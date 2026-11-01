@@ -194,6 +194,39 @@ export default function SubscriptionBillingPanel({ onRefresh }: { onRefresh?: ()
     }
   };
 
+  const payWithPayPal = async () => {
+    setSubmitting(true);
+    try {
+      const response = await fetch("/api/payment/checkout/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: "paypal",
+          plan: checkoutPlan,
+          cycle,
+          promoCode: promoCode.trim() || null,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success || !result.url) {
+        throw new Error(result.error || "PayPal payment failed");
+      }
+      const target = String(result.url).trim();
+      const newTab = window.open(target, "_blank", "noopener,noreferrer");
+      if (!newTab) window.location.assign(target);
+      toast.success("Complete the payment in PayPal — your subscription activates automatically.");
+      setCheckoutOpen(false);
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? `${err.message} You can also submit a payment reference below.`
+          : "PayPal payment failed",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const submitManualPayment = async () => {
     if (reference.trim().length < 3) {
       toast.error("Enter the mobile money code, receipt number or bank reference");
@@ -483,6 +516,9 @@ export default function SubscriptionBillingPanel({ onRefresh }: { onRefresh?: ()
               </Button>
               <Button variant="secondary" disabled={submitting} onClick={() => payWithMobileMoney("airtel")}>
                 <MaterialIcon icon="phone_android" className="mr-1" /> Pay by Airtel Money
+              </Button>
+              <Button variant="secondary" disabled={submitting} onClick={payWithPayPal}>
+                <MaterialIcon icon="credit_card" className="mr-1" /> Pay with PayPal (card)
               </Button>
 
               <div className="pt-3 border-t border-[var(--border)]">

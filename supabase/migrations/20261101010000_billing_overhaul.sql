@@ -62,6 +62,12 @@ AS $$
    WHERE code = p_code AND active;
 $$;
 
+-- Launch code: 10% off anything. Unlimited redemptions, no expiry — revoke by
+-- setting active = false. Adjust percent/validity in promo_codes directly.
+INSERT INTO promo_codes (code, description, percent_off, applies_to_plan, active, created_by)
+VALUES ('WELCOME10', 'Welcome offer — 10% off any billing activity', 10, NULL, TRUE, NULL)
+ON CONFLICT (code) DO NOTHING;
+
 -- ── 4. Scheduled plan changes (downgrades apply at next payment date) ────────
 ALTER TABLE schools ADD COLUMN IF NOT EXISTS scheduled_plan TEXT
   CHECK (scheduled_plan IS NULL OR scheduled_plan IN ('free_trial','starter','growth','enterprise','lifetime'));

@@ -41,27 +41,47 @@ function hexWithAlpha(hexColor: string, alphaHex: string): string {
   return "#1e3a8a22";
 }
 
-export default function StudentIDCard({ student, school }: StudentIDCardProps) {
+export type IDCardStyle = "classic" | "modern" | "minimal";
+
+export default function StudentIDCard({
+  student,
+  school,
+  style = "classic",
+}: StudentIDCardProps & { style?: IDCardStyle }) {
   const className = student.classes?.name + (student.classes?.stream ? ` ${student.classes.stream}` : "");
   const primaryColor = school.primary_color || "#1e3a8a";
   const accentColor = school.accent_color || primaryColor;
+  const isModern = style === "modern";
+  const isMinimal = style === "minimal";
 
   return (
-    <div className="w-[85.6mm] h-[53.98mm] bg-white rounded-[4mm] shadow-xl overflow-hidden flex flex-col relative border border-slate-200 student-id-card print:shadow-none print:border-slate-300">
-      {/* Background Motifs */}
-      <div
-        className="absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16"
-        style={{ backgroundColor: hexWithAlpha(primaryColor, "26") }}
-      />
-      <div
-        className="absolute bottom-0 left-0 w-24 h-24 rounded-full -ml-12 -mb-12"
-        style={{ backgroundColor: hexWithAlpha(accentColor, "22") }}
-      />
+    <div
+      className={`w-[85.6mm] h-[53.98mm] bg-white rounded-[4mm] shadow-xl overflow-hidden flex flex-col relative border border-slate-200 student-id-card print:shadow-none print:border-slate-300 ${
+        isMinimal ? "border-2" : ""
+      }`}
+    >
+      {/* Background Motifs (classic/modern only) */}
+      {!isMinimal && (
+        <>
+          <div
+            className="absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16"
+            style={{ backgroundColor: hexWithAlpha(primaryColor, isModern ? "40" : "26") }}
+          />
+          <div
+            className="absolute bottom-0 left-0 w-24 h-24 rounded-full -ml-12 -mb-12"
+            style={{ backgroundColor: hexWithAlpha(accentColor, isModern ? "33" : "22") }}
+          />
+        </>
+      )}
 
       {/* Header */}
       <div
-        className="px-4 py-2 text-white flex items-center gap-2 relative z-10"
-        style={{ backgroundColor: primaryColor }}
+        className={`px-4 py-2 text-white flex items-center gap-2 relative z-10 ${isModern ? "py-3" : ""}`}
+        style={{
+          backgroundColor: isMinimal ? "#ffffff" : primaryColor,
+          color: isMinimal ? primaryColor : "#ffffff",
+          borderBottom: isMinimal ? `2px solid ${primaryColor}` : "none",
+        }}
       >
         {school.logo_url ? (
           <Image

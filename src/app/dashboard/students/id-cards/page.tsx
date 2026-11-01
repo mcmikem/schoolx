@@ -20,6 +20,7 @@ export default function IDCardGenerator() {
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searched, setSearched] = useState(false);
+  const [cardStyle, setCardStyle] = useState<"classic" | "modern" | "minimal">("classic");
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -223,9 +224,24 @@ export default function IDCardGenerator() {
           {/* Preview Panel */}
           <div className="lg:col-span-3">
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 min-h-[600px] bg-slate-100/50">
-              <div className="mb-8 flex justify-between items-center text-slate-400">
-                <h3 className="font-bold uppercase tracking-widest text-xs">Identity Preview</h3>
-                <p className="text-xs font-medium italic">Cards are designed to standard CR80 size (85.6mm x 54mm)</p>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <h3 className="font-bold uppercase tracking-widest text-xs text-slate-400">Identity Preview</h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500">Style:</span>
+                  {(["classic", "modern", "minimal"] as const).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setCardStyle(s)}
+                      className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition ${
+                        cardStyle === s
+                          ? "bg-[var(--primary)] text-white"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div
@@ -235,7 +251,11 @@ export default function IDCardGenerator() {
                 {students.length > 0 ? (
                   students.map((s, i) => (
                     <div key={s.id} className="print:mb-[10mm] print:break-inside-avoid">
-                      <StudentIDCard student={s} school={authSchool || { name: "SkoolMate Official School" }} />
+                      <StudentIDCard
+                        student={s}
+                        school={authSchool || { name: "SkoolMate Official School" }}
+                        style={cardStyle}
+                      />
                     </div>
                   ))
                 ) : (

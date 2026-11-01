@@ -30,6 +30,7 @@ export async function createPayPalOrder(
   schoolId: string,
   returnUrl: string,
   cancelUrl: string,
+  ledgerRef?: string,
 ) {
   const paypalClient = getPayPalClientOrThrow();
   const request = new paypal.orders.OrdersCreateRequest();
@@ -48,6 +49,9 @@ export async function createPayPalOrder(
         custom_id: schoolId,
         // Standardize metadata for webhook reconciliation
         custom: schoolId,
+        // Ledger binding: invoice_id carries our subscription_payments
+        // transaction ref so capture can apply the exact payment intent.
+        ...(ledgerRef ? { invoice_id: ledgerRef } : {}),
       },
     ],
     application_context: {
@@ -138,9 +142,7 @@ export async function createPayPalSubscription(
 
 export async function activatePayPalSubscription(subscriptionID: string) {
   const paypalClient = getPayPalClientOrThrow();
-  const request = new paypal.billing.SubscriptionsActivateRequest(
-    subscriptionID,
-  );
+  const request = new paypal.billing.SubscriptionsActivateRequest(subscriptionID);
 
   try {
     const subscription = await paypalClient.execute(request);
@@ -225,15 +227,10 @@ export async function verifyPayPalWebhook(
     const clientId = process.env.PAYPAL_CLIENT_ID;
     const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
     const mode = process.env.PAYPAL_MODE === "live" ? "live" : "sandbox";
-    const baseUrl =
-      mode === "live"
-        ? "https://api.paypal.com"
-        : "https://api.sandbox.paypal.com";
+    const baseUrl = mode === "live" ? "https://api.paypal.com" : "https://api.sandbox.paypal.com";
 
     if (!clientId || !clientSecret || !webhookId) {
-      logger.error(
-        "PayPal webhook verification failed: missing credentials or webhook ID",
-      );
+      logger.error("PayPal webhook verification failed: missing credentials or webhook ID");
       return false;
     }
 
@@ -252,25 +249,22 @@ export async function verifyPayPalWebhook(
     const accessToken: string = tokenData.access_token;
 
     // Step 2: Verify webhook signature
-    const verifyResponse = await fetch(
-      `${baseUrl}/v1/notifications/verify-webhook-signature`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          auth_algo: authAlgo,
-          cert_url: certUrl,
-          transmission_id: transmissionId,
-          transmission_sig: transmissionSig,
-          transmission_time: transmissionTime,
-          webhook_id: webhookId,
-          webhook_event: webhookEvent,
-        }),
+    const verifyResponse = await fetch(`${baseUrl}/v1/notifications/verify-webhook-signature`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
       },
-    );
+      body: JSON.stringify({
+        auth_algo: authAlgo,
+        cert_url: certUrl,
+        transmission_id: transmissionId,
+        transmission_sig: transmissionSig,
+        transmission_time: transmissionTime,
+        webhook_id: webhookId,
+        webhook_event: webhookEvent,
+      }),
+    });
 
     if (!verifyResponse.ok) return false;
     const verifyData = await verifyResponse.json();

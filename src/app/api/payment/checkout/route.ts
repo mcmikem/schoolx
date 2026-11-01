@@ -3,13 +3,21 @@ import { createPayPalOrder } from "@/lib/payments/paypal";
 import { createMobileMoneyPaymentLink } from "@/lib/payments/mobile-money";
 import { PLAN_TYPES, PlanType } from "@/lib/subscription";
 import { normalizePlanType } from "@/lib/payments/subscription-client";
-import { getPlanPrice, calculateTotalPrice, recordPayment, STRIPE_PRICE_IDS } from "@/lib/payments/utils";
-import { createCheckoutSession } from "@/lib/payments/stripe";
+import {
+  getPlanPrice,
+  calculateTotalPrice,
+  recordPayment,
+  STRIPE_PRICE_IDS,
+  createSupabaseAdminClient,
+} from "@/lib/payments/utils";
+import { createCheckoutSession, createCheckoutSessionInline } from "@/lib/payments/stripe";
 import { getExchangeRate } from "@/lib/payments/exchange-rate";
 import { requireUserWithSchool, assertUserRoleOrDeny, rateLimit } from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
 import { errorWithWhatsApp } from "@/lib/support-contact";
+import { BillingError, buildQuote, generateTransactionRef } from "@/lib/billing/service";
+import { planName } from "@/lib/billing/config";
 
 const BILLING_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "bursar"];
 
@@ -87,49 +95,117 @@ export async function POST(request: NextRequest) {
       .select("*", { count: "exact", head: true })
       .eq("school_id", school.id);
 
-    const amount = await calculateTotalPrice(plan, studentCount || 0);
+    // Quote-first: all rails charge what /api/billing/quote says, never a
+    // locally-recomputed guess. The cycle/promo come from the billing panel.
+    const cycle = (body as { cycle?: string }).cycle === "annual" ? "annual" : "term";
+    const promoCode = (body as { promoCode?: string | null }).promoCode || null;
+
+    const admin = createSupabaseAdminClient();
+    let quoteTotal: number;
+    let quoteDescription: string;
+    try {
+      const built = await buildQuote(admin, {
+        schoolId: school.id,
+        action: "renew",
+        plan,
+        cycle,
+        promoCode,
+      });
+      quoteTotal = built.quote.totalDue;
+      quoteDescription = `${planName(plan)} plan · ${cycle === "annual" ? "annual" : "term"} · ${built.context.student_count} students`;
+    } catch (err) {
+      if (err instanceof BillingError) {
+        return errorWithWhatsApp(err.message, err.status, {
+          schoolName: planInfo.schoolName,
+          plan: planInfo.planName,
+        });
+      }
+      // Quote engine unavailable (e.g. DB drift) → legacy per-student math.
+      quoteTotal = await calculateTotalPrice(plan, studentCount || 0);
+      quoteDescription = `${planName(plan)} plan`;
+    }
+
+    const amount = quoteTotal;
 
     if (amount <= 0) {
       return NextResponse.json({ error: "Selected plan is not billable" }, { status: 400 });
     }
 
+    // Our pending-ledger ref binds the provider session to the intent row.
+    const transactionId = generateTransactionRef();
+
     if (provider === "stripe") {
-      const priceId = STRIPE_PRICE_IDS[plan];
-      if (!priceId) {
-        return NextResponse.json({ error: "Stripe price not configured for this plan" }, { status: 400 });
-      }
-
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-      const successUrl = `${baseUrl}/api/payment/capture/?plan=${plan}&provider=stripe`;
-      const cancelUrl = `${baseUrl}/dashboard/settings?tab=subscription&canceled=true&provider=stripe`;
-
-      const session = await createCheckoutSession({
-        priceId,
-        quantity: studentCount || 50,
-        schoolId: school.id,
-        plan,
-        successUrl,
-        cancelUrl,
-        customerEmail: auth.context.user.email,
-      });
+      const stripeSuccessUrl = `${baseUrl}/api/payment/capture/?plan=${plan}&provider=stripe`;
+      const stripeCancelUrl = `${baseUrl}/dashboard/settings?tab=subscription&canceled=true&provider=stripe`;
 
       await recordPayment({
         schoolId: school.id,
         plan,
-        amount: (session.amount_total || 0) / 100,
+        amount,
         provider: "stripe",
-        transactionId: session.id,
+        transactionId,
         paymentStatus: "pending",
+        customerId: auth.context.user.id,
+        description: quoteDescription,
+        intent: {
+          type: "renew",
+          plan,
+          cycle,
+          months: cycle === "annual" ? 12 : 4,
+          studentCount: studentCount || 0,
+        },
       });
 
-      return NextResponse.json(
-        {
-          success: true,
-          url: session.url,
-          sessionId: session.id,
-        },
-        { status: 200 },
-      );
+      try {
+        let session;
+        const priceId = STRIPE_PRICE_IDS[plan];
+        if (priceId) {
+          // Legacy configured price-id path (e.g. pre-created products).
+          session = await createCheckoutSession({
+            priceId,
+            quantity: studentCount || 50,
+            schoolId: school.id,
+            plan,
+            successUrl: stripeSuccessUrl,
+            cancelUrl: stripeCancelUrl,
+            customerEmail: auth.context.user.email,
+            metadata: { intent_transaction_id: transactionId },
+          });
+        } else {
+          // Quote-driven one-time charge in USD (Stripe does not settle UGX).
+          const rate = await getExchangeRate("USD", "UGX");
+          session = await createCheckoutSessionInline({
+            amountUsdCents: Math.min(Math.max(Math.round((amount / rate) * 100), 50), 99999999),
+            description: quoteDescription,
+            schoolId: school.id,
+            plan,
+            successUrl: stripeSuccessUrl,
+            cancelUrl: stripeCancelUrl,
+            customerEmail: auth.context.user.email,
+            metadata: { intent_transaction_id: transactionId },
+          });
+        }
+
+        // Keep the provider ref on the ledger row (Stripe capture reads it
+        // from session metadata; nothing extra needed here).
+
+        return NextResponse.json(
+          {
+            success: true,
+            url: session.url,
+            sessionId: session.id,
+          },
+          { status: 200 },
+        );
+      } catch (err) {
+        // Mark the pending row failed so it doesn't dangle as confirmable.
+        await admin
+          .from("subscription_payments")
+          .update({ payment_status: "failed" })
+          .eq("transaction_id", transactionId);
+        throw err;
+      }
     }
 
     if (provider === "paypal") {
@@ -141,29 +217,56 @@ export async function POST(request: NextRequest) {
       const rate = await getExchangeRate("USD", "UGX");
       const orderAmount = Math.round((amount / rate) * 100) / 100;
 
-      const order = await createPayPalOrder(orderAmount * 100, "USD", school.id, ppReturnUrl, ppCancelUrl);
-
-      const approvalUrl = order.result.links?.find(
-        (link: { rel: string; href: string }) => link.rel === "approve",
-      )?.href;
-
       await recordPayment({
         schoolId: school.id,
         plan,
         amount,
         provider: "paypal",
-        transactionId: order.result.id,
+        transactionId,
         paymentStatus: "pending",
+        customerId: auth.context.user.id,
+        description: quoteDescription,
+        intent: {
+          type: "renew",
+          plan,
+          cycle,
+          months: cycle === "annual" ? 12 : 4,
+          studentCount: studentCount || 0,
+        },
       });
 
-      return NextResponse.json(
-        {
-          success: true,
-          url: approvalUrl,
-          orderId: order.result.id,
-        },
-        { status: 200 },
-      );
+      try {
+        const order = await createPayPalOrder(
+          orderAmount * 100,
+          "USD",
+          school.id,
+          ppReturnUrl,
+          ppCancelUrl,
+          transactionId,
+        );
+
+        const approvalUrl = order.result.links?.find(
+          (link: { rel: string; href: string }) => link.rel === "approve",
+        )?.href;
+
+        // Payment capture reads purchase_units[0].invoice_id → transaction id.
+
+        return NextResponse.json(
+          {
+            success: true,
+            url: approvalUrl,
+            orderId: order.result.id,
+            reference: transactionId,
+          },
+          { status: 200 },
+        );
+      } catch (err) {
+        await admin
+          .from("subscription_payments")
+          .update({ payment_status: "failed" })
+          .eq("transaction_id", transactionId);
+        throw err;
+      }
     }
 
     return errorWithWhatsApp(

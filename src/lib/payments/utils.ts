@@ -13,6 +13,8 @@ function createSupabaseAdminClient() {
   });
 }
 
+export { createSupabaseAdminClient };
+
 export const PAYMENT_PROVIDERS = {
   STRIPE: "stripe",
   PAYPAL: "paypal",

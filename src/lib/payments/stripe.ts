@@ -1,5 +1,5 @@
 import { logger } from "@/lib/logger";
-import Stripe from 'stripe';
+import Stripe from "stripe";
 
 function getStripeClientOrThrow() {
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -24,8 +24,8 @@ function getStripeWebhookSecretOrThrow() {
 // Create a payment intent for subscription amount
 export async function createPaymentIntent(
   amount: number, // amount in smallest currency unit (e.g., cents for USD)
-  currency: string = 'usd',
-  metadata: Record<string, string> = {}
+  currency: string = "usd",
+  metadata: Record<string, string> = {},
 ) {
   try {
     const paymentIntent = await getStripeClientOrThrow().paymentIntents.create({
@@ -42,49 +42,39 @@ export async function createPaymentIntent(
       paymentIntentId: paymentIntent.id,
     };
   } catch (error) {
-    logger.error('Error creating payment intent:', error);
-    throw new Error('Failed to create payment intent');
+    logger.error("Error creating payment intent:", error);
+    throw new Error("Failed to create payment intent");
   }
 }
 
 // Confirm a payment intent
-export async function confirmPaymentIntent(
-  paymentIntentId: string,
-  paymentMethodId: string
-) {
+export async function confirmPaymentIntent(paymentIntentId: string, paymentMethodId: string) {
   try {
-    const paymentIntent = await getStripeClientOrThrow().paymentIntents.confirm(
-      paymentIntentId,
-      {
-        payment_method: paymentMethodId,
-      }
-    );
+    const paymentIntent = await getStripeClientOrThrow().paymentIntents.confirm(paymentIntentId, {
+      payment_method: paymentMethodId,
+    });
 
     return paymentIntent;
   } catch (error) {
-    logger.error('Error confirming payment intent:', error);
-    throw new Error('Failed to confirm payment intent');
+    logger.error("Error confirming payment intent:", error);
+    throw new Error("Failed to confirm payment intent");
   }
 }
 
 // Create a subscription
-export async function createSubscription(
-  customerId: string,
-  priceId: string,
-  metadata: Record<string, string> = {}
-) {
+export async function createSubscription(customerId: string, priceId: string, metadata: Record<string, string> = {}) {
   try {
     const subscription = await getStripeClientOrThrow().subscriptions.create({
       customer: customerId,
       items: [{ price: priceId }],
       metadata,
-      expand: ['latest_invoice.payment_intent'],
+      expand: ["latest_invoice.payment_intent"],
     });
 
     return subscription;
   } catch (error) {
-    logger.error('Error creating subscription:', error);
-    throw new Error('Failed to create subscription');
+    logger.error("Error creating subscription:", error);
+    throw new Error("Failed to create subscription");
   }
 }
 
@@ -92,7 +82,7 @@ export async function createSubscription(
 export async function updateSubscription(
   subscriptionId: string,
   priceId: string,
-  prorationBehavior: Stripe.SubscriptionUpdateParams.ProrationBehavior = 'create_prorations'
+  prorationBehavior: Stripe.SubscriptionUpdateParams.ProrationBehavior = "create_prorations",
 ) {
   try {
     const subscription = await getStripeClientOrThrow().subscriptions.update(subscriptionId, {
@@ -102,16 +92,13 @@ export async function updateSubscription(
 
     return subscription;
   } catch (error) {
-    logger.error('Error updating subscription:', error);
-    throw new Error('Failed to update subscription');
+    logger.error("Error updating subscription:", error);
+    throw new Error("Failed to update subscription");
   }
 }
 
 // Cancel a subscription
-export async function cancelSubscription(
-  subscriptionId: string,
-  cancelAtPeriodEnd: boolean = true
-) {
+export async function cancelSubscription(subscriptionId: string, cancelAtPeriodEnd: boolean = true) {
   try {
     const subscription = await getStripeClientOrThrow().subscriptions.update(subscriptionId, {
       cancel_at_period_end: cancelAtPeriodEnd,
@@ -119,16 +106,13 @@ export async function cancelSubscription(
 
     return subscription;
   } catch (error) {
-    logger.error('Error canceling subscription:', error);
-    throw new Error('Failed to cancel subscription');
+    logger.error("Error canceling subscription:", error);
+    throw new Error("Failed to cancel subscription");
   }
 }
 
 // Create a customer portal session
-export async function createCustomerPortalSession(
-  customerId: string,
-  returnUrl: string
-) {
+export async function createCustomerPortalSession(customerId: string, returnUrl: string) {
   try {
     const session = await getStripeClientOrThrow().billingPortal.sessions.create({
       customer: customerId,
@@ -137,8 +121,8 @@ export async function createCustomerPortalSession(
 
     return session.url;
   } catch (error) {
-    logger.error('Error creating customer portal session:', error);
-    throw new Error('Failed to create customer portal session');
+    logger.error("Error creating customer portal session:", error);
+    throw new Error("Failed to create customer portal session");
   }
 }
 
@@ -146,13 +130,13 @@ export async function createCustomerPortalSession(
 export async function getSubscription(subscriptionId: string) {
   try {
     const subscription = await getStripeClientOrThrow().subscriptions.retrieve(subscriptionId, {
-      expand: ['default_payment_method', 'latest_invoice.payment_intent'],
+      expand: ["default_payment_method", "latest_invoice.payment_intent"],
     });
 
     return subscription;
   } catch (error) {
-    logger.error('Error retrieving subscription:', error);
-    throw new Error('Failed to retrieve subscription');
+    logger.error("Error retrieving subscription:", error);
+    throw new Error("Failed to retrieve subscription");
   }
 }
 
@@ -193,12 +177,54 @@ export async function createCheckoutSession(params: {
   }
 }
 
+/**
+ * One-time checkout charged from an ad-hoc amount (USD cents). Used when no
+ * STRIPE_PRICE_* ids are configured: the amount comes from the billing quote
+ * engine (/api/billing/quote) and binds the session to a pending ledger row
+ * via metadata.intent_transaction_id so capture activates the exact intent.
+ */
+export async function createCheckoutSessionInline(params: {
+  amountUsdCents: number;
+  description: string;
+  schoolId: string;
+  plan: string;
+  successUrl: string;
+  cancelUrl: string;
+  customerEmail?: string;
+  metadata?: Record<string, string>;
+}) {
+  try {
+    const session = await getStripeClientOrThrow().checkout.sessions.create({
+      mode: "payment",
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "usd",
+            unit_amount: Math.round(params.amountUsdCents),
+            product_data: { name: `SkoolMate — ${params.description}` },
+          },
+        },
+      ],
+      customer_email: params.customerEmail,
+      success_url: params.successUrl,
+      cancel_url: params.cancelUrl,
+      metadata: {
+        school_id: params.schoolId,
+        plan: params.plan,
+        ...params.metadata,
+      },
+    });
+
+    return session;
+  } catch (error) {
+    logger.error("Error creating inline checkout session:", error);
+    throw new Error("Failed to create checkout session");
+  }
+}
+
 // Create a customer
-export async function createCustomer(
-  email: string,
-  name?: string,
-  metadata: Record<string, string> = {}
-) {
+export async function createCustomer(email: string, name?: string, metadata: Record<string, string> = {}) {
   try {
     const customer = await getStripeClientOrThrow().customers.create({
       email,
@@ -208,8 +234,8 @@ export async function createCustomer(
 
     return customer;
   } catch (error) {
-    logger.error('Error creating customer:', error);
-    throw new Error('Failed to create customer');
+    logger.error("Error creating customer:", error);
+    throw new Error("Failed to create customer");
   }
 }
 
@@ -220,27 +246,20 @@ export async function getCustomer(customerId: string) {
 
     return customer;
   } catch (error) {
-    logger.error('Error retrieving customer:', error);
-    throw new Error('Failed to retrieve customer');
+    logger.error("Error retrieving customer:", error);
+    throw new Error("Failed to retrieve customer");
   }
 }
 
 // Handle webhook events
-export async function handleWebhookEvent(
-  payload: Buffer,
-  sig: string
-) {
+export async function handleWebhookEvent(payload: Buffer, sig: string) {
   let event: Stripe.Event;
 
   try {
-    event = getStripeClientOrThrow().webhooks.constructEvent(
-      payload,
-      sig,
-      getStripeWebhookSecretOrThrow()
-    );
+    event = getStripeClientOrThrow().webhooks.constructEvent(payload, sig, getStripeWebhookSecretOrThrow());
   } catch (err) {
     logger.error(`Webhook signature verification failed.`, err);
-    throw new Error('Invalid webhook signature');
+    throw new Error("Invalid webhook signature");
   }
 
   return event;
@@ -257,6 +276,6 @@ const stripeApi = {
   createCustomer,
   getCustomer,
   handleWebhookEvent,
-}
+};
 
-export default stripeApi
+export default stripeApi;
