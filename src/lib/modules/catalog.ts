@@ -394,7 +394,8 @@ export const MODULE_CATALOG: ModuleDefinition[] = [
   {
     module_key: "students",
     display_name: "Student Records",
-    description: "Student registry, enrollments, transfers, promotions, ID cards, and alumni.",
+    description:
+      "Student registry, enrollments, transfers, promotions, ID cards, alumni, profiles, health records, and parent portal access.",
     icon: "group",
     route_prefixes: MODULE_ROUTE_MAP.students,
     included_in_stages: ["core", "academic", "finance", "full"],
@@ -426,7 +427,8 @@ export const MODULE_CATALOG: ModuleDefinition[] = [
   {
     module_key: "attendance",
     display_name: "Attendance",
-    description: "Daily class attendance, period attendance, and staff attendance scanning.",
+    description:
+      "Daily class attendance, period attendance, staff attendance scanning, and offline attendance recovery.",
     icon: "how_to_reg",
     route_prefixes: MODULE_ROUTE_MAP.attendance,
     included_in_stages: ["core", "academic", "finance", "full"],
@@ -458,7 +460,8 @@ export const MODULE_CATALOG: ModuleDefinition[] = [
   {
     module_key: "operations",
     display_name: "Operations",
-    description: "Timetable, academic terms, rollover, automation, import/export, sync, and workflows.",
+    description:
+      "Timetable (Ugandan school-day presets), academic terms, rollover, automation, import/export, offline sync, and workflows.",
     icon: "settings_applications",
     route_prefixes: MODULE_ROUTE_MAP.operations,
     included_in_stages: ["finance", "full"],
@@ -474,7 +477,8 @@ export const MODULE_CATALOG: ModuleDefinition[] = [
   {
     module_key: "marks",
     display_name: "Grades & Marks",
-    description: "Grade entry, marks completion tracking, homework, lesson plans, syllabus, and courses.",
+    description:
+      "Grade entry, marks completion tracking, homework, lesson plans, syllabus, courses, and competency/AOI assessment.",
     icon: "menu_book",
     route_prefixes: MODULE_ROUTE_MAP.marks,
     included_in_stages: ["academic", "finance", "full"],
@@ -506,7 +510,8 @@ export const MODULE_CATALOG: ModuleDefinition[] = [
   {
     module_key: "reports",
     display_name: "Reports",
-    description: "Report cards, batch reports, custom reports, board reports, MOEs reports, and trends.",
+    description:
+      "Report cards (Uganda primary/secondary/competency), batch reports, custom reports, MOEs reports, trends, and PDF download.",
     icon: "description",
     route_prefixes: MODULE_ROUTE_MAP.reports,
     included_in_stages: ["academic", "finance", "full"],
@@ -522,7 +527,8 @@ export const MODULE_CATALOG: ModuleDefinition[] = [
   {
     module_key: "finance",
     display_name: "Finance & Fees",
-    description: "Fee collection, invoicing, cashbook, budget, expense approvals, payment plans, and billing.",
+    description:
+      "Fee collection, invoicing, cashbook, budget, expense approvals, payment plans, billing, and offline payment recording with audit trail.",
     icon: "payments",
     route_prefixes: MODULE_ROUTE_MAP.finance,
     included_in_stages: ["finance", "full"],
