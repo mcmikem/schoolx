@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import LottieEmptyState from "@/components/ui/LottieEmptyState";
 import Link from "next/link";
 import {
   type ChangeEvent,
@@ -950,8 +951,17 @@ export default function StudentRegistryPanel({
           <TableSkeleton rows={8} />
         ) : filteredCount === 0 ? (
           <div className="border-b border-[var(--border)] px-4 py-12 text-center">
-            <MaterialIcon className="mb-2 text-2xl text-[var(--t3)]">group</MaterialIcon>
-            <div className="mb-1 text-sm font-semibold text-[var(--t1)]">No students found</div>
+            <LottieEmptyState
+              description={
+                searchTerm
+                  ? "Try a different search term"
+                  : filtersActive
+                    ? "No students match the current filters"
+                    : canManage
+                      ? "Add your first student to get started"
+                      : "No students are visible to your account yet"
+              }
+            />
             <div className="text-xs text-[var(--t3)]">
               {searchTerm
                 ? "Try a different search term"
