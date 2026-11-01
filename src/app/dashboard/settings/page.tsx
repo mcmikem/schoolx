@@ -84,6 +84,7 @@ async function parseApiResponse(response: Response): Promise<Record<string, unkn
 }
 
 const ALL_SETTINGS_TABS = [
+  { id: "profile", label: "My Profile" },
   { id: "general", label: "School Details" },
   { id: "config", label: "School Config", badge: "New" },
   { id: "users", label: "Staff & Users" },
@@ -995,6 +996,34 @@ export default function SettingsPage() {
       <div className="p-4 sm:p-6 lg:p-8">
         <PageHeader title="Settings" subtitle="Manage your school settings" />
         <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} className="mb-6" />
+
+        <TabPanel activeTab={activeTab} tabId="profile">
+          <div className="space-y-6">
+            <Card>
+              <CardBody className="p-5 space-y-4">
+                <h3 className="font-semibold text-[var(--t1)]">My Profile</h3>
+                <p className="text-sm text-[var(--t3)]">
+                  Your personal details. School-wide settings are on the other tabs (admins only).
+                </p>
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-16 rounded-full bg-[var(--surface-container-low)] flex items-center justify-center text-2xl font-bold text-[var(--t3)] overflow-hidden">
+                    {user?.avatar_url ? (
+                      <img src={user.avatar_url} alt="avatar" className="h-full w-full object-cover" />
+                    ) : (
+                      (user?.full_name || "U").charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[var(--t1)]">{user?.full_name || "User"}</p>
+                    <p className="text-xs text-[var(--t3)]">
+                      {user?.role} · {user?.phone || user?.email}
+                    </p>
+                  </div>
+                </div>
+              </CardBody>
+            </Card>
+          </div>
+        </TabPanel>
 
         <TabPanel activeTab={activeTab} tabId="general">
           <div className="space-y-6">

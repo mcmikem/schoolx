@@ -216,8 +216,8 @@ describe("settings route exception", () => {
     expect(isRouteAllowed("headmaster", "/dashboard/settings")).toBe(true);
   });
 
-  it("keeps the teacher settings tab list to general and notifications", () => {
-    expect(tabsForRole("teacher")).toEqual(["general", "notifications"]);
+  it("gives teachers a personal profile tab plus notifications", () => {
+    expect(tabsForRole("teacher")).toEqual(["profile", "notifications"]);
   });
 
   it("leaves ungated teacher routes open", () => {
