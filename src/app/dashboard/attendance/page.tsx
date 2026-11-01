@@ -612,6 +612,13 @@ export default function AttendancePage() {
   }, [selectedClass, date]);
 
   const saveAttendance = async (attendanceOverride?: Record<string, string>) => {
+    const draftAtStart = JSON.stringify(readDraft(attendanceDraftKey));
+    const finishDraft = () => {
+      if (loadedDraftScope.current !== attendanceDraftKey) return;
+      const unchanged = JSON.stringify(readDraft(attendanceDraftKey)) === draftAtStart;
+      dirtyRef.current = !unchanged;
+      if (unchanged) clearDraft(attendanceDraftKey);
+    };
     if (!selectedClass || !user?.id) return;
 
     const source = attendanceOverride ?? attendance;
@@ -678,8 +685,7 @@ export default function AttendancePage() {
         notifyDashboardStatsChanged(school?.id);
         await loadOfflineCount();
         const summaryCounts = countStatuses(Object.values(effective));
-        dirtyRef.current = false;
-        clearDraft(attendanceDraftKey);
+        finishDraft();
         setSavedSummary({
           ...summaryCounts,
           total: records.length,
@@ -721,8 +727,10 @@ export default function AttendancePage() {
       toast.success(`Saved locally (${records.length} records)`);
       await loadOfflineCount();
       const summaryCounts = countStatuses(records.map((r) => String((r as { status?: unknown }).status ?? "")));
-      dirtyRef.current = false;
-      clearDraft(attendanceDraftKey);
+      if (loadedDraftScope.current === attendanceDraftKey) {
+        dirtyRef.current = false;
+        clearDraft(attendanceDraftKey);
+      }
       setSavedSummary({
         ...summaryCounts,
         total: records.length,

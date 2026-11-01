@@ -33,7 +33,7 @@ export function readPerformanceMode(): PerformanceMode {
   }
 }
 export function isLiteMode(): boolean {
-  if (typeof navigator === "undefined") return false;
+  if (typeof navigator === "undefined" || typeof window === "undefined") return false;
   return shouldUseLite({ ...deviceHints() }, readPerformanceMode());
 }
 function deviceHints(): DeviceHints {

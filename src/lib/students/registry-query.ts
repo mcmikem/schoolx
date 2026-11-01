@@ -25,7 +25,10 @@ export function registryQuery(schoolId: string, fields: string, filters: Registr
   if (filters.gender && filters.gender !== "all") query = query.eq("gender", filters.gender);
   if (filters.status && filters.status !== "all") query = query.eq("status", filters.status);
   if (filters.position === "monitor") query = query.eq("is_class_monitor", true);
-  if (filters.position === "prefect") query = query.or("prefect_role.not.is.null,student_council_role.not.is.null");
+  if (filters.position === "prefect")
+    query = query.or(
+      'and(prefect_role.not.is.null,prefect_role.neq.""),and(student_council_role.not.is.null,student_council_role.neq."")',
+    );
   if (filters.defaultersOnly) query = query.gt("opening_balance", 0);
   const ascending = filters.sortDir !== "desc";
   if (filters.sortBy === "class") query = query.order("classes(name)", { ascending });

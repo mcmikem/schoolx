@@ -42,6 +42,12 @@ export function OfflinePreparation() {
       >
         {progress?.running ? "Preparing…" : "Download offline data and pages"}
       </button>
+      <a
+        href="/offline.html"
+        className="inline-flex min-h-11 items-center px-2 text-sm font-semibold text-[var(--primary)] underline"
+      >
+        Check saved pages
+      </a>
       <p className="text-xs text-[var(--t2)]">
         Uses mobile data and device storage. Larger schools take longer.{" "}
         {isDemo ? "Downloads are unavailable in demo mode." : ""}

@@ -946,6 +946,10 @@ export function useStudents(schoolId?: string, options?: StudentQueryOptions): U
       setTotalCount(entry.count);
       studentCountRef.current = entry.count;
       lastResolvedStudentsRef.current = entry.students;
+      if (registry)
+        void offlineDB
+          .cacheFromServer("students", entry.students as unknown as Record<string, unknown>[])
+          .catch(() => {});
     } catch (err: unknown) {
       if (request === requestId.current) setError(getErrorMessage(err, "Failed to load students"));
     } finally {
@@ -1403,14 +1407,39 @@ export function useStudents(schoolId?: string, options?: StudentQueryOptions): U
     fetchStudents();
     hasInitialized.current = true;
   }, [enabled, fetchStudents]);
+  const latestRegistryFetch = useRef(fetchStudents);
+  latestRegistryFetch.current = fetchStudents;
+  const mutationRefresh = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleRegistryRefresh = () => {
+    if (!registry) return;
+    if (mutationRefresh.current) clearTimeout(mutationRefresh.current);
+    mutationRefresh.current = setTimeout(() => void latestRegistryFetch.current(), 300);
+  };
+  useEffect(
+    () => () => {
+      if (mutationRefresh.current) clearTimeout(mutationRefresh.current);
+    },
+    [],
+  );
   return {
     students,
     loading,
     error,
     totalCount,
-    createStudent,
-    updateStudent,
-    deleteStudent,
+    createStudent: async (input) => {
+      const saved = await createStudent(input);
+      scheduleRegistryRefresh();
+      return saved;
+    },
+    updateStudent: async (id, input) => {
+      const saved = await updateStudent(id, input);
+      scheduleRegistryRefresh();
+      return saved;
+    },
+    deleteStudent: async (id) => {
+      await deleteStudent(id);
+      scheduleRegistryRefresh();
+    },
     refetch: fetchStudents,
   };
 }

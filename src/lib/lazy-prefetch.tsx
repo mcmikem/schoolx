@@ -27,14 +27,15 @@ function whenIdle(task: () => void, delayMs: number): void {
  * leaves the component available offline.
  *
  * On a slow or Save-Data connection the warm-up is delayed, not skipped, so it
- * never competes with the data the screen actually needs.
+ * essential forms remain available offline; optional panels load on demand in Lite mode.
  */
 export function lazyWithIdlePrefetch<P extends object>(
   importer: Importer<P>,
-  options: { loading?: () => React.ReactNode } = {},
+  options: { loading?: () => React.ReactNode; offlineEssential?: boolean } = {},
 ): ComponentType<P> {
   whenIdle(
     () => {
+      if (isLiteMode() && !options.offlineEssential) return;
       void runBackgroundWork(importer).catch(() => {
         /* Offline or a failed chunk: the real render path retries and reports. */
       });

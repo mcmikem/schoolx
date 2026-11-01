@@ -58,12 +58,12 @@ import type { FeeStructure } from "@/types";
 
 // Split out of the first-load bundle (old phones parse less up front) and warmed in
 // idle time so the forms and tabs still open offline once the page has been visited.
-const PaymentModal = lazyWithIdlePrefetch(() => import("@/components/fees/PaymentModal"));
+const PaymentModal = lazyWithIdlePrefetch(() => import("@/components/fees/PaymentModal"), { offlineEssential: true });
 const FeeFormModal = lazyWithIdlePrefetch(() => import("@/components/fees/FeeFormModal"));
 const FeeImportModal = lazyWithIdlePrefetch(() => import("@/components/fees/FeeImportModal"));
 const MobileMoneyImportModal = lazyWithIdlePrefetch(() => import("@/components/fees/MobileMoneyImportModal"));
-const ReceiptModal = lazyWithIdlePrefetch(() => import("@/components/fees/ReceiptModal"));
-const ReceiptPrompt = lazyWithIdlePrefetch(() => import("@/components/fees/ReceiptPrompt"));
+const ReceiptModal = lazyWithIdlePrefetch(() => import("@/components/fees/ReceiptModal"), { offlineEssential: true });
+const ReceiptPrompt = lazyWithIdlePrefetch(() => import("@/components/fees/ReceiptPrompt"), { offlineEssential: true });
 const InvoiceModal = lazyWithIdlePrefetch(() => import("@/components/fees/InvoiceModal"));
 const AdjustmentModal = lazyWithIdlePrefetch(() => import("@/components/fees/AdjustmentModal"));
 const FeePaymentHistory = lazyWithIdlePrefetch(() => import("@/components/fees/FeePaymentHistory"));

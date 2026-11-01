@@ -126,7 +126,10 @@ export default function StudentHubPage() {
 
   const { preferences: tablePrefs, updatePreferences: updateTablePrefs } = useTablePreferences("students-registry");
 
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(() => {
+    const requested = Number(searchParams?.get("page") || 1);
+    return Number.isSafeInteger(requested) && requested > 0 ? requested : 1;
+  });
   const [isConstrainedNetwork, setIsConstrainedNetwork] = useState(false);
   const [networkProfileReady, setNetworkProfileReady] = useState(false);
   const [loadFullRoster, setLoadFullRoster] = useState(false);
@@ -485,6 +488,10 @@ export default function StudentHubPage() {
   const totalPages =
     pageSize === -1 ? 1 : Math.max(1, Math.ceil((fullRegister ? filtered.length : matchingCount) / pageSize));
 
+  useEffect(() => {
+    if (!loading && !studentsError && currentPage > totalPages) setCurrentPage(totalPages);
+  }, [loading, studentsError, currentPage, totalPages]);
+
   // Sync filters to URL (debounced for search)
   useEffect(() => {
     const params: Record<string, string | null> = {};
@@ -531,9 +538,24 @@ export default function StudentHubPage() {
     }
   }, [currentPage]);
 
+  const filterSignature = JSON.stringify([
+    searchTerm,
+    selectedClass,
+    filterGender,
+    filterStatus,
+    filterPosition,
+    filterDefaulters,
+    sortBy,
+    sortDir,
+    pageSize,
+  ]);
+  const previousFilters = useRef(filterSignature);
   useEffect(() => {
+    if (previousFilters.current === filterSignature) return;
+    previousFilters.current = filterSignature;
     setCurrentPage(1);
   }, [
+    filterSignature,
     searchTerm,
     selectedClass,
     filterGender,
@@ -1110,9 +1132,11 @@ export default function StudentHubPage() {
                   Generate PLE Index Numbers?
                 </h3>
                 <p style={{ color: "var(--t3)", fontSize: 14 }}>
-                  {plePendingCount > 0
-                    ? `This will assign index numbers to ${plePendingCount} P.7 student${plePendingCount === 1 ? "" : "s"} who don't have one yet. Students who already have a number are left unchanged.`
-                    : "All P.7 students already have a PLE index number. Nothing will change."}
+                  {!fullRegister
+                    ? "The complete P.7 register will be checked before assigning missing index numbers. This requires internet."
+                    : plePendingCount > 0
+                      ? `This will assign index numbers to ${plePendingCount} P.7 student${plePendingCount === 1 ? "" : "s"} who don't have one yet. Students who already have a number are left unchanged.`
+                      : "All P.7 students already have a PLE index number. Nothing will change."}
                 </p>
               </div>
               <div className="flex gap-3">
@@ -1127,7 +1151,7 @@ export default function StudentHubPage() {
                 <Button
                   onClick={generatePLEIndexNumbers}
                   className="flex-1"
-                  disabled={generatingPle || plePendingCount === 0}
+                  disabled={generatingPle || (fullRegister && plePendingCount === 0)}
                   loading={generatingPle}
                 >
                   Generate

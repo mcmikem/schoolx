@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { searchWords } from "@/lib/students/registry-query";
-import { canAccessAny, canAccess, type UserRole, type RolePermissions } from "@/lib/roles";
+import { canAccessAny, type UserRole, type RolePermissions } from "@/lib/roles";
 import { roleBasedRoutes } from "@/components/dashboard/AccessControlGuard";
 import { canOpenSettingsPage } from "@/lib/role-tab-access";
 

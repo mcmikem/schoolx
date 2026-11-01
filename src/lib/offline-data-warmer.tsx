@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { getLocalDateString } from "@/lib/hooks/utils";
 import { logger } from "@/lib/logger";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { isLiteMode, PERFORMANCE_EVENT } from "@/lib/performance-mode";
@@ -136,9 +137,17 @@ export function OfflineDataWarmer() {
       savePreparation(key, progress);
       try {
         const tables = requestedProfile === "essential" ? ESSENTIAL_OFFLINE_DATA_TABLES : OFFLINE_DATA_TABLES;
+        const now = new Date();
+        const recent = new Date(now);
+        recent.setDate(recent.getDate() - 30);
+        const storedTerm = Number(safeLocalStorage.getItem("current_term"));
         const result = await offlineDB.warmTables(tables, {
           ...(requestedProfile === "essential" ? { pageSize: 100, maxRows: 100 } : { pageSize: 250, maxRows: 1000 }),
           schoolId: school.id,
+          academicYear: safeLocalStorage.getItem("academic_year") || String(now.getFullYear()),
+          term: [1, 2, 3].includes(storedTerm) ? storedTerm : undefined,
+          today: getLocalDateString(now),
+          recentPaymentsSince: getLocalDateString(recent),
           signal: controller.signal,
           onProgress: (table, rows, total, complete) => {
             if (cancelled) return;
@@ -147,8 +156,7 @@ export function OfflineDataWarmer() {
           },
         });
         if (cancelled) return;
-        // A single unavailable table must not make every launch download the
-        // other 31 again. Failed tables are retried on the next daily pass.
+        // Failed preparation remains retryable; never mark it as ready.
         if (result.errors.length === 0) markWarmed(scope, requestedProfile);
         progress.errors = result.errors;
         if (result.errors.length > 0) logger.debug("[offline] some tables were not warmed", result.errors);

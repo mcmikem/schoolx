@@ -1,3 +1,4 @@
+import { isLiteMode } from "@/lib/performance-mode";
 type CacheEntry<T> = {
   data: T;
   timestamp: number;
@@ -29,7 +30,19 @@ export function getCachedData<T>(key: string): T | null {
 }
 
 export function setCachedData<T>(key: string, data: T): void {
-  CACHE.set(getCacheKey(key), { data, timestamp: Date.now() });
+  const now = Date.now();
+  for (const [entryKey, entry] of CACHE) {
+    if (now - entry.timestamp > CACHE_TTL) CACHE.delete(entryKey);
+  }
+  const storageKey = getCacheKey(key);
+  CACHE.delete(storageKey);
+  CACHE.set(storageKey, { data, timestamp: now });
+  const limit = isLiteMode() ? 24 : 96;
+  while (CACHE.size > limit) {
+    const oldest = CACHE.keys().next().value;
+    if (oldest === undefined) break;
+    CACHE.delete(oldest);
+  }
   LISTENERS.get(key)?.forEach((fn) => fn());
 }
 

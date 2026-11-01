@@ -11,6 +11,7 @@ export function runBackgroundWork<T>(work: () => Promise<T>, signal?: AbortSigna
     };
     window.addEventListener("pointerdown", active, { passive: true });
     window.addEventListener("keydown", active);
+    window.addEventListener("scroll", active, { passive: true, capture: true });
   }
   const result = tail
     .catch(() => {})

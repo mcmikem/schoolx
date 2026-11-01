@@ -410,6 +410,33 @@ export default function GradesPage() {
       ? subjects.filter((s) => teacherSubjects.some((ts) => ts.class_id === selectedClass && ts.subject_id === s.id))
       : subjects;
 
+  const rememberedMarksScope = useRef("");
+  const marksContextKey = `skoolmate:marks-context:${user?.id}:${school?.id}`;
+  useEffect(() => {
+    if (!user?.id || !school?.id || classOptions.length === 0) return;
+    if (rememberedMarksScope.current !== marksContextKey) {
+      rememberedMarksScope.current = marksContextKey;
+      const previous = readDraft<{ classId: string; subjectId: string }>(marksContextKey, 365 * 86400000);
+      if (previous && classOptions.some((cls) => cls.id === previous.classId)) {
+        setSelectedClass(previous.classId);
+        if (
+          subjects.some((subject) => subject.id === previous.subjectId) &&
+          (!teacherScoped ||
+            teacherSubjects.some(
+              (assignment) => assignment.class_id === previous.classId && assignment.subject_id === previous.subjectId,
+            ))
+        ) {
+          setSelectedSubject(previous.subjectId);
+        }
+      }
+    }
+  }, [marksContextKey, user?.id, school?.id, classOptions, subjects, teacherScoped, teacherSubjects]);
+  useEffect(() => {
+    if (selectedClass && selectedSubject && subjectOptions.some((subject) => subject.id === selectedSubject)) {
+      writeDraft(marksContextKey, { classId: selectedClass, subjectId: selectedSubject });
+    }
+  }, [marksContextKey, selectedClass, selectedSubject, subjectOptions]);
+
   // When switching classes, if the previously selected subject is not taught in
   // the new class, clear it so the teacher never grades an invalid class/subject pair.
   useEffect(() => {

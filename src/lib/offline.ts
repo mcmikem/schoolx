@@ -1145,6 +1145,10 @@ class OfflineDB {
       pageSize?: number;
       maxRows?: number;
       schoolId?: string;
+      academicYear?: string;
+      term?: number;
+      today?: string;
+      recentPaymentsSince?: string;
       signal?: AbortSignal;
       onProgress?: (table: string, rows: number, total: number | null, complete: boolean) => void;
     } = {},
@@ -1161,6 +1165,7 @@ class OfflineDB {
         if (missingTables.has(table)) continue;
         let offset = 0;
         let tableRows = 0;
+        let cursor: string | number | null = null;
         let tableFailed = false;
 
         const tableCap = table === "students" || table === "classes" ? 10000 : maxRows;
@@ -1177,8 +1182,17 @@ class OfflineDB {
               try {
                 let query = supabase.from(table).select("*", { count: "exact" });
                 if (options.schoolId) query = query.eq("school_id", options.schoolId);
+                if ((table === "attendance" || table === "period_attendance") && options.today)
+                  query = query.eq("date", options.today);
+                if (table === "grades" && options.academicYear) {
+                  query = query.eq("academic_year", options.academicYear);
+                  if (options.term) query = query.eq("term", options.term);
+                }
+                if (table === "fee_payments" && options.recentPaymentsSince)
+                  query = query.gte("payment_date", options.recentPaymentsSince);
                 // Stable paging matters even while another phone inserts records.
-                query = query.order("id", { ascending: true }).range(offset, to);
+                if (cursor !== null) query = query.gt("id", cursor);
+                query = query.order("id", { ascending: true }).range(0, to - offset);
                 return await query.abortSignal(controller.signal);
               } finally {
                 clearTimeout(timeout);
@@ -1186,7 +1200,7 @@ class OfflineDB {
               }
             }, options.signal);
             if (options.signal?.aborted) throw new Error("Preparation cancelled");
-            total = result.count;
+            if (total === null) total = result.count;
 
             if (result.error) {
               if (result.error.code === MISSING_TABLE_CODE) missingTables.add(table);
@@ -1202,6 +1216,7 @@ class OfflineDB {
             const complete = total !== null && tableRows >= total;
             options.onProgress?.(table, tableRows, total, complete);
             if (complete || batch.length === 0) break;
+            cursor = batch[batch.length - 1]?.id as string | number;
             offset += batch.length;
           } catch (error) {
             errors.push(`${table}: ${error instanceof Error ? error.message : "could not download"}`);

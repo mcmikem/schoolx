@@ -355,6 +355,25 @@ export default function PaymentModal({
                   </p>
                 )}
             </div>
+            <section
+              aria-label="Review payment"
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] p-3 text-sm space-y-1"
+            >
+              <p className="font-semibold">{selectedStudent?.name || "Select a student"}</p>
+              <p>{[selectedStudent?.student_number, selectedStudent?.class_name].filter(Boolean).join(" · ")}</p>
+              <p>
+                Payment: <strong>{formatCurrency(amountNum)}</strong>
+              </p>
+              <p>
+                Fee:{" "}
+                {(fees || []).find((fee) => fee.id === (newPayment.fee_id || defaultFeeId))?.name || "Selected fee"}
+              </p>
+              {balanceAfter !== null && (
+                <p>
+                  Balance after payment: <strong>{formatCurrency(balanceAfter)}</strong>
+                </p>
+              )}
+            </section>
             <div className="sticky bottom-0 z-10 flex gap-3 border-t border-[var(--border)] bg-[var(--surface)] py-3">
               <button
                 type="button"
