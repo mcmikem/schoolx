@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useClasses, useSubjects, useTimetableManager, useStaff } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
+import { EmptyState } from "@/components/EmptyState";
 import { supabase } from "@/lib/supabase";
 import { useOfflineEvents } from "@/lib/offline-hooks";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -351,7 +352,7 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
                             </button>
                             <button
                               onClick={() => setPendingDeleteEventId(ev.id)}
-                              className="p-1 hover:bg-red-50 rounded text-[var(--t3)] hover:text-red-700"
+                              className="p-1 hover:bg-[var(--red-soft)] rounded text-[var(--t3)] hover:text-[var(--red-ink)]"
                             >
                               <MaterialIcon icon="delete" className="text-sm" />
                             </button>
@@ -900,23 +901,25 @@ export default function TimetablePage() {
   return (
     <PageErrorBoundary>
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
-        <PageHeader title="Timetable" subtitle="Class schedule and academic calendar" />
-        <div className="mb-2">
-          <VideoLessonButton lesson="timetable" label="Watch how" />
-        </div>
+        <PageHeader
+          title="Timetable"
+          subtitle="Class schedule and academic calendar"
+          actions={<VideoLessonButton lesson="timetable" label="Watch how" />}
+        />
 
         <StatStrip
-          columns={4}
+          columns={5}
           items={[
-            { label: "Slots", value: effectiveSlots.length, tone: "info" },
+            { label: "Periods", value: effectiveSlots.filter((slot) => slot.is_lesson !== false).length, tone: "info" },
             { label: "Classes", value: classes.length },
             { label: "Subjects", value: subjects.length },
             { label: "Staff", value: teachers.length, tone: "warning" },
+            { label: "Lessons", value: timetable.length, hint: selectedClass?.name || "selected class" },
           ]}
         />
 
         {slots.length > 0 && (slots[slots.length - 1]?.end_time ?? "") < "15:00" && canAutoGenerate && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
+          <div className="rounded-2xl border border-[var(--amber-soft)] bg-[var(--amber-soft)] px-4 py-3 text-sm text-[var(--amber-ink)]">
             This school still uses the old short day (ends around {slots[slots.length - 1]?.end_time}). Ugandan schools
             run 08:00–17:00 with 8 lessons.{" "}
             <button type="button" onClick={() => setShowDaySetup(true)} className="font-semibold underline">
@@ -960,17 +963,17 @@ export default function TimetablePage() {
             </div>
           </div>
           {globalClashes.length > 0 && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+            <div className="rounded-2xl border border-[var(--red-soft)] bg-[var(--red-soft)] p-4">
               <div className="flex items-start gap-3">
-                <MaterialIcon icon="error" className="text-red-500 shrink-0 mt-0.5" />
+                <MaterialIcon icon="error" className="text-[var(--red-ink)] shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-semibold text-red-800">
+                  <p className="text-sm font-semibold text-[var(--red-ink)]">
                     {globalClashes.length} clash{globalClashes.length > 1 ? "es" : ""} detected in timetable
                   </p>
                   <ul className="mt-2 space-y-1">
                     {globalClashes.map((clash, i) => (
-                      <li key={i} className="text-xs text-red-700 flex items-start gap-2">
-                        <span className="shrink-0 mt-1 w-1 h-1 rounded-full bg-red-400" />
+                      <li key={i} className="text-xs text-[var(--red-ink)] flex items-start gap-2">
+                        <span className="shrink-0 mt-1 w-1 h-1 rounded-full bg-[var(--red-ink)]" />
                         {clash.description}
                       </li>
                     ))}
@@ -1023,6 +1026,17 @@ export default function TimetablePage() {
                 })}
               </div>
             </div>
+          )}
+          {selectedClassId && !loading && timetable.length === 0 && (
+            <EmptyState
+              icon="calendar_view_week"
+              title="No lessons scheduled yet"
+              description="Auto-generate a full week from teacher–subject assignments, or tap a period to assign a lesson."
+              action={
+                canAutoGenerate ? { label: "Auto-generate", onClick: () => setShowGenerateModal(true) } : undefined
+              }
+              owlyQuestion="How do I build a class timetable?"
+            />
           )}
           <Card className="overflow-hidden">
             <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
@@ -1132,7 +1146,7 @@ export default function TimetablePage() {
                             {canEditTimetable && (
                               <button
                                 onClick={() => setPendingDeleteEntryId(entry.id)}
-                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-red-700 hover:bg-red-50"
+                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[var(--red-ink)] hover:bg-[var(--red-soft)]"
                                 title="Remove entry"
                                 aria-label={`Remove ${entry.subjects?.name || "lesson"}`}
                               >
@@ -1217,7 +1231,7 @@ export default function TimetablePage() {
                                             type="button"
                                             onClick={() => setPendingDeleteEntryId(entry.id)}
                                             aria-label="Remove timetable entry"
-                                            className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 p-1 hover:bg-red-100 rounded text-red-700 transition-all"
+                                            className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 p-1 hover:bg-[var(--red-soft)] rounded text-[var(--red-ink)] transition-all"
                                             title="Remove entry"
                                           >
                                             <MaterialIcon icon="delete" className="text-sm" />
@@ -1337,11 +1351,11 @@ export default function TimetablePage() {
                       return (
                         <div
                           key={i}
-                          className={`flex items-start gap-2 rounded-xl border p-3 text-sm ${isWarning ? "border-amber-200 bg-amber-50 text-amber-700" : "border-red-200 bg-red-50 text-red-700"}`}
+                          className={`flex items-start gap-2 rounded-xl border p-3 text-sm ${isWarning ? "border-[var(--amber-soft)] bg-[var(--amber-soft)] text-[var(--amber-ink)]" : "border-[var(--red-soft)] bg-[var(--red-soft)] text-[var(--red-ink)]"}`}
                         >
                           <MaterialIcon
                             icon="warning"
-                            className={`mt-0.5 shrink-0 ${isWarning ? "text-amber-500" : "text-red-500"}`}
+                            className={`mt-0.5 shrink-0 ${isWarning ? "text-[var(--amber-ink)]" : "text-[var(--red-ink)]"}`}
                           />
                           <span>{c}</span>
                         </div>
