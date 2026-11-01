@@ -719,7 +719,7 @@ export default function StudentHubPage() {
           title="Student Hub"
           subtitle={
             loading ? (
-              <span className="inline-block w-48 h-4 rounded bg-gray-200 animate-pulse" />
+              <span className="inline-block w-48 h-4 rounded bg-[var(--surface-container-high)] animate-pulse" />
             ) : // `totalCount` is the uncapped head count; `students.length` is
             // however many rows fit in one request, which is what made this
             // header disagree with the dashboards on large rosters.

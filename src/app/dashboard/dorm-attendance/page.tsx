@@ -261,7 +261,7 @@ export default function DormAttendancePage() {
                                   ? "bg-red-100 text-red-800"
                                   : status === "sick"
                                     ? "bg-amber-100 text-amber-800"
-                                    : "bg-[var(--surface-container-low)] text-gray-800"
+                                    : "bg-[var(--surface-container-low)] text-[var(--t1)]"
                             }`}
                           >
                             {status}

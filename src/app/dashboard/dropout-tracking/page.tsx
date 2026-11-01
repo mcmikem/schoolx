@@ -336,8 +336,8 @@ export default function DropoutTrackingPage() {
                         {s.consecutiveAbsence}d
                       </div>
                       <div>
-                        <p className="font-bold text-slate-800">{s.name}</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="font-bold text-[var(--t1)]">{s.name}</p>
+                        <p className="text-xs text-[var(--t3)]">
                           {s.class} · {s.consecutiveAbsence} consecutive days absent
                         </p>
                       </div>

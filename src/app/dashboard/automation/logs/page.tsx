@@ -321,8 +321,8 @@ export default function AutomationLogsPage() {
                 <MaterialIcon icon="today" className="text-blue-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-500 font-medium">Total Today</p>
-                <p className="text-xl font-bold text-gray-900">{totalToday}</p>
+                <p className="text-xs text-[var(--t3)] font-medium">Total Today</p>
+                <p className="text-xl font-bold text-[var(--t1)]">{totalToday}</p>
               </div>
             </CardBody>
           </Card>
@@ -332,7 +332,7 @@ export default function AutomationLogsPage() {
                 <MaterialIcon icon="check_circle" className="text-green-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-500 font-medium">Successful</p>
+                <p className="text-xs text-[var(--t3)] font-medium">Successful</p>
                 <p className="text-xl font-bold text-green-700">{successfulToday}</p>
               </div>
             </CardBody>
@@ -343,7 +343,7 @@ export default function AutomationLogsPage() {
                 <MaterialIcon icon="error" className="text-red-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-500 font-medium">Failed</p>
+                <p className="text-xs text-[var(--t3)] font-medium">Failed</p>
                 <p className="text-xl font-bold text-red-700">{failedToday}</p>
               </div>
             </CardBody>
@@ -354,7 +354,7 @@ export default function AutomationLogsPage() {
                 <MaterialIcon icon="hourglass_empty" className="text-amber-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-500 font-medium">Pending</p>
+                <p className="text-xs text-[var(--t3)] font-medium">Pending</p>
                 <p className="text-xl font-bold text-amber-700">{pendingToday}</p>
               </div>
             </CardBody>
@@ -381,7 +381,7 @@ export default function AutomationLogsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-4">
                           <div>
-                            <h3 className="font-semibold text-gray-900 text-sm">{auto.title}</h3>
+                            <h3 className="font-semibold text-[var(--t1)] text-sm">{auto.title}</h3>
                             <span
                               className={`text-xs ${auto.group === "system" ? "text-purple-500" : "text-blue-500"}`}
                             >
@@ -424,7 +424,7 @@ export default function AutomationLogsPage() {
         {/* Log Table */}
         <PageSection title="Automation Run History" description="Filterable log of all automation executions">
           <div className="flex flex-wrap gap-2 mb-4">
-            <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+            <div className="flex gap-1 bg-[var(--surface-container)] rounded-lg p-1">
               {[
                 "all",
                 "fee_overdue",
@@ -439,14 +439,14 @@ export default function AutomationLogsPage() {
                   key={f}
                   onClick={() => setFilter(f)}
                   className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
-                    filter === f ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                    filter === f ? "bg-white text-[var(--t1)] shadow-sm" : "text-[var(--t3)] hover:text-[var(--t2)]"
                   }`}
                 >
                   {f === "all" ? "All" : f.replace(/_/g, " ")}
                 </button>
               ))}
             </div>
-            <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+            <div className="flex gap-1 bg-[var(--surface-container)] rounded-lg p-1">
               {[
                 { key: "all", label: "All" },
                 { key: "success", label: "Success" },
@@ -457,7 +457,9 @@ export default function AutomationLogsPage() {
                   key={s.key}
                   onClick={() => setStatusFilter(s.key)}
                   className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
-                    statusFilter === s.key ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                    statusFilter === s.key
+                      ? "bg-white text-[var(--t1)] shadow-sm"
+                      : "text-[var(--t3)] hover:text-[var(--t2)]"
                   }`}
                 >
                   {s.label}
@@ -476,7 +478,7 @@ export default function AutomationLogsPage() {
               ))}
             </div>
           ) : filteredLogs.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-[var(--t3)]">
               <MaterialIcon icon="history" className="text-5xl mx-auto mb-3" />
               <p className="text-sm font-medium">No automation logs found</p>
               <p className="text-xs mt-1">Run an automation above to see logs here</p>
@@ -485,7 +487,7 @@ export default function AutomationLogsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 text-left text-xs text-gray-500 uppercase tracking-wider">
+                  <tr className="border-b border-[var(--border)] text-left text-xs text-[var(--t3)] uppercase tracking-wider">
                     <th className="pb-3 pr-4 font-medium">Time</th>
                     <th className="pb-3 pr-4 font-medium">Automation Type</th>
                     <th className="pb-3 pr-4 font-medium">Status</th>
@@ -498,8 +500,11 @@ export default function AutomationLogsPage() {
                     const autoInfo = AUTOMATION_TYPES.find((a) => a.key === log.automationType);
                     const colors = autoInfo ? COLOR_MAP[autoInfo.color] : null;
                     return (
-                      <tr key={log.id} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
-                        <td className="py-3 pr-4 text-gray-500 text-xs whitespace-nowrap">
+                      <tr
+                        key={log.id}
+                        className="border-b border-[var(--border)] hover:bg-[var(--surface-container-low)] transition-colors"
+                      >
+                        <td className="py-3 pr-4 text-[var(--t3)] text-xs whitespace-nowrap">
                           {new Date(log.timestamp).toLocaleString()}
                         </td>
                         <td className="py-3 pr-4">
@@ -509,7 +514,7 @@ export default function AutomationLogsPage() {
                                 <MaterialIcon icon={autoInfo!.icon} className={`${colors.icon} text-sm`} />
                               </div>
                             )}
-                            <span className="text-gray-900 text-sm font-medium">
+                            <span className="text-[var(--t1)] text-sm font-medium">
                               {autoInfo?.title || log.automationType.replace(/_/g, " ")}
                             </span>
                           </div>
@@ -519,16 +524,16 @@ export default function AutomationLogsPage() {
                             {log.status === "sent" ? "Success" : log.status === "demo" ? "Demo" : log.status}
                           </Badge>
                         </td>
-                        <td className="py-3 pr-4 text-gray-600 text-sm max-w-md truncate">{log.message}</td>
+                        <td className="py-3 pr-4 text-[var(--t2)] text-sm max-w-md truncate">{log.message}</td>
                         <td className="py-3 pr-4 text-right">
-                          <span className="text-sm font-semibold text-gray-900">{log.recordsProcessed ?? "-"}</span>
+                          <span className="text-sm font-semibold text-[var(--t1)]">{log.recordsProcessed ?? "-"}</span>
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
-              <p className="text-xs text-gray-400 mt-3 text-center">
+              <p className="text-xs text-[var(--t3)] mt-3 text-center">
                 Showing {filteredLogs.length} of {logs.length} total logs &middot; Auto-refreshes every 30s
               </p>
             </div>

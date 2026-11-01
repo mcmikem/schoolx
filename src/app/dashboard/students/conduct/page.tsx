@@ -187,8 +187,8 @@ export default function ConductManagementPage() {
       <div className="p-6 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight">Conduct & Merits</h1>
-            <p className="text-slate-500 font-medium">Character tracking and disciplinary management</p>
+            <h1 className="text-3xl font-black text-[var(--t1)] tracking-tight">Conduct & Merits</h1>
+            <p className="text-[var(--t3)] font-medium">Character tracking and disciplinary management</p>
           </div>
           <button
             type="button"
@@ -234,7 +234,7 @@ export default function ConductManagementPage() {
         </div>
 
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 flex-wrap gap-3">
+          <div className="p-6 border-b border-[var(--border)] flex justify-between items-center bg-[var(--surface-container-low)] flex-wrap gap-3">
             <div className="flex gap-2">
               {["all", "positive", "negative"].map((type) => (
                 <button
@@ -242,7 +242,9 @@ export default function ConductManagementPage() {
                   type="button"
                   onClick={() => setActiveType(type as any)}
                   className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
-                    activeType === type ? "bg-slate-800 text-white shadow-md" : "text-slate-500 hover:bg-slate-100"
+                    activeType === type
+                      ? "bg-[var(--navy)] text-white shadow-md"
+                      : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
                   }`}
                 >
                   {type}
@@ -255,16 +257,16 @@ export default function ConductManagementPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Filter by student..."
-                className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary-100"
+                className="pl-9 pr-4 py-2 bg-white border border-[var(--border)] rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary-100"
               />
-              <MaterialIcon icon="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <MaterialIcon icon="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--t3)]" />
             </div>
           </div>
 
           {loading ? (
-            <div className="text-center py-12 text-gray-400">Loading...</div>
+            <div className="text-center py-12 text-[var(--t3)]">Loading...</div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-[var(--t3)]">
               <MaterialIcon icon="gavel" className="text-4xl mx-auto mb-2" />
               <p>No conduct records yet</p>
             </div>
@@ -274,29 +276,29 @@ export default function ConductManagementPage() {
                 <thead>
                   <tr className="bg-white">
                     {["Date", "Student", "Category", "Description", "Points", ""].map((h) => (
-                      <th key={h} className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400">
+                      <th key={h} className="px-6 py-4 text-xs font-black uppercase tracking-widest text-[var(--t3)]">
                         {h}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-[var(--border)]">
                   {filtered.map((record) => (
-                    <tr key={record.id} className="hover:bg-slate-50/50 transition-colors group">
+                    <tr key={record.id} className="hover:bg-[var(--surface-container-low)] transition-colors group">
                       <td className="px-6 py-4">
-                        <p className="text-xs font-bold text-slate-800">{record.date}</p>
+                        <p className="text-xs font-bold text-[var(--t1)]">{record.date}</p>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs">
+                          <div className="w-8 h-8 rounded-lg bg-[var(--surface-container)] flex items-center justify-center text-[var(--t3)] font-bold text-xs">
                             {record.students?.first_name?.[0]}
                             {record.students?.last_name?.[0]}
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-slate-800">
+                            <p className="text-sm font-bold text-[var(--t1)]">
                               {record.students?.first_name} {record.students?.last_name}
                             </p>
-                            <p className="text-xs font-bold text-slate-400">{record.students?.classes?.name}</p>
+                            <p className="text-xs font-bold text-[var(--t3)]">{record.students?.classes?.name}</p>
                           </div>
                         </div>
                       </td>
@@ -307,14 +309,14 @@ export default function ConductManagementPage() {
                               ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
                               : record.incident_type === "negative"
                                 ? "bg-red-50 text-red-700 border border-red-100"
-                                : "bg-slate-50 text-slate-600 border border-slate-100"
+                                : "bg-[var(--surface-container-low)] text-[var(--t2)] border border-[var(--border)]"
                           }`}
                         >
                           {record.category || record.incident_type}
                         </span>
                       </td>
                       <td className="px-6 py-4 max-w-[300px]">
-                        <p className="text-xs text-slate-500 truncate">{record.description}</p>
+                        <p className="text-xs text-[var(--t3)] truncate">{record.description}</p>
                       </td>
                       <td className="px-6 py-4">
                         <p className={`text-sm font-black ${record.points >= 0 ? "text-emerald-600" : "text-red-600"}`}>
@@ -437,7 +439,7 @@ export default function ConductManagementPage() {
                     <button
                       type="button"
                       onClick={() => setShowModal(false)}
-                      className="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50"
+                      className="flex-1 px-4 py-2 border border-[var(--border)] rounded-xl text-sm font-medium hover:bg-[var(--surface-container-low)]"
                     >
                       Cancel
                     </button>

@@ -8,16 +8,8 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/index";
 import { useToast } from "@/components/Toast";
 import { useAuth } from "@/lib/auth-context";
-import {
-  MODULE_FOR_ROUTE,
-  getPageTitle,
-  roleBasedRoutes,
-} from "@/components/dashboard/AccessControlGuard";
-import {
-  canUseModule,
-  DEFAULT_FEATURE_STAGE,
-  type FeatureStage,
-} from "@/lib/featureStages";
+import { MODULE_FOR_ROUTE, getPageTitle, roleBasedRoutes } from "@/components/dashboard/AccessControlGuard";
+import { canUseModule, DEFAULT_FEATURE_STAGE, type FeatureStage } from "@/lib/featureStages";
 import {
   normalizeRoleRouteOverrides,
   useRoleRouteOverrides,
@@ -39,12 +31,7 @@ const ALL_FEATURES = Object.keys(PERMISSION_LABELS) as Array<keyof RolePermissio
 const OVERRIDEABLE_ROUTES = Object.keys(roleBasedRoutes)
   .filter((route) => route !== "/dashboard")
   .sort();
-const PROTECTED_ADMIN_ROLES = new Set<UserRole>([
-  "super_admin",
-  "school_admin",
-  "admin",
-  "headmaster",
-]);
+const PROTECTED_ADMIN_ROLES = new Set<UserRole>(["super_admin", "school_admin", "admin", "headmaster"]);
 
 function formatRate(enabledCount: number, total: number) {
   if (total === 0) return "0%";
@@ -61,11 +48,8 @@ export default function PermissionsPage() {
   const [selectedOverrideRole, setSelectedOverrideRole] = useState<UserRole>("teacher");
   const [saving, setSaving] = useState(false);
 
-  const isManager = ["headmaster", "admin", "school_admin", "super_admin"].includes(
-    user?.role || "",
-  );
-  const featureStage =
-    (school?.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE;
+  const isManager = ["headmaster", "admin", "school_admin", "super_admin"].includes(user?.role || "");
+  const featureStage = (school?.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE;
 
   const editableRoles = useMemo(() => {
     const managerRole = user?.role as UserRole | undefined;
@@ -100,9 +84,7 @@ export default function PermissionsPage() {
 
   const stats = useMemo(() => {
     const entries = ROLE_ORDER.map((role) => {
-      const enabledCount = ALL_FEATURES.filter(
-        (feature) => ROLE_PERMISSIONS[role][feature],
-      ).length;
+      const enabledCount = ALL_FEATURES.filter((feature) => ROLE_PERMISSIONS[role][feature]).length;
       return {
         role,
         enabledCount,
@@ -116,14 +98,9 @@ export default function PermissionsPage() {
     return { entries, highest, lowest };
   }, []);
 
-  const selectedRoleOverrides =
-    overrides[selectedOverrideRole] || {};
+  const selectedRoleOverrides = overrides[selectedOverrideRole] || {};
 
-  const updateOverride = (
-    role: UserRole,
-    route: string,
-    value: RouteOverrideValue | "inherit",
-  ) => {
+  const updateOverride = (role: UserRole, route: string, value: RouteOverrideValue | "inherit") => {
     setOverrides((prev) => {
       const next = normalizeRoleRouteOverrides(prev);
       const nextRoleMap = { ...(next[role] || {}) };
@@ -173,11 +150,10 @@ export default function PermissionsPage() {
           <Card>
             <CardBody>
               <p className="text-xs uppercase tracking-wide text-[var(--t3)]">Most Access</p>
-              <p className="mt-1 text-lg font-semibold text-[var(--t1)]">
-                {ROLE_LABELS[stats.highest.role]}
-              </p>
+              <p className="mt-1 text-lg font-semibold text-[var(--t1)]">{ROLE_LABELS[stats.highest.role]}</p>
               <p className="text-sm text-[var(--t3)]">
-                {stats.highest.enabledCount}/{stats.highest.total} modules ({formatRate(stats.highest.enabledCount, stats.highest.total)})
+                {stats.highest.enabledCount}/{stats.highest.total} modules (
+                {formatRate(stats.highest.enabledCount, stats.highest.total)})
               </p>
             </CardBody>
           </Card>
@@ -185,11 +161,10 @@ export default function PermissionsPage() {
           <Card>
             <CardBody>
               <p className="text-xs uppercase tracking-wide text-[var(--t3)]">Least Access</p>
-              <p className="mt-1 text-lg font-semibold text-[var(--t1)]">
-                {ROLE_LABELS[stats.lowest.role]}
-              </p>
+              <p className="mt-1 text-lg font-semibold text-[var(--t1)]">{ROLE_LABELS[stats.lowest.role]}</p>
               <p className="text-sm text-[var(--t3)]">
-                {stats.lowest.enabledCount}/{stats.lowest.total} modules ({formatRate(stats.lowest.enabledCount, stats.lowest.total)})
+                {stats.lowest.enabledCount}/{stats.lowest.total} modules (
+                {formatRate(stats.lowest.enabledCount, stats.lowest.total)})
               </p>
             </CardBody>
           </Card>
@@ -211,7 +186,8 @@ export default function PermissionsPage() {
               <div>
                 <p className="text-sm font-semibold text-[var(--t1)]">Custom Route Overrides</p>
                 <p className="text-xs text-[var(--t3)]">
-                  Headmaster can grant or restrict route access per role. Locked modules cannot be enabled outside your feature stage.
+                  Headmaster can grant or restrict route access per role. Locked modules cannot be enabled outside your
+                  feature stage.
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -274,7 +250,10 @@ export default function PermissionsPage() {
                         const value = selectedRoleOverrides[route] || "inherit";
 
                         return (
-                          <tr key={`${selectedOverrideRole}-${route}`} className="border-b border-[var(--border)] last:border-b-0">
+                          <tr
+                            key={`${selectedOverrideRole}-${route}`}
+                            className="border-b border-[var(--border)] last:border-b-0"
+                          >
                             <td className="px-3 py-2">
                               <p className="font-medium text-[var(--t1)]">{getPageTitle(route)}</p>
                               <p className="text-xs text-[var(--t3)]">{route}</p>
@@ -289,7 +268,7 @@ export default function PermissionsPage() {
                                   {moduleAllowed ? `${moduleKey} enabled` : `${moduleKey} locked by plan`}
                                 </span>
                               ) : (
-                                <span className="inline-flex rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600">
+                                <span className="inline-flex rounded-full bg-[var(--surface-container)] px-2 py-1 text-xs text-[var(--t2)]">
                                   n/a
                                 </span>
                               )}
@@ -376,9 +355,7 @@ export default function PermissionsPage() {
                           <td key={`${role}-${feature}`} className="px-3 py-2 text-center">
                             <span
                               className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${
-                                allowed
-                                  ? "bg-emerald-100 text-emerald-700"
-                                  : "bg-rose-100 text-rose-700"
+                                allowed ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
                               }`}
                             >
                               <MaterialIcon icon={allowed ? "check_circle" : "cancel"} className="text-[14px]" />

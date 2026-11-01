@@ -186,9 +186,9 @@ export default function LeavePage() {
               value: requests.filter((r) => r.status === "rejected").length,
               tone: "text-red-700 bg-red-50",
             },
-            { label: "Total", value: requests.length, tone: "text-slate-700 bg-slate-50" },
+            { label: "Total", value: requests.length, tone: "text-[var(--t2)] bg-[var(--surface-container-low)]" },
           ].map((item) => (
-            <div key={item.label} className={`rounded-2xl border border-slate-100 p-3 ${item.tone}`}>
+            <div key={item.label} className={`rounded-2xl border border-[var(--border)] p-3 ${item.tone}`}>
               <div className="text-xs font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
               <div className="mt-1 text-lg font-bold">{item.value}</div>
             </div>

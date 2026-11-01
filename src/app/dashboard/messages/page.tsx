@@ -1386,7 +1386,7 @@ export default function CommunicationHubPage() {
                   .map((notice) => (
                     <Card
                       key={notice.id}
-                      className={`overflow-hidden ${notice.priority === "high" ? "border-l-4 border-l-red-500" : notice.category === "Emergency" ? "border-l-4 border-l-red-600 bg-red-50/30" : "border-l-4 border-l-gray-900"}`}
+                      className={`overflow-hidden ${notice.priority === "high" ? "border-l-4 border-l-red-500" : notice.category === "Emergency" ? "border-l-4 border-l-red-600 bg-red-50/30" : "border-l-4 border-l-[var(--navy)]"}`}
                     >
                       {notice.image_url && (
                         <div className="h-48 overflow-hidden">

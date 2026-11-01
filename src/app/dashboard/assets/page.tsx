@@ -25,7 +25,7 @@ const CONDITION_BADGE: Record<string, string> = {
   Good: "bg-emerald-50 text-emerald-700",
   Fair: "bg-amber-50 text-amber-700",
   "Requires Maintenance": "bg-red-50 text-red-700",
-  Condemned: "bg-slate-100 text-slate-500",
+  Condemned: "bg-[var(--surface-container)] text-[var(--t3)]",
 };
 
 const CATEGORIES = ["All", "Electronics", "Furniture", "Equipment", "Vehicles", "Books", "Sports", "Other"];
@@ -228,7 +228,7 @@ export default function AssetsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider ${CONDITION_BADGE[a.condition] || "bg-slate-100 text-slate-500"}`}
+                          className={`px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider ${CONDITION_BADGE[a.condition] || "bg-[var(--surface-container)] text-[var(--t3)]"}`}
                         >
                           {a.condition}
                         </span>
@@ -243,7 +243,7 @@ export default function AssetsPage() {
 
         {showAdd && (
           <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" aria-hidden="true" />
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
             <div className="relative w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto rounded-[34px] border border-white/70 bg-[var(--surface)] shadow-[0_24px_60px_rgba(15,23,42,0.2)]">
               <div className="p-8 space-y-5">
                 <div className="flex justify-between items-center">

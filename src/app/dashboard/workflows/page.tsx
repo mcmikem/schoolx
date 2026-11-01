@@ -408,10 +408,10 @@ export default function WorkflowsBuilder() {
                     <h3 className="text-lg font-bold text-[var(--t1)] mb-4 tracking-tight">{wf.name}</h3>
                     <div className="bg-[var(--surface-container-low)] rounded-2xl p-4 border border-[var(--border)] relative overflow-hidden">
                       <div className="flex items-center gap-2 mb-3 z-10 relative">
-                        <div className="w-2 h-2 rounded-full bg-slate-300 flex-shrink-0" />
+                        <div className="w-2 h-2 rounded-full bg-[var(--surface-container-highest)] flex-shrink-0" />
                         <p className="text-xs font-bold text-[var(--t2)] line-clamp-1">{triggerInfo.label}</p>
                       </div>
-                      <div className="absolute left-[19px] top-6 bottom-6 w-[2px] bg-slate-200" />
+                      <div className="absolute left-[19px] top-6 bottom-6 w-[2px] bg-[var(--surface-container-high)]" />
                       <div className="flex items-center gap-2 z-10 relative">
                         <div className="w-2 h-2 rounded-full bg-[var(--primary)] shadow-[0_0_10px_var(--primary)] flex-shrink-0" />
                         <p className="text-xs font-bold text-[var(--primary)] line-clamp-1">

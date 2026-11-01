@@ -188,9 +188,9 @@ export default function SmsDeliveryPage() {
               <Card key={i}>
                 <CardBody>
                   <div className="animate-pulse space-y-3">
-                    <div className="h-4 bg-slate-100 rounded w-1/2" />
-                    <div className="h-8 bg-slate-50 rounded w-1/3" />
-                    <div className="h-3 bg-slate-50 rounded w-full" />
+                    <div className="h-4 bg-[var(--surface-container)] rounded w-1/2" />
+                    <div className="h-8 bg-[var(--surface-container-low)] rounded w-1/3" />
+                    <div className="h-3 bg-[var(--surface-container-low)] rounded w-full" />
                   </div>
                 </CardBody>
               </Card>

@@ -127,8 +127,8 @@ export default function IDCardGenerator() {
       <div className="p-6 max-w-7xl mx-auto space-y-8">
         <div className="flex justify-between items-end">
           <div>
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight">Identity Center</h1>
-            <p className="text-slate-500 font-medium">Generate professional student ID cards</p>
+            <h1 className="text-3xl font-black text-[var(--t1)] tracking-tight">Identity Center</h1>
+            <p className="text-[var(--t3)] font-medium">Generate professional student ID cards</p>
           </div>
           <button
             onClick={handlePrint}
@@ -144,7 +144,7 @@ export default function IDCardGenerator() {
           {/* Search Panel */}
           <div className="lg:col-span-1 space-y-6">
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
-              <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <h3 className="font-bold text-[var(--t1)] mb-4 flex items-center gap-2">
                 <MaterialIcon icon="person_search" className="text-primary-700" />
                 Add Students
               </h3>
@@ -155,14 +155,14 @@ export default function IDCardGenerator() {
                   onChange={(e) => setSearch(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && searchStudents()}
                   placeholder="Search by name or ID..."
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-100 transition-all outline-none"
+                  className="w-full pl-10 pr-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-xl text-sm focus:ring-2 focus:ring-primary-100 transition-all outline-none"
                 />
-                <MaterialIcon icon="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <MaterialIcon icon="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--t3)]" />
               </div>
 
               {/* Search results */}
               {searchResults.length > 0 && (
-                <div className="mb-4 space-y-1 max-h-[200px] overflow-y-auto rounded-xl border border-slate-200 bg-white p-1">
+                <div className="mb-4 space-y-1 max-h-[200px] overflow-y-auto rounded-xl border border-[var(--border)] bg-white p-1">
                   {searchResults.map((s) => {
                     const alreadyAdded = students.some((sel) => sel.id === s.id);
                     return (
@@ -170,13 +170,13 @@ export default function IDCardGenerator() {
                         key={s.id}
                         onClick={() => addStudent(s)}
                         disabled={alreadyAdded}
-                        className="w-full flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="w-full flex items-center justify-between p-2.5 rounded-lg hover:bg-[var(--surface-container-low)] transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <div className="min-w-0">
-                          <p className="text-[13px] font-bold text-slate-800 truncate">
+                          <p className="text-[13px] font-bold text-[var(--t1)] truncate">
                             {s.first_name} {s.last_name}
                           </p>
-                          <p className="text-xs text-slate-400 uppercase tracking-wider">{s.student_number}</p>
+                          <p className="text-xs text-[var(--t3)] uppercase tracking-wider">{s.student_number}</p>
                         </div>
                         <MaterialIcon
                           icon={alreadyAdded ? "check_circle" : "add_circle"}
@@ -189,7 +189,7 @@ export default function IDCardGenerator() {
               )}
 
               {searched && searchResults.length === 0 && !loading && (
-                <p className="text-xs text-slate-400 text-center py-2 mb-4">No students found.</p>
+                <p className="text-xs text-[var(--t3)] text-center py-2 mb-4">No students found.</p>
               )}
 
               {/* Selected students */}
@@ -201,10 +201,12 @@ export default function IDCardGenerator() {
                       className="flex items-center justify-between p-3 rounded-xl bg-primary-50 border border-primary-100 group"
                     >
                       <div className="min-w-0">
-                        <p className="text-[13px] font-bold text-slate-800 truncate">
+                        <p className="text-[13px] font-bold text-[var(--t1)] truncate">
                           {s.first_name} {s.last_name}
                         </p>
-                        <p className="text-xs text-slate-400 font-black uppercase tracking-wider">{s.student_number}</p>
+                        <p className="text-xs text-[var(--t3)] font-black uppercase tracking-wider">
+                          {s.student_number}
+                        </p>
                       </div>
                       <button
                         onClick={() => removeStudent(s.id)}
@@ -215,7 +217,7 @@ export default function IDCardGenerator() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-center text-xs text-slate-400 py-10">Search and tap a student to add them.</p>
+                  <p className="text-center text-xs text-[var(--t3)] py-10">Search and tap a student to add them.</p>
                 )}
               </div>
             </div>
@@ -223,11 +225,11 @@ export default function IDCardGenerator() {
 
           {/* Preview Panel */}
           <div className="lg:col-span-3">
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 min-h-[600px] bg-slate-100/50">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 min-h-[600px] bg-[var(--surface-container)]">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <h3 className="font-bold uppercase tracking-widest text-xs text-slate-400">Identity Preview</h3>
+                <h3 className="font-bold uppercase tracking-widest text-xs text-[var(--t3)]">Identity Preview</h3>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500">Style:</span>
+                  <span className="text-xs text-[var(--t3)]">Style:</span>
                   {(["classic", "modern", "minimal"] as const).map((s) => (
                     <button
                       key={s}
@@ -235,7 +237,7 @@ export default function IDCardGenerator() {
                       className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition ${
                         cardStyle === s
                           ? "bg-[var(--primary)] text-white"
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                          : "bg-[var(--surface-container)] text-[var(--t2)] hover:bg-[var(--surface-container-high)]"
                       }`}
                     >
                       {s}
@@ -260,10 +262,10 @@ export default function IDCardGenerator() {
                   ))
                 ) : (
                   <div className="col-span-full py-20 text-center space-y-4">
-                    <div className="w-20 h-20 bg-white rounded-[24px] shadow-sm flex items-center justify-center mx-auto text-slate-200">
+                    <div className="w-20 h-20 bg-white rounded-[24px] shadow-sm flex items-center justify-center mx-auto text-[var(--t4)]">
                       <MaterialIcon icon="id_card" style={{ fontSize: 40 }} />
                     </div>
-                    <p className="text-slate-400 font-medium">No cards to preview.</p>
+                    <p className="text-[var(--t3)] font-medium">No cards to preview.</p>
                   </div>
                 )}
               </div>

@@ -232,7 +232,7 @@ export default function SystemHealthPage() {
       case "pending":
         return "bg-amber-100 text-amber-700";
       default:
-        return "bg-slate-100 text-slate-600";
+        return "bg-[var(--surface-container)] text-[var(--t2)]";
     }
   };
 
@@ -264,9 +264,9 @@ export default function SystemHealthPage() {
               <Card key={i}>
                 <CardBody>
                   <div className="animate-pulse space-y-3">
-                    <div className="h-4 bg-slate-100 rounded w-1/2" />
-                    <div className="h-8 bg-slate-50 rounded w-3/4" />
-                    <div className="h-3 bg-slate-50 rounded w-full" />
+                    <div className="h-4 bg-[var(--surface-container)] rounded w-1/2" />
+                    <div className="h-8 bg-[var(--surface-container-low)] rounded w-3/4" />
+                    <div className="h-3 bg-[var(--surface-container-low)] rounded w-full" />
                   </div>
                 </CardBody>
               </Card>
@@ -283,7 +283,7 @@ export default function SystemHealthPage() {
                       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusBadgeClass(healthStatus)}`}
                     >
                       <span
-                        className={`w-2 h-2 rounded-full ${healthStatus === "ok" ? "bg-green-500" : healthStatus === "error" ? "bg-red-500" : "bg-slate-400"}`}
+                        className={`w-2 h-2 rounded-full ${healthStatus === "ok" ? "bg-green-500" : healthStatus === "error" ? "bg-red-500" : "bg-[var(--surface-container-high)]"}`}
                       />
                       {healthStatus === "ok" ? "Connected" : healthStatus === "error" ? "Error" : "Idle"}
                     </span>

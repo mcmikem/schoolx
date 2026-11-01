@@ -243,7 +243,7 @@ export default function StudentEnrollmentsPage() {
           </div>
         ) : enrollments.length === 0 ? (
           <div className="text-center py-12">
-            <MaterialIcon icon="school" className="text-5xl text-gray-300 mx-auto mb-4" />
+            <MaterialIcon icon="school" className="text-5xl text-[var(--t4)] mx-auto mb-4" />
             <h3 className="text-lg font-medium text-[var(--t2)]">No enrollments found</h3>
             <p className="text-[var(--t3)] mt-1">Add student enrollments to track course registrations</p>
           </div>
@@ -260,7 +260,7 @@ export default function StudentEnrollmentsPage() {
                   <th className="px-6 py-3 text-right text-xs font-medium text-[var(--t3)] uppercase">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-[var(--border)]">
                 {enrollments.map((enrollment) => (
                   <tr key={enrollment.id} className="hover:bg-[var(--surface-container-low)]">
                     <td className="px-6 py-4">

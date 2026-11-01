@@ -206,7 +206,7 @@ export default function AutomationPage() {
                           </div>
                           <button
                             onClick={() => handleToggle(auto.key)}
-                            className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${isEnabled ? "bg-green-500" : "bg-gray-300"}`}
+                            className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${isEnabled ? "bg-green-500" : "bg-[var(--surface-container-highest)]"}`}
                           >
                             <div
                               className={`absolute top-0.5 w-6 h-6 bg-[var(--surface)] rounded-full shadow transition-transform ${isEnabled ? "left-5" : "left-0.5"}`}
@@ -246,7 +246,7 @@ export default function AutomationPage() {
                 <button
                   key={f}
                   onClick={() => setLogFilter(f)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${logFilter === f ? "bg-[var(--navy)] text-white" : "bg-[var(--surface-container-low)] text-[var(--t3)] hover:bg-gray-200"}`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${logFilter === f ? "bg-[var(--navy)] text-white" : "bg-[var(--surface-container-low)] text-[var(--t3)] hover:bg-[var(--surface-container-high)]"}`}
                 >
                   {f === "all" ? "All" : f.replace(/_/g, " ")}
                 </button>

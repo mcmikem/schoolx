@@ -1174,8 +1174,12 @@ export default function SchoolsPage() {
                 </div>
                 {/* Step indicator */}
                 <div className="flex gap-2 mt-3">
-                  <div className={`flex-1 h-1.5 rounded-full ${addStep >= 1 ? "bg-blue-600" : "bg-gray-200"}`} />
-                  <div className={`flex-1 h-1.5 rounded-full ${addStep >= 2 ? "bg-blue-600" : "bg-gray-200"}`} />
+                  <div
+                    className={`flex-1 h-1.5 rounded-full ${addStep >= 1 ? "bg-blue-600" : "bg-[var(--surface-container-high)]"}`}
+                  />
+                  <div
+                    className={`flex-1 h-1.5 rounded-full ${addStep >= 2 ? "bg-blue-600" : "bg-[var(--surface-container-high)]"}`}
+                  />
                 </div>
               </div>
 
@@ -1441,7 +1445,7 @@ export default function SchoolsPage() {
                         key={key}
                         type="button"
                         onClick={() => setSubForm({ ...subForm, plan: key })}
-                        className={`p-4 rounded-xl border-2 text-center transition-all ${subForm.plan === key ? "border-blue-500 bg-blue-50" : "border-[var(--surface-container-high)] hover:border-gray-300"}`}
+                        className={`p-4 rounded-xl border-2 text-center transition-all ${subForm.plan === key ? "border-blue-500 bg-blue-50" : "border-[var(--surface-container-high)] hover:border-[var(--border2)]"}`}
                       >
                         <div className="font-semibold text-sm" style={{ color: plan.color }}>
                           {plan.label}

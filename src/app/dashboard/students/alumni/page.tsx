@@ -186,7 +186,7 @@ export default function AlumniPage() {
                         <td className="text-sm font-mono">{a.student_number || "-"}</td>
                         <td className="text-sm">{a.gender === "M" ? "Male" : "Female"}</td>
                         <td>
-                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--surface-container)] text-[var(--t2)]">
                             {a.classes?.name || "N/A"}
                           </span>
                         </td>
@@ -228,15 +228,15 @@ export default function AlumniPage() {
               <p className="text-sm text-[var(--t3)]">{selectedAlumnus.student_number || "No number"}</p>
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="p-3 rounded-xl bg-gray-50">
+              <div className="p-3 rounded-xl bg-[var(--surface-container-low)]">
                 <div className="text-xs font-bold uppercase tracking-wider text-[var(--t3)]">Gender</div>
                 <div className="font-semibold mt-0.5">{selectedAlumnus.gender === "M" ? "Male" : "Female"}</div>
               </div>
-              <div className="p-3 rounded-xl bg-gray-50">
+              <div className="p-3 rounded-xl bg-[var(--surface-container-low)]">
                 <div className="text-xs font-bold uppercase tracking-wider text-[var(--t3)]">Class</div>
                 <div className="font-semibold mt-0.5">{selectedAlumnus.classes?.name || "N/A"}</div>
               </div>
-              <div className="p-3 rounded-xl bg-gray-50">
+              <div className="p-3 rounded-xl bg-[var(--surface-container-low)]">
                 <div className="text-xs font-bold uppercase tracking-wider text-[var(--t3)]">Admission Date</div>
                 <div className="font-semibold mt-0.5">
                   {selectedAlumnus.admission_date
@@ -244,12 +244,12 @@ export default function AlumniPage() {
                     : "N/A"}
                 </div>
               </div>
-              <div className="p-3 rounded-xl bg-gray-50">
+              <div className="p-3 rounded-xl bg-[var(--surface-container-low)]">
                 <div className="text-xs font-bold uppercase tracking-wider text-[var(--t3)]">Status</div>
                 <div className="font-semibold mt-0.5 text-blue-600">Completed</div>
               </div>
             </div>
-            <div className="p-3 rounded-xl bg-gray-50">
+            <div className="p-3 rounded-xl bg-[var(--surface-container-low)]">
               <div className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1">Parent / Guardian</div>
               <div className="text-sm">
                 {selectedAlumnus.parent_name || "N/A"} · {selectedAlumnus.parent_phone || "N/A"}

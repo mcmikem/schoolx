@@ -200,7 +200,7 @@ export default function BehaviorPage() {
     if (severity === "Moderate") return "bg-yellow-100 text-yellow-800";
     if (severity === "Serious") return "bg-orange-100 text-orange-800";
     if (severity === "Critical") return "bg-red-100 text-red-800";
-    return "bg-[var(--surface-container-low)] text-gray-800";
+    return "bg-[var(--surface-container-low)] text-[var(--t1)]";
   };
 
   const filteredLogs = logs.filter((log) => {

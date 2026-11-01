@@ -120,8 +120,8 @@ export default function StaffAttendanceScanPage() {
     <PageErrorBoundary>
       <div className="p-4 sm:p-6 lg:p-8 space-y-6">
         <div>
-          <h1 className="text-2xl font-black text-slate-800">Staff Attendance Scan Terminal</h1>
-          <p className="text-sm text-slate-500">Scan staff cards for clock in / clock out workflows.</p>
+          <h1 className="text-2xl font-black text-[var(--t1)]">Staff Attendance Scan Terminal</h1>
+          <p className="text-sm text-[var(--t3)]">Scan staff cards for clock in / clock out workflows.</p>
         </div>
 
         <Card className="p-5 space-y-4">
@@ -137,10 +137,10 @@ export default function StaffAttendanceScanPage() {
           <button
             onClick={startScanner}
             disabled={submitting}
-            className="tap-44 w-full border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center hover:bg-slate-50 disabled:opacity-50"
+            className="tap-44 w-full border-2 border-dashed border-[var(--border)] rounded-2xl p-8 text-center hover:bg-[var(--surface-container-low)] disabled:opacity-50"
           >
-            <MaterialIcon icon="qr_code_scanner" className="text-4xl text-slate-400 mb-2" />
-            <p className="font-bold text-slate-800">
+            <MaterialIcon icon="qr_code_scanner" className="text-4xl text-[var(--t3)] mb-2" />
+            <p className="font-bold text-[var(--t1)]">
               Scan staff ID card to {action === "check_in" ? "check in" : "check out"}
             </p>
           </button>
@@ -160,21 +160,21 @@ export default function StaffAttendanceScanPage() {
         </Card>
 
         <Card className="p-5">
-          <h2 className="text-sm font-black uppercase tracking-wider text-slate-500 mb-4">Recent Activity</h2>
+          <h2 className="text-sm font-black uppercase tracking-wider text-[var(--t3)] mb-4">Recent Activity</h2>
           {recent.length === 0 ? (
-            <p className="text-sm text-slate-500">No attendance scans yet.</p>
+            <p className="text-sm text-[var(--t3)]">No attendance scans yet.</p>
           ) : (
             <div className="space-y-3">
               {recent.map((entry, index) => (
                 <div
                   key={`${entry.name}-${entry.time}-${index}`}
-                  className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2"
+                  className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2"
                 >
                   <div>
-                    <p className="text-sm font-semibold text-slate-800">{entry.name}</p>
-                    <p className="text-xs text-slate-500">{entry.action}</p>
+                    <p className="text-sm font-semibold text-[var(--t1)]">{entry.name}</p>
+                    <p className="text-xs text-[var(--t3)]">{entry.action}</p>
                   </div>
-                  <span className="text-xs font-medium text-slate-500">{entry.time}</span>
+                  <span className="text-xs font-medium text-[var(--t3)]">{entry.time}</span>
                 </div>
               ))}
             </div>
@@ -185,9 +185,9 @@ export default function StaffAttendanceScanPage() {
       {showScanner && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md rounded-2xl bg-white overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-semibold text-slate-800">Scan Staff Card</h3>
-              <button onClick={stopScanner} className="tap-44 p-2 rounded hover:bg-slate-100">
+            <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
+              <h3 className="font-semibold text-[var(--t1)]">Scan Staff Card</h3>
+              <button onClick={stopScanner} className="tap-44 p-2 rounded hover:bg-[var(--surface-container)]">
                 <MaterialIcon icon="close" />
               </button>
             </div>
@@ -195,7 +195,7 @@ export default function StaffAttendanceScanPage() {
               {scannerError ? (
                 <p className="text-sm text-red-600">{scannerError}</p>
               ) : (
-                <div id="staff-scan-reader" className="w-full aspect-square rounded-xl overflow-hidden bg-slate-900" />
+                <div id="staff-scan-reader" className="w-full aspect-square rounded-xl overflow-hidden bg-black" />
               )}
             </div>
           </div>

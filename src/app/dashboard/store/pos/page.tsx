@@ -486,16 +486,16 @@ export default function CanteenPOSPage() {
 
   return (
     <PageErrorBoundary>
-      <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
+      <div className="h-screen flex flex-col bg-[var(--surface-container-low)] overflow-hidden">
         {/* POS Header */}
-        <div className="bg-white px-3 sm:px-6 py-3 sm:py-4 flex justify-between items-center gap-2 border-b border-slate-100 shrink-0">
+        <div className="bg-white px-3 sm:px-6 py-3 sm:py-4 flex justify-between items-center gap-2 border-b border-[var(--border)] shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-primary-800 text-white flex items-center justify-center font-black shrink-0">
               <MaterialIcon icon="store" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-lg sm:text-xl font-black text-slate-800 tracking-tight truncate">Canteen POS</h1>
-              <p className="text-xs font-black uppercase text-slate-400 tracking-widest truncate">
+              <h1 className="text-lg sm:text-xl font-black text-[var(--t1)] tracking-tight truncate">Canteen POS</h1>
+              <p className="text-xs font-black uppercase text-[var(--t3)] tracking-widest truncate">
                 {school?.name || "SkoolMate Canteen"}
               </p>
             </div>
@@ -517,7 +517,7 @@ export default function CanteenPOSPage() {
             <Link
               href="/dashboard/store/meal-scan"
               aria-label="Open meal scan terminal"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-100 min-h-[44px] touch-manipulation"
+              className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-3 py-2 text-xs font-bold uppercase tracking-wider text-[var(--t2)] hover:bg-[var(--surface-container)] min-h-[44px] touch-manipulation"
             >
               <MaterialIcon icon="restaurant" className="text-sm" />
               <span className="hidden lg:inline">Meal Scan Terminal</span>
@@ -531,15 +531,15 @@ export default function CanteenPOSPage() {
               )}
 
               <div className="hidden xl:block">
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                <p className="text-xs font-black text-[var(--t3)] uppercase tracking-widest leading-none mb-1">
                   Terminal
                 </p>
-                <p className="text-sm font-bold text-slate-800">Counter 01</p>
+                <p className="text-sm font-bold text-[var(--t1)]">Counter 01</p>
               </div>
             </div>
-            <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-slate-100 rounded-2xl">
+            <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-[var(--surface-container)] rounded-2xl">
               <MaterialIcon icon="schedule" className="text-primary-700" />
-              <p className="text-xs font-bold text-slate-800">{format(new Date(), "HH:mm")}</p>
+              <p className="text-xs font-bold text-[var(--t1)]">{format(new Date(), "HH:mm")}</p>
             </div>
           </div>
         </div>
@@ -563,7 +563,7 @@ export default function CanteenPOSPage() {
                   className={`px-4 sm:px-6 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap min-h-[44px] touch-manipulation focus-visible:outline-2 focus-visible:outline-primary-800 ${
                     activeCategory === cat
                       ? "bg-primary-800 text-white shadow-lg shadow-primary-800/20"
-                      : "bg-white text-slate-500 hover:bg-slate-50 border border-slate-100"
+                      : "bg-white text-[var(--t3)] hover:bg-[var(--surface-container-low)] border border-[var(--border)]"
                   }`}
                 >
                   {cat}
@@ -587,23 +587,23 @@ export default function CanteenPOSPage() {
                       disabled={Number(item.stock || 0) <= 0}
                       aria-pressed={inCartQty > 0}
                       aria-label={`${item.name}${variantLabel ? `, variant ${variantLabel}` : ""}, UGX ${Number(item.price || 0).toLocaleString()}${inCartQty > 0 ? `, ${formatQty(inCartQty)} in cart` : ""}${Number(item.stock || 0) <= 0 ? ", out of stock" : ""}`}
-                      className="bg-white p-4 rounded-3xl border border-slate-100 hover:border-primary-100 transition-all group flex flex-col items-start text-left relative overflow-hidden active:scale-95 min-h-[132px] touch-manipulation focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-800 disabled:opacity-60 disabled:active:scale-100"
+                      className="bg-white p-4 rounded-3xl border border-[var(--border)] hover:border-primary-100 transition-all group flex flex-col items-start text-left relative overflow-hidden active:scale-95 min-h-[132px] touch-manipulation focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-800 disabled:opacity-60 disabled:active:scale-100"
                     >
-                      <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-primary-800 mb-3 group-hover:bg-primary-50">
+                      <div className="w-12 h-12 rounded-2xl bg-[var(--surface-container-low)] flex items-center justify-center text-primary-800 mb-3 group-hover:bg-primary-50">
                         <MaterialIcon icon="restaurant" />
                       </div>
-                      <p className="text-sm font-black text-slate-800 leading-tight mb-1 pr-14">{item.name}</p>
+                      <p className="text-sm font-black text-[var(--t1)] leading-tight mb-1 pr-14">{item.name}</p>
                       {variantLabel && (
-                        <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">
+                        <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)] mb-1">
                           {variantLabel}
                         </p>
                       )}
-                      {item.unit && <p className="text-xs font-bold text-slate-400 mb-1">per {item.unit}</p>}
+                      {item.unit && <p className="text-xs font-bold text-[var(--t3)] mb-1">per {item.unit}</p>}
                       <p className="text-xs font-bold text-primary-700">
                         UGX {Number(item.price || 0).toLocaleString()}
                       </p>
 
-                      <div className="absolute top-4 right-4 text-xs font-black uppercase text-slate-400 tracking-tighter">
+                      <div className="absolute top-4 right-4 text-xs font-black uppercase text-[var(--t3)] tracking-tighter">
                         Stock: {Number(item.stock || 0) > 0 ? item.stock : "OUT"}
                       </div>
                       {inCartQty > 0 && (
@@ -627,7 +627,7 @@ export default function CanteenPOSPage() {
                 })}
               </div>
               {filteredItems.length === 0 && (
-                <div className="py-16 text-center text-sm font-semibold text-slate-400">
+                <div className="py-16 text-center text-sm font-semibold text-[var(--t3)]">
                   No items in this category yet.
                 </div>
               )}
@@ -635,23 +635,23 @@ export default function CanteenPOSPage() {
           </div>
 
           {/* Right: Cart & Identity */}
-          <div className="w-full lg:max-w-[400px] bg-white border-t lg:border-t-0 lg:border-l border-slate-100 flex flex-col shrink-0 max-h-[52vh] lg:max-h-none lg:flex-1 xl:flex-none overflow-y-auto lg:overflow-visible">
+          <div className="w-full lg:max-w-[400px] bg-white border-t lg:border-t-0 lg:border-l border-[var(--border)] flex flex-col shrink-0 max-h-[52vh] lg:max-h-none lg:flex-1 xl:flex-none overflow-y-auto lg:overflow-visible">
             {/* Student Verification */}
-            <div className="p-4 sm:p-6 border-b border-slate-100">
-              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Customer Identity</h3>
+            <div className="p-4 sm:p-6 border-b border-[var(--border)]">
+              <h3 className="text-xs font-black uppercase tracking-widest text-[var(--t3)] mb-4">Customer Identity</h3>
               {!student ? (
                 <div className="space-y-3">
                   <button
                     type="button"
                     onClick={startScanner}
-                    className="w-full p-4 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center space-y-3 hover:bg-slate-50/50 transition-colors cursor-pointer group min-h-[44px] touch-manipulation focus-visible:outline-2 focus-visible:outline-primary-800"
+                    className="w-full p-4 rounded-2xl border-2 border-dashed border-[var(--border)] flex flex-col items-center justify-center text-center space-y-3 hover:bg-[var(--surface-container-low)] transition-colors cursor-pointer group min-h-[44px] touch-manipulation focus-visible:outline-2 focus-visible:outline-primary-800"
                   >
-                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:text-primary-800 transition-colors">
+                    <div className="w-12 h-12 rounded-full bg-[var(--surface-container)] flex items-center justify-center text-[var(--t3)] group-hover:text-primary-800 transition-colors">
                       <MaterialIcon icon="qr_code_scanner" style={{ fontSize: 32 }} />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-slate-800">Scan Student ID Card</p>
-                      <p className="text-xs text-slate-400 font-medium">Tap to open camera and scan QR code</p>
+                      <p className="text-sm font-bold text-[var(--t1)]">Scan Student ID Card</p>
+                      <p className="text-xs text-[var(--t3)] font-medium">Tap to open camera and scan QR code</p>
                     </div>
                   </button>
                   <div className="flex gap-2">
@@ -662,7 +662,7 @@ export default function CanteenPOSPage() {
                       onKeyDown={(e) => e.key === "Enter" && handleManualLookup()}
                       placeholder="Or type student number..."
                       aria-label="Student number"
-                      className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[44px]"
+                      className="flex-1 px-3 py-2 text-sm border border-[var(--border)] rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[44px]"
                     />
                     <button
                       type="button"
@@ -721,8 +721,8 @@ export default function CanteenPOSPage() {
             {/* Cart Items */}
             <div className="flex-1 flex flex-col overflow-hidden p-4 sm:p-6 gap-4 min-h-0">
               <div className="flex justify-between items-center">
-                <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Current Order</h3>
-                <p className="text-xs font-bold text-slate-400 italic">{cart.length} lines</p>
+                <h3 className="text-xs font-black uppercase tracking-widest text-[var(--t3)]">Current Order</h3>
+                <p className="text-xs font-bold text-[var(--t3)] italic">{cart.length} lines</p>
               </div>
 
               <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3 min-h-0">
@@ -734,17 +734,17 @@ export default function CanteenPOSPage() {
                       className="flex items-center gap-2 animate-in slide-in-from-right duration-300"
                     >
                       <div
-                        className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-primary-800 font-bold text-xs ring-1 ring-slate-100 shrink-0"
+                        className="w-10 h-10 rounded-xl bg-[var(--surface-container-low)] flex items-center justify-center text-primary-800 font-bold text-xs ring-1 ring-[var(--border)] shrink-0"
                         aria-label={`${formatQty(item.quantity)} times ${item.name}`}
                       >
                         {formatQty(item.quantity)}x
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-slate-800 truncate">
+                        <p className="text-xs font-bold text-[var(--t1)] truncate">
                           {item.name}
                           {item.variant ? ` · ${item.variant}` : ""}
                         </p>
-                        <p className="text-xs text-slate-400 font-bold tracking-tighter">
+                        <p className="text-xs text-[var(--t3)] font-bold tracking-tighter">
                           UGX {Number(item.price || 0).toLocaleString()}
                         </p>
                         <div className="mt-1.5 flex items-center gap-1.5">
@@ -752,7 +752,7 @@ export default function CanteenPOSPage() {
                             type="button"
                             onClick={() => updateQuantity(item.cartKey, Math.round((item.quantity - 1) * 100) / 100)}
                             aria-label={`Decrease quantity of ${item.name}`}
-                            className="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 active:scale-95 touch-manipulation"
+                            className="w-9 h-9 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--t2)] hover:bg-[var(--surface-container-low)] active:scale-95 touch-manipulation"
                           >
                             <MaterialIcon icon="remove" style={{ fontSize: 16 }} />
                           </button>
@@ -776,13 +776,13 @@ export default function CanteenPOSPage() {
                                 commitQtyDraft(item.cartKey, (e.target as HTMLInputElement).value);
                               }
                             }}
-                            className="w-16 px-1 py-1 text-center text-xs font-bold border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[36px]"
+                            className="w-16 px-1 py-1 text-center text-xs font-bold border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[36px]"
                           />
                           <button
                             type="button"
                             onClick={() => updateQuantity(item.cartKey, Math.round((item.quantity + 1) * 100) / 100)}
                             aria-label={`Increase quantity of ${item.name}`}
-                            className="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 active:scale-95 touch-manipulation"
+                            className="w-9 h-9 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--t2)] hover:bg-[var(--surface-container-low)] active:scale-95 touch-manipulation"
                           >
                             <MaterialIcon icon="add" style={{ fontSize: 16 }} />
                           </button>
@@ -792,7 +792,7 @@ export default function CanteenPOSPage() {
                         type="button"
                         onClick={() => requestRemove(item.cartKey, item.name)}
                         aria-label={`Remove ${item.name} from cart`}
-                        className="p-2.5 text-slate-300 hover:text-red-500 transition-colors min-h-[44px] min-w-[44px] touch-manipulation"
+                        className="p-2.5 text-[var(--t4)] hover:text-red-500 transition-colors min-h-[44px] min-w-[44px] touch-manipulation"
                       >
                         <MaterialIcon icon="delete_outline" style={{ fontSize: 18 }} />
                       </button>
@@ -809,9 +809,9 @@ export default function CanteenPOSPage() {
             </div>
 
             {/* Checkout Footer */}
-            <div className="p-4 sm:p-6 bg-slate-50/50 space-y-4 shrink-0 border-t border-slate-100">
+            <div className="p-4 sm:p-6 bg-[var(--surface-container-low)] space-y-4 shrink-0 border-t border-[var(--border)]">
               <div
-                className="flex bg-white rounded-2xl p-1 shadow-sm border border-slate-100"
+                className="flex bg-white rounded-2xl p-1 shadow-sm border border-[var(--border)]"
                 role="group"
                 aria-label="Payment method"
               >
@@ -819,7 +819,7 @@ export default function CanteenPOSPage() {
                   type="button"
                   onClick={() => setPaymentMethod("wallet")}
                   aria-pressed={paymentMethod === "wallet"}
-                  className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 min-h-[44px] touch-manipulation ${paymentMethod === "wallet" ? "bg-primary-800 text-white shadow-md" : "text-slate-500 hover:text-slate-800"}`}
+                  className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 min-h-[44px] touch-manipulation ${paymentMethod === "wallet" ? "bg-primary-800 text-white shadow-md" : "text-[var(--t3)] hover:text-[var(--t1)]"}`}
                 >
                   <MaterialIcon icon="account_balance_wallet" style={{ fontSize: 16 }} />
                   Wallet
@@ -828,7 +828,7 @@ export default function CanteenPOSPage() {
                   type="button"
                   onClick={() => setPaymentMethod("cash")}
                   aria-pressed={paymentMethod === "cash"}
-                  className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 min-h-[44px] touch-manipulation ${paymentMethod === "cash" ? "bg-primary-800 text-white shadow-md" : "text-slate-500 hover:text-slate-800"}`}
+                  className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 min-h-[44px] touch-manipulation ${paymentMethod === "cash" ? "bg-primary-800 text-white shadow-md" : "text-[var(--t3)] hover:text-[var(--t1)]"}`}
                 >
                   <MaterialIcon icon="payments" style={{ fontSize: 16 }} />
                   Cash
@@ -839,7 +839,7 @@ export default function CanteenPOSPage() {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="pos-cash-tendered"
-                    className="text-xs font-black uppercase tracking-widest text-slate-400"
+                    className="text-xs font-black uppercase tracking-widest text-[var(--t3)]"
                   >
                     Cash received (UGX)
                   </label>
@@ -851,7 +851,7 @@ export default function CanteenPOSPage() {
                     value={cashTendered}
                     onChange={(e) => setCashTendered(e.target.value)}
                     placeholder={`Exact: ${total.toLocaleString()}`}
-                    className="w-full px-3 py-2.5 text-sm font-bold border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[44px]"
+                    className="w-full px-3 py-2.5 text-sm font-bold border border-[var(--border)] rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[44px]"
                   />
                   {tenderedValue !== null && total > 0 && (
                     <p
@@ -874,8 +874,8 @@ export default function CanteenPOSPage() {
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center px-1">
-                  <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Grand Total</p>
-                  <p className="text-2xl font-black text-slate-800">UGX {total.toLocaleString()}</p>
+                  <p className="text-xs font-black uppercase text-[var(--t3)] tracking-widest">Grand Total</p>
+                  <p className="text-2xl font-black text-[var(--t1)]">UGX {total.toLocaleString()}</p>
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -930,15 +930,15 @@ export default function CanteenPOSPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="pos-confirm-title"
-            className="relative w-full max-w-md max-h-[calc(100vh-1.5rem)] overflow-y-auto my-auto bg-white rounded-3xl shadow-2xl border border-slate-100"
+            className="relative w-full max-w-md max-h-[calc(100vh-1.5rem)] overflow-y-auto my-auto bg-white rounded-3xl shadow-2xl border border-[var(--border)]"
           >
             <div className="p-5 sm:p-6 space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 id="pos-confirm-title" className="text-lg font-black text-slate-800">
+                  <h2 id="pos-confirm-title" className="text-lg font-black text-[var(--t1)]">
                     Confirm sale
                   </h2>
-                  <p className="text-xs text-slate-500 font-medium">Review the order before recording it.</p>
+                  <p className="text-xs text-[var(--t3)] font-medium">Review the order before recording it.</p>
                 </div>
                 <button
                   type="button"
@@ -947,48 +947,48 @@ export default function CanteenPOSPage() {
                     setConfirmError(null);
                   }}
                   aria-label="Back to cart"
-                  className="p-2.5 hover:bg-slate-100 rounded-xl min-h-[44px] min-w-[44px] touch-manipulation"
+                  className="p-2.5 hover:bg-[var(--surface-container)] rounded-xl min-h-[44px] min-w-[44px] touch-manipulation"
                 >
-                  <MaterialIcon icon="close" className="text-slate-500" />
+                  <MaterialIcon icon="close" className="text-[var(--t3)]" />
                 </button>
               </div>
 
               <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
                 {cart.map((line) => (
                   <div key={line.cartKey} className="flex justify-between gap-3 text-sm">
-                    <p className="font-bold text-slate-700 truncate">
+                    <p className="font-bold text-[var(--t2)] truncate">
                       {formatQty(line.quantity)}× {line.name}
                       {line.variant ? ` · ${line.variant}` : ""}
                     </p>
-                    <p className="font-black text-slate-800 shrink-0">
+                    <p className="font-black text-[var(--t1)] shrink-0">
                       UGX {(line.price * line.quantity).toLocaleString()}
                     </p>
                   </div>
                 ))}
               </div>
 
-              <div className="rounded-2xl bg-slate-50 p-4 space-y-2 text-sm">
+              <div className="rounded-2xl bg-[var(--surface-container-low)] p-4 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="font-bold text-slate-500">Payment</span>
-                  <span className="font-black uppercase text-slate-800">{paymentMethod}</span>
+                  <span className="font-bold text-[var(--t3)]">Payment</span>
+                  <span className="font-black uppercase text-[var(--t1)]">{paymentMethod}</span>
                 </div>
                 {student && (
                   <div className="flex justify-between">
-                    <span className="font-bold text-slate-500">Customer</span>
-                    <span className="font-bold text-slate-800 truncate ml-4">
+                    <span className="font-bold text-[var(--t3)]">Customer</span>
+                    <span className="font-bold text-[var(--t1)] truncate ml-4">
                       {student.first_name} {student.last_name}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between text-base">
-                  <span className="font-black text-slate-500 uppercase">Total</span>
-                  <span className="font-black text-slate-900">UGX {total.toLocaleString()}</span>
+                  <span className="font-black text-[var(--t3)] uppercase">Total</span>
+                  <span className="font-black text-[var(--t1)]">UGX {total.toLocaleString()}</span>
                 </div>
                 {paymentMethod === "cash" ? (
                   <>
                     <label
                       htmlFor="pos-confirm-tendered"
-                      className="block text-xs font-black uppercase tracking-widest text-slate-400 pt-1"
+                      className="block text-xs font-black uppercase tracking-widest text-[var(--t3)] pt-1"
                     >
                       Cash received (UGX)
                     </label>
@@ -1002,10 +1002,10 @@ export default function CanteenPOSPage() {
                         setCashTendered(e.target.value);
                         setConfirmError(null);
                       }}
-                      className="w-full px-3 py-2.5 text-sm font-bold border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[44px]"
+                      className="w-full px-3 py-2.5 text-sm font-bold border border-[var(--border)] rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[44px]"
                     />
                     <div className="flex justify-between">
-                      <span className="font-bold text-slate-500">Change due</span>
+                      <span className="font-bold text-[var(--t3)]">Change due</span>
                       <span
                         role="status"
                         className={`font-black ${(changeDue ?? 0) < 0 ? "text-red-600" : "text-emerald-600"}`}
@@ -1016,8 +1016,8 @@ export default function CanteenPOSPage() {
                   </>
                 ) : (
                   <div className="flex justify-between">
-                    <span className="font-bold text-slate-500">Wallet balance</span>
-                    <span className="font-black text-slate-800">UGX {(student?.balance || 0).toLocaleString()}</span>
+                    <span className="font-bold text-[var(--t3)]">Wallet balance</span>
+                    <span className="font-black text-[var(--t1)]">UGX {(student?.balance || 0).toLocaleString()}</span>
                   </div>
                 )}
               </div>
@@ -1038,7 +1038,7 @@ export default function CanteenPOSPage() {
                     setShowConfirm(false);
                     setConfirmError(null);
                   }}
-                  className="flex-1 py-3 rounded-2xl border-2 border-slate-200 font-black uppercase text-xs tracking-wider text-slate-600 hover:bg-slate-50 active:scale-[0.98] min-h-[48px] touch-manipulation"
+                  className="flex-1 py-3 rounded-2xl border-2 border-[var(--border)] font-black uppercase text-xs tracking-wider text-[var(--t2)] hover:bg-[var(--surface-container-low)] active:scale-[0.98] min-h-[48px] touch-manipulation"
                 >
                   Back to cart
                 </button>
@@ -1075,15 +1075,15 @@ export default function CanteenPOSPage() {
       {showScanner && (
         <div className="fixed inset-0 z-50 bg-black/80 flex flex-col items-center justify-start sm:justify-center overflow-y-auto p-3 sm:p-4">
           <div className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
-            <div className="flex items-center justify-between p-4 border-b border-slate-100">
-              <h3 className="text-lg font-bold text-slate-800">Scan Student ID</h3>
+            <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
+              <h3 className="text-lg font-bold text-[var(--t1)]">Scan Student ID</h3>
               <button
                 type="button"
                 onClick={stopScanner}
                 aria-label="Close scanner"
-                className="p-2.5 hover:bg-slate-100 rounded-lg min-h-[44px] min-w-[44px] touch-manipulation"
+                className="p-2.5 hover:bg-[var(--surface-container)] rounded-lg min-h-[44px] min-w-[44px] touch-manipulation"
               >
-                <MaterialIcon icon="close" className="text-slate-500" />
+                <MaterialIcon icon="close" className="text-[var(--t3)]" />
               </button>
             </div>
             <div className="p-4">
@@ -1091,14 +1091,14 @@ export default function CanteenPOSPage() {
                 <div className="text-center py-8">
                   <MaterialIcon icon="error" className="text-red-500 text-4xl mb-3" />
                   <p className="text-red-600 font-medium">{scannerError}</p>
-                  <p className="text-sm text-slate-500 mt-2">Make sure you have granted camera permission.</p>
+                  <p className="text-sm text-[var(--t3)] mt-2">Make sure you have granted camera permission.</p>
                 </div>
               ) : (
-                <div id="canteen-qr-reader" className="w-full aspect-square bg-slate-900 rounded-xl overflow-hidden" />
+                <div id="canteen-qr-reader" className="w-full aspect-square bg-black rounded-xl overflow-hidden" />
               )}
             </div>
-            <div className="p-4 bg-slate-50 border-t border-slate-100">
-              <p className="text-xs text-slate-500 text-center">
+            <div className="p-4 bg-[var(--surface-container-low)] border-t border-[var(--border)]">
+              <p className="text-xs text-[var(--t3)] text-center">
                 Point the camera at the student&apos;s ID card QR code
               </p>
             </div>

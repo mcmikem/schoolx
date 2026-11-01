@@ -762,7 +762,7 @@ export default function TermEndPage() {
               </span>
               <span>{Math.round((completedSteps / totalSteps) * 100)}% complete</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+            <div className="w-full bg-[var(--surface-container-high)] rounded-full h-2 overflow-hidden">
               <div
                 className="bg-blue-600 h-full rounded-full transition-all duration-500"
                 style={{ width: `${(completedSteps / totalSteps) * 100}%` }}

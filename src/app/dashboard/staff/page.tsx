@@ -1462,7 +1462,7 @@ function DirectoryTab({
       dos: { bg: "bg-orange-100", text: "text-orange-700" },
       bursar: { bg: "bg-red-100", text: "text-red-700" },
       parent: { bg: "bg-purple-100", text: "text-purple-700" },
-      student: { bg: "bg-slate-200", text: "text-slate-700" },
+      student: { bg: "bg-[var(--surface-container-high)]", text: "text-[var(--t2)]" },
     };
     const style = roles[role] || roles.teacher;
     return (

@@ -172,9 +172,9 @@ export default function AdmissionPackagePage() {
               <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center text-primary-800">
                 <MaterialIcon icon="history_edu" />
               </div>
-              <h1 className="text-3xl font-black text-slate-800 tracking-tight">Admission Package</h1>
+              <h1 className="text-3xl font-black text-[var(--t1)] tracking-tight">Admission Package</h1>
             </div>
-            <p className="text-slate-500 font-medium">Generate official enrollment documents</p>
+            <p className="text-[var(--t3)] font-medium">Generate official enrollment documents</p>
           </div>
 
           <div className="flex gap-4">
@@ -199,19 +199,22 @@ export default function AdmissionPackagePage() {
 
         {!student && (
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-12 text-center">
-            <MaterialIcon icon="search" style={{ fontSize: 48 }} className="text-slate-200 mb-4" />
-            <p className="text-slate-500 font-bold">Search for a student to generate their admission letter.</p>
+            <MaterialIcon icon="search" style={{ fontSize: 48 }} className="text-[var(--t4)] mb-4" />
+            <p className="text-[var(--t3)] font-bold">Search for a student to generate their admission letter.</p>
             <div className="mt-4 max-w-md mx-auto relative">
               <input
                 type="text"
                 placeholder="Student Name or Number..."
                 value={searchTerm}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-100"
+                className="w-full pl-10 pr-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-xl outline-none focus:ring-2 focus:ring-primary-100"
               />
-              <MaterialIcon icon="person_search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <MaterialIcon
+                icon="person_search"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--t3)]"
+              />
               {searchResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-10 overflow-hidden">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[var(--border)] rounded-xl shadow-lg z-10 overflow-hidden">
                   {searchResults.map((s: any) => (
                     <button
                       key={s.id}
@@ -220,12 +223,12 @@ export default function AdmissionPackagePage() {
                         setSearchResults([]);
                         setSearchTerm("");
                       }}
-                      className="w-full text-left px-4 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors"
+                      className="w-full text-left px-4 py-3 hover:bg-[var(--surface-container-low)] border-b border-[var(--border)] last:border-0 transition-colors"
                     >
-                      <p className="font-semibold text-slate-800 text-sm">
+                      <p className="font-semibold text-[var(--t1)] text-sm">
                         {s.first_name} {s.last_name}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-[var(--t3)]">
                         {s.student_number}{" "}
                         {s.classes ? `• ${s.classes.name}${s.classes.stream ? ` ${s.classes.stream}` : ""}` : ""}
                       </p>
@@ -234,7 +237,7 @@ export default function AdmissionPackagePage() {
                 </div>
               )}
               {searchLoading && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-10 p-4 text-sm text-slate-500 text-center">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[var(--border)] rounded-xl shadow-lg z-10 p-4 text-sm text-[var(--t3)] text-center">
                   Searching…
                 </div>
               )}
@@ -246,17 +249,17 @@ export default function AdmissionPackagePage() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             <div className="lg:col-span-1 space-y-6">
               <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
-                <h3 className="font-bold text-slate-800 mb-4 uppercase tracking-widest text-xs">Student Context</h3>
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl mb-6">
+                <h3 className="font-bold text-[var(--t1)] mb-4 uppercase tracking-widest text-xs">Student Context</h3>
+                <div className="flex items-center gap-3 p-3 bg-[var(--surface-container-low)] rounded-2xl mb-6">
                   <div className="w-12 h-12 rounded-full bg-primary-800 text-white flex items-center justify-center font-black text-lg">
                     {student.first_name[0]}
                     {student.last_name[0]}
                   </div>
                   <div>
-                    <p className="font-bold text-slate-800">
+                    <p className="font-bold text-[var(--t1)]">
                       {student.first_name} {student.last_name}
                     </p>
-                    <p className="text-xs font-black uppercase tracking-wider text-slate-400">
+                    <p className="text-xs font-black uppercase tracking-wider text-[var(--t3)]">
                       {student.student_number || "Draft"}
                     </p>
                   </div>
@@ -264,26 +267,28 @@ export default function AdmissionPackagePage() {
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500">Academic Year</span>
-                    <span className="text-xs font-bold text-slate-800">{academicYear}</span>
+                    <span className="text-xs text-[var(--t3)]">Academic Year</span>
+                    <span className="text-xs font-bold text-[var(--t1)]">{academicYear}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500">Term</span>
-                    <span className="text-xs font-bold text-slate-800">Term 1</span>
+                    <span className="text-xs text-[var(--t3)]">Term</span>
+                    <span className="text-xs font-bold text-[var(--t1)]">Term 1</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500">Assigned Class</span>
-                    <span className="text-xs font-bold text-slate-800">{student.classes?.name || "Unassigned"}</span>
+                    <span className="text-xs text-[var(--t3)]">Assigned Class</span>
+                    <span className="text-xs font-bold text-[var(--t1)]">{student.classes?.name || "Unassigned"}</span>
                   </div>
                 </div>
               </div>
 
               {/* Letter Template Customization */}
               <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-                <h3 className="font-bold text-slate-800 mb-3 uppercase tracking-widest text-xs">Customise Letter</h3>
+                <h3 className="font-bold text-[var(--t1)] mb-3 uppercase tracking-widest text-xs">Customise Letter</h3>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs font-bold uppercase text-slate-500 mb-1 block">Admission Fee (UGX)</label>
+                    <label className="text-xs font-bold uppercase text-[var(--t3)] mb-1 block">
+                      Admission Fee (UGX)
+                    </label>
                     <input
                       type="text"
                       value={letterConfig.admissionFee}
@@ -293,7 +298,7 @@ export default function AdmissionPackagePage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold uppercase text-slate-500 mb-1 block">Term Start</label>
+                    <label className="text-xs font-bold uppercase text-[var(--t3)] mb-1 block">Term Start</label>
                     <input
                       type="text"
                       value={letterConfig.termStart}
@@ -303,7 +308,7 @@ export default function AdmissionPackagePage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold uppercase text-slate-500 mb-1 block">Requirements</label>
+                    <label className="text-xs font-bold uppercase text-[var(--t3)] mb-1 block">Requirements</label>
                     <textarea
                       value={letterConfig.requirements}
                       onChange={(e) => setLetterConfig((p) => ({ ...p, requirements: e.target.value }))}
@@ -330,7 +335,7 @@ export default function AdmissionPackagePage() {
             </div>
 
             <div className="lg:col-span-3">
-              <div className="overflow-x-auto bg-slate-100 p-8 rounded-[32px] border border-slate-200 border-dashed min-h-[800px] flex justify-center">
+              <div className="overflow-x-auto bg-[var(--surface-container)] p-8 rounded-[32px] border border-[var(--border)] border-dashed min-h-[800px] flex justify-center">
                 <div ref={printRef}>
                   <AdmissionLetter
                     student={student}

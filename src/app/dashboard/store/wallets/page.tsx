@@ -168,8 +168,8 @@ export default function StudentWalletsPage() {
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
         <div className="flex justify-between items-end">
           <div>
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight">Student Wallets</h1>
-            <p className="text-slate-500 font-medium tracking-tight">
+            <h1 className="text-3xl font-black text-[var(--t1)] tracking-tight">Student Wallets</h1>
+            <p className="text-[var(--t3)] font-medium tracking-tight">
               Manage digital pocket money and recent wallet activity
             </p>
           </div>
@@ -180,9 +180,9 @@ export default function StudentWalletsPage() {
                 placeholder="Search students..."
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                className="pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none focus:ring-2 focus:ring-primary-100 w-full min-w-[200px]"
+                className="pl-10 pr-4 py-3 bg-white border border-[var(--border)] rounded-2xl text-xs outline-none focus:ring-2 focus:ring-primary-100 w-full min-w-[200px]"
               />
-              <MaterialIcon icon="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <MaterialIcon icon="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--t3)]" />
             </div>
           </div>
         </div>
@@ -197,23 +197,23 @@ export default function StudentWalletsPage() {
             </div>
           </div>
 
-          <div className="p-6 rounded-[32px] bg-white border border-slate-100 flex items-center gap-4">
+          <div className="p-6 rounded-[32px] bg-white border border-[var(--border)] flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <MaterialIcon icon="receipt_long" style={{ fontSize: 28 }} />
             </div>
             <div>
-              <p className="text-xs font-black uppercase tracking-widest text-slate-400">Total Top-ups (MTD)</p>
-              <p className="text-2xl font-black text-slate-800">UGX {monthTopups.toLocaleString()}</p>
+              <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)]">Total Top-ups (MTD)</p>
+              <p className="text-2xl font-black text-[var(--t1)]">UGX {monthTopups.toLocaleString()}</p>
             </div>
           </div>
 
-          <div className="p-6 rounded-[32px] bg-white border border-slate-100 flex items-center gap-4">
+          <div className="p-6 rounded-[32px] bg-white border border-[var(--border)] flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center">
               <MaterialIcon icon="credit_card_off" style={{ fontSize: 28 }} />
             </div>
             <div>
-              <p className="text-xs font-black uppercase tracking-widest text-slate-400">Low Balance Warnings</p>
-              <p className="text-2xl font-black text-slate-800">{lowBalanceCount} Students</p>
+              <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)]">Low Balance Warnings</p>
+              <p className="text-2xl font-black text-[var(--t1)]">{lowBalanceCount} Students</p>
             </div>
           </div>
         </div>
@@ -222,20 +222,22 @@ export default function StudentWalletsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/50">
-                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400">Student</th>
-                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400">Reg No</th>
-                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400">Balance</th>
-                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400">Daily Limit</th>
-                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400">
+                <tr className="bg-[var(--surface-container-low)]">
+                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-[var(--t3)]">Student</th>
+                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-[var(--t3)]">Reg No</th>
+                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-[var(--t3)]">Balance</th>
+                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-[var(--t3)]">
+                    Daily Limit
+                  </th>
+                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-[var(--t3)]">
                     Last Activity
                   </th>
-                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400 text-right">
+                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-[var(--t3)] text-right">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-[var(--border)]">
                 {loadError ? (
                   <tr>
                     <td colSpan={5} className="p-0">
@@ -257,14 +259,14 @@ export default function StudentWalletsPage() {
                     if (!student) return null;
 
                     return (
-                      <tr key={wallet.id} className="hover:bg-slate-50/50 transition-colors group">
+                      <tr key={wallet.id} className="hover:bg-[var(--surface-container-low)] transition-colors group">
                         <td className="px-6 py-4">
-                          <p className="text-sm font-bold text-slate-800">
+                          <p className="text-sm font-bold text-[var(--t1)]">
                             {student.first_name} {student.last_name}
                           </p>
                         </td>
                         <td className="px-6 py-4">
-                          <p className="text-xs font-black uppercase tracking-widest text-slate-400">
+                          <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)]">
                             {student.student_number}
                           </p>
                         </td>
@@ -278,21 +280,21 @@ export default function StudentWalletsPage() {
                           </p>
                         </td>
                         <td className="px-6 py-4">
-                          <p className="text-xs font-medium text-slate-500">
+                          <p className="text-xs font-medium text-[var(--t3)]">
                             {wallet.daily_spend_limit
                               ? `UGX ${Number(wallet.daily_spend_limit).toLocaleString()}`
                               : "No Limit"}
                           </p>
                         </td>
                         <td className="px-6 py-4">
-                          <p className="text-xs text-slate-400 font-medium">
+                          <p className="text-xs text-[var(--t3)] font-medium">
                             {wallet.updated_at ? format(new Date(wallet.updated_at), "MMM dd, HH:mm") : "N/A"}
                           </p>
                         </td>
                         <td className="px-6 py-4 text-right">
                           <button
                             onClick={() => setShowTopup(wallet)}
-                            className="px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:scale-105 transition-all shadow-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                            className="px-4 py-2 bg-[var(--navy)] text-white rounded-xl text-xs font-black uppercase tracking-wider hover:scale-105 transition-all shadow-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                           >
                             Top Up
                           </button>
@@ -308,7 +310,7 @@ export default function StudentWalletsPage() {
 
         {showTopup && (
           <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" aria-hidden="true" />
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
             <div className="relative bg-white rounded-[40px] w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl animate-in zoom-in-95 duration-200">
               <div className="p-8">
                 <div className="flex justify-between items-center mb-8">
@@ -317,17 +319,17 @@ export default function StudentWalletsPage() {
                   </div>
                   <button
                     onClick={() => setShowTopup(null)}
-                    className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
+                    className="p-2 hover:bg-[var(--surface-container)] rounded-xl transition-colors"
                   >
-                    <MaterialIcon icon="close" className="text-slate-400" />
+                    <MaterialIcon icon="close" className="text-[var(--t3)]" />
                   </button>
                 </div>
 
                 <div className="mb-8">
-                  <h3 className="text-2xl font-black text-slate-800 mb-1">Wallet Top-up</h3>
-                  <p className="text-sm text-slate-500 font-medium">
+                  <h3 className="text-2xl font-black text-[var(--t1)] mb-1">Wallet Top-up</h3>
+                  <p className="text-sm text-[var(--t3)] font-medium">
                     Adding funds for{" "}
-                    <span className="text-slate-800 font-bold">
+                    <span className="text-[var(--t1)] font-bold">
                       {resolveStudent(showTopup.students)?.first_name} {resolveStudent(showTopup.students)?.last_name}
                     </span>
                   </p>
@@ -335,7 +337,7 @@ export default function StudentWalletsPage() {
 
                 <div className="space-y-6">
                   <div>
-                    <label className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2 block">
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] mb-2 block">
                       Amount (UGX)
                     </label>
                     <input
@@ -344,7 +346,7 @@ export default function StudentWalletsPage() {
                       value={topupAmount}
                       onChange={(event) => setTopupAmount(event.target.value)}
                       placeholder="e.g. 50000"
-                      className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-xl font-black outline-none focus:ring-4 focus:ring-primary-100 transition-all"
+                      className="w-full px-6 py-4 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl text-xl font-black outline-none focus:ring-4 focus:ring-primary-100 transition-all"
                     />
                   </div>
 
@@ -353,7 +355,7 @@ export default function StudentWalletsPage() {
                       <button
                         key={amount}
                         onClick={() => setTopupAmount(amount.toString())}
-                        className="flex-1 py-2 rounded-xl border border-slate-100 text-xs font-bold text-slate-500 hover:border-primary-200 hover:text-primary-800 transition-all"
+                        className="flex-1 py-2 rounded-xl border border-[var(--border)] text-xs font-bold text-[var(--t3)] hover:border-primary-200 hover:text-primary-800 transition-all"
                       >
                         +{amount / 1000}k
                       </button>

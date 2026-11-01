@@ -263,7 +263,7 @@ export default function AcademicTermsPage() {
           </div>
         ) : terms.length === 0 ? (
           <div className="text-center py-12">
-            <MaterialIcon icon="calendar_today" className="text-5xl text-gray-300 mx-auto mb-4" />
+            <MaterialIcon icon="calendar_today" className="text-5xl text-[var(--t4)] mx-auto mb-4" />
             <h3 className="text-lg font-medium text-[var(--t2)]">No terms configured</h3>
             <p className="text-[var(--t3)] mt-1 mb-4">Add your first academic term to get started</p>
             {canManageTerms && (
@@ -291,7 +291,7 @@ export default function AcademicTermsPage() {
                 <div className="px-6 py-4 bg-[var(--surface-container-low)] border-b border-[var(--border)]">
                   <h3 className="font-semibold text-[var(--t1)]">Academic Year {year}</h3>
                 </div>
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-[var(--border)]">
                   {yearTerms.map((term) => (
                     <div
                       key={term.id}
@@ -320,7 +320,7 @@ export default function AcademicTermsPage() {
                         {!term.is_active && <Badge variant="default">Inactive</Badge>}
                         <button
                           onClick={() => !term.is_current && setCurrentTerm(term.id)}
-                          className={`p-2 rounded-lg ${term.is_current || !canManageTerms ? "text-gray-300 cursor-not-allowed" : "text-blue-700 hover:bg-blue-50"}`}
+                          className={`p-2 rounded-lg ${term.is_current || !canManageTerms ? "text-[var(--t4)] cursor-not-allowed" : "text-blue-700 hover:bg-blue-50"}`}
                           disabled={term.is_current || !canManageTerms}
                           title="Set as current term"
                         >
@@ -328,14 +328,14 @@ export default function AcademicTermsPage() {
                         </button>
                         <button
                           onClick={() => openModal(term)}
-                          className={`p-2 rounded-lg ${canManageTerms ? "text-[var(--t3)] hover:bg-[var(--surface-container-low)]" : "text-gray-300 cursor-not-allowed"}`}
+                          className={`p-2 rounded-lg ${canManageTerms ? "text-[var(--t3)] hover:bg-[var(--surface-container-low)]" : "text-[var(--t4)] cursor-not-allowed"}`}
                           disabled={!canManageTerms}
                         >
                           <MaterialIcon icon="edit" />
                         </button>
                         <button
                           onClick={() => deleteTerm(term.id)}
-                          className={`p-2 rounded-lg ${canManageTerms ? "text-red-700 hover:bg-red-50" : "text-gray-300 cursor-not-allowed"}`}
+                          className={`p-2 rounded-lg ${canManageTerms ? "text-red-700 hover:bg-red-50" : "text-[var(--t4)] cursor-not-allowed"}`}
                           disabled={!canManageTerms}
                         >
                           <MaterialIcon icon="delete" />

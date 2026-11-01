@@ -32,7 +32,7 @@ const SEVERITY_STYLES: Record<string, { bg: string; text: string; dot: string }>
 
 const STATUS_BADGE: Record<string, string> = {
   admitted: "bg-blue-100 text-blue-700",
-  discharged: "bg-slate-100 text-slate-600",
+  discharged: "bg-[var(--surface-container)] text-[var(--t2)]",
   referred: "bg-red-100 text-red-700",
 };
 
@@ -256,14 +256,14 @@ export default function HealthPage() {
           ].map((s) => (
             <div
               key={s.label}
-              className="p-5 bg-[var(--surface)] rounded-3xl border border-slate-100 flex items-center gap-4"
+              className="p-5 bg-[var(--surface)] rounded-3xl border border-[var(--border)] flex items-center gap-4"
             >
               <div className={`w-12 h-12 rounded-2xl ${s.color} text-white flex items-center justify-center shrink-0`}>
                 <MaterialIcon icon={s.icon} />
               </div>
               <div>
-                <p className="text-2xl font-black text-slate-800">{s.value}</p>
-                <p className="text-xs font-black uppercase tracking-widest text-slate-400">{s.label}</p>
+                <p className="text-2xl font-black text-[var(--t1)]">{s.value}</p>
+                <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)]">{s.label}</p>
               </div>
             </div>
           ))}
@@ -276,45 +276,53 @@ export default function HealthPage() {
             { label: "Admitted", value: admitted.length, tone: "text-blue-700 bg-blue-50" },
             { label: "Discharged today", value: dischargedToday, tone: "text-emerald-700 bg-emerald-50" },
             { label: "Referred", value: referred.length, tone: "text-red-700 bg-red-50" },
-            { label: "Records", value: records.length, tone: "text-slate-700 bg-slate-50" },
+            { label: "Records", value: records.length, tone: "text-[var(--t2)] bg-[var(--surface-container-low)]" },
           ].map((item) => (
-            <div key={item.label} className={`rounded-2xl border border-slate-100 p-3 ${item.tone}`}>
+            <div key={item.label} className={`rounded-2xl border border-[var(--border)] p-3 ${item.tone}`}>
               <div className="text-xs font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
               <div className="mt-1 text-lg font-bold">{item.value}</div>
             </div>
           ))}
         </div>
         <div className={cardClassName + " overflow-hidden"}>
-          <div className="p-5 border-b border-slate-50 bg-slate-50/50">
-            <p className="text-xs font-black uppercase tracking-widest text-slate-400">Sick Bay Records</p>
+          <div className="p-5 border-b border-[var(--border)] bg-[var(--surface-container-low)]">
+            <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)]">Sick Bay Records</p>
           </div>
           {loading ? (
-            <div className="p-8 text-center text-slate-400 font-medium">Loading records…</div>
+            <div className="p-8 text-center text-[var(--t3)] font-medium">Loading records…</div>
           ) : records.length === 0 ? (
             <div className="p-12 text-center">
-              <MaterialIcon icon="medical_services" className="text-5xl text-slate-200 mb-3" />
-              <p className="font-bold text-slate-400">No health records yet</p>
-              <p className="text-sm text-slate-300 mt-1">Admitted students will appear here</p>
+              <MaterialIcon icon="medical_services" className="text-5xl text-[var(--t4)] mb-3" />
+              <p className="font-bold text-[var(--t3)]">No health records yet</p>
+              <p className="text-sm text-[var(--t4)] mt-1">Admitted students will appear here</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-slate-50">
-                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Student</th>
-                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Condition</th>
-                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Severity</th>
-                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Treatment</th>
-                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Status</th>
-                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Admitted</th>
-                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Actions</th>
+                  <tr className="border-b border-[var(--border)]">
+                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-[var(--t3)]">Student</th>
+                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-[var(--t3)]">
+                      Condition
+                    </th>
+                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-[var(--t3)]">
+                      Severity
+                    </th>
+                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-[var(--t3)]">
+                      Treatment
+                    </th>
+                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-[var(--t3)]">Status</th>
+                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-[var(--t3)]">
+                      Admitted
+                    </th>
+                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-[var(--t3)]">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-[var(--border)]">
                   {records.map((r) => (
-                    <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-4 font-bold text-slate-800 text-sm">{r.student_name}</td>
-                      <td className="px-6 py-4 text-sm text-slate-600">{r.condition}</td>
+                    <tr key={r.id} className="hover:bg-[var(--surface-container-low)] transition-colors">
+                      <td className="px-6 py-4 font-bold text-[var(--t1)] text-sm">{r.student_name}</td>
+                      <td className="px-6 py-4 text-sm text-[var(--t2)]">{r.condition}</td>
                       <td className="px-6 py-4">
                         <div
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider ${SEVERITY_STYLES[r.severity].bg} ${SEVERITY_STYLES[r.severity].text}`}
@@ -323,7 +331,7 @@ export default function HealthPage() {
                           {r.severity}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-500 max-w-[200px] truncate">{r.treatment}</td>
+                      <td className="px-6 py-4 text-xs text-[var(--t3)] max-w-[200px] truncate">{r.treatment}</td>
                       <td className="px-6 py-4">
                         <span
                           className={`px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider ${STATUS_BADGE[r.status]}`}
@@ -331,7 +339,7 @@ export default function HealthPage() {
                           {r.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-400 font-mono">
+                      <td className="px-6 py-4 text-xs text-[var(--t3)] font-mono">
                         {new Date(r.admitted_at).toLocaleDateString("en-GB", {
                           day: "2-digit",
                           month: "short",
@@ -364,7 +372,7 @@ export default function HealthPage() {
                               <button
                                 onClick={() => openEdit(r)}
                                 title="Edit record"
-                                className="p-1.5 hover:bg-blue-50 rounded-xl text-slate-300 hover:text-blue-700 transition-colors"
+                                className="p-1.5 hover:bg-blue-50 rounded-xl text-[var(--t4)] hover:text-blue-700 transition-colors"
                               >
                                 <MaterialIcon icon="edit" style={{ fontSize: 16 }} />
                               </button>
@@ -372,7 +380,7 @@ export default function HealthPage() {
                                 onClick={() => deleteRecord(r.id)}
                                 disabled={deletingHealthId === r.id}
                                 title="Delete record"
-                                className="p-1.5 hover:bg-red-50 rounded-xl text-slate-300 hover:text-red-700 disabled:opacity-50 transition-colors"
+                                className="p-1.5 hover:bg-red-50 rounded-xl text-[var(--t4)] hover:text-red-700 disabled:opacity-50 transition-colors"
                               >
                                 <MaterialIcon
                                   icon={deletingHealthId === r.id ? "hourglass_empty" : "delete"}
@@ -394,34 +402,37 @@ export default function HealthPage() {
         {/* Edit Record Modal */}
         {editingRecord && (
           <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" aria-hidden="true" />
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
             <div className="relative bg-[var(--surface)] rounded-[40px] w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-black text-slate-800">Edit Record</h2>
-                <button onClick={() => setEditingRecord(null)} className="p-2 hover:bg-slate-100 rounded-xl">
-                  <MaterialIcon icon="close" className="text-slate-400" />
+                <h2 className="text-2xl font-black text-[var(--t1)]">Edit Record</h2>
+                <button
+                  onClick={() => setEditingRecord(null)}
+                  className="p-2 hover:bg-[var(--surface-container)] rounded-xl"
+                >
+                  <MaterialIcon icon="close" className="text-[var(--t3)]" />
                 </button>
               </div>
               <div className="space-y-5">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2">
                       Condition
                     </label>
                     <input
                       value={editForm.condition}
                       onChange={(e) => setEditForm({ ...editForm, condition: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                      className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl text-sm font-bold outline-none"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2">
                       Severity
                     </label>
                     <select
                       value={editForm.severity}
                       onChange={(e) => setEditForm({ ...editForm, severity: e.target.value as any })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                      className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl text-sm font-bold outline-none"
                     >
                       <option value="mild">Mild</option>
                       <option value="moderate">Moderate</option>
@@ -430,13 +441,13 @@ export default function HealthPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
+                  <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2">
                     Status
                   </label>
                   <select
                     value={editForm.status}
                     onChange={(e) => setEditForm({ ...editForm, status: e.target.value as any })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                    className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl text-sm font-bold outline-none"
                   >
                     <option value="admitted">Admitted</option>
                     <option value="discharged">Discharged</option>
@@ -444,20 +455,20 @@ export default function HealthPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
+                  <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2">
                     Treatment
                   </label>
                   <textarea
                     value={editForm.treatment}
                     onChange={(e) => setEditForm({ ...editForm, treatment: e.target.value })}
                     rows={2}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none resize-none"
+                    className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl text-sm font-bold outline-none resize-none"
                   />
                 </div>
                 <div className="flex gap-3">
                   <button
                     onClick={() => setEditingRecord(null)}
-                    className="flex-1 py-3 border border-slate-200 rounded-2xl font-black text-slate-600 hover:bg-slate-50"
+                    className="flex-1 py-3 border border-[var(--border)] rounded-2xl font-black text-[var(--t2)] hover:bg-[var(--surface-container-low)]"
                   >
                     Cancel
                   </button>
@@ -475,7 +486,7 @@ export default function HealthPage() {
                     )}
                   </button>
                 </div>
-                {editValidationError && <p className="text-sm text-slate-500">{editValidationError}</p>}
+                {editValidationError && <p className="text-sm text-[var(--t3)]">{editValidationError}</p>}
               </div>
             </div>
           </div>
@@ -484,32 +495,35 @@ export default function HealthPage() {
         {/* Admit Modal */}
         {showAdd && (
           <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" aria-hidden="true" />
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
             <div className="relative bg-[var(--surface)] rounded-[40px] w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl overflow-hidden">
               <div className="p-8">
                 <div className="flex justify-between items-center mb-8">
                   <div>
-                    <h2 className="text-2xl font-black text-slate-800">Admit Student</h2>
-                    <p className="text-sm text-slate-400 font-medium">Log a new sick bay admission</p>
+                    <h2 className="text-2xl font-black text-[var(--t1)]">Admit Student</h2>
+                    <p className="text-sm text-[var(--t3)] font-medium">Log a new sick bay admission</p>
                   </div>
-                  <button onClick={() => setShowAdd(false)} className="p-2 hover:bg-slate-100 rounded-xl">
-                    <MaterialIcon icon="close" className="text-slate-400" />
+                  <button
+                    onClick={() => setShowAdd(false)}
+                    className="p-2 hover:bg-[var(--surface-container)] rounded-xl"
+                  >
+                    <MaterialIcon icon="close" className="text-[var(--t3)]" />
                   </button>
                 </div>
 
                 <div className="space-y-5">
                   <div className="relative">
-                    <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2">
                       Student
                     </label>
                     <input
                       value={studentSearch}
                       onChange={(e) => searchStudents(e.target.value)}
                       placeholder="Search student name..."
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                      className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl text-sm font-bold outline-none"
                     />
                     {students.length > 0 && (
-                      <div className="absolute top-full mt-1 left-0 right-0 bg-[var(--surface)] rounded-2xl border border-slate-100 shadow-xl z-10 overflow-hidden">
+                      <div className="absolute top-full mt-1 left-0 right-0 bg-[var(--surface)] rounded-2xl border border-[var(--border)] shadow-xl z-10 overflow-hidden">
                         {students.map((s) => (
                           <button
                             key={s.id}
@@ -518,7 +532,7 @@ export default function HealthPage() {
                               setStudentSearch(`${s.first_name} ${s.last_name}`);
                               setStudents([]);
                             }}
-                            className="w-full text-left px-4 py-3 hover:bg-slate-50 text-sm font-bold text-slate-800"
+                            className="w-full text-left px-4 py-3 hover:bg-[var(--surface-container-low)] text-sm font-bold text-[var(--t1)]"
                           >
                             {s.first_name} {s.last_name}
                           </button>
@@ -529,24 +543,24 @@ export default function HealthPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
+                      <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2">
                         Condition
                       </label>
                       <input
                         value={form.condition}
                         onChange={(e) => setForm({ ...form, condition: e.target.value })}
                         placeholder="e.g. Malaria"
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                        className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl text-sm font-bold outline-none"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
+                      <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2">
                         Severity
                       </label>
                       <select
                         value={form.severity}
                         onChange={(e) => setForm({ ...form, severity: e.target.value as any })}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                        className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl text-sm font-bold outline-none"
                       >
                         <option value="mild">Mild</option>
                         <option value="moderate">Moderate</option>
@@ -556,7 +570,7 @@ export default function HealthPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2">
                       Treatment Given
                     </label>
                     <textarea
@@ -564,7 +578,7 @@ export default function HealthPage() {
                       onChange={(e) => setForm({ ...form, treatment: e.target.value })}
                       rows={2}
                       placeholder="e.g. Paracetamol, rest..."
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none resize-none"
+                      className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl text-sm font-bold outline-none resize-none"
                     />
                   </div>
 
@@ -582,7 +596,7 @@ export default function HealthPage() {
                       </>
                     )}
                   </button>
-                  {admitValidationError && <p className="text-sm text-slate-500">{admitValidationError}</p>}
+                  {admitValidationError && <p className="text-sm text-[var(--t3)]">{admitValidationError}</p>}
                 </div>
               </div>
             </div>

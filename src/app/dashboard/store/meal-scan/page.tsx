@@ -194,8 +194,8 @@ export default function MealScanPage() {
       <div className="p-4 sm:p-6 lg:p-8 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-black text-slate-800">Meal Scan Terminal</h1>
-            <p className="text-sm text-slate-500">One-scan-per-meal-per-day control for canteen feeding.</p>
+            <h1 className="text-2xl font-black text-[var(--t1)]">Meal Scan Terminal</h1>
+            <p className="text-sm text-[var(--t3)]">One-scan-per-meal-per-day control for canteen feeding.</p>
           </div>
           <Button variant="secondary" onClick={loadRules} disabled={loading}>
             <MaterialIcon icon="refresh" className="text-sm" />
@@ -214,8 +214,8 @@ export default function MealScanPage() {
                   onClick={() => setSelectedMeal(meal)}
                   className={`rounded-xl border px-4 py-3 text-left transition ${active ? "border-[var(--primary)] bg-[var(--primary)]/10" : "border-[var(--border)] bg-white"}`}
                 >
-                  <p className="text-sm font-bold text-slate-800">{MEAL_LABELS[meal]}</p>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-sm font-bold text-[var(--t1)]">{MEAL_LABELS[meal]}</p>
+                  <p className="text-xs text-[var(--t3)] mt-1">
                     {rule?.is_enabled
                       ? `Enabled (${rule.eligibility === "boarding_only" ? "Boarding only" : "All students"})`
                       : "Disabled"}
@@ -228,7 +228,7 @@ export default function MealScanPage() {
 
         <Card className="p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-black uppercase tracking-wider text-slate-500">Meal Rules</h2>
+            <h2 className="text-sm font-black uppercase tracking-wider text-[var(--t3)]">Meal Rules</h2>
             <Button onClick={saveRules} disabled={savingRules || rules.length === 0}>
               <MaterialIcon icon="save" className="text-sm" />
               {savingRules ? "Saving..." : "Save Rules"}
@@ -237,10 +237,10 @@ export default function MealScanPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {rules.map((rule) => (
-              <div key={rule.id} className="rounded-xl border border-slate-200 p-4 space-y-3 bg-white">
+              <div key={rule.id} className="rounded-xl border border-[var(--border)] p-4 space-y-3 bg-white">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="font-bold text-slate-800">{MEAL_LABELS[rule.meal_type]}</p>
-                  <label className="inline-flex items-center gap-2 text-xs text-slate-600">
+                  <p className="font-bold text-[var(--t1)]">{MEAL_LABELS[rule.meal_type]}</p>
+                  <label className="inline-flex items-center gap-2 text-xs text-[var(--t2)]">
                     <input
                       type="checkbox"
                       checked={rule.is_enabled}
@@ -250,7 +250,7 @@ export default function MealScanPage() {
                   </label>
                 </div>
 
-                <label className="block text-xs font-semibold text-slate-500">Eligibility</label>
+                <label className="block text-xs font-semibold text-[var(--t3)]">Eligibility</label>
                 <select
                   value={rule.eligibility}
                   onChange={(e) =>
@@ -264,7 +264,7 @@ export default function MealScanPage() {
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-500 mb-1">Start</label>
+                    <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Start</label>
                     <input
                       type="time"
                       value={rule.start_time || ""}
@@ -273,7 +273,7 @@ export default function MealScanPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-500 mb-1">End</label>
+                    <label className="block text-xs font-semibold text-[var(--t3)] mb-1">End</label>
                     <input
                       type="time"
                       value={rule.end_time || ""}
@@ -284,7 +284,7 @@ export default function MealScanPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1">Max servings/day</label>
+                  <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Max servings/day</label>
                   <input
                     type="number"
                     inputMode="numeric"
@@ -305,15 +305,15 @@ export default function MealScanPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="p-5 space-y-4">
-            <h2 className="text-sm font-black uppercase tracking-wider text-slate-500">Serve by Scan</h2>
+            <h2 className="text-sm font-black uppercase tracking-wider text-[var(--t3)]">Serve by Scan</h2>
             <button
               onClick={startScanner}
               disabled={!selectedRule?.is_enabled || serving}
-              className="tap-44 w-full border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center hover:bg-slate-50 disabled:opacity-50"
+              className="tap-44 w-full border-2 border-dashed border-[var(--border)] rounded-2xl p-8 text-center hover:bg-[var(--surface-container-low)] disabled:opacity-50"
             >
-              <MaterialIcon icon="qr_code_scanner" className="text-4xl text-slate-400 mb-2" />
-              <p className="font-bold text-slate-800">Scan student card for {MEAL_LABELS[selectedMeal]}</p>
-              <p className="text-xs text-slate-500 mt-1">Duplicate scans for today are auto-blocked</p>
+              <MaterialIcon icon="qr_code_scanner" className="text-4xl text-[var(--t3)] mb-2" />
+              <p className="font-bold text-[var(--t1)]">Scan student card for {MEAL_LABELS[selectedMeal]}</p>
+              <p className="text-xs text-[var(--t3)] mt-1">Duplicate scans for today are auto-blocked</p>
             </button>
 
             <div className="flex gap-2">
@@ -337,21 +337,21 @@ export default function MealScanPage() {
           </Card>
 
           <Card className="p-5">
-            <h2 className="text-sm font-black uppercase tracking-wider text-slate-500 mb-4">Recent Serves</h2>
+            <h2 className="text-sm font-black uppercase tracking-wider text-[var(--t3)] mb-4">Recent Serves</h2>
             {recentServes.length === 0 ? (
-              <p className="text-sm text-slate-500">No scans yet for this session.</p>
+              <p className="text-sm text-[var(--t3)]">No scans yet for this session.</p>
             ) : (
               <div className="space-y-3">
                 {recentServes.map((entry, index) => (
                   <div
                     key={`${entry.name}-${entry.time}-${index}`}
-                    className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2"
+                    className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2"
                   >
                     <div>
-                      <p className="text-sm font-semibold text-slate-800">{entry.name}</p>
-                      <p className="text-xs text-slate-500">{entry.meal}</p>
+                      <p className="text-sm font-semibold text-[var(--t1)]">{entry.name}</p>
+                      <p className="text-xs text-[var(--t3)]">{entry.meal}</p>
                     </div>
-                    <span className="text-xs font-medium text-slate-500">{entry.time}</span>
+                    <span className="text-xs font-medium text-[var(--t3)]">{entry.time}</span>
                   </div>
                 ))}
               </div>
@@ -363,9 +363,9 @@ export default function MealScanPage() {
       {showScanner && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md rounded-2xl bg-white overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-semibold text-slate-800">Scan Student Card</h3>
-              <button onClick={stopScanner} className="tap-44 p-2 rounded hover:bg-slate-100">
+            <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
+              <h3 className="font-semibold text-[var(--t1)]">Scan Student Card</h3>
+              <button onClick={stopScanner} className="tap-44 p-2 rounded hover:bg-[var(--surface-container)]">
                 <MaterialIcon icon="close" />
               </button>
             </div>
@@ -373,7 +373,7 @@ export default function MealScanPage() {
               {scannerError ? (
                 <p className="text-sm text-red-600">{scannerError}</p>
               ) : (
-                <div id="meal-scan-reader" className="w-full aspect-square rounded-xl overflow-hidden bg-slate-900" />
+                <div id="meal-scan-reader" className="w-full aspect-square rounded-xl overflow-hidden bg-black" />
               )}
             </div>
           </div>

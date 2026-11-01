@@ -419,26 +419,26 @@ export default function SMSCenterPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Templates Panel */}
           <div className="space-y-4">
-            <p className="text-xs font-black uppercase tracking-widest text-slate-400 px-2">Message Templates</p>
+            <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)] px-2">Message Templates</p>
             {TEMPLATES.map((t) => (
               <button
                 key={t.id}
                 onClick={() => selectTemplate(t)}
                 className={`w-full p-4 rounded-[24px] flex items-center gap-4 transition-all text-left border ${
                   activeTemplate.id === t.id
-                    ? "bg-slate-800 text-white border-slate-800 shadow-xl"
-                    : "bg-[var(--surface)] text-slate-700 border-slate-100 hover:border-slate-200"
+                    ? "bg-[var(--navy)] text-white border-[var(--navy)] shadow-xl"
+                    : "bg-[var(--surface)] text-[var(--t2)] border-[var(--border)] hover:border-[var(--border)]"
                 }`}
               >
                 <div
-                  className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${activeTemplate.id === t.id ? "bg-[var(--surface)]/10" : "bg-slate-50"}`}
+                  className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${activeTemplate.id === t.id ? "bg-[var(--surface)]/10" : "bg-[var(--surface-container-low)]"}`}
                 >
                   <MaterialIcon icon={t.icon} style={{ fontSize: 20 }} />
                 </div>
                 <div className="min-w-0">
                   <p className="font-bold text-sm truncate">{t.label}</p>
                   <p
-                    className={`text-xs font-bold uppercase tracking-widest ${activeTemplate.id === t.id ? "opacity-50" : "text-slate-400"}`}
+                    className={`text-xs font-bold uppercase tracking-widest ${activeTemplate.id === t.id ? "opacity-50" : "text-[var(--t3)]"}`}
                   >
                     {t.category}
                   </p>
@@ -453,7 +453,7 @@ export default function SMSCenterPage() {
             <Card>
               <CardBody className="p-6 space-y-5">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Target Audience</p>
+                  <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)] mb-4">Target Audience</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {SEGMENT_OPTIONS.map((opt) => (
                       <button
@@ -461,13 +461,13 @@ export default function SMSCenterPage() {
                         onClick={() => switchSegment(opt.value)}
                         className={`flex items-center gap-3 p-3 rounded-2xl border transition-all text-left ${
                           segment === opt.value
-                            ? "bg-slate-800 text-white border-slate-800 shadow-md"
-                            : "bg-[var(--surface)] text-slate-600 border-slate-100 hover:border-slate-300"
+                            ? "bg-[var(--navy)] text-white border-[var(--navy)] shadow-md"
+                            : "bg-[var(--surface)] text-[var(--t2)] border-[var(--border)] hover:border-[var(--border2)]"
                         }`}
                       >
                         <div
                           className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                            segment === opt.value ? "bg-[var(--surface)]/10" : "bg-slate-50"
+                            segment === opt.value ? "bg-[var(--surface)]/10" : "bg-[var(--surface-container-low)]"
                           }`}
                         >
                           <MaterialIcon icon={opt.icon} style={{ fontSize: 18 }} />
@@ -476,7 +476,7 @@ export default function SMSCenterPage() {
                           <p className="font-bold text-xs truncate">{opt.label}</p>
                           <p
                             className={`text-xs font-semibold uppercase tracking-wider ${
-                              segment === opt.value ? "opacity-50" : "text-slate-400"
+                              segment === opt.value ? "opacity-50" : "text-[var(--t3)]"
                             }`}
                           >
                             {opt.description}
@@ -490,11 +490,11 @@ export default function SMSCenterPage() {
                 {/* Segment-specific options */}
                 {segment === "class" && (
                   <div>
-                    <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Select Class</p>
+                    <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)] mb-2">Select Class</p>
                     <select
                       value={selectedClass}
                       onChange={(e) => setSelectedClass(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-800 text-sm"
+                      className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl outline-none font-bold text-[var(--t1)] text-sm"
                     >
                       <option value="">Choose class...</option>
                       {classes.map((c) => (
@@ -508,7 +508,7 @@ export default function SMSCenterPage() {
 
                 {segment === "balance" && (
                   <div>
-                    <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">
+                    <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)] mb-2">
                       Minimum Outstanding Balance (UGX)
                     </p>
                     <input
@@ -519,28 +519,28 @@ export default function SMSCenterPage() {
                       value={minBalance}
                       onChange={(e) => setMinBalance(e.target.value)}
                       placeholder="e.g. 50000"
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-800 text-sm"
+                      className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl outline-none font-bold text-[var(--t1)] text-sm"
                     />
                   </div>
                 )}
 
                 {segment === "student" && (
                   <div ref={studentSearchRef} className="relative">
-                    <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Search Student</p>
+                    <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)] mb-2">Search Student</p>
                     {selectedStudent ? (
-                      <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl">
+                      <div className="flex items-center gap-3 px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl">
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-sm text-slate-800 truncate">
+                          <p className="font-bold text-sm text-[var(--t1)] truncate">
                             {selectedStudent.first_name} {selectedStudent.last_name}
                           </p>
-                          <p className="text-xs text-slate-500 font-mono">{selectedStudent.student_number}</p>
+                          <p className="text-xs text-[var(--t3)] font-mono">{selectedStudent.student_number}</p>
                         </div>
                         <button
                           onClick={() => {
                             setSelectedStudent(null);
                             setStudentQuery("");
                           }}
-                          className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center hover:bg-slate-300 transition-colors"
+                          className="w-7 h-7 rounded-full bg-[var(--surface-container-high)] flex items-center justify-center hover:bg-[var(--surface-container-highest)] transition-colors"
                         >
                           <MaterialIcon icon="close" style={{ fontSize: 16 }} />
                         </button>
@@ -555,10 +555,10 @@ export default function SMSCenterPage() {
                             if (studentResults.length > 0) setShowStudentDropdown(true);
                           }}
                           placeholder="Type student name or number..."
-                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-800 text-sm"
+                          className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl outline-none font-bold text-[var(--t1)] text-sm"
                         />
                         {showStudentDropdown && studentResults.length > 0 && (
-                          <div className="absolute z-20 mt-1 w-full bg-[var(--surface)] border border-slate-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto">
+                          <div className="absolute z-20 mt-1 w-full bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-xl max-h-60 overflow-y-auto">
                             {studentResults.map((s) => (
                               <button
                                 key={s.id}
@@ -567,16 +567,16 @@ export default function SMSCenterPage() {
                                   setShowStudentDropdown(false);
                                   setStudentQuery("");
                                 }}
-                                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 text-left border-b border-slate-50 last:border-0"
+                                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[var(--surface-container-low)] text-left border-b border-[var(--border)] last:border-0"
                               >
-                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                                <div className="w-8 h-8 rounded-full bg-[var(--surface-container)] flex items-center justify-center">
                                   <MaterialIcon icon="person" style={{ fontSize: 16 }} />
                                 </div>
                                 <div className="min-w-0">
-                                  <p className="font-bold text-sm text-slate-800 truncate">
+                                  <p className="font-bold text-sm text-[var(--t1)] truncate">
                                     {s.first_name} {s.last_name}
                                   </p>
-                                  <p className="text-xs text-slate-500 font-mono">{s.student_number}</p>
+                                  <p className="text-xs text-[var(--t3)] font-mono">{s.student_number}</p>
                                 </div>
                               </button>
                             ))}
@@ -605,9 +605,9 @@ export default function SMSCenterPage() {
             <Card>
               <CardBody className="p-6 space-y-4">
                 <div className="flex justify-between items-center">
-                  <p className="text-xs font-black uppercase tracking-widest text-slate-400">Message Body</p>
+                  <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)]">Message Body</p>
                   <div className="flex items-center gap-3">
-                    <span className={`text-xs font-bold ${charCount > 160 ? "text-amber-500" : "text-slate-400"}`}>
+                    <span className={`text-xs font-bold ${charCount > 160 ? "text-amber-500" : "text-[var(--t3)]"}`}>
                       {charCount} chars &middot; {smsCount} SMS
                     </span>
                   </div>
@@ -616,17 +616,17 @@ export default function SMSCenterPage() {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   rows={6}
-                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-slate-100 transition-all text-sm font-medium text-slate-800 resize-none"
+                  className="w-full px-5 py-4 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl outline-none focus:ring-4 focus:ring-[var(--primary)]/20 transition-all text-sm font-medium text-[var(--t1)] resize-none"
                   placeholder="Type your message here..."
                 />
-                <p className="text-xs text-slate-400 italic">
+                <p className="text-xs text-[var(--t3)] italic">
                   Variables: {"{student_name}"}, {"{date}"}, {"{amount}"}, {"{school_name}"}
                 </p>
 
                 <button
                   onClick={handleSend}
                   disabled={!canSend}
-                  className="w-full py-4 bg-slate-800 text-white rounded-[28px] font-black uppercase tracking-[2px] hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-xl"
+                  className="w-full py-4 bg-[var(--navy)] text-white rounded-[28px] font-black uppercase tracking-[2px] hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-xl"
                 >
                   {sending ? (
                     <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -643,20 +643,20 @@ export default function SMSCenterPage() {
             {logs.length > 0 && (
               <Card>
                 <CardBody className="p-0 overflow-hidden">
-                  <div className="p-4 border-b border-slate-50 bg-slate-50/50">
-                    <p className="text-xs font-black uppercase tracking-widest text-slate-400">Recent Activity</p>
+                  <div className="p-4 border-b border-[var(--border)] bg-[var(--surface-container-low)]">
+                    <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)]">Recent Activity</p>
                   </div>
-                  <div className="divide-y divide-slate-50">
+                  <div className="divide-y divide-[var(--border)]">
                     {logs.slice(0, 8).map((log) => (
                       <div key={log.id} className="px-5 py-4 flex items-center gap-4">
                         <div
                           className={`w-2 h-2 rounded-full shrink-0 ${log.status === "sent" ? "bg-emerald-400" : "bg-red-400"}`}
                         />
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-slate-800 truncate">{log.message}</p>
-                          <p className="text-xs text-slate-400 font-mono">{log.parent_phone}</p>
+                          <p className="text-xs font-bold text-[var(--t1)] truncate">{log.message}</p>
+                          <p className="text-xs text-[var(--t3)] font-mono">{log.parent_phone}</p>
                         </div>
-                        <p className="text-xs text-slate-400 shrink-0">
+                        <p className="text-xs text-[var(--t3)] shrink-0">
                           {format(new Date(log.sent_at), "MMM dd HH:mm")}
                         </p>
                       </div>

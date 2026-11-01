@@ -262,7 +262,7 @@ export default function AttendanceHistoryPage() {
           <div className="flex items-center gap-4 text-sm">
             <span className="font-medium text-[var(--t1)]">Attendance Rate:</span>
             <span className="text-lg font-bold text-green-600">{totalRate}%</span>
-            <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+            <div className="flex-1 h-3 bg-[var(--surface-container)] rounded-full overflow-hidden">
               <div
                 className="h-full bg-green-500 rounded-full transition-all"
                 style={{ width: `${Math.min(100, parseFloat(totalRate))}%` }}

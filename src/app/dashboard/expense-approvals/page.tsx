@@ -129,7 +129,7 @@ export default function ExpenseApprovalsPage() {
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${statusFilter === s ? "bg-indigo-600 text-white shadow" : "bg-[var(--surface)] border border-slate-200 text-slate-500 hover:border-slate-300"}`}
+              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${statusFilter === s ? "bg-indigo-600 text-white shadow" : "bg-[var(--surface)] border border-[var(--border)] text-[var(--t3)] hover:border-[var(--border2)]"}`}
             >
               {s}
             </button>
@@ -139,16 +139,16 @@ export default function ExpenseApprovalsPage() {
         {loading ? (
           <div className="space-y-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-20 bg-slate-50 rounded-2xl animate-pulse" />
+              <div key={i} className="h-20 bg-[var(--surface-container-low)] rounded-2xl animate-pulse" />
             ))}
           </div>
         ) : expenses.length === 0 ? (
           <Card>
             <CardBody>
               <div className="py-12 text-center">
-                <MaterialIcon icon="check_circle" className="text-4xl text-slate-200 mb-2" />
-                <p className="font-bold text-slate-400">No {statusFilter !== "all" ? statusFilter : ""} expenses</p>
-                <p className="text-sm text-slate-300 mt-1">All expenses in this category have been processed</p>
+                <MaterialIcon icon="check_circle" className="text-4xl text-[var(--t4)] mb-2" />
+                <p className="font-bold text-[var(--t3)]">No {statusFilter !== "all" ? statusFilter : ""} expenses</p>
+                <p className="text-sm text-[var(--t4)] mt-1">All expenses in this category have been processed</p>
               </div>
             </CardBody>
           </Card>
@@ -160,17 +160,17 @@ export default function ExpenseApprovalsPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="font-bold text-slate-800 text-sm">{exp.description || exp.category}</span>
+                        <span className="font-bold text-[var(--t1)] text-sm">{exp.description || exp.category}</span>
                         {statusBadge(exp.status)}
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-slate-400">
+                      <div className="flex items-center gap-3 text-xs text-[var(--t3)]">
                         <span className="font-medium">{exp.category}</span>
                         <span>•</span>
                         <span>{new Date(exp.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-lg font-black text-slate-800">
+                      <span className="text-lg font-black text-[var(--t1)]">
                         UGX {Number(exp.amount).toLocaleString()}
                       </span>
                       {exp.status === "pending" && (

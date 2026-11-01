@@ -324,7 +324,7 @@ export default function CoursesPage() {
           </div>
         ) : courses.length === 0 ? (
           <div className="text-center py-12">
-            <MaterialIcon icon="menu_book" className="text-5xl text-gray-300 mx-auto mb-4" />
+            <MaterialIcon icon="menu_book" className="text-5xl text-[var(--t4)] mx-auto mb-4" />
             <h3 className="text-lg font-medium text-[var(--t2)]">No courses found</h3>
             <p className="text-[var(--t3)] mt-1">Add courses to get started</p>
           </div>
@@ -549,7 +549,7 @@ export default function CoursesPage() {
                   type="checkbox"
                   checked={formData.is_elective}
                   onChange={(e) => setFormData({ ...formData, is_elective: e.target.checked })}
-                  className="rounded border-gray-300"
+                  className="rounded border-[var(--border2)]"
                 />
                 <span className="text-sm text-[var(--t2)]">Is Elective</span>
               </label>
@@ -558,7 +558,7 @@ export default function CoursesPage() {
                   type="checkbox"
                   checked={formData.is_laboratory}
                   onChange={(e) => setFormData({ ...formData, is_laboratory: e.target.checked })}
-                  className="rounded border-gray-300"
+                  className="rounded border-[var(--border2)]"
                 />
                 <span className="text-sm text-[var(--t2)]">Requires Lab</span>
               </label>

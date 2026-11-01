@@ -235,8 +235,10 @@ export default function BatchPhotosPage() {
               <p className="text-lg font-semibold text-[var(--t1)] mb-1">Drop photos here or click to browse</p>
               <p className="text-sm text-[var(--t3)]">
                 Name files as{" "}
-                <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono">student_number.jpg</code> (e.g.
-                STU001.jpg)
+                <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs font-mono">
+                  student_number.jpg
+                </code>{" "}
+                (e.g. STU001.jpg)
               </p>
               <input
                 ref={fileInputRef}
@@ -256,7 +258,7 @@ export default function BatchPhotosPage() {
                   </span>
                   <span className="text-[var(--t3)]">{Math.round((progress.current / progress.total) * 100)}%</span>
                 </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-2 bg-[var(--surface-container)] rounded-full overflow-hidden">
                   <div
                     className="h-full bg-blue-600 rounded-full transition-all duration-300"
                     style={{
@@ -276,7 +278,7 @@ export default function BatchPhotosPage() {
                   <div className="px-3 py-1.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">
                     {errorCount} Failed
                   </div>
-                  <div className="px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                  <div className="px-3 py-1.5 rounded-full text-xs font-semibold bg-[var(--surface-container)] text-[var(--t2)]">
                     {skipCount} Skipped
                   </div>
                   {!uploading && errorCount > 0 && lastFiles.length > 0 && (
@@ -295,7 +297,7 @@ export default function BatchPhotosPage() {
                           ? "bg-green-50 text-green-800"
                           : r.status === "error"
                             ? "bg-red-50 text-red-800"
-                            : "bg-gray-50 text-gray-600"
+                            : "bg-[var(--surface-container-low)] text-[var(--t2)]"
                       }`}
                     >
                       <span>

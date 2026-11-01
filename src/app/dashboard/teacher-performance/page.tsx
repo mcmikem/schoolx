@@ -298,7 +298,7 @@ export default function TeacherPerformancePage() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { label: "Teachers", value: stats.length, tone: "text-slate-700 bg-slate-50" },
+            { label: "Teachers", value: stats.length, tone: "text-[var(--t2)] bg-[var(--surface-container-low)]" },
             {
               label: "Lesson plans",
               value: stats.reduce((a, b) => a + b.lessonPlansCount, 0),

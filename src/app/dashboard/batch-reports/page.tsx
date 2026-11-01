@@ -71,15 +71,15 @@ export default function BatchReportsPage() {
       <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
         <div className="flex justify-between items-end">
           <div>
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight">Batch Report Cards</h1>
-            <p className="text-slate-500 font-medium tracking-tight">
+            <h1 className="text-3xl font-black text-[var(--t1)] tracking-tight">Batch Report Cards</h1>
+            <p className="text-[var(--t3)] font-medium tracking-tight">
               Generate and print report cards for an entire class at once
             </p>
           </div>
           <button
             onClick={handleGenerate}
             disabled={selected.length === 0}
-            className="flex items-center gap-2 px-6 py-3 bg-slate-800 text-white rounded-2xl font-bold shadow-lg hover:scale-105 transition-all disabled:opacity-40 disabled:scale-100"
+            className="flex items-center gap-2 px-6 py-3 bg-[var(--navy)] text-white rounded-2xl font-bold shadow-lg hover:scale-105 transition-all disabled:opacity-40 disabled:scale-100"
           >
             <MaterialIcon icon="print" />
             Print {selected.length} Cards
@@ -88,25 +88,25 @@ export default function BatchReportsPage() {
 
         {/* Config */}
         <div className={cardClassName + " p-8"}>
-          <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6">Batch Configuration</p>
+          <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)] mb-6">Batch Configuration</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
+              <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2">
                 Academic Year
               </label>
               <input
                 readOnly
                 value={academicYear}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-600 text-sm"
+                className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl font-bold text-[var(--t2)] text-sm"
               />
             </div>
             <div>
-              <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">Class</label>
+              <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2">Class</label>
               <div className="flex gap-3">
                 <select
                   value={selectedClass}
                   onChange={(e) => setSelectedClass(e.target.value)}
-                  className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-800 text-sm outline-none"
+                  className="flex-1 px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl font-bold text-[var(--t1)] text-sm outline-none"
                 >
                   <option value="">Choose class...</option>
                   {classes.map((c) => (
@@ -118,7 +118,7 @@ export default function BatchReportsPage() {
                 <button
                   onClick={loadStudents}
                   disabled={!selectedClass || loading}
-                  className="px-4 py-3 bg-slate-800 text-white rounded-2xl font-bold text-sm hover:scale-105 transition-all disabled:opacity-40"
+                  className="px-4 py-3 bg-[var(--navy)] text-white rounded-2xl font-bold text-sm hover:scale-105 transition-all disabled:opacity-40"
                 >
                   {loading ? (
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
@@ -134,49 +134,49 @@ export default function BatchReportsPage() {
         {/* Student List */}
         {students.length > 0 && (
           <div className={cardClassName + " overflow-hidden"}>
-            <div className="p-5 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
+            <div className="p-5 border-b border-[var(--border)] bg-[var(--surface-container-low)] flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <input
                   type="checkbox"
                   checked={selected.length === students.length}
                   onChange={toggleAll}
-                  className="w-4 h-4 rounded accent-slate-800 cursor-pointer"
+                  className="w-4 h-4 rounded accent-[var(--primary)] cursor-pointer"
                 />
-                <p className="text-xs font-black uppercase tracking-widest text-slate-400">
+                <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)]">
                   {students.length} Students Found
                 </p>
               </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[var(--surface-container)]">
                 <MaterialIcon icon="check_circle" className="text-emerald-500" style={{ fontSize: 16 }} />
-                <span className="text-xs font-bold text-slate-600">{selected.length} selected</span>
+                <span className="text-xs font-bold text-[var(--t2)]">{selected.length} selected</span>
               </div>
             </div>
 
-            <div className="divide-y divide-slate-50">
+            <div className="divide-y divide-[var(--border)]">
               {students.map((student, i) => (
                 <label
                   key={student.id}
-                  className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50/50 transition-colors cursor-pointer group"
+                  className="flex items-center gap-4 px-6 py-4 hover:bg-[var(--surface-container-low)] transition-colors cursor-pointer group"
                 >
                   <input
                     type="checkbox"
                     checked={selected.includes(student.id)}
                     onChange={() => toggleStudent(student.id)}
-                    className="w-4 h-4 rounded accent-slate-800 cursor-pointer shrink-0"
+                    className="w-4 h-4 rounded accent-[var(--primary)] cursor-pointer shrink-0"
                   />
-                  <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center font-black text-xs text-slate-500 shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-[var(--surface-container)] flex items-center justify-center font-black text-xs text-[var(--t3)] shrink-0">
                     {i + 1}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-800">
+                    <p className="text-sm font-bold text-[var(--t1)]">
                       {student.first_name} {student.last_name}
                     </p>
-                    <p className="text-xs font-black uppercase text-slate-400 tracking-wider">
+                    <p className="text-xs font-black uppercase text-[var(--t3)] tracking-wider">
                       {student.student_number}
                     </p>
                   </div>
                   <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity">
-                    <span className="px-3 py-1 bg-slate-800 text-white text-xs font-black uppercase tracking-widest rounded-full">
+                    <span className="px-3 py-1 bg-[var(--navy)] text-white text-xs font-black uppercase tracking-widest rounded-full">
                       Preview
                     </span>
                   </div>
@@ -184,14 +184,14 @@ export default function BatchReportsPage() {
               ))}
             </div>
 
-            <div className="p-6 bg-slate-50/50 border-t border-slate-50 flex justify-between items-center">
-              <p className="text-xs text-slate-400 font-medium italic">
+            <div className="p-6 bg-[var(--surface-container-low)] border-t border-[var(--border)] flex justify-between items-center">
+              <p className="text-xs text-[var(--t3)] font-medium italic">
                 Each report card will be generated as a separate page in a single print job
               </p>
               <button
                 onClick={handleGenerate}
                 disabled={selected.length === 0}
-                className="flex items-center gap-2 px-8 py-3 bg-slate-800 text-white rounded-2xl font-bold shadow-lg hover:scale-105 transition-all disabled:opacity-40"
+                className="flex items-center gap-2 px-8 py-3 bg-[var(--navy)] text-white rounded-2xl font-bold shadow-lg hover:scale-105 transition-all disabled:opacity-40"
               >
                 <MaterialIcon icon="print" />
                 Print All ({selected.length})
@@ -202,8 +202,8 @@ export default function BatchReportsPage() {
 
         {students.length === 0 && selectedClass && !loading && (
           <div className={cardClassName + " p-20 text-center"}>
-            <MaterialIcon icon="group_off" style={{ fontSize: 48 }} className="text-slate-200 mb-4" />
-            <p className="text-slate-400 font-medium">No active students found in this class.</p>
+            <MaterialIcon icon="group_off" style={{ fontSize: 48 }} className="text-[var(--t4)] mb-4" />
+            <p className="text-[var(--t3)] font-medium">No active students found in this class.</p>
           </div>
         )}
       </div>

@@ -235,7 +235,7 @@ export default function DormitoryPage() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { label: "Rooms", value: rooms.length, tone: "text-slate-700 bg-slate-50" },
+            { label: "Rooms", value: rooms.length, tone: "text-[var(--t2)] bg-[var(--surface-container-low)]" },
             { label: "Residents", value: residents.length, tone: "text-blue-700 bg-blue-50" },
             {
               label: "Selected dorm",

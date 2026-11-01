@@ -2614,7 +2614,7 @@ export default function ReportCardsPage() {
                   </span>
                 </div>
 
-                <div className="w-full bg-gray-200 rounded-full h-3">
+                <div className="w-full bg-[var(--surface-container-high)] rounded-full h-3">
                   <div
                     className="bg-emerald-500 h-3 rounded-full transition-all duration-300"
                     style={{

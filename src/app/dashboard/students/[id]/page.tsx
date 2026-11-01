@@ -421,10 +421,10 @@ function getStatusConfig(status: string) {
       label: "Graduated",
     };
   return {
-    bg: "bg-gray-50 dark:bg-gray-800/50",
-    text: "text-gray-700 dark:text-gray-300",
-    border: "border-gray-200 dark:border-gray-700",
-    dot: "bg-gray-400",
+    bg: "bg-[var(--surface-container-low)] dark:bg-[var(--surface-container-high)]",
+    text: "text-[var(--t2)] dark:text-[var(--t4)]",
+    border: "border-[var(--border)] dark:border-[var(--border)]",
+    dot: "bg-[var(--surface-container-high)]",
     label: status || "Unknown",
   };
 }
@@ -1262,7 +1262,7 @@ export default function StudentProfilePage() {
                               ? "bg-blue-100 text-blue-700"
                               : msg.status === "failed"
                                 ? "bg-red-100 text-red-700"
-                                : "bg-gray-100 text-gray-600"
+                                : "bg-[var(--surface-container)] text-[var(--t2)]"
                         }`}
                       >
                         {msg.status}

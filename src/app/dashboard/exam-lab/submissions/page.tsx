@@ -119,8 +119,8 @@ export default function ExamPaperSubmissionsPage() {
         <MaterialIcon>arrow_back</MaterialIcon>Back to Exam Lab
       </Link>
       <header>
-        <h1 className="text-2xl font-bold text-gray-900">Paper submissions</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-[var(--t1)]">Paper submissions</h1>
+        <p className="mt-1 text-sm text-[var(--t2)]">
           Review pupils’ answers, award the mark, and leave feedback. Long and written answers are not marked
           automatically.
         </p>
@@ -132,24 +132,26 @@ export default function ExamPaperSubmissionsPage() {
       )}
       <div className="grid gap-4 md:grid-cols-[minmax(250px,0.8fr)_minmax(0,1.5fr)]">
         <Card className="overflow-hidden p-0">
-          <h2 className="border-b border-gray-100 p-4 text-sm font-semibold">Handed-in papers ({rows.length})</h2>
+          <h2 className="border-b border-[var(--border)] p-4 text-sm font-semibold">
+            Handed-in papers ({rows.length})
+          </h2>
           {loading ? (
-            <p className="p-4 text-sm text-gray-500">Loading…</p>
+            <p className="p-4 text-sm text-[var(--t3)]">Loading…</p>
           ) : rows.length === 0 ? (
-            <p className="p-4 text-sm text-gray-500">No student answers have been handed in yet.</p>
+            <p className="p-4 text-sm text-[var(--t3)]">No student answers have been handed in yet.</p>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-[var(--border)]">
               {rows.map((row) => (
                 <button
                   key={row.id}
                   onClick={() => selectSubmission(row)}
-                  className={`tap-44 block w-full p-4 text-left hover:bg-gray-50 ${selected?.id === row.id ? "bg-blue-50" : ""}`}
+                  className={`tap-44 block w-full p-4 text-left hover:bg-[var(--surface-container-low)] ${selected?.id === row.id ? "bg-blue-50" : ""}`}
                 >
-                  <span className="block text-sm font-semibold text-gray-900">
+                  <span className="block text-sm font-semibold text-[var(--t1)]">
                     {row.student?.first_name} {row.student?.last_name}
                   </span>
-                  <span className="mt-0.5 block text-xs text-gray-600">{row.exam?.name || "Practice paper"}</span>
-                  <span className="mt-1 block text-xs text-gray-500">
+                  <span className="mt-0.5 block text-xs text-[var(--t2)]">{row.exam?.name || "Practice paper"}</span>
+                  <span className="mt-1 block text-xs text-[var(--t3)]">
                     {row.marks_awarded === null
                       ? "Needs marking"
                       : `Marked: ${row.marks_awarded}/${row.exam?.max_score ?? "—"}`}
@@ -161,13 +163,13 @@ export default function ExamPaperSubmissionsPage() {
         </Card>
         <Card className="p-4 sm:p-5">
           {!selected ? (
-            <div className="py-10 text-center text-sm text-gray-500">Choose a pupil’s submission to review.</div>
+            <div className="py-10 text-center text-sm text-[var(--t3)]">Choose a pupil’s submission to review.</div>
           ) : (
             <>
-              <h2 className="text-lg font-bold text-gray-900">
+              <h2 className="text-lg font-bold text-[var(--t1)]">
                 {selected.student?.first_name} {selected.student?.last_name}
               </h2>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-[var(--t2)]">
                 {selected.exam?.name} · handed in {new Date(selected.submitted_at).toLocaleString("en-UG")}
               </p>
               {sourceUrl && (
@@ -175,19 +177,19 @@ export default function ExamPaperSubmissionsPage() {
                   href={sourceUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg border border-gray-300 px-3 text-sm font-semibold"
+                  className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg border border-[var(--border2)] px-3 text-sm font-semibold"
                 >
                   <MaterialIcon>picture_as_pdf</MaterialIcon>Check original paper
                 </a>
               )}
               <div className="mt-4 space-y-3">
                 {(selected.exam?.paper_model?.questions || []).map((question: any) => (
-                  <section key={question.id} className="rounded-lg border border-gray-200 p-3">
-                    <p className="text-xs font-semibold text-gray-500">
+                  <section key={question.id} className="rounded-lg border border-[var(--border)] p-3">
+                    <p className="text-xs font-semibold text-[var(--t3)]">
                       Question {question.number ?? "—"} {question.marks !== null ? `· ${question.marks} marks` : ""}
                     </p>
-                    <p className="mt-1 whitespace-pre-wrap text-sm font-medium text-gray-900">{question.text}</p>
-                    <p className="mt-2 whitespace-pre-wrap rounded bg-gray-50 p-3 text-sm text-gray-800">
+                    <p className="mt-1 whitespace-pre-wrap text-sm font-medium text-[var(--t1)]">{question.text}</p>
+                    <p className="mt-2 whitespace-pre-wrap rounded bg-[var(--surface-container-low)] p-3 text-sm text-[var(--t1)]">
                       {selected.answers?.[question.id] || "No answer entered"}
                     </p>
                   </section>
@@ -203,7 +205,7 @@ export default function ExamPaperSubmissionsPage() {
                   step="0.5"
                   value={mark}
                   onChange={(event) => setMark(event.target.value)}
-                  className="mt-1 min-h-12 w-full rounded-lg border border-gray-300 px-3 text-base sm:max-w-xs"
+                  className="mt-1 min-h-12 w-full rounded-lg border border-[var(--border2)] px-3 text-base sm:max-w-xs"
                 />
               </label>
               <label className="mt-3 block text-sm font-semibold">
@@ -212,7 +214,7 @@ export default function ExamPaperSubmissionsPage() {
                   rows={3}
                   value={feedback}
                   onChange={(event) => setFeedback(event.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-300 p-3 text-base"
+                  className="mt-1 w-full rounded-lg border border-[var(--border2)] p-3 text-base"
                   placeholder="What went well? What should they revise?"
                 />
               </label>
