@@ -128,7 +128,7 @@ const alwaysPublicPaths = [
 
 const SETUP_PATHS = ["/setup", "/setup-admin"];
 
-const PUBLIC_FILE_PATTERN = /\.(?:svg|png|jpg|jpeg|webp|gif|ico|css|js|map|txt|xml|json|woff|woff2|ttf|eot)$/i;
+const PUBLIC_FILE_PATTERN = /\.(?:svg|png|jpg|jpeg|webp|gif|ico|css|js|map|txt|xml|json|woff|woff2|ttf|eot|html)$/i;
 
 function matchesPathPrefix(pathname: string, basePath: string) {
   return pathname === basePath || pathname.startsWith(`${basePath}/`);
