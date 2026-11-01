@@ -239,9 +239,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-
+  const handleSubmit = async () => {
     // Drop duplicate submits while one is already running (double-click or
     // Enter pressed before the button disables). The duplicate would hit the
     // auth sign-in lock and show "Invalid login details" just before the
@@ -551,9 +549,8 @@ export default function LoginPage() {
               className="w-full"
               loading={loading || otpLoading}
               disabled={loading || otpLoading}
-              onClick={(e) => {
-                e.preventDefault();
-                void handleSubmit(e as any);
+              onClick={() => {
+                void handleSubmit();
               }}
               icon={!loading && !otpLoading ? <MaterialIcon icon="login" size={18} /> : undefined}
             >
