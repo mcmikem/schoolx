@@ -21,6 +21,7 @@ export default function AttendanceScanPage() {
   const [date, setDate] = useState(getLocalDateString());
   const [scanValue, setScanValue] = useState("");
   const [serving, setServing] = useState(false);
+  const lastScannedRef = useRef<{ value: string; time: number } | null>(null);
   const [showScanner, setShowScanner] = useState(false);
   const [scannerError, setScannerError] = useState<string | null>(null);
   const [recent, setRecent] = useState<Array<{ name: string; status: string; time: string }>>([]);
@@ -34,6 +35,15 @@ export default function AttendanceScanPage() {
       toast.error("Select a class and scan a student card");
       return;
     }
+    const now = Date.now();
+    if (
+      lastScannedRef.current &&
+      lastScannedRef.current.value === value.trim() &&
+      now - lastScannedRef.current.time < 3000
+    ) {
+      return; // ignore duplicate scan within 3s
+    }
+    lastScannedRef.current = { value: value.trim(), time: now };
     try {
       setServing(true);
       // Extract UUID from scanned value (URL or raw UUID)

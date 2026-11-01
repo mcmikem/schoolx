@@ -35,6 +35,7 @@ export default function MealScanPage() {
   const [scanValue, setScanValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [serving, setServing] = useState(false);
+  const lastScannedRef = useRef<{ value: string; time: number } | null>(null);
   const [showScanner, setShowScanner] = useState(false);
   const [scannerError, setScannerError] = useState<string | null>(null);
   const [recentServes, setRecentServes] = useState<Array<{ name: string; meal: string; time: string }>>([]);
@@ -82,6 +83,15 @@ export default function MealScanPage() {
 
   const serveMeal = async (value: string) => {
     if (!value.trim()) return;
+    const now = Date.now();
+    if (
+      lastScannedRef.current &&
+      lastScannedRef.current.value === value.trim() &&
+      now - lastScannedRef.current.time < 3000
+    ) {
+      return; // ignore duplicate scan within 3s
+    }
+    lastScannedRef.current = { value: value.trim(), time: now };
     try {
       setServing(true);
       const response = await fetch("/api/meals/scan/", {

@@ -88,7 +88,7 @@ UPDATE schools
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_constraints
+    SELECT 1 FROM pg_constraint
     WHERE conname = 'plan_features_plan_feature_key_key' AND conrelid = 'plan_features'::regclass
   ) THEN
     BEGIN

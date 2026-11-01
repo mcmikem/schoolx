@@ -9,6 +9,8 @@ import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { cardClassName } from "@/lib/utils";
 import { useToast } from "@/components/Toast";
+import { Button } from "@/components/ui/index";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export default function BatchReportsPage() {
   const { school } = useAuth();
@@ -69,22 +71,15 @@ export default function BatchReportsPage() {
   return (
     <PageErrorBoundary>
       <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
-        <div className="flex justify-between items-end">
-          <div>
-            <h1 className="text-3xl font-black text-[var(--t1)] tracking-tight">Batch Report Cards</h1>
-            <p className="text-[var(--t3)] font-medium tracking-tight">
-              Generate and print report cards for an entire class at once
-            </p>
-          </div>
-          <button
-            onClick={handleGenerate}
-            disabled={selected.length === 0}
-            className="flex items-center gap-2 px-6 py-3 bg-[var(--navy)] text-white rounded-2xl font-bold shadow-lg hover:scale-105 transition-all disabled:opacity-40 disabled:scale-100"
-          >
-            <MaterialIcon icon="print" />
-            Print {selected.length} Cards
-          </button>
-        </div>
+        <PageHeader
+          title="Batch Report Cards"
+          subtitle="Generate and print report cards for an entire class at once"
+          actions={
+            <Button onClick={handleGenerate} disabled={selected.length === 0} icon={<MaterialIcon icon="print" />}>
+              Print {selected.length} Cards
+            </Button>
+          }
+        />
 
         {/* Config */}
         <div className={cardClassName + " p-8"}>
