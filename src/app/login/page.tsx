@@ -422,9 +422,11 @@ export default function LoginPage() {
                 });
               }
               if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', tryAttach);
+                document.addEventListener('DOMContentLoaded', function(){ setTimeout(tryAttach, 500); });
               } else {
-                setTimeout(tryAttach, 100);
+                setTimeout(tryAttach, 500);
+                setTimeout(tryAttach, 1500);
+                setTimeout(tryAttach, 3000);
               }
             })();
           `,
