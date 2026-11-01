@@ -52,6 +52,35 @@ export async function POST(request: Request) {
 
       logger.debug(`Checkout session completed: ${session.id}`);
 
+      // One-time checkout (our current billing flow): activate via the ledger
+      // intent. The capture route does this on redirect; this is the backup.
+      if (session.mode === "payment") {
+        try {
+          const { createClient } = await import("@supabase/supabase-js");
+          const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+            auth: { autoRefreshToken: false, persistSession: false },
+          });
+          const { applyCompletedPayment } = await import("@/lib/billing/service");
+          const applied = await applyCompletedPayment(admin, session.id, { provider: "stripe" });
+          if (applied.applied && applied.result?.school) {
+            const { sendPaymentReceipt } = await import("@/lib/subscription");
+            const amount = Number((applied.result.payment as { amount?: number } | null)?.amount) || 0;
+            await sendPaymentReceipt(applied.result.school.id, {
+              amount,
+              currency: "UGX",
+              date: new Date().toISOString(),
+              plan: (session.metadata?.plan as any) || "starter",
+              provider: "stripe",
+              transactionId: session.id,
+            });
+          }
+        } catch (error) {
+          logger.error("Error applying one-time checkout session:", error);
+          hadError = true;
+        }
+        break;
+      }
+
       if (session.mode === "subscription" && session.subscription) {
         try {
           const subscription = (await stripe.subscriptions.retrieve(session.subscription as string, {

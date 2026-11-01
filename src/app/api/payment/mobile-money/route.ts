@@ -8,6 +8,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
 import { normalizeAuthPhone } from "@/lib/validation";
 import { errorWithWhatsApp } from "@/lib/support-contact";
+import { mobileMoneyBodySchema } from "@/lib/billing/schemas";
 
 const BILLING_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "bursar"];
 

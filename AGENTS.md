@@ -94,8 +94,14 @@ The proxy handles: security headers (CSP, HSTS), Supabase auth session check, de
 - **Multiple roles per person**: rural staff routinely hold more than one role (headmaster who also teaches, bursar who is also a teacher, staff who are also parents). `users.role` stays the primary role; `user_roles` holds the full set and gates access via `canAccessAny` / `hasAnyRole`. Never "fix" a missing permission by widening a role — that grants it to everyone with that job.
 - RLS on all tables. Helper functions `my_school_id()` and `is_school_admin()` use `SECURITY DEFINER`. Never put `SELECT ... FROM users WHERE auth_id = auth.uid()` inside a `users` table policy — use `my_school_id()` instead.
 
-## CRUD / Data operations
+## Billing ledger (post-overhaul)
 
+- **`subscription_payments`** is the single ledger for subscription billing. Every rail (MoMo, PayPal, Stripe, cash/bank) creates a pending row there with an `intent` JSONB describing what to activate on confirmation; `applyCompletedPayment()` in `src/lib/billing/service.ts` is the only activation path.
+- **`payments`** (manual fee invoices) is unrelated to subscription billing — do not write subscription rows there. `/api/payment/invoices/` is now GET-only (subscription history).
+- Promo codes live in `promo_codes`; redemption is cap-aware via the `increment_promo_redemption` RPC.
+- Scheduled downgrades land at `next_payment_date` (never cut a paid period short).
+
+## CRUD / Data operations
 - Insert/create Supabase calls MUST use `withTimeout()` from `src/lib/hooks/utils.ts` or they can hang forever (local Supabase is unreliable)
 - `normalizeStudentInput()` in `src/lib/validation.ts` strips fields not in return object. Must include `gender` explicitly or inserts fail with NOT NULL violation.
 

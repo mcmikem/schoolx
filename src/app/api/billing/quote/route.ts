@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { apiSuccess, apiError, handleApiError, requireAuthenticatedUser, supabaseClientOptions } from "@/lib/api-utils";
 import { BillingError, buildQuote, type QuoteParams } from "@/lib/billing/service";
+import { quoteBodySchema } from "@/lib/billing/schemas";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -40,18 +41,21 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const action = body.action;
-    if (!["renew", "upgrade", "module"].includes(action)) {
-      return apiError("Invalid quote action", 400);
+    const parsed = quoteBodySchema.safeParse(body);
+    if (!parsed.success) {
+      return apiError(parsed.error.issues.map((i) => i.message).join("; "), 400);
     }
+    const data = parsed.data;
+
+    if (!data.action) return apiError("Invalid quote action", 400);
 
     const params: QuoteParams = {
       schoolId: profile.school_id,
-      action,
-      plan: body.plan,
-      cycle: body.cycle === "annual" ? "annual" : "term",
-      moduleKeys: Array.isArray(body.moduleKeys) ? body.moduleKeys : undefined,
-      promoCode: body.promoCode ?? null,
+      action: data.action,
+      plan: data.plan,
+      cycle: data.cycle ?? "term",
+      moduleKeys: data.moduleKeys,
+      promoCode: data.promoCode ?? null,
     };
 
     const built = await buildQuote(admin, params);
