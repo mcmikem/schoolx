@@ -75,7 +75,8 @@ function DeanDashboardContent() {
     { href: "/dashboard/uneb", label: "UNEB", icon: "workspace_premium", color: "text-[var(--amber)]" },
   ];
 
-  if ((!school?.id || statsLoading) && !loadingTimedOut) {
+  const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+  if ((!school?.id || (!isOffline && statsLoading)) && !loadingTimedOut) {
     return (
       <div className="min-h-screen bg-[var(--bg)] flex flex-col">
         <TopLoadingBar />
