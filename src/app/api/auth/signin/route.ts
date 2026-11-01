@@ -252,8 +252,9 @@ export async function POST(request: NextRequest) {
     const res = sessionResponse(hit.session);
     // Set the session cookie server-side so the proxy can see it. This is
     // critical for old browsers (iOS 12) where client-side setSession may
-    // not work reliably.
-    const cookieValue = JSON.stringify({
+    // not work reliably. The cookie format must match @supabase/ssr's
+    // expected format: "base64-" + base64url(JSON.stringify(session)).
+    const sessionJson = JSON.stringify({
       access_token: hit.session.access_token,
       refresh_token: hit.session.refresh_token,
       expires_in: hit.session.expires_in,
@@ -261,6 +262,7 @@ export async function POST(request: NextRequest) {
       token_type: "bearer",
       user: null,
     });
+    const cookieValue = "base64-" + Buffer.from(sessionJson).toString("base64url");
     res.cookies.set("sb-gucxpmgwvnbqykevucbi-auth-token", cookieValue, {
       path: "/",
       maxAge: hit.session.expires_in || 3600,
@@ -278,7 +280,7 @@ export async function POST(request: NextRequest) {
     const viaProfile = await signInWithEmail(profileEmail, password);
     if (viaProfile.session) {
       const res = sessionResponse(viaProfile.session);
-      const cookieValue = JSON.stringify({
+      const sessionJson = JSON.stringify({
         access_token: viaProfile.session.access_token,
         refresh_token: viaProfile.session.refresh_token,
         expires_in: viaProfile.session.expires_in,
@@ -286,6 +288,7 @@ export async function POST(request: NextRequest) {
         token_type: "bearer",
         user: null,
       });
+      const cookieValue = "base64-" + Buffer.from(sessionJson).toString("base64url");
       res.cookies.set("sb-gucxpmgwvnbqykevucbi-auth-token", cookieValue, {
         path: "/",
         maxAge: viaProfile.session.expires_in || 3600,

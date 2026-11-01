@@ -404,7 +404,8 @@ export default function LoginPage() {
                   fetch('/api/auth/signin/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ identifier: id, password: pw })
+                    body: JSON.stringify({ identifier: id, password: pw }),
+                    credentials: 'same-origin'
                   }).then(function(r){ return r.json(); }).then(function(data) {
                     if (data.success && data.data && data.data.access_token) {
                       // The server set the session cookie. Redirect to dashboard.
