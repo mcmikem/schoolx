@@ -5,6 +5,7 @@ import OwlMascot from "@/components/brand/OwlMascot";
 import BursarReceiptPanel from "@/components/dashboard/BursarReceiptPanel";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
 import MoneyPositionStrip from "@/components/dashboard/MoneyPositionStrip";
+import TremorKPI from "@/components/dashboard/TremorKPI";
 
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -512,20 +513,16 @@ function BursarDashboardContent() {
             Loading summary…
           </p>
         )}
-        <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-4 sm:divide-x sm:divide-[var(--border)]">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {metrics.map((metric) => (
-            <div key={metric.label + metric.href} className="min-w-0 sm:pr-5 sm:last:pr-0">
-              <dt className="text-xs font-medium text-[var(--t3)]">{metric.label}</dt>
-              <dd
-                title={metric.exact}
-                className={`mt-1 break-words text-xl font-bold tracking-tight tabular-nums ${metric.tone}`}
-              >
-                {figuresReady ? metric.value : "—"}
-              </dd>
-              {metric.hint && figuresReady && <p className="mt-0.5 text-xs text-[var(--t3)]">{metric.hint}</p>}
-            </div>
+            <TremorKPI
+              key={metric.label + metric.href}
+              label={metric.label}
+              value={figuresReady ? metric.value : "—"}
+              hint={metric.hint}
+            />
           ))}
-        </dl>
+        </div>
         <div className="mt-5 flex items-center gap-3">
           <div
             role="progressbar"
