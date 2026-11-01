@@ -1281,7 +1281,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logger.warn("[Auth] signInLock auto-released after timeout");
         signInLock.current = false;
         signInLockTimer.current = null;
-      }, 45000);
+      }, 15000);
 
       const attempts = buildAuthLoginAttempts(phone);
       // Fast path: try the format that worked last time first, so legacy

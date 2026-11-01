@@ -326,6 +326,7 @@ export default function LoginPage() {
         // and owns the loading UI. Toasting here is what flashed
         // "Invalid login details" right before a successful login.
         if (rawMsg === "Login already in progress") {
+          toast.error("Sign-in is still running. Wait a moment, or tap 'Reset' below.");
           return;
         }
 
@@ -384,6 +385,52 @@ export default function LoginPage() {
 
   return (
     <PageErrorBoundary>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              function tryAttach() {
+                var btn = document.getElementById('login-btn');
+                if (!btn || btn._attached) return;
+                btn._attached = true;
+                btn.addEventListener('click', function(e) {
+                  e.preventDefault();
+                  var id = (document.getElementById('identifier') || {}).value || '';
+                  var pw = (document.getElementById('password') || {}).value || '';
+                  if (!id || !pw) { alert('Please enter phone and password'); return; }
+                  // Show loading
+                  btn.disabled = true;
+                  btn.textContent = 'Signing in...';
+                  fetch('/api/auth/signin/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identifier: id, password: pw })
+                  }).then(function(r){ return r.json(); }).then(function(data) {
+                    if (data.success && data.data && data.data.access_token) {
+                      // Store session and redirect
+                      try { localStorage.setItem('sb-session', JSON.stringify(data.data)); } catch(e){}
+                      window.location.href = '/dashboard/';
+                    } else {
+                      alert(data.error || 'Sign in failed');
+                      btn.disabled = false;
+                      btn.textContent = 'Sign In';
+                    }
+                  }).catch(function(err) {
+                    alert('Network error: ' + (err.message || err));
+                    btn.disabled = false;
+                    btn.textContent = 'Sign In';
+                  });
+                });
+              }
+              if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', tryAttach);
+              } else {
+                setTimeout(tryAttach, 100);
+              }
+            })();
+          `,
+        }}
+      />
       <div className="min-h-screen bg-[#f0f5fc] flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-md rounded-3xl border border-white/60 bg-white/90 p-8 shadow-[0_24px_48px_rgba(15,23,42,0.08)] backdrop-blur-xl">
           {!authInitialized && (
@@ -552,6 +599,8 @@ export default function LoginPage() {
               onClick={() => {
                 void handleSubmit();
               }}
+              id="login-btn"
+              data-login-btn="1"
               icon={!loading && !otpLoading ? <MaterialIcon icon="login" size={18} /> : undefined}
             >
               {otpMode ? (otpSent ? "Verify OTP" : "Send OTP") : loading ? "Signing in..." : "Sign In"}
