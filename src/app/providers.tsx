@@ -326,7 +326,7 @@ function LoadingChecker({ children }: { children: ReactNode }) {
       setShowStuckLoading(false);
       return;
     }
-    const timer = window.setTimeout(() => setShowStuckLoading(true), 12000);
+    const timer = window.setTimeout(() => setShowStuckLoading(true), 30000);
     return () => window.clearTimeout(timer);
   }, [authInitialized]);
 

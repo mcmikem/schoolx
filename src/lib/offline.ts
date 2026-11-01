@@ -131,7 +131,7 @@ const MAX_RETRY_ATTEMPTS = 3;
  * phone and still bounded, so a genuinely blocked upgrade cannot hang the
  * screen.
  */
-export const DB_OPEN_TIMEOUT_MS = 10000;
+export const DB_OPEN_TIMEOUT_MS = 30000;
 const SOFT_DELETE_TABLES = new Set(["grades", "fee_payments", "fee_structure", "fee_adjustments"]);
 
 // PostgREST answers 404 with code PGRST205 for a table that is not in the

@@ -504,7 +504,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const safetyTimer = setTimeout(() => {
       setLoading(false);
       setAuthInitialized(true);
-    }, 2000);
+    }, 5000);
 
     try {
       const demoUserStr = readDemoStorage();
