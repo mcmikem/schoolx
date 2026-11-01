@@ -471,7 +471,7 @@ export default function LoginPage() {
             {otpMode ? "Enter your phone number to receive an OTP." : "Use your phone number or email and password."}
           </p>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <form onSubmit={(e) => e.preventDefault()} className="mt-6 space-y-4">
             <Input
               id="identifier"
               label="Phone Number or Email"
@@ -545,11 +545,15 @@ export default function LoginPage() {
               </div>
             )}
             <Button
-              type="submit"
+              type="button"
               variant="primary"
               className="w-full"
               loading={loading || otpLoading}
               disabled={loading || otpLoading}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleSubmit(e as any);
+              }}
               icon={!loading && !otpLoading ? <MaterialIcon icon="login" size={18} /> : undefined}
             >
               {otpMode ? (otpSent ? "Verify OTP" : "Send OTP") : loading ? "Signing in..." : "Sign In"}
