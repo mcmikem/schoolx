@@ -2,7 +2,6 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import OwlMascot from "@/components/brand/OwlMascot";
 import UpNextCard from "@/components/dashboard/UpNextCard";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -225,9 +224,9 @@ function HeadmasterDashboardContent() {
       <div className="min-h-screen bg-[var(--bg)] flex flex-col">
         <TopLoadingBar />
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <OwlMascot size={52} premium ring glow animated />
-            <p className="mt-4 text-sm text-[var(--t3)]">Loading your dashboard...</p>
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent" />
+            <p className="text-sm text-[var(--t3)]">Loading your dashboard…</p>
           </div>
         </div>
         <StuckLoadingOverlay />
