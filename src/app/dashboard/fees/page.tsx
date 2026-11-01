@@ -2007,7 +2007,7 @@ export default function FinanceHubPage() {
           actions={
             <div className="flex items-center gap-2 justify-start lg:justify-end">
               <SavedIndicator savedAt={paymentSavedAt} label="Payment saved" />
-              <Button variant="primary" size="sm" onClick={() => openPaymentModal()}>
+              <Button variant="primary" size="sm" onClick={() => openPaymentModal()} data-tour="add-payment">
                 <MaterialIcon icon="payments" />
                 Add Payment
               </Button>

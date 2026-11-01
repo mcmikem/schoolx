@@ -175,6 +175,7 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
   return (
     <aside
       id="dashboard-sidebar"
+      data-tour="sidebar"
       className={sidebarClasses}
       aria-hidden={!isVisible}
       inert={!isVisible ? true : undefined}

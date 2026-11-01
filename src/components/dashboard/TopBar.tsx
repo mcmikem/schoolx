@@ -479,7 +479,10 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
       </div>
 
       {/* Search — desktop inline pill with kbd hint, mobile/tablet icon only to avoid crowding */}
-      <div className="search-bar hidden lg:flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-full px-3 py-2 text-[13px] text-[var(--t3)] min-w-[200px] xl:min-w-[280px] max-w-[320px] flex-1 cursor-text shadow-[var(--sh1)]">
+      <div
+        data-tour="search"
+        className="search-bar hidden lg:flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-full px-3 py-2 text-[13px] text-[var(--t3)] min-w-[200px] xl:min-w-[280px] max-w-[320px] flex-1 cursor-text shadow-[var(--sh1)]"
+      >
         <GlobalSearch />
         <kbd className="search-kbd" aria-hidden="true" suppressHydrationWarning>
           {typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K"}

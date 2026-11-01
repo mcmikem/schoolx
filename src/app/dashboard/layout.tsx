@@ -45,6 +45,7 @@ import { useSessionTimeout } from "@/lib/useSessionTimeout";
 const OwlAssistant = dynamic(() => import("@/components/OwlAssistant"), { ssr: false });
 // CommandPalette removed — GlobalSearch is now the single search system (see src/components/GlobalSearch.tsx)
 const RoleBasedWalkthrough = dynamic(() => import("@/components/RoleBasedWalkthrough"), { ssr: false });
+const GuidedTour = dynamic(() => import("@/components/dashboard/GuidedTour"), { ssr: false });
 
 import { supabase } from "@/lib/supabase";
 
@@ -509,6 +510,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           )}
           <TrialBanner />
           {showDeferredChrome && <RoleBasedWalkthrough />}
+          {showDeferredChrome && <GuidedTour />}
           <PageErrorBoundary>
             <Suspense
               fallback={

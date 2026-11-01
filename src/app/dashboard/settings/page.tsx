@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { isWebPushSupported, subscribeWebPush } from "@/lib/web-push-client";
+import { writeUserScoped } from "@/lib/user-scoped-storage";
 import { useToast } from "@/components/Toast";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
@@ -1049,6 +1050,22 @@ export default function SettingsPage() {
               </CardBody>
             </Card>
             <AcademicSettings />
+            <Card>
+              <CardBody className="p-5 space-y-3">
+                <h3 className="font-semibold text-[var(--t1)]">Guided Tour</h3>
+                <p className="text-sm text-[var(--t3)]">Replay the quick walkthrough of the dashboard anytime.</p>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    if (user?.id) writeUserScoped("skoolmate_guided_tour_dismissed", user.id, false);
+                    window.location.reload();
+                  }}
+                >
+                  Replay tour
+                </Button>
+              </CardBody>
+            </Card>
           </div>
         </TabPanel>
 

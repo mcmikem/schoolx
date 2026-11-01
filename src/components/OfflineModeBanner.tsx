@@ -53,6 +53,7 @@ export function OfflineModeBanner() {
     <div
       role="status"
       aria-live="polite"
+      data-tour="offline"
       className="flex items-start gap-2.5 border-b border-[var(--amber)] bg-[var(--amber-soft)] px-3 py-2 text-[12px] leading-snug text-[var(--t2)] sm:px-6"
     >
       <MaterialIcon
