@@ -104,8 +104,6 @@
   var lastScanValue = "";
   var SCAN_COOLDOWN = 1200;
   var scanCount = 0;
-  var frameSkip = 0;
-  var FRAME_SKIP_COUNT = 2;
   var useFront = false;
   var mode = "meal"; // meal | attend | staff
 
@@ -252,19 +250,11 @@
 
   function tick() {
     if (!scanning) return;
-    frameSkip++;
-    if (frameSkip < FRAME_SKIP_COUNT) {
-      rafId = requestAnimationFrame(tick);
-      return;
-    }
-    frameSkip = 0;
     var video = $("video");
     var canvas = $("canvas");
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      // Downscale for faster processing on old devices
-      var scale = 0.5;
-      canvas.width = Math.floor(video.videoWidth * scale);
-      canvas.height = Math.floor(video.videoHeight * scale);
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
       var ctx = canvas.getContext("2d");
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -276,7 +266,6 @@
             lastScan = now;
             lastScanValue = code.data;
             handleScan(code.data);
-            // Reset lastScanValue after cooldown so same card can be re-scanned later
             setTimeout(function () { lastScanValue = ""; }, SCAN_COOLDOWN + 500);
           }
         }
