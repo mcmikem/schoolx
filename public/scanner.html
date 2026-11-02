@@ -102,7 +102,7 @@
   var rafId = null;
   var lastScan = 0;
   var lastScanValue = "";
-  var SCAN_COOLDOWN = 1200;
+  var SCAN_COOLDOWN = 800;
   var scanCount = 0;
   var useFront = false;
   var mode = "meal"; // meal | attend | staff
@@ -266,7 +266,7 @@
             lastScan = now;
             lastScanValue = code.data;
             handleScan(code.data);
-            setTimeout(function () { lastScanValue = ""; }, SCAN_COOLDOWN + 500);
+            setTimeout(function () { lastScanValue = ""; }, SCAN_COOLDOWN + 300);
           }
         }
       }
