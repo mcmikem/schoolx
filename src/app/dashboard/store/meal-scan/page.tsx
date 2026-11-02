@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui";
 import { parseApiResponse } from "@/lib/api-response";
 import { newOfflineId } from "@/lib/offline";
+import { useOnlineStatus } from "@/lib/offline";
 
 interface MealRule {
   id: string;
@@ -28,6 +29,7 @@ const MEAL_LABELS: Record<string, string> = {
 
 export default function MealScanPage() {
   const toast = useToast();
+  const isOnline = useOnlineStatus();
   const scannerIdRef = useRef(newOfflineId());
   const [rules, setRules] = useState<MealRule[]>([]);
   const [savingRules, setSavingRules] = useState(false);
@@ -91,7 +93,9 @@ export default function MealScanPage() {
     ) {
       return; // ignore duplicate scan within 3s
     }
-    lastScannedRef.current = { value: value.trim(), time: now };
+    // Stamp the debounce only AFTER we know the scan is accepted, so a
+    // failed/timed-out request can be retried immediately instead of waiting
+    // 3s (premium: never trap the user on a transient failure).
     try {
       setServing(true);
       const response = await fetch("/api/meals/scan/", {
@@ -125,8 +129,11 @@ export default function MealScanPage() {
       );
 
       toast.success(typeof result.message === "string" ? result.message : `${fullName} served`);
+      lastScannedRef.current = { value: value.trim(), time: Date.now() };
       setScanValue("");
     } catch (error) {
+      // Allow immediate retry on failure.
+      lastScannedRef.current = null;
       toast.error(error instanceof Error ? error.message : "Failed to serve meal");
     } finally {
       setServing(false);
@@ -212,6 +219,12 @@ export default function MealScanPage() {
             Reload Rules
           </Button>
         </div>
+
+        {!isOnline && (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            You are offline. Meal scans cannot be served until connectivity is restored.
+          </div>
+        )}
 
         <Card className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -330,7 +343,7 @@ export default function MealScanPage() {
               <input
                 value={scanValue}
                 onChange={(e) => setScanValue(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && serveMeal(scanValue)}
+                onKeyDown={(e) => e.key === "Enter" && !serving && serveMeal(scanValue)}
                 placeholder="Or enter student number / scanned text"
                 className="input flex-1"
               />

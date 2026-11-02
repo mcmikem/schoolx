@@ -5,6 +5,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useAuth } from "@/lib/auth-context";
 import { useClasses } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
+import { useOnlineStatus } from "@/lib/offline";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Button } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
@@ -16,6 +17,7 @@ export default function AttendanceScanPage() {
   const { school, user } = useAuth();
   const { classes } = useClasses(school?.id);
   const toast = useToast();
+  const isOnline = useOnlineStatus();
   const scannerIdRef = useRef(crypto.randomUUID());
   const [selectedClass, setSelectedClass] = useState("");
   const [date, setDate] = useState(getLocalDateString());
@@ -43,19 +45,23 @@ export default function AttendanceScanPage() {
     ) {
       return; // ignore duplicate scan within 3s
     }
-    lastScannedRef.current = { value: value.trim(), time: now };
     try {
       setServing(true);
       // Extract UUID from scanned value (URL or raw UUID)
       const uuidMatch = value.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
       const studentId = uuidMatch ? uuidMatch[0] : value.trim();
 
-      const { data: student } = await supabase
+      const { data: student, error: studentError } = await supabase
         .from("students")
         .select("id, first_name, last_name, student_number")
         .eq("id", studentId)
         .eq("school_id", school?.id)
         .maybeSingle();
+
+      if (studentError) {
+        toast.error("Failed to look up student");
+        return;
+      }
 
       if (!student) {
         toast.error("Student not found");
@@ -94,8 +100,10 @@ export default function AttendanceScanPage() {
         ].slice(0, 15),
       );
       toast.success(`${student.first_name} ${student.last_name} marked present`);
+      lastScannedRef.current = { value: value.trim(), time: Date.now() };
       setScanValue("");
     } catch (error) {
+      lastScannedRef.current = null;
       toast.error(error instanceof Error ? error.message : "Failed to mark attendance");
     } finally {
       setServing(false);
@@ -144,6 +152,12 @@ export default function AttendanceScanPage() {
           <p className="text-sm text-[var(--t3)]">Scan student ID cards to mark attendance</p>
         </div>
 
+        {!isOnline && (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            You are offline. Attendance marks cannot be saved until connectivity is restored.
+          </div>
+        )}
+
         <Card>
           <div className="space-y-4 p-4">
             <div>
@@ -183,7 +197,7 @@ export default function AttendanceScanPage() {
               <input
                 value={scanValue}
                 onChange={(e) => setScanValue(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && serveAttendance(scanValue)}
+                onKeyDown={(e) => e.key === "Enter" && !serving && serveAttendance(scanValue)}
                 placeholder="Scan or type student number…"
                 className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--t1)]"
               />

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useToast } from "@/components/Toast";
+import { useOnlineStatus } from "@/lib/offline";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Button } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
@@ -14,7 +15,9 @@ type AttendanceAction = "check_in" | "check_out";
 
 export default function StaffAttendanceScanPage() {
   const toast = useToast();
+  const isOnline = useOnlineStatus();
   const scannerIdRef = useRef(newOfflineId());
+  const lastScannedRef = useRef<{ value: string; time: number } | null>(null);
   const [action, setAction] = useState<AttendanceAction>("check_in");
   const [scanValue, setScanValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -38,6 +41,15 @@ export default function StaffAttendanceScanPage() {
 
   const submitScan = async (value: string) => {
     if (!value.trim()) return;
+
+    const now = Date.now();
+    if (
+      lastScannedRef.current &&
+      lastScannedRef.current.value === value.trim() &&
+      now - lastScannedRef.current.time < 3000
+    ) {
+      return; // ignore duplicate scan within 3s
+    }
 
     try {
       setSubmitting(true);
@@ -72,9 +84,11 @@ export default function StaffAttendanceScanPage() {
         ].slice(0, 10),
       );
 
+      lastScannedRef.current = { value: value.trim(), time: Date.now() };
       setScanValue("");
       toast.success(typeof result.message === "string" ? result.message : `${name} ${label.toLowerCase()} complete`);
     } catch (error) {
+      lastScannedRef.current = null;
       toast.error(error instanceof Error ? error.message : "Failed to record attendance");
     } finally {
       setSubmitting(false);
@@ -124,12 +138,26 @@ export default function StaffAttendanceScanPage() {
           <p className="text-sm text-[var(--t3)]">Scan staff cards for clock in / clock out workflows.</p>
         </div>
 
+        {!isOnline && (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            You are offline. Staff attendance cannot be recorded until connectivity is restored.
+          </div>
+        )}
+
         <Card className="p-5 space-y-4">
           <div className="flex flex-wrap gap-2">
-            <Button variant={action === "check_in" ? "primary" : "secondary"} onClick={() => setAction("check_in")}>
+            <Button
+              variant={action === "check_in" ? "primary" : "secondary"}
+              onClick={() => setAction("check_in")}
+              disabled={submitting}
+            >
               Check In
             </Button>
-            <Button variant={action === "check_out" ? "primary" : "secondary"} onClick={() => setAction("check_out")}>
+            <Button
+              variant={action === "check_out" ? "primary" : "secondary"}
+              onClick={() => setAction("check_out")}
+              disabled={submitting}
+            >
               Check Out
             </Button>
           </div>
@@ -149,7 +177,7 @@ export default function StaffAttendanceScanPage() {
             <input
               value={scanValue}
               onChange={(e) => setScanValue(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submitScan(scanValue)}
+              onKeyDown={(e) => e.key === "Enter" && !submitting && submitScan(scanValue)}
               placeholder="Or paste scanned payload"
               className="input flex-1"
             />
