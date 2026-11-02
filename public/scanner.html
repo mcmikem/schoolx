@@ -171,24 +171,36 @@
   }
 
   // ---- Camera ----
-  function startCamera() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setMsg($("scanResult"), "Camera not supported on this browser", false);
+  function getUserMediaCompat(constraints, onSuccess, onError) {
+    if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function") {
+      navigator.mediaDevices.getUserMedia(constraints).then(onSuccess).catch(onError);
       return;
     }
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-      .then(function (s) {
-        stream = s;
-        var v = $("video");
-        v.srcObject = s;
-        v.setAttribute("playsinline", "true");
-        v.play();
-        scanning = true;
-        tick();
-      })
-      .catch(function (err) {
-        setMsg($("scanResult"), "Camera error: " + (err && err.message ? err.message : err), false);
-      });
+    var legacy = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+    if (typeof legacy === "function") {
+      legacy.call(navigator, constraints, onSuccess, onError);
+      return;
+    }
+    onError(new Error("Camera not supported on this browser"));
+  }
+
+  function startCamera() {
+    getUserMediaCompat({ video: { facingMode: "environment" } }, function (s) {
+      stream = s;
+      var v = $("video");
+      try { v.srcObject = s; } catch (e) { v.src = (window.URL || window.webkitURL).createObjectURL(s); }
+      v.setAttribute("playsinline", "true");
+      v.setAttribute("webkit-playsinline", "true");
+      v.muted = true;
+      var playPromise = v.play();
+      if (playPromise && typeof playPromise.then === "function") {
+        playPromise.catch(function () {});
+      }
+      scanning = true;
+      tick();
+    }, function (err) {
+      setMsg($("scanResult"), "Camera error: " + (err && err.message ? err.message : err), false);
+    });
   }
   function stopCamera() {
     scanning = false;
