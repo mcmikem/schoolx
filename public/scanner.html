@@ -310,12 +310,16 @@
         var code = (data.data && data.data.reasonCode) || "OK";
         setMsg($("scanResult"), name.trim() + " - " + code, true);
         soundOk();
-      } else if (xhr.status === 0 || xhr.status >= 500) {
+      } else if (xhr.status === 0) {
         queueScan({ url: url, body: body, at: Date.now() });
-        setMsg($("scanResult"), "Queued offline (network error)", false);
+        setMsg($("scanResult"), "Queued offline (no network)", false);
+        soundErr();
+      } else if (xhr.status >= 500) {
+        queueScan({ url: url, body: body, at: Date.now() });
+        setMsg($("scanResult"), "Server error " + xhr.status + " - queued", false);
         soundErr();
       } else {
-        var err = (data && (data.error || (data.data && data.data.reasonCode))) || ("Error " + xhr.status);
+        var err = (data && (data.error || (data.data && data.data.reasonCode))) || xhr.responseText || ("Error " + xhr.status);
         setMsg($("scanResult"), err, false);
         soundErr();
       }

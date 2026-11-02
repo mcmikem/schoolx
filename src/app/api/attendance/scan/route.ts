@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         period_number: 1,
         recorded_by: auth.context.user.id,
       },
-      { onConflict: "student_id,class_id,date,period_number" },
+      { onConflict: "student_id,date,period_number" },
     );
 
     if (upsertError) return apiError("Failed to record attendance", 500);
