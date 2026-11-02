@@ -345,6 +345,15 @@ export async function handleSubscriptionChange(
       updates.subscription_plan = changeData.plan;
     }
 
+    if (subscriptionStatus === "active") {
+      updates.last_payment_at = new Date().toISOString();
+      // Recurring providers charge on their own cadence; anchor the next
+      // payment date one month out so the grace period works.
+      const next = new Date();
+      next.setMonth(next.getMonth() + 1);
+      updates.next_payment_date = next.toISOString();
+    }
+
     if (changeData.provider === "paypal" && changeData.subscriptionId) {
       updates.paypal_subscription_id = changeData.subscriptionId;
     }

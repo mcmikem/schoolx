@@ -68,11 +68,17 @@ export async function POST(request: NextRequest) {
     if (updateError) throw updateError;
 
     // Log the upgrade
+    const { data: upgraderProfile } = await supabaseAdmin
+      .from("users")
+      .select("id")
+      .eq("auth_id", auth.context.authUserId)
+      .maybeSingle();
+
     await supabaseAdmin
       .from("audit_log")
       .insert({
         school_id: profile.school_id,
-        user_id: auth.context.authUserId,
+        user_id: upgraderProfile?.id || null,
         action: "update",
         module: "subscription",
         // The column is description. audit_log has no details column, so the
