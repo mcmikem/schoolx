@@ -14,16 +14,18 @@
   }
   .screen { width: 100%; max-width: 480px; padding: 16px; }
   h1 { font-size: 20px; margin-bottom: 12px; text-align: center; }
-  input {
+  input, select {
     width: 100%; padding: 12px; margin: 6px 0; border: 1px solid #ccc;
     border-radius: 8px; font-size: 16px; color: #000;
   }
   button {
-    width: 100%; padding: 14px; margin: 8px 0; border: 0; border-radius: 10px;
+    padding: 14px; margin: 8px 0; border: 0; border-radius: 10px;
     background: #16a34a; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
   }
+  button.full { width: 100%; }
   button.secondary { background: #3b82f6; }
   button.danger { background: #dc2626; }
+  button.warn { background: #f59e0b; }
   .video-wrap { position: relative; width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 12px; overflow: hidden; }
   video { width: 100%; height: 100%; object-fit: cover; }
   canvas { display: none; }
@@ -37,9 +39,12 @@
   .result .sub { font-size: 13px; opacity: 0.9; margin-top: 4px; }
   .row { display: flex; gap: 8px; }
   .row button { flex: 1; }
-  select { width: 100%; padding: 12px; margin: 6px 0; border-radius: 8px; font-size: 16px; }
   .small { font-size: 12px; opacity: 0.7; text-align: center; margin-top: 8px; }
   .hidden { display: none !important; }
+  .modebar { display: flex; gap: 6px; margin: 8px 0; }
+  .modebar button { flex: 1; padding: 10px; font-size: 13px; margin: 0; }
+  .modebar button.active { background: #16a34a; }
+  .modebar button:not(.active) { background: #475569; }
 </style>
 </head>
 <body>
@@ -48,25 +53,41 @@
   <p style="text-align:center;opacity:.8;margin-bottom:12px;">Staff sign in</p>
   <input id="phone" type="tel" placeholder="Phone number" autocomplete="username">
   <input id="pass" type="password" placeholder="Password" autocomplete="current-password">
-  <button id="loginBtn">Sign In</button>
+  <button id="loginBtn" class="full">Sign In</button>
   <div class="result" id="loginMsg"></div>
 </div>
 
 <div class="screen hidden" id="scanScreen">
   <h1 id="modeTitle">Meal Scanner</h1>
-  <select id="mealType">
-    <option value="breakfast">Breakfast</option>
-    <option value="lunch">Lunch</option>
-    <option value="supper">Supper</option>
-  </select>
+  <div class="modebar">
+    <button id="modeMeal" class="active">Meals</button>
+    <button id="modeAttend">Attendance</button>
+    <button id="modeStaff">Staff</button>
+  </div>
+  <div id="mealOpts">
+    <select id="mealType">
+      <option value="breakfast">Breakfast</option>
+      <option value="lunch">Lunch</option>
+      <option value="supper">Supper</option>
+    </select>
+  </div>
+  <div id="staffOpts" class="hidden">
+    <select id="staffAction">
+      <option value="check_in">Check In</option>
+      <option value="check_out">Check Out</option>
+    </select>
+  </div>
   <div class="video-wrap">
     <video id="video" playsinline muted autoplay></video>
   </div>
   <canvas id="canvas"></canvas>
-  <div class="result" id="scanResult">Point camera at student ID card</div>
+  <div class="result" id="scanResult">Point camera at ID card</div>
   <div class="row">
-    <button id="stopBtn" class="danger">Stop Camera</button>
-    <button id="logoutBtn" class="secondary">Sign Out</button>
+    <button id="camBtn" class="secondary">Switch Camera</button>
+    <button id="stopBtn" class="danger">Stop</button>
+  </div>
+  <div class="row">
+    <button id="logoutBtn" class="warn">Sign Out</button>
   </div>
   <div class="small" id="queueInfo"></div>
 </div>
@@ -75,13 +96,14 @@
 <script>
 (function () {
   "use strict";
-  var API = "";
   var token = null;
   var scanning = false;
   var stream = null;
   var rafId = null;
   var lastScan = 0;
-  var SCAN_COOLDOWN = 2000;
+  var SCAN_COOLDOWN = 2500;
+  var useFront = false;
+  var mode = "meal"; // meal | attend | staff
 
   function $(id) { return document.getElementById(id); }
   function show(id) { $(id).classList.remove("hidden"); }
@@ -91,6 +113,25 @@
     el.textContent = text;
     el.className = "result " + (ok === true ? "ok" : ok === false ? "err" : "");
   }
+
+  // ---- Sound feedback (Web Audio) ----
+  var audioCtx = null;
+  function beep(freq, dur, type) {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.value = freq;
+      gain.gain.value = 0.3;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      setTimeout(function () { osc.stop(); }, dur);
+    } catch (e) {}
+  }
+  function soundOk() { beep(880, 120, "sine"); setTimeout(function(){ beep(1320, 120, "sine"); }, 140); }
+  function soundErr() { beep(220, 250, "square"); }
 
   // ---- Auth ----
   function loadToken() {
@@ -120,6 +161,7 @@
         startScanner();
       } else {
         setMsg($("loginMsg"), (data && data.error) || "Login failed", false);
+        soundErr();
       }
     };
     xhr.send(JSON.stringify({ identifier: phone, password: pass }));
@@ -145,27 +187,22 @@
       var q = JSON.parse(localStorage.getItem("sm_queue") || "[]");
       if (!q.length) return;
       var remaining = [];
-      var i;
-      for (i = 0; i < q.length; i++) {
-        (function (scan) {
+      for (var i = 0; i < q.length; i++) {
+        (function (scan, idx) {
           var xhr = new XMLHttpRequest();
           xhr.open("POST", scan.url, true);
           xhr.setRequestHeader("Content-Type", "application/json");
           xhr.setRequestHeader("Authorization", "Bearer " + token);
           xhr.onreadystatechange = function () {
             if (xhr.readyState !== 4) return;
-            if (xhr.status >= 200 && xhr.status < 300) {
-              // synced, drop
-            } else {
-              remaining.push(scan);
-            }
-            if (i === q.length - 1) {
+            if (!(xhr.status >= 200 && xhr.status < 300)) remaining.push(scan);
+            if (idx === q.length - 1) {
               try { localStorage.setItem("sm_queue", JSON.stringify(remaining)); } catch (e) {}
               updateQueueInfo();
             }
           };
           xhr.send(JSON.stringify(scan.body));
-        })(q[i]);
+        })(q[i], i);
       }
     } catch (e) {}
   }
@@ -185,21 +222,22 @@
   }
 
   function startCamera() {
-    getUserMediaCompat({ video: { facingMode: "environment" } }, function (s) {
+    stopCamera();
+    var facing = useFront ? "user" : "environment";
+    getUserMediaCompat({ video: { facingMode: facing } }, function (s) {
       stream = s;
       var v = $("video");
       try { v.srcObject = s; } catch (e) { v.src = (window.URL || window.webkitURL).createObjectURL(s); }
       v.setAttribute("playsinline", "true");
       v.setAttribute("webkit-playsinline", "true");
       v.muted = true;
-      var playPromise = v.play();
-      if (playPromise && typeof playPromise.then === "function") {
-        playPromise.catch(function () {});
-      }
+      var pp = v.play();
+      if (pp && typeof pp.then === "function") { pp.catch(function () {}); }
       scanning = true;
       tick();
     }, function (err) {
       setMsg($("scanResult"), "Camera error: " + (err && err.message ? err.message : err), false);
+      soundErr();
     });
   }
   function stopCamera() {
@@ -232,11 +270,32 @@
     rafId = requestAnimationFrame(tick);
   }
 
+  // ---- Mode handling ----
+  function setMode(m) {
+    mode = m;
+    var btns = ["modeMeal", "modeAttend", "modeStaff"];
+    for (var i = 0; i < btns.length; i++) {
+      $(btns[i]).classList.remove("active");
+    }
+    if (m === "meal") { $("modeMeal").classList.add("active"); $("modeTitle").textContent = "Meal Scanner"; show("mealOpts"); hide("staffOpts"); }
+    else if (m === "attend") { $("modeAttend").classList.add("active"); $("modeTitle").textContent = "Attendance Scanner"; hide("mealOpts"); hide("staffOpts"); }
+    else { $("modeStaff").classList.add("active"); $("modeTitle").textContent = "Staff Attendance"; hide("mealOpts"); show("staffOpts"); }
+    setMsg($("scanResult"), "Point camera at ID card", null);
+  }
+
   function handleScan(scanValue) {
-    var mealType = $("mealType").value;
-    var url = "/api/meals/scan/";
-    var body = { scanValue: scanValue, mealType: mealType };
-    setMsg($("scanResult"), "Scanning...", null);
+    var url, body;
+    if (mode === "meal") {
+      url = "/api/meals/scan/";
+      body = { scanValue: scanValue, mealType: $("mealType").value };
+    } else if (mode === "attend") {
+      url = "/api/attendance/scan/";
+      body = { scanValue: scanValue };
+    } else {
+      url = "/api/staff/scan-attendance/";
+      body = { scanValue: scanValue, action: $("staffAction").value };
+    }
+    setMsg($("scanResult"), "Processing...", null);
     var xhr = new XMLHttpRequest();
     xhr.open("POST", url, true);
     xhr.setRequestHeader("Content-Type", "application/json");
@@ -246,16 +305,19 @@
       var data = null;
       try { data = JSON.parse(xhr.responseText); } catch (e) {}
       if (xhr.status >= 200 && xhr.status < 300 && data && data.success) {
-        var student = data.data && data.data.student;
-        var name = student ? (student.first_name + " " + student.last_name) : "Student";
-        setMsg($("scanResult"), name + " - " + (data.data && data.data.reasonCode ? data.data.reasonCode : "OK"), true);
+        var student = (data.data && (data.data.student || data.data.staff)) || null;
+        var name = student ? (student.first_name || student.full_name || "") + " " + (student.last_name || "") : "OK";
+        var code = (data.data && data.data.reasonCode) || "OK";
+        setMsg($("scanResult"), name.trim() + " - " + code, true);
+        soundOk();
       } else if (xhr.status === 0 || xhr.status >= 500) {
-        // network/server error -> queue offline
         queueScan({ url: url, body: body, at: Date.now() });
         setMsg($("scanResult"), "Queued offline (network error)", false);
+        soundErr();
       } else {
-        var err = (data && (data.error || data.reasonCode)) || ("Error " + xhr.status);
+        var err = (data && (data.error || (data.data && data.data.reasonCode))) || ("Error " + xhr.status);
         setMsg($("scanResult"), err, false);
+        soundErr();
       }
     };
     xhr.send(JSON.stringify(body));
@@ -264,7 +326,7 @@
   function startScanner() {
     hide("loginScreen");
     show("scanScreen");
-    setMsg($("scanResult"), "Point camera at student ID card", null);
+    setMsg($("scanResult"), "Point camera at ID card", null);
     updateQueueInfo();
     startCamera();
     syncQueue();
@@ -273,6 +335,10 @@
   // ---- Events ----
   $("loginBtn").addEventListener("click", login);
   $("stopBtn").addEventListener("click", stopCamera);
+  $("camBtn").addEventListener("click", function () { useFront = !useFront; startCamera(); });
+  $("modeMeal").addEventListener("click", function () { setMode("meal"); });
+  $("modeAttend").addEventListener("click", function () { setMode("attend"); });
+  $("modeStaff").addEventListener("click", function () { setMode("staff"); });
   $("logoutBtn").addEventListener("click", function () {
     stopCamera();
     clearToken();
