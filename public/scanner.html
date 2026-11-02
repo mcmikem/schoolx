@@ -101,7 +101,11 @@
   var stream = null;
   var rafId = null;
   var lastScan = 0;
-  var SCAN_COOLDOWN = 2500;
+  var lastScanValue = "";
+  var SCAN_COOLDOWN = 1200;
+  var scanCount = 0;
+  var frameSkip = 0;
+  var FRAME_SKIP_COUNT = 2;
   var useFront = false;
   var mode = "meal"; // meal | attend | staff
 
@@ -224,7 +228,7 @@
   function startCamera() {
     stopCamera();
     var facing = useFront ? "user" : "environment";
-    getUserMediaCompat({ video: { facingMode: facing } }, function (s) {
+    getUserMediaCompat({ video: { facingMode: facing, width: { ideal: 640 }, height: { ideal: 480 } } }, function (s) {
       stream = s;
       var v = $("video");
       try { v.srcObject = s; } catch (e) { v.src = (window.URL || window.webkitURL).createObjectURL(s); }
@@ -248,21 +252,32 @@
 
   function tick() {
     if (!scanning) return;
+    frameSkip++;
+    if (frameSkip < FRAME_SKIP_COUNT) {
+      rafId = requestAnimationFrame(tick);
+      return;
+    }
+    frameSkip = 0;
     var video = $("video");
     var canvas = $("canvas");
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      // Downscale for faster processing on old devices
+      var scale = 0.5;
+      canvas.width = Math.floor(video.videoWidth * scale);
+      canvas.height = Math.floor(video.videoHeight * scale);
       var ctx = canvas.getContext("2d");
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       if (typeof jsQR !== "undefined") {
         var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
-        if (code && code.data) {
+        if (code && code.data && code.data !== lastScanValue) {
           var now = Date.now();
           if (now - lastScan > SCAN_COOLDOWN) {
             lastScan = now;
+            lastScanValue = code.data;
             handleScan(code.data);
+            // Reset lastScanValue after cooldown so same card can be re-scanned later
+            setTimeout(function () { lastScanValue = ""; }, SCAN_COOLDOWN + 500);
           }
         }
       }
@@ -308,7 +323,8 @@
         var student = (data.data && (data.data.student || data.data.staff)) || null;
         var name = student ? (student.first_name || student.full_name || "") + " " + (student.last_name || "") : "OK";
         var code = (data.data && data.data.reasonCode) || "OK";
-        setMsg($("scanResult"), name.trim() + " - " + code, true);
+        scanCount++;
+        setMsg($("scanResult"), name.trim() + " - " + code + " (#" + scanCount + ")", true);
         soundOk();
       } else if (xhr.status === 0) {
         queueScan({ url: url, body: body, at: Date.now() });
