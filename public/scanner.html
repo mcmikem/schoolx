@@ -7,93 +7,144 @@
 <title>SkoolMate Scanner</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #001F3F; color: #fff; min-height: 100vh;
-    display: flex; flex-direction: column; align-items: center;
+    background: #001F3F; color: #fff;
+    display: flex; flex-direction: column;
   }
-  .screen { width: 100%; max-width: 480px; padding: 16px; }
-  h1 { font-size: 20px; margin-bottom: 12px; text-align: center; }
-  input, select {
-    width: 100%; padding: 12px; margin: 6px 0; border: 1px solid #ccc;
-    border-radius: 8px; font-size: 16px; color: #000;
+  .screen { width: 100%; height: 100%; display: flex; flex-direction: column; }
+  .hidden { display: none !important; }
+
+  /* Login */
+  #loginScreen { justify-content: center; align-items: center; padding: 24px; }
+  #loginScreen .card { width: 100%; max-width: 360px; }
+  h1 { font-size: 22px; margin-bottom: 8px; text-align: center; }
+  .sub { text-align: center; opacity: .7; margin-bottom: 16px; font-size: 14px; }
+  input {
+    width: 100%; padding: 14px; margin: 6px 0; border: 1px solid #ccc;
+    border-radius: 10px; font-size: 16px; color: #000;
   }
-  button {
-    padding: 14px; margin: 8px 0; border: 0; border-radius: 10px;
+  .btn {
+    width: 100%; padding: 14px; margin: 8px 0; border: 0; border-radius: 10px;
     background: #16a34a; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
   }
-  button.full { width: 100%; }
-  button.secondary { background: #3b82f6; }
-  button.danger { background: #dc2626; }
-  button.warn { background: #f59e0b; }
-  .video-wrap { position: relative; width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 12px; overflow: hidden; }
+  .btn.secondary { background: #3b82f6; }
+  .btn.danger { background: #dc2626; }
+  .btn.warn { background: #f59e0b; color: #000; }
+  .btn.ghost { background: rgba(255,255,255,0.15); }
+  .btn:active { opacity: 0.7; }
+  .msg { margin-top: 10px; padding: 10px; border-radius: 8px; text-align: center; min-height: 40px; font-size: 14px; }
+  .msg.ok { background: #16a34a; }
+  .msg.err { background: #dc2626; }
+
+  /* Scan screen */
+  #scanScreen { position: relative; }
+  .cam-wrap { flex: 1; position: relative; background: #000; overflow: hidden; }
   video { width: 100%; height: 100%; object-fit: cover; }
   canvas { display: none; }
-  .result {
-    margin-top: 12px; padding: 12px; border-radius: 10px;
-    background: rgba(255,255,255,0.1); text-align: center; min-height: 60px;
+
+  /* Floating controls */
+  .float-top {
+    position: absolute; top: 12px; left: 12px; right: 12px;
+    display: flex; gap: 8px; z-index: 10;
   }
-  .result.ok { background: #16a34a; }
-  .result.err { background: #dc2626; }
-  .result .name { font-size: 20px; font-weight: 700; }
-  .result .sub { font-size: 13px; opacity: 0.9; margin-top: 4px; }
-  .row { display: flex; gap: 8px; }
-  .row button { flex: 1; }
-  .small { font-size: 12px; opacity: 0.7; text-align: center; margin-top: 8px; }
-  .hidden { display: none !important; }
-  .modebar { display: flex; gap: 6px; margin: 8px 0; }
-  .modebar button { flex: 1; padding: 10px; font-size: 13px; margin: 0; }
+  .float-top select {
+    flex: 1; padding: 8px; border-radius: 8px; font-size: 14px; border: 0;
+    background: rgba(0,0,0,0.6); color: #fff;
+  }
+  .float-bottom {
+    position: absolute; bottom: 12px; left: 12px; right: 12px;
+    display: flex; gap: 8px; z-index: 10;
+  }
+  .float-bottom button { flex: 1; padding: 10px; font-size: 13px; margin: 0; }
+  .float-side {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 8px; z-index: 10;
+  }
+  .float-side button { width: 48px; height: 48px; padding: 0; font-size: 20px; border-radius: 50%; }
+
+  /* Mode bar */
+  .modebar { display: flex; gap: 4px; padding: 8px 12px; background: rgba(0,0,0,0.5); }
+  .modebar button { flex: 1; padding: 8px; font-size: 12px; margin: 0; border-radius: 6px; }
   .modebar button.active { background: #16a34a; }
-  .modebar button:not(.active) { background: #475569; }
+  .modebar button:not(.active) { background: rgba(255,255,255,0.15); }
+
+  /* Result overlay */
+  .overlay {
+    position: absolute; inset: 0; z-index: 20;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.85); opacity: 0; pointer-events: none;
+    transition: opacity 0.15s;
+  }
+  .overlay.show { opacity: 1; pointer-events: auto; }
+  .overlay.ok { background: rgba(22,163,74,0.92); }
+  .overlay.err { background: rgba(220,38,38,0.92); }
+  .overlay .icon { font-size: 120px; line-height: 1; margin-bottom: 12px; }
+  .overlay .name { font-size: 26px; font-weight: 700; text-align: center; padding: 0 16px; }
+  .overlay .sub { font-size: 16px; opacity: 0.9; margin-top: 6px; }
+
+  .count-badge {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.6); padding: 6px 14px; border-radius: 20px;
+    font-size: 14px; font-weight: 700; z-index: 10;
+  }
+  .small { font-size: 11px; opacity: 0.6; text-align: center; margin-top: 4px; }
 </style>
 </head>
 <body>
+<!-- Login -->
 <div class="screen" id="loginScreen">
-  <h1>SkoolMate Scanner</h1>
-  <p style="text-align:center;opacity:.8;margin-bottom:12px;">Staff sign in</p>
-  <input id="phone" type="tel" placeholder="Phone number" autocomplete="username">
-  <input id="pass" type="password" placeholder="Password" autocomplete="current-password">
-  <button id="loginBtn" class="full">Sign In</button>
-  <div class="result" id="loginMsg"></div>
+  <div class="card">
+    <h1>SkoolMate Scanner</h1>
+    <p class="sub">Staff sign in</p>
+    <input id="phone" type="tel" placeholder="Phone number" autocomplete="username">
+    <input id="pass" type="password" placeholder="Password" autocomplete="current-password">
+    <button id="loginBtn" class="btn full">Sign In</button>
+    <div class="msg" id="loginMsg"></div>
+  </div>
 </div>
 
+<!-- Scan -->
 <div class="screen hidden" id="scanScreen">
-  <h1 id="modeTitle">Meal Scanner</h1>
   <div class="modebar">
     <button id="modeMeal" class="active">Meals</button>
     <button id="modeAttend">Attendance</button>
     <button id="modeStaff">Staff</button>
   </div>
-  <div id="mealOpts">
-    <select id="mealType">
-      <option value="breakfast">Breakfast</option>
-      <option value="lunch">Lunch</option>
-      <option value="supper">Supper</option>
-    </select>
-  </div>
-  <div id="staffOpts" class="hidden">
-    <select id="staffAction">
-      <option value="check_in">Check In</option>
-      <option value="check_out">Check Out</option>
-    </select>
-  </div>
-  <div class="video-wrap">
+  <div class="cam-wrap">
     <video id="video" playsinline muted autoplay></video>
+    <canvas id="canvas"></canvas>
+    <div class="count-badge" id="countBadge">0 scanned</div>
+    <div class="float-top" id="mealOpts">
+      <select id="mealType">
+        <option value="breakfast">Breakfast</option>
+        <option value="lunch">Lunch</option>
+        <option value="supper">Supper</option>
+      </select>
+    </div>
+    <div class="float-top hidden" id="staffOpts">
+      <select id="staffAction">
+        <option value="check_in">Check In</option>
+        <option value="check_out">Check Out</option>
+      </select>
+    </div>
+    <div class="float-side">
+      <button id="camBtn" class="btn ghost" title="Switch camera">&#x1F504;</button>
+    </div>
+    <div class="float-bottom">
+      <button id="stopBtn" class="btn danger">Stop</button>
+      <button id="toggleDupes" class="btn secondary">Dupes: ON</button>
+      <button id="clearScanned" class="btn warn">Clear</button>
+      <button id="logoutBtn" class="btn ghost">Out</button>
+    </div>
+    <!-- Result overlay -->
+    <div class="overlay" id="overlay">
+      <div class="icon" id="overlayIcon">&#x2713;</div>
+      <div class="name" id="overlayName"></div>
+      <div class="sub" id="overlaySub"></div>
+    </div>
   </div>
-  <canvas id="canvas"></canvas>
-  <div class="result" id="scanResult">Point camera at ID card</div>
-  <div class="row">
-    <button id="camBtn" class="secondary">Switch Camera</button>
-    <button id="stopBtn" class="danger">Stop</button>
-  </div>
-  <div class="row">
-    <button id="toggleDupes" class="secondary">Block Dupes: ON</button>
-    <button id="clearScanned" class="warn">Clear Scanned</button>
-  </div>
-  <div class="row">
-    <button id="logoutBtn" class="warn">Sign Out</button>
-  </div>
-  <div class="small" id="queueInfo"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
@@ -109,20 +160,16 @@
   var SCAN_COOLDOWN = 800;
   var scanCount = 0;
   var useFront = false;
-  var mode = "meal"; // meal | attend | staff
+  var mode = "meal";
   var scannedSet = {};
   var blockDupes = true;
+  var overlayTimer = null;
 
   function $(id) { return document.getElementById(id); }
   function show(id) { $(id).classList.remove("hidden"); }
   function hide(id) { $(id).classList.add("hidden"); }
 
-  function setMsg(el, text, ok) {
-    el.textContent = text;
-    el.className = "result " + (ok === true ? "ok" : ok === false ? "err" : "");
-  }
-
-  // ---- Sound feedback (Web Audio) ----
+  // ---- Sound ----
   var audioCtx = null;
   function beep(freq, dur, type) {
     try {
@@ -138,8 +185,19 @@
       setTimeout(function () { osc.stop(); }, dur);
     } catch (e) {}
   }
-  function soundOk() { beep(880, 120, "sine"); setTimeout(function(){ beep(1320, 120, "sine"); }, 140); }
-  function soundErr() { beep(220, 250, "square"); }
+  function soundOk() { beep(880, 100, "sine"); setTimeout(function(){ beep(1320, 100, "sine"); }, 120); }
+  function soundErr() { beep(220, 300, "square"); }
+
+  // ---- Overlay flash ----
+  function flashOverlay(ok, name, sub) {
+    var ov = $("overlay");
+    ov.className = "overlay show " + (ok ? "ok" : "err");
+    $("overlayIcon").textContent = ok ? "\u2713" : "\u2717";
+    $("overlayName").textContent = name || "";
+    $("overlaySub").textContent = sub || "";
+    if (overlayTimer) clearTimeout(overlayTimer);
+    overlayTimer = setTimeout(function () { ov.className = "overlay"; }, 1400);
+  }
 
   // ---- Auth ----
   function loadToken() {
@@ -151,7 +209,7 @@
   function login() {
     var phone = $("phone").value.trim();
     var pass = $("pass").value.trim();
-    if (!phone || !pass) { setMsg($("loginMsg"), "Enter phone and password", false); return; }
+    if (!phone || !pass) { showMsg("loginMsg", "Enter phone and password", false); return; }
     $("loginBtn").disabled = true;
     $("loginBtn").textContent = "Signing in...";
     var xhr = new XMLHttpRequest();
@@ -168,11 +226,16 @@
         token = data.data.access_token;
         startScanner();
       } else {
-        setMsg($("loginMsg"), (data && data.error) || "Login failed", false);
+        showMsg("loginMsg", (data && data.error) || "Login failed", false);
         soundErr();
       }
     };
     xhr.send(JSON.stringify({ identifier: phone, password: pass }));
+  }
+  function showMsg(id, text, ok) {
+    var el = $(id);
+    el.textContent = text;
+    el.className = "msg " + (ok === true ? "ok" : ok === false ? "err" : "");
   }
 
   // ---- Offline queue ----
@@ -187,7 +250,10 @@
   function updateQueueInfo() {
     try {
       var q = JSON.parse(localStorage.getItem("sm_queue") || "[]");
-      $("queueInfo").textContent = q.length ? (q.length + " scan(s) queued offline") : "";
+      var badge = $("countBadge");
+      var txt = scanCount + " scanned";
+      if (q.length) txt += " | " + q.length + " queued";
+      badge.textContent = txt;
     } catch (e) {}
   }
   function syncQueue() {
@@ -244,7 +310,7 @@
       scanning = true;
       tick();
     }, function (err) {
-      setMsg($("scanResult"), "Camera error: " + (err && err.message ? err.message : err), false);
+      flashOverlay(false, "Camera Error", err && err.message ? err.message : String(err));
       soundErr();
     });
   }
@@ -287,16 +353,16 @@
     for (var i = 0; i < btns.length; i++) {
       $(btns[i]).classList.remove("active");
     }
-    if (m === "meal") { $("modeMeal").classList.add("active"); $("modeTitle").textContent = "Meal Scanner"; show("mealOpts"); hide("staffOpts"); }
-    else if (m === "attend") { $("modeAttend").classList.add("active"); $("modeTitle").textContent = "Attendance Scanner"; hide("mealOpts"); hide("staffOpts"); }
-    else { $("modeStaff").classList.add("active"); $("modeTitle").textContent = "Staff Attendance"; hide("mealOpts"); show("staffOpts"); }
-    setMsg($("scanResult"), "Point camera at ID card", null);
+    $("mealOpts").classList.add("hidden");
+    $("staffOpts").classList.add("hidden");
+    if (m === "meal") { $("modeMeal").classList.add("active"); $("modeTitle").textContent = "Meal Scanner"; $("mealOpts").classList.remove("hidden"); }
+    else if (m === "attend") { $("modeAttend").classList.add("active"); $("modeTitle").textContent = "Attendance Scanner"; }
+    else { $("modeStaff").classList.add("active"); $("modeTitle").textContent = "Staff Attendance"; $("staffOpts").classList.remove("hidden"); }
   }
 
   function handleScan(scanValue) {
-    // Block duplicate scans of the same card within this session
     if (blockDupes && scannedSet[scanValue]) {
-      setMsg($("scanResult"), "Already scanned this session", false);
+      flashOverlay(false, "Already Scanned", "This card was already scanned this session");
       soundErr();
       return;
     }
@@ -311,7 +377,7 @@
       url = "/api/staff/scan-attendance/";
       body = { scanValue: scanValue, action: $("staffAction").value, token: token };
     }
-    setMsg($("scanResult"), "Processing...", null);
+    flashOverlay(null, "Processing...", "");
     var xhr = new XMLHttpRequest();
     xhr.open("POST", url, true);
     xhr.setRequestHeader("Content-Type", "application/json");
@@ -326,29 +392,28 @@
         var code = (data.data && data.data.reasonCode) || "OK";
         scannedSet[scanValue] = true;
         scanCount++;
-        setMsg($("scanResult"), name.trim() + " - " + code + " (#" + scanCount + ")", true);
+        $("countBadge").textContent = scanCount + " scanned";
+        flashOverlay(true, name.trim(), code);
         soundOk();
       } else if (xhr.status === 0) {
         queueScan({ url: url, body: body, at: Date.now() });
-        setMsg($("scanResult"), "Queued offline (no network)", false);
+        flashOverlay(false, "Offline", "Queued - will sync when online");
         soundErr();
       } else if (xhr.status >= 500) {
         queueScan({ url: url, body: body, at: Date.now() });
-        setMsg($("scanResult"), "Server error " + xhr.status + " - queued", false);
+        flashOverlay(false, "Server Error", "Queued - will retry");
+        soundErr();
+      } else if (xhr.status === 401) {
+        clearToken();
+        token = null;
+        stopCamera();
+        hide("scanScreen");
+        show("loginScreen");
+        showMsg("loginMsg", "Session expired. Please sign in again.", false);
         soundErr();
       } else {
-        if (xhr.status === 401) {
-          clearToken();
-          token = null;
-          stopCamera();
-          hide("scanScreen");
-          show("loginScreen");
-          setMsg($("loginMsg"), "Session expired. Please sign in again.", false);
-          soundErr();
-          return;
-        }
         var err = (data && (data.error || (data.data && data.data.reasonCode))) || xhr.responseText || ("Error " + xhr.status);
-        setMsg($("scanResult"), err, false);
+        flashOverlay(false, "Denied", err);
         soundErr();
       }
     };
@@ -358,7 +423,8 @@
   function startScanner() {
     hide("loginScreen");
     show("scanScreen");
-    setMsg($("scanResult"), "Point camera at ID card", null);
+    scanCount = 0;
+    $("countBadge").textContent = "0 scanned";
     updateQueueInfo();
     startCamera();
     syncQueue();
@@ -368,25 +434,26 @@
   $("loginBtn").addEventListener("click", login);
   $("stopBtn").addEventListener("click", stopCamera);
   $("camBtn").addEventListener("click", function () { useFront = !useFront; startCamera(); });
+  $("modeMeal").addEventListener("click", function () { setMode("meal"); });
+  $("modeAttend").addEventListener("click", function () { setMode("attend"); });
+  $("modeStaff").addEventListener("click", function () { setMode("staff"); });
   $("toggleDupes").addEventListener("click", function () {
     blockDupes = !blockDupes;
-    $("toggleDupes").textContent = "Block Dupes: " + (blockDupes ? "ON" : "OFF");
+    $("toggleDupes").textContent = "Dupes: " + (blockDupes ? "ON" : "OFF");
   });
   $("clearScanned").addEventListener("click", function () {
     scannedSet = {};
     scanCount = 0;
-    setMsg($("scanResult"), "Scanned list cleared", null);
+    $("countBadge").textContent = "0 scanned";
+    flashOverlay(null, "Cleared", "Scanned list reset");
   });
-  $("modeMeal").addEventListener("click", function () { setMode("meal"); });
-  $("modeAttend").addEventListener("click", function () { setMode("attend"); });
-  $("modeStaff").addEventListener("click", function () { setMode("staff"); });
   $("logoutBtn").addEventListener("click", function () {
     stopCamera();
     clearToken();
     token = null;
     hide("scanScreen");
     show("loginScreen");
-    setMsg($("loginMsg"), "", null);
+    showMsg("loginMsg", "", null);
   });
 
   // ---- Init ----
