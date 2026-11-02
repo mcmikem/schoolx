@@ -414,17 +414,30 @@ export async function requireAuthenticatedUser(
 
   // Bearer token auth (for standalone scanner clients that cannot rely on
   // cookies, e.g. old iPad WebViews). The token comes from /api/auth/signin.
+  // Accept the token from the Authorization header OR from the JSON body
+  // (body.token / body.accessToken) as a fallback for clients that cannot
+  // set custom headers reliably.
+  let bearerToken = "";
   const authHeader = request.headers.get("authorization");
   if (authHeader && authHeader.toLowerCase().startsWith("bearer ")) {
-    const token = authHeader.slice(7).trim();
-    if (token) {
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-      const sb = createClient(url, key, { auth: { persistSession: false } });
-      const { data, error } = await sb.auth.getUser(token);
-      if (!error && data?.user?.id) {
-        return { ok: true, context: { authUserId: data.user.id } };
-      }
+    bearerToken = authHeader.slice(7).trim();
+  }
+  if (!bearerToken) {
+    try {
+      const cloned = request.clone();
+      const body = await cloned.json().catch(() => ({}));
+      bearerToken = String(body?.token || body?.accessToken || body?.access_token || "").trim();
+    } catch (e) {
+      bearerToken = "";
+    }
+  }
+  if (bearerToken) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const sb = createClient(url, key, { auth: { persistSession: false } });
+    const { data, error } = await sb.auth.getUser(bearerToken);
+    if (!error && data?.user?.id) {
+      return { ok: true, context: { authUserId: data.user.id } };
     }
   }
 

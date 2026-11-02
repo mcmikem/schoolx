@@ -287,13 +287,13 @@
     var url, body;
     if (mode === "meal") {
       url = "/api/meals/scan/";
-      body = { scanValue: scanValue, mealType: $("mealType").value };
+      body = { scanValue: scanValue, mealType: $("mealType").value, token: token };
     } else if (mode === "attend") {
       url = "/api/attendance/scan/";
-      body = { scanValue: scanValue };
+      body = { scanValue: scanValue, token: token };
     } else {
       url = "/api/staff/scan-attendance/";
-      body = { scanValue: scanValue, action: $("staffAction").value };
+      body = { scanValue: scanValue, action: $("staffAction").value, token: token };
     }
     setMsg($("scanResult"), "Processing...", null);
     var xhr = new XMLHttpRequest();
@@ -319,6 +319,16 @@
         setMsg($("scanResult"), "Server error " + xhr.status + " - queued", false);
         soundErr();
       } else {
+        if (xhr.status === 401) {
+          clearToken();
+          token = null;
+          stopCamera();
+          hide("scanScreen");
+          show("loginScreen");
+          setMsg($("loginMsg"), "Session expired. Please sign in again.", false);
+          soundErr();
+          return;
+        }
         var err = (data && (data.error || (data.data && data.data.reasonCode))) || xhr.responseText || ("Error " + xhr.status);
         setMsg($("scanResult"), err, false);
         soundErr();
