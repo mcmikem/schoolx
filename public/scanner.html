@@ -87,6 +87,10 @@
     <button id="stopBtn" class="danger">Stop</button>
   </div>
   <div class="row">
+    <button id="toggleDupes" class="secondary">Block Dupes: ON</button>
+    <button id="clearScanned" class="warn">Clear Scanned</button>
+  </div>
+  <div class="row">
     <button id="logoutBtn" class="warn">Sign Out</button>
   </div>
   <div class="small" id="queueInfo"></div>
@@ -106,6 +110,8 @@
   var scanCount = 0;
   var useFront = false;
   var mode = "meal"; // meal | attend | staff
+  var scannedSet = {};
+  var blockDupes = true;
 
   function $(id) { return document.getElementById(id); }
   function show(id) { $(id).classList.remove("hidden"); }
@@ -288,6 +294,12 @@
   }
 
   function handleScan(scanValue) {
+    // Block duplicate scans of the same card within this session
+    if (blockDupes && scannedSet[scanValue]) {
+      setMsg($("scanResult"), "Already scanned this session", false);
+      soundErr();
+      return;
+    }
     var url, body;
     if (mode === "meal") {
       url = "/api/meals/scan/";
@@ -312,6 +324,7 @@
         var student = (data.data && (data.data.student || data.data.staff)) || null;
         var name = student ? (student.first_name || student.full_name || "") + " " + (student.last_name || "") : "OK";
         var code = (data.data && data.data.reasonCode) || "OK";
+        scannedSet[scanValue] = true;
         scanCount++;
         setMsg($("scanResult"), name.trim() + " - " + code + " (#" + scanCount + ")", true);
         soundOk();
@@ -355,6 +368,15 @@
   $("loginBtn").addEventListener("click", login);
   $("stopBtn").addEventListener("click", stopCamera);
   $("camBtn").addEventListener("click", function () { useFront = !useFront; startCamera(); });
+  $("toggleDupes").addEventListener("click", function () {
+    blockDupes = !blockDupes;
+    $("toggleDupes").textContent = "Block Dupes: " + (blockDupes ? "ON" : "OFF");
+  });
+  $("clearScanned").addEventListener("click", function () {
+    scannedSet = {};
+    scanCount = 0;
+    setMsg($("scanResult"), "Scanned list cleared", null);
+  });
   $("modeMeal").addEventListener("click", function () { setMode("meal"); });
   $("modeAttend").addEventListener("click", function () { setMode("attend"); });
   $("modeStaff").addEventListener("click", function () { setMode("staff"); });
