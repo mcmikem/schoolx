@@ -82,8 +82,8 @@ export default function TimetablePrintSheet({
   const lessonCount = slots.filter((slot) => slot.is_lesson !== false).length;
 
   return createPortal(
-    <div className="timetable-print-sheet fixed inset-0 z-[1200] overflow-y-auto bg-white text-slate-900">
-      <div className="timetable-print-hide sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3">
+    <div className="timetable-print-sheet fixed inset-0 z-[1200] overflow-y-auto bg-[var(--surface)] text-slate-900">
+      <div className="timetable-print-hide sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-200 bg-[var(--surface)] px-4 py-3">
         <p className="text-sm font-semibold">Print preview</p>
         <div className="flex items-center gap-2">
           <button

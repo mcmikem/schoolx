@@ -1183,10 +1183,10 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
       role="dialog"
       aria-modal="true"
       aria-label="Set up your school"
-      className="fixed inset-0 z-[10000] flex flex-col overflow-y-auto bg-white md:overflow-hidden md:bg-[var(--bg)]/90 md:items-center md:justify-center [&_input]:!text-base [&_select]:!text-base [&_button]:min-h-11"
+      className="fixed inset-0 z-[10000] flex flex-col overflow-y-auto bg-[var(--surface)] md:overflow-hidden md:bg-[var(--bg)]/90 md:items-center md:justify-center [&_input]:!text-base [&_select]:!text-base [&_button]:min-h-11"
     >
       {/* Mobile header with progress */}
-      <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-[var(--border)] bg-white sticky top-0 z-10">
+      <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-[var(--border)] bg-[var(--surface)] sticky top-0 z-10">
         <button
           onClick={() => {
             if (step > 1) handleBack(step - 1);
@@ -1223,7 +1223,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
       </div>
 
       {/* Mobile step dots */}
-      <div className="md:hidden flex items-center justify-center gap-1.5 py-2 bg-white border-b border-[var(--border)]">
+      <div className="md:hidden flex items-center justify-center gap-1.5 py-2 bg-[var(--surface)] border-b border-[var(--border)]">
         {steps.map((s, idx) => {
           const stepNum = idx + 1;
           const isActive = stepNum === step;
@@ -1252,7 +1252,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
         <div className="relative hidden md:flex md:w-1/3 md:min-h-[600px] flex-col overflow-hidden bg-[#0b1c39] p-10 text-white">
           <button
             onClick={onDismiss ?? onComplete}
-            className="tap-44 absolute top-4 right-4 z-20 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            className="tap-44 absolute top-4 right-4 z-20 p-2 rounded-full bg-[var(--surface)]/10 hover:bg-[var(--surface)]/20 transition-colors"
             aria-label="Close onboarding"
             disabled={saving || loading}
           >
@@ -1365,7 +1365,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                             ownership: e.target.value as "private" | "government" | "government_aided",
                           })
                         }
-                        className="w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+                        className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                       >
                         <option value="private">Private</option>
                         <option value="government">Government</option>
@@ -1736,7 +1736,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                             }
                           }}
                           placeholder="e.g. Luganda"
-                          className="flex-1 rounded-xl border border-[var(--border)] bg-white px-3 py-2.5 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+                          className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                         />
                         <Button type="button" size="sm" onClick={addCustomSubject}>
                           Add
@@ -1752,7 +1752,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                                 setCustomSubjects((prev) => prev.filter((s) => s !== subject));
                                 setSelectedSubjects((prev) => prev.filter((s) => s !== subject));
                               }}
-                              className="inline-flex items-center gap-1 rounded-full border border-[var(--border2)] bg-white px-2.5 py-1 text-xs text-[var(--t2)]"
+                              className="inline-flex items-center gap-1 rounded-full border border-[var(--border2)] bg-[var(--surface)] px-2.5 py-1 text-xs text-[var(--t2)]"
                             >
                               {subject}
                               <MaterialIcon icon="close" className="text-[14px]" />
@@ -1782,7 +1782,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
 
                   <div className="mb-6 rounded-2xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4 shadow-sm space-y-3">
                     {terms.map((term, i) => (
-                      <div key={i} className="rounded-xl bg-white border border-[var(--border)] p-3">
+                      <div key={i} className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-3">
                         <p className="text-sm font-semibold text-[var(--t2)] mb-2">{term.name}</p>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
@@ -1795,7 +1795,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                                 newTerms[i].start = e.target.value;
                                 setTerms(newTerms);
                               }}
-                              className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+                              className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                             />
                           </div>
                           <div>
@@ -1808,7 +1808,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                                 newTerms[i].end = e.target.value;
                                 setTerms(newTerms);
                               }}
-                              className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+                              className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                             />
                           </div>
                         </div>
@@ -1825,7 +1825,10 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                     </p>
 
                     {fees.map((fee, i) => (
-                      <div key={i} className="space-y-2 rounded-xl border border-[var(--border)] bg-white p-3">
+                      <div
+                        key={i}
+                        className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
+                      >
                         <div className="flex gap-2">
                           <input
                             type="text"
@@ -1835,7 +1838,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                               newFees[i].name = e.target.value;
                               setFees(newFees);
                             }}
-                            className="flex-1 rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+                            className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                             placeholder="Fee name"
                           />
                           <input
@@ -1847,7 +1850,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                               newFees[i].amount = e.target.value;
                               setFees(newFees);
                             }}
-                            className="w-28 rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+                            className="w-28 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                             placeholder="UGX"
                           />
                         </div>
@@ -1858,7 +1861,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                             newFees[i].category = e.target.value;
                             setFees(newFees);
                           }}
-                          className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+                          className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                         >
                           <option value="Tuition">Tuition</option>
                           <option value="Development">Development</option>
@@ -1875,7 +1878,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                               newFees[i].class_id = e.target.value;
                               setFees(newFees);
                             }}
-                            className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+                            className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                           >
                             <option value="all">All classes</option>
                             {feeClassOptions.map((classOption) => (
@@ -1892,7 +1895,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                               newFees[i].term = Number(e.target.value) as 1 | 2 | 3;
                               setFees(newFees);
                             }}
-                            className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+                            className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                           >
                             <option value={1}>Term 1</option>
                             <option value={2}>Term 2</option>
@@ -1960,7 +1963,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                         onChange={(e) =>
                           setGradingPrefs({ ...gradingPrefs, passing_mark: parseInt(e.target.value) || 0 })
                         }
-                        className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2.5 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+                        className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                         min={0}
                         max={100}
                       />
@@ -1982,7 +1985,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                               newGrades[i].min = parseInt(e.target.value) || 0;
                               setGradingPrefs({ ...gradingPrefs, grades: newGrades });
                             }}
-                            className="w-20 rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+                            className="w-20 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                             placeholder="Min"
                           />
                           <span className="text-xs text-[var(--t3)]">to</span>
@@ -1995,7 +1998,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                               newGrades[i].max = parseInt(e.target.value) || 0;
                               setGradingPrefs({ ...gradingPrefs, grades: newGrades });
                             }}
-                            className="w-20 rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+                            className="w-20 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                             placeholder="Max"
                           />
                         </div>
@@ -2013,7 +2016,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                         type="text"
                         value={reportBrand.header}
                         onChange={(e) => setReportBrand({ ...reportBrand, header: e.target.value })}
-                        className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+                        className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                         placeholder="Annual Academic Report"
                       />
                     </div>
@@ -2023,7 +2026,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                         type="text"
                         value={reportBrand.footer}
                         onChange={(e) => setReportBrand({ ...reportBrand, footer: e.target.value })}
-                        className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+                        className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                         placeholder="Education is the key to success"
                       />
                     </div>
@@ -2033,7 +2036,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                         type="text"
                         value={reportBrand.receipt_footer}
                         onChange={(e) => setReportBrand({ ...reportBrand, receipt_footer: e.target.value })}
-                        className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+                        className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                         placeholder="Thank you for your payment"
                       />
                     </div>
@@ -2046,7 +2049,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                       ].map((item) => (
                         <label
                           key={item.key}
-                          className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-xs font-medium text-[var(--t2)] cursor-pointer hover:bg-[var(--surface-container-low)]"
+                          className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-medium text-[var(--t2)] cursor-pointer hover:bg-[var(--surface-container-low)]"
                         >
                           <input
                             type="checkbox"
@@ -2180,7 +2183,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
           {/* Bottom Navigation - Mobile */}
           {step < TOTAL_STEPS && (
             <div
-              className="md:hidden sticky bottom-0 bg-white border-t border-[var(--border)] px-4 py-3"
+              className="md:hidden sticky bottom-0 bg-[var(--surface)] border-t border-[var(--border)] px-4 py-3"
               style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}
             >
               <div className="flex gap-3">

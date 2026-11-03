@@ -107,7 +107,7 @@ export default function PdfSourceViewer({
           type="button"
           disabled={page <= 1}
           onClick={() => setPage((current) => Math.max(1, current - 1))}
-          className="min-h-11 rounded-lg border border-[var(--border2)] bg-white px-3 text-sm font-semibold disabled:opacity-50"
+          className="min-h-11 rounded-lg border border-[var(--border2)] bg-[var(--surface)] px-3 text-sm font-semibold disabled:opacity-50"
         >
           Previous page
         </button>
@@ -119,7 +119,7 @@ export default function PdfSourceViewer({
           type="button"
           disabled={pageCount > 0 && page >= pageCount}
           onClick={() => setPage((current) => Math.min(pageCount || current + 1, current + 1))}
-          className="min-h-11 rounded-lg border border-[var(--border2)] bg-white px-3 text-sm font-semibold disabled:opacity-50"
+          className="min-h-11 rounded-lg border border-[var(--border2)] bg-[var(--surface)] px-3 text-sm font-semibold disabled:opacity-50"
         >
           Next page
         </button>
@@ -130,7 +130,7 @@ export default function PdfSourceViewer({
           aria-label="Zoom out"
           disabled={zoom <= 1}
           onClick={() => setZoom((value) => Math.max(1, value - 0.25))}
-          className="min-h-11 min-w-11 rounded-lg border border-[var(--border2)] bg-white text-lg disabled:opacity-50"
+          className="min-h-11 min-w-11 rounded-lg border border-[var(--border2)] bg-[var(--surface)] text-lg disabled:opacity-50"
         >
           −
         </button>
@@ -139,7 +139,7 @@ export default function PdfSourceViewer({
           aria-label="Zoom in"
           disabled={zoom >= 2}
           onClick={() => setZoom((value) => Math.min(2, value + 0.25))}
-          className="min-h-11 min-w-11 rounded-lg border border-[var(--border2)] bg-white text-lg disabled:opacity-50"
+          className="min-h-11 min-w-11 rounded-lg border border-[var(--border2)] bg-[var(--surface)] text-lg disabled:opacity-50"
         >
           +
         </button>

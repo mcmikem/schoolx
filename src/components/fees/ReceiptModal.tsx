@@ -56,7 +56,7 @@ export default function ReceiptModal({
     <Modal isOpen={isOpen} onClose={onClose} title="Fee Payment Receipt" size="sm">
       <div
         ref={contentRef}
-        className="receipt-paper mx-auto max-w-[340px] rounded-lg bg-white px-5 py-6 text-[#1a1a1a] shadow-[0_18px_40px_rgba(15,23,42,0.18)] ring-1 ring-black/5"
+        className="receipt-paper mx-auto max-w-[340px] rounded-lg bg-[var(--surface)] px-5 py-6 text-[#1a1a1a] shadow-[0_18px_40px_rgba(15,23,42,0.18)] ring-1 ring-black/5"
         style={{ borderTop: `4px solid ${schoolColor}` }}
       >
         {/* The school, the way it is letterhead. */}
@@ -102,9 +102,7 @@ export default function ReceiptModal({
           <span className="receipt-value font-mono text-[13px] font-bold">{receiptNumber || "—"}</span>
         </div>
         {!receiptNumber && (
-          <p className="mt-1 text-right text-[10px] text-[#999]">
-            Number issued when the payment syncs
-          </p>
+          <p className="mt-1 text-right text-[10px] text-[#999]">Number issued when the payment syncs</p>
         )}
         {paymentDate && (
           <div className="receipt-row flex items-baseline justify-between gap-3 py-1.5">

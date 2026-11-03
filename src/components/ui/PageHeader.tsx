@@ -21,7 +21,7 @@ export function PageHeader({ title, subtitle, actions, children, variant = "stan
 
   if (variant === "premium") {
     return (
-      <div className="relative overflow-hidden rounded-[var(--r2)] border border-[var(--border)] bg-white p-5 sm:p-6 mb-8 shadow-[var(--sh2)] motif-kente-border">
+      <div className="relative overflow-hidden rounded-[var(--r2)] border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 mb-8 shadow-[var(--sh2)] motif-kente-border">
         {/* School logo watermark — the ownership cue. Mirrors HeadmasterDashboard. */}
         {school?.logo_url && (
           <Image

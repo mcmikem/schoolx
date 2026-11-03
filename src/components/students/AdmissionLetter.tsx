@@ -30,7 +30,7 @@ export default function AdmissionLetter({
   const customFooter = school?.report_footer_text || school?.report_footer || "";
 
   return (
-    <div className="w-[210mm] min-h-[297mm] bg-white p-[20mm] shadow-2xl mx-auto print:shadow-none print:p-0 admission-letter text-[var(--t1)] font-serif">
+    <div className="w-[210mm] min-h-[297mm] bg-[var(--surface)] p-[20mm] shadow-2xl mx-auto print:shadow-none print:p-0 admission-letter text-[var(--t1)] font-serif">
       {/* Header */}
       <div className="flex justify-between items-start border-b-2 pb-6 mb-8" style={{ borderColor: brandColor }}>
         <div className="flex gap-4">
@@ -39,7 +39,7 @@ export default function AdmissionLetter({
             <img
               src={school.logo_url}
               alt={`${school.name || "School"} logo`}
-              className="h-16 w-16 rounded-xl object-contain border border-[var(--border)] bg-white p-1"
+              className="h-16 w-16 rounded-xl object-contain border border-[var(--border)] bg-[var(--surface)] p-1"
             />
           ) : (
             <SkoolMateLogo size="lg" variant="default" showText={false} />

@@ -63,9 +63,9 @@ export default function ForcePasswordChangeGate() {
         role="dialog"
         aria-modal="true"
         aria-label="Sign in again"
-        className="fixed inset-0 z-[9999] flex items-center justify-center bg-white p-6 dark:bg-[var(--surface-container-high)]"
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-[var(--surface)] p-6 dark:bg-[var(--surface-container-high)]"
       >
-        <div className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-white p-6 text-center shadow-xl dark:border-[var(--border)] dark:bg-[var(--surface-container-high)]">
+        <div className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center shadow-xl dark:border-[var(--border)] dark:bg-[var(--surface-container-high)]">
           <h1 className="text-lg font-bold text-[var(--t1)] dark:text-[var(--t4)]">Sign in again</h1>
           <p className="mt-2 text-sm text-[var(--t2)] dark:text-[var(--t3)]">{SESSION_EXPIRED_MESSAGE}</p>
           <button
@@ -182,9 +182,9 @@ export default function ForcePasswordChangeGate() {
       role="dialog"
       aria-modal="true"
       aria-label="Set a new password"
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-white p-6 dark:bg-[var(--surface-container-high)]"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-[var(--surface)] p-6 dark:bg-[var(--surface-container-high)]"
     >
-      <div className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-white p-6 shadow-xl dark:border-[var(--border)] dark:bg-[var(--surface-container-high)]">
+      <div className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-xl dark:border-[var(--border)] dark:bg-[var(--surface-container-high)]">
         <h1 className="text-lg font-bold text-[var(--t1)] dark:text-[var(--t4)]">Set a new password</h1>
         <p className="mt-2 text-sm text-[var(--t2)] dark:text-[var(--t3)]">
           {user.password_reset_required
@@ -201,7 +201,7 @@ export default function ForcePasswordChangeGate() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={busy}
-              className="mt-1 w-full rounded-lg border border-[var(--border2)] bg-white px-3 py-2.5 text-base text-[var(--t1)] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:opacity-60 dark:border-[var(--border)] dark:bg-[var(--surface-container-high)] dark:text-[var(--t4)] dark:focus:ring-blue-900"
+              className="mt-1 w-full rounded-lg border border-[var(--border2)] bg-[var(--surface)] px-3 py-2.5 text-base text-[var(--t1)] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:opacity-60 dark:border-[var(--border)] dark:bg-[var(--surface-container-high)] dark:text-[var(--t4)] dark:focus:ring-blue-900"
               required
             />
           </label>
@@ -214,7 +214,7 @@ export default function ForcePasswordChangeGate() {
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               disabled={busy}
-              className="mt-1 w-full rounded-lg border border-[var(--border2)] bg-white px-3 py-2.5 text-base text-[var(--t1)] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:opacity-60 dark:border-[var(--border)] dark:bg-[var(--surface-container-high)] dark:text-[var(--t4)] dark:focus:ring-blue-900"
+              className="mt-1 w-full rounded-lg border border-[var(--border2)] bg-[var(--surface)] px-3 py-2.5 text-base text-[var(--t1)] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:opacity-60 dark:border-[var(--border)] dark:bg-[var(--surface-container-high)] dark:text-[var(--t4)] dark:focus:ring-blue-900"
               required
             />
           </label>

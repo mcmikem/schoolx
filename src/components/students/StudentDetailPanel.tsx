@@ -24,7 +24,7 @@ function FieldHint({ tip }: { tip: string }) {
         ?
       </button>
       {open && (
-        <div className="absolute left-6 top-0 z-50 w-56 rounded-xl border border-[var(--border)] bg-white p-3 text-[12px] text-[var(--t2)] leading-5 shadow-lg">
+        <div className="absolute left-6 top-0 z-50 w-56 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 text-[12px] text-[var(--t2)] leading-5 shadow-lg">
           {tip}
           <button
             type="button"

@@ -65,7 +65,7 @@ export function VideoLessonCard({
         type="button"
         onClick={() => setOpen(true)}
         data-video-lesson={lesson}
-        className="group block w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-white text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--brand-green)]/40 hover:shadow-md"
+        className="group block w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--brand-green)]/40 hover:shadow-md"
       >
         <span className="relative block aspect-video w-full overflow-hidden bg-[var(--navy)]">
           <Image
@@ -76,7 +76,7 @@ export function VideoLessonCard({
             className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
           <span className="absolute inset-0 flex items-center justify-center bg-[var(--navy)] transition-colors group-hover:bg-[var(--navy)]">
-            <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-white/95 text-[var(--t1)] shadow-lg">
+            <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-[var(--surface)]/95 text-[var(--t1)] shadow-lg">
               <MaterialIcon icon="play_arrow" size={28} />
             </span>
           </span>
@@ -172,7 +172,7 @@ function VideoLessonModal({ lesson, onClose }: { lesson: OnboardingVideoKey; onC
                 className="object-cover"
               />
               <span className="absolute inset-0 flex items-center justify-center">
-                <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-white/95 text-[var(--primary)] shadow-lg transition-transform group-hover:scale-105">
+                <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-[var(--surface)]/95 text-[var(--primary)] shadow-lg transition-transform group-hover:scale-105">
                   <MaterialIcon icon="play_arrow" size={32} />
                 </span>
               </span>

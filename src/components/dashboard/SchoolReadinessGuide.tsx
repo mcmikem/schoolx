@@ -90,7 +90,7 @@ export function TeacherQuickGuide() {
           <Link
             key={action.step}
             href={action.href}
-            className="rounded-xl bg-white border border-[var(--border)] p-3 hover:bg-[var(--primary-50)] transition-colors text-center"
+            className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-3 hover:bg-[var(--primary-50)] transition-colors text-center"
           >
             <div className="w-6 h-6 rounded-full bg-[var(--t1)] text-white text-xs font-bold flex items-center justify-center mx-auto mb-1">
               {action.step}

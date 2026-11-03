@@ -14,7 +14,7 @@ export default function ExpiredNotice() {
 
   return (
     <div className="fixed inset-0 bg-[var(--surface-bright)] flex flex-col items-center justify-center p-4 z-[9997] overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-6 sm:p-8 max-w-md w-full border border-red-100/50 text-center relative overflow-hidden">
+      <div className="bg-[var(--surface)] rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-6 sm:p-8 max-w-md w-full border border-red-100/50 text-center relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-2 bg-red-500"></div>
 
         <div className="w-14 h-14 sm:w-16 sm:h-16 bg-red-100 text-red-700 rounded-2xl flex items-center justify-center mx-auto mb-5">
@@ -72,7 +72,7 @@ export default function ExpiredNotice() {
 
           <button
             onClick={signOut}
-            className="w-full bg-white hover:bg-[var(--surface-container-low)] border border-[var(--border)] text-[var(--t2)] font-medium py-3 px-4 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all text-sm"
+            className="w-full bg-[var(--surface)] hover:bg-[var(--surface-container-low)] border border-[var(--border)] text-[var(--t2)] font-medium py-3 px-4 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all text-sm"
           >
             <MaterialIcon style={{ fontSize: 18 }}>logout</MaterialIcon>
             Sign Out

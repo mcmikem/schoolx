@@ -64,7 +64,7 @@ export function ErrorDetails({ error, source, className }: Props) {
         {(error?.message || "An unexpected error occurred.").slice(0, 300)}
       </p>
       {(error?.digest || error?.stack) && (
-        <details className="text-left mb-4 rounded-lg border border-[var(--border)] bg-white/60 p-3">
+        <details className="text-left mb-4 rounded-lg border border-[var(--border)] bg-[var(--surface)]/60 p-3">
           <summary className="cursor-pointer text-xs font-semibold text-[var(--t2)]">Error details</summary>
           <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed text-[var(--t3)]">
             {error.digest ? `Digest: ${error.digest}\n` : ""}

@@ -73,7 +73,7 @@ export default function TodaysMarkingPanel({ classes, dateLabel, onOpen }: Today
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
                     done
                       ? "bg-[var(--green-soft,#dcfce7)] text-[var(--green,#16a34a)]"
-                      : "bg-white/70 text-[var(--amber-ink,#92400e)]"
+                      : "bg-[var(--surface)]/70 text-[var(--amber-ink,#92400e)]"
                   }`}
                 >
                   <MaterialIcon icon={done ? "check_circle" : "schedule"} style={{ fontSize: 18 }} />

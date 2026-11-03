@@ -85,7 +85,7 @@ export default function TermTimeline({ events }: { events: Event[] }) {
 
               {/* Box */}
               <div
-                className={`absolute left-1/2 -translate-x-1/2 w-40 p-3 bg-white rounded-2xl shadow-xl border border-[var(--border)] z-30 transition-all hover:scale-105 hover:z-50 ${isTop ? "-top-32" : "top-12"}`}
+                className={`absolute left-1/2 -translate-x-1/2 w-40 p-3 bg-[var(--surface)] rounded-2xl shadow-xl border border-[var(--border)] z-30 transition-all hover:scale-105 hover:z-50 ${isTop ? "-top-32" : "top-12"}`}
               >
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`w-1.5 h-1.5 rounded-full ${colorClass}`} />

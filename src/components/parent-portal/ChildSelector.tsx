@@ -41,7 +41,7 @@ export function ChildSelector({ label = "Learner" }: { label?: string }) {
             className={`shrink-0 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap transition-all border ${
               selectedChild?.id === child.id
                 ? "bg-[var(--primary)] text-[var(--on-primary)] border-transparent shadow-[0_12px_24px_rgba(0,92,230,0.18)]"
-                : "bg-white text-[var(--on-surface-variant)] border-[var(--border)] hover:bg-[var(--surface-container-low)]"
+                : "bg-[var(--surface)] text-[var(--on-surface-variant)] border-[var(--border)] hover:bg-[var(--surface-container-low)]"
             }`}
           >
             <ChipAvatar child={child} />

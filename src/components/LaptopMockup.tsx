@@ -292,7 +292,7 @@ function AnimatedDashboard({ isActive }: AnimatedScreenProps) {
     <div className="w-full h-full bg-[var(--surface-container-low)] p-4">
       <div className="flex gap-3 mb-4">
         {stats.map((stat, i) => (
-          <div key={i} className="bg-white rounded-xl p-3 shadow-sm border border-[var(--border)] flex-1">
+          <div key={i} className="bg-[var(--surface)] rounded-xl p-3 shadow-sm border border-[var(--border)] flex-1">
             <div className="text-xs text-[var(--t3)] mb-1">{stat.label}</div>
             <div className="text-lg font-bold rounded-lg px-3 py-1 text-white" style={{ backgroundColor: stat.color }}>
               {stat.value}
@@ -301,7 +301,7 @@ function AnimatedDashboard({ isActive }: AnimatedScreenProps) {
         ))}
       </div>
 
-      <div className="bg-white rounded-xl border border-[var(--border)] overflow-hidden">
+      <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-hidden">
         <div className="bg-[var(--surface-container)] px-4 py-2 border-b border-[var(--border)] flex gap-8">
           {["Name", "Class", "Status", "Fees"].map((h) => (
             <div key={h} className="text-xs font-medium text-[var(--t3)]">

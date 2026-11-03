@@ -567,7 +567,7 @@ export default function BulkImport({ onComplete, createStudent, houses = [] }: B
                       <th className="px-4 py-3 font-semibold text-[var(--t2)]">Errors</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[var(--border)] bg-white">
+                  <tbody className="divide-y divide-[var(--border)] bg-[var(--surface)]">
                     {rowsToRender.map(({ row, originalIndex }) => (
                       <tr
                         key={originalIndex}

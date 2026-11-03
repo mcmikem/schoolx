@@ -75,7 +75,7 @@ export class PageErrorBoundary extends Component<Props, State> {
             <button
               onClick={this.handleClearCache}
               disabled={this.state.recovering}
-              className="flex items-center gap-2 px-6 py-3 bg-white border border-[var(--border)] text-[var(--t1)] rounded-xl font-bold text-sm hover:bg-[var(--surface-container-low)] transition-all disabled:opacity-60"
+              className="flex items-center gap-2 px-6 py-3 bg-[var(--surface)] border border-[var(--border)] text-[var(--t1)] rounded-xl font-bold text-sm hover:bg-[var(--surface-container-low)] transition-all disabled:opacity-60"
             >
               <MaterialIcon icon="cleaning_services" size={16} />
               {this.state.recovering ? "Clearing…" : "Clear cache & reload"}

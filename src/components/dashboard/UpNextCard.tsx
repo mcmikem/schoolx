@@ -25,7 +25,7 @@ const UpNextCard = memo(function UpNextCard({ task }: { task: UpNextTask | null 
             Up next
           </h2>
           {task && (
-            <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold text-white">
+            <span className="rounded-full bg-[var(--surface)]/15 px-2.5 py-0.5 text-[11px] font-semibold text-white">
               {task.priority === "urgent" ? "Urgent" : "Review"}
             </span>
           )}
@@ -44,14 +44,14 @@ const UpNextCard = memo(function UpNextCard({ task }: { task: UpNextTask | null 
                 <button
                   type="button"
                   onClick={task.secondary.onClick}
-                  className="min-h-11 rounded-full border border-white/25 px-4 text-xs font-semibold text-white transition-colors hover:bg-white/10"
+                  className="min-h-11 rounded-full border border-white/25 px-4 text-xs font-semibold text-white transition-colors hover:bg-[var(--surface)]/10"
                 >
                   {task.secondary.label}
                 </button>
               )}
               <Link
                 href={task.href}
-                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-white px-5 text-xs font-bold text-[var(--green-ink)] transition-colors hover:bg-[var(--surface-container-low)] sm:w-auto sm:min-w-[150px]"
+                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--surface)] px-5 text-xs font-bold text-[var(--green-ink)] transition-colors hover:bg-[var(--surface-container-low)] sm:w-auto sm:min-w-[150px]"
                 aria-label={`${task.cta}: ${task.label}`}
               >
                 <MaterialIcon icon={task.icon} style={{ fontSize: 16 }} />
@@ -62,7 +62,7 @@ const UpNextCard = memo(function UpNextCard({ task }: { task: UpNextTask | null 
         ) : (
           <div className="mt-3 flex items-center gap-3 py-1">
             <span
-              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-white/10 text-white"
+              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[var(--surface)]/10 text-white"
               aria-hidden="true"
             >
               <MaterialIcon icon="check_circle" style={{ fontSize: 20 }} />

@@ -93,7 +93,7 @@ export default function PrivacyPage() {
         </div>
 
         {/* Privacy Notice */}
-        <div className="bg-white dark:bg-[var(--surface-container-high)] rounded-xl border border-[var(--border)] dark:border-[var(--border)] p-6 mb-6 shadow-sm">
+        <div className="bg-[var(--surface)] dark:bg-[var(--surface-container-high)] rounded-xl border border-[var(--border)] dark:border-[var(--border)] p-6 mb-6 shadow-sm">
           <h2 className="text-lg font-semibold text-[var(--t1)] dark:text-[var(--t4)] mb-4 flex items-center gap-2">
             <MaterialIcon icon="policy" className="text-[var(--navy)]" />
             Privacy Notice
@@ -171,7 +171,7 @@ export default function PrivacyPage() {
         </div>
 
         {/* Data Export */}
-        <div className="bg-white dark:bg-[var(--surface-container-high)] rounded-xl border border-[var(--border)] dark:border-[var(--border)] p-6 mb-6 shadow-sm">
+        <div className="bg-[var(--surface)] dark:bg-[var(--surface-container-high)] rounded-xl border border-[var(--border)] dark:border-[var(--border)] p-6 mb-6 shadow-sm">
           <h2 className="text-lg font-semibold text-[var(--t1)] dark:text-[var(--t4)] mb-2 flex items-center gap-2">
             <MaterialIcon icon="download" className="text-[var(--green)]" />
             Export Your Data
@@ -199,7 +199,7 @@ export default function PrivacyPage() {
         </div>
 
         {/* Data Deletion */}
-        <div className="bg-white dark:bg-[var(--surface-container-high)] rounded-xl border border-red-200 dark:border-red-900/50 p-6 shadow-sm">
+        <div className="bg-[var(--surface)] dark:bg-[var(--surface-container-high)] rounded-xl border border-red-200 dark:border-red-900/50 p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-2 flex items-center gap-2">
             <MaterialIcon icon="delete_forever" className="text-red-600 dark:text-red-400" />
             Request Account Deletion

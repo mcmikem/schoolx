@@ -9,7 +9,7 @@ export function DayTimeline() {
   const step = DAY_STEPS[activeStep];
 
   return (
-    <section id="how-it-works" className="bg-white py-18 lg:py-24">
+    <section id="how-it-works" className="bg-[var(--surface)] py-18 lg:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <FadeIn>
           <div className="text-center mb-12">
@@ -34,7 +34,7 @@ export function DayTimeline() {
                         ? "border-transparent text-white shadow-lg scale-110"
                         : activeStep > i
                           ? "border-transparent text-white"
-                          : "border-[var(--border)] bg-white text-[var(--t3)]"
+                          : "border-[var(--border)] bg-[var(--surface)] text-[var(--t3)]"
                     }`}
                     style={activeStep >= i ? { background: s.color } : {}}
                   >
@@ -53,7 +53,7 @@ export function DayTimeline() {
           <div key={activeStep} className="grid gap-6 lg:grid-cols-[1fr_1fr] animate-fade-in">
             <div className="rounded-[32px] p-7 lg:p-9" style={{ background: step.color }}>
               <div className="flex items-center gap-3 mb-5">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--surface)]/15">
                   <span className="material-symbols-outlined text-[22px] text-white">{step.icon}</span>
                 </div>
                 <div>
@@ -77,7 +77,7 @@ export function DayTimeline() {
                 <button
                   onClick={() => setActiveStep((p) => Math.max(0, p - 1))}
                   disabled={activeStep === 0}
-                  className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium text-[var(--t2)] hover:bg-[var(--surface-container-low)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--t2)] hover:bg-[var(--surface-container-low)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <span className="material-symbols-outlined text-[16px]">arrow_back</span>
                   Previous

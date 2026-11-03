@@ -31,7 +31,7 @@ function useDelayedVisible(delayMs: number) {
 export function Skeleton({ className = "" }: SkeletonProps) {
   return (
     <div className={cn("relative overflow-hidden rounded-xl bg-[var(--surface-container)]", className)}>
-      <div className="absolute inset-0 -translate-x-full animate-shimmer-wave bg-white/40 dark:bg-white/[0.05]" />
+      <div className="absolute inset-0 -translate-x-full animate-shimmer-wave bg-[var(--surface)]/40 dark:bg-[var(--surface)]/[0.05]" />
     </div>
   );
 }

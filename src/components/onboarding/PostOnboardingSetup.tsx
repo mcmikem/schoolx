@@ -533,7 +533,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
         <div className="fixed bottom-20 right-4 md:bottom-6 z-[85]">
           <button
             onClick={() => setIsOpen(true)}
-            className="flex items-center gap-2 rounded-full border border-[#d7dfea] bg-white px-4 py-2 text-sm font-medium text-[var(--t1)] shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl"
+            className="flex items-center gap-2 rounded-full border border-[#d7dfea] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--t1)] shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl"
           >
             <MaterialIcon icon="tune" className="text-[var(--primary)] text-base" />
             <span>Optional Setup</span>
@@ -546,7 +546,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
 
       {/* Panel — bottom sheet on mobile, right panel on md+ */}
       {isOpen && (
-        <div className="fixed inset-x-0 bottom-0 z-[85] flex flex-col rounded-t-2xl bg-white shadow-2xl md:inset-x-auto md:inset-y-0 md:right-0 md:w-[360px] md:rounded-none md:max-h-full max-h-[78vh] transition-all duration-300">
+        <div className="fixed inset-x-0 bottom-0 z-[85] flex flex-col rounded-t-2xl bg-[var(--surface)] shadow-2xl md:inset-x-auto md:inset-y-0 md:right-0 md:w-[360px] md:rounded-none md:max-h-full max-h-[78vh] transition-all duration-300">
           {/* Drag handle (mobile only) */}
           <div className="flex justify-center pt-2.5 pb-0 md:hidden flex-shrink-0">
             <div className="h-1 w-10 rounded-full bg-[var(--surface-container-high)]" />
@@ -599,7 +599,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                       className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--surface-container-low)]"
                       onClick={() => setExpandedKey(isExpanded ? null : item.key)}
                     >
-                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-[#dbe3ed] bg-white shadow-sm">
+                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-[#dbe3ed] bg-[var(--surface)] shadow-sm">
                         <MaterialIcon icon={item.icon} className="text-[var(--primary)] text-base" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -621,7 +621,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                             {smsAutomations.map((auto, i) => (
                               <div
                                 key={auto.event_type}
-                                className="rounded-xl border border-[var(--border)] bg-white p-3 space-y-2"
+                                className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 space-y-2"
                               >
                                 <label className="flex items-center justify-between gap-2">
                                   <span className="text-sm font-medium text-[var(--t2)]">{auto.name}</span>
@@ -644,7 +644,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                       next[i].message_template = e.target.value;
                                       setSmsAutomations(next);
                                     }}
-                                    className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--primary)]"
+                                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:border-[var(--primary)]"
                                     rows={2}
                                     placeholder="Optional message template..."
                                   />
@@ -666,7 +666,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                   CSV columns: first_name, last_name, gender (M/F), class_name, parent_name,
                                   parent_phone
                                 </p>
-                                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--border2)] bg-white px-4 py-5 text-sm text-[var(--t2)] hover:border-[var(--border2)]">
+                                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--border2)] bg-[var(--surface)] px-4 py-5 text-sm text-[var(--t2)] hover:border-[var(--border2)]">
                                   <MaterialIcon icon="upload_file" className="text-lg" />
                                   Choose CSV file
                                   <input type="file" accept=".csv" onChange={handleImportFile} className="hidden" />
@@ -878,7 +878,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                             return { ...prev, dormitories: updated };
                                           })
                                         }
-                                        className="flex-1 rounded-lg border border-[var(--border)] bg-white px-2 py-1.5 text-xs text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+                                        className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-xs text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                                       />
                                       <select
                                         value={dorm.type}
@@ -889,7 +889,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                             return { ...prev, dormitories: updated };
                                           })
                                         }
-                                        className="rounded-lg border border-[var(--border)] bg-white px-2 py-1.5 text-xs text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+                                        className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-xs text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                                       >
                                         <option value="boys">Boys</option>
                                         <option value="girls">Girls</option>
@@ -907,7 +907,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                             return { ...prev, dormitories: updated };
                                           })
                                         }
-                                        className="w-14 rounded-lg border border-[var(--border)] bg-white px-2 py-1.5 text-xs text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+                                        className="w-14 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-xs text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                                       />
                                     </div>
                                   ))}
@@ -983,7 +983,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                             return { ...prev, houses: updated };
                                           })
                                         }
-                                        className="flex-1 rounded-lg border border-[var(--border)] bg-white px-2 py-1.5 text-xs text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+                                        className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-xs text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                                       />
                                       <input
                                         type="color"
@@ -995,7 +995,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                             return { ...prev, houses: updated };
                                           })
                                         }
-                                        className="h-8 w-10 rounded border border-[var(--border)] bg-white"
+                                        className="h-8 w-10 rounded border border-[var(--border)] bg-[var(--surface)]"
                                       />
                                     </div>
                                   ))}

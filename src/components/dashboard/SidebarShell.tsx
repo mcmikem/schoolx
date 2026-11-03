@@ -188,7 +188,7 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
     >
       <div className="sidebar-brand-header">
         <div className="flex items-center gap-2.5 mb-0.5">
-          <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0 ring-1 ring-white/20">
+          <div className="w-9 h-9 rounded-xl bg-[var(--surface)]/15 flex items-center justify-center flex-shrink-0 ring-1 ring-white/20">
             {school?.logo_url ? (
               <Image
                 src={school.logo_url}
@@ -222,7 +222,7 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
           {!isDesktop && (
             <button
               onClick={() => close()}
-              className="h-11 w-11 tap-44 rounded-lg border-none bg-white/10 hover:bg-white/20 cursor-pointer items-center justify-center transition-colors flex"
+              className="h-11 w-11 tap-44 rounded-lg border-none bg-[var(--surface)]/10 hover:bg-[var(--surface)]/20 cursor-pointer items-center justify-center transition-colors flex"
               aria-label="Close sidebar"
             >
               <MaterialIcon icon="close" style={{ fontSize: 18, color: "rgba(255,255,255,0.8)" }} />
@@ -231,7 +231,7 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
           {isDesktop && (
             <button
               onClick={() => setIsPinnedOpen((prev) => !prev)}
-              className="h-11 w-11 flex-shrink-0 rounded-lg border-none bg-white/10 hover:bg-white/20 cursor-pointer items-center justify-center transition-colors flex"
+              className="h-11 w-11 flex-shrink-0 rounded-lg border-none bg-[var(--surface)]/10 hover:bg-[var(--surface)]/20 cursor-pointer items-center justify-center transition-colors flex"
               aria-label={isPinnedOpen ? "Collapse sidebar" : "Pin sidebar open"}
               title={isPinnedOpen ? "Collapse" : "Pin open"}
             >

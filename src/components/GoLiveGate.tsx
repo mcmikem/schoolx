@@ -98,7 +98,7 @@ export default function GoLiveGate({ onDismiss }: { onDismiss: () => void }) {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 z-[90] bg-white/95 dark:bg-[var(--surface-container-high)] flex items-center justify-center">
+      <div className="fixed inset-0 z-[90] bg-[var(--surface)]/95 dark:bg-[var(--surface-container-high)] flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-[var(--navy)] border-t-transparent rounded-full" />
       </div>
     );
@@ -109,7 +109,7 @@ export default function GoLiveGate({ onDismiss }: { onDismiss: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[90] bg-white/95 dark:bg-[var(--surface-container-high)] flex items-center justify-center p-4 overflow-auto">
+    <div className="fixed inset-0 z-[90] bg-[var(--surface)]/95 dark:bg-[var(--surface-container-high)] flex items-center justify-center p-4 overflow-auto">
       <div className="w-full max-w-lg">
         <div className="text-center mb-6">
           <div className="w-16 h-16 rounded-2xl bg-[var(--navy)]/10 flex items-center justify-center mx-auto mb-4">
@@ -131,7 +131,7 @@ export default function GoLiveGate({ onDismiss }: { onDismiss: () => void }) {
               className={`flex items-start gap-3 p-3 rounded-xl border ${
                 check.check
                   ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
-                  : "bg-white dark:bg-[var(--surface-container-high)] border-[var(--border)] dark:border-[var(--border)]"
+                  : "bg-[var(--surface)] dark:bg-[var(--surface-container-high)] border-[var(--border)] dark:border-[var(--border)]"
               }`}
             >
               <div

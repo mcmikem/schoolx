@@ -264,7 +264,7 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
               {cell.hasEvent && (
                 <span
                   className={`absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${
-                    cell.iso === selectedDate ? "bg-white" : "bg-[var(--primary)]"
+                    cell.iso === selectedDate ? "bg-[var(--surface)]" : "bg-[var(--primary)]"
                   }`}
                 />
               )}

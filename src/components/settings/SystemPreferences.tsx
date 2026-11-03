@@ -34,7 +34,7 @@ export default function SystemPreferences({ settings, onSettingChange }: SystemP
                   checked={settings.sms_notifications}
                   onChange={(e) => onSettingChange("sms_notifications", e.target.checked)}
                 />
-                <div className="w-11 h-6 bg-[var(--border)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--primary)]" />
+                <div className="w-11 h-6 bg-[var(--border)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--surface)] after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--primary)]" />
               </label>
             </div>
             <div className="flex items-center justify-between py-3 border-b border-[var(--border)]">
@@ -49,7 +49,7 @@ export default function SystemPreferences({ settings, onSettingChange }: SystemP
                   checked={settings.attendance_alerts}
                   onChange={(e) => onSettingChange("attendance_alerts", e.target.checked)}
                 />
-                <div className="w-11 h-6 bg-[var(--border)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--primary)]" />
+                <div className="w-11 h-6 bg-[var(--border)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--surface)] after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--primary)]" />
               </label>
             </div>
             <div className="flex items-center justify-between py-3">
@@ -64,7 +64,7 @@ export default function SystemPreferences({ settings, onSettingChange }: SystemP
                   checked={settings.fee_reminders}
                   onChange={(e) => onSettingChange("fee_reminders", e.target.checked)}
                 />
-                <div className="w-11 h-6 bg-[var(--border)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--primary)]" />
+                <div className="w-11 h-6 bg-[var(--border)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--surface)] after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--primary)]" />
               </label>
             </div>
           </div>

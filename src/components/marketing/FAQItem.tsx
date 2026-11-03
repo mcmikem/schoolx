@@ -4,7 +4,7 @@ import { useState } from "react";
 export function FAQItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border border-[var(--border)] rounded-2xl overflow-hidden bg-white hover:shadow-sm transition-shadow">
+    <div className="border border-[var(--border)] rounded-2xl overflow-hidden bg-[var(--surface)] hover:shadow-sm transition-shadow">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-6 py-5 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--t1)]/30"

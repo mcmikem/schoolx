@@ -21,11 +21,11 @@ function AttendancePractice() {
   return (
     <div className="space-y-3">
       <p className="font-bold">P.3 practice register</p>
-      <div className="flex items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-white p-3">
+      <div className="flex items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
         <span>Amina</span>
         <span className="font-semibold text-emerald-800">Present</span>
       </div>
-      <div className="rounded-xl border border-[var(--border)] bg-white p-3">
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
         <p className="mb-2 font-semibold">John</p>
         <div className="flex flex-wrap gap-2" role="group" aria-label="John’s practice attendance">
           <button
@@ -100,7 +100,7 @@ function PaymentPractice() {
           }}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? "practice-payment-error" : undefined}
-          className="min-h-12 w-full rounded-xl border border-[var(--border2)] bg-white px-3 text-base text-[var(--t1)]"
+          className="min-h-12 w-full rounded-xl border border-[var(--border2)] bg-[var(--surface)] px-3 text-base text-[var(--t1)]"
         />
       </div>
       <div>
@@ -117,7 +117,7 @@ function PaymentPractice() {
             setSaved(false);
             setError("");
           }}
-          className="min-h-12 w-full min-w-0 rounded-xl border border-[var(--border2)] bg-white px-3 text-base text-[var(--t1)]"
+          className="min-h-12 w-full min-w-0 rounded-xl border border-[var(--border2)] bg-[var(--surface)] px-3 text-base text-[var(--t1)]"
         />
       </div>
       {valid && (
@@ -307,7 +307,7 @@ function GuideSession({ schoolId, userId, track }: { schoolId: string; userId: s
                   {step.example.map((line, index) => (
                     <li
                       key={line}
-                      className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-white p-3"
+                      className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
                     >
                       <span
                         className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-[var(--bot-navy-ink)]"

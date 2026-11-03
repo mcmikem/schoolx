@@ -192,7 +192,7 @@ export default function HomePage() {
 
           <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-5 sm:px-6 lg:px-8 lg:pb-24">
             {/* Nav */}
-            <nav className="flex items-center justify-between rounded-full border border-white/70 bg-white/80 px-4 py-3 shadow-[0_8px_30px_rgba(15,23,42,0.06)] backdrop-blur sm:px-6">
+            <nav className="flex items-center justify-between rounded-full border border-white/70 bg-[var(--surface)]/80 px-4 py-3 shadow-[0_8px_30px_rgba(15,23,42,0.06)] backdrop-blur sm:px-6">
               <SkoolMateLogo size="md" variant="default" />
               <div className="hidden items-center gap-8 text-sm font-medium text-[var(--t2)] md:flex">
                 <Link href="/features" className="transition hover:text-[var(--t3)]">
@@ -222,7 +222,7 @@ export default function HomePage() {
                   Start free trial
                 </Link>
                 <button
-                  className="tap-44 flex md:hidden items-center justify-center w-9 h-9 rounded-full border border-[var(--border)] bg-white text-[var(--t2)] hover:bg-[var(--surface-container-low)] transition"
+                  className="tap-44 flex md:hidden items-center justify-center w-9 h-9 rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--t2)] hover:bg-[var(--surface-container-low)] transition"
                   aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
                   aria-expanded={mobileMenuOpen}
                   onClick={() => setMobileMenuOpen((prev) => !prev)}
@@ -248,7 +248,7 @@ export default function HomePage() {
                   role="dialog"
                   aria-modal="true"
                   aria-label="Site menu"
-                  className="md:hidden fixed left-4 right-4 top-[72px] z-50 rounded-[24px] border border-white/70 bg-white shadow-[0_16px_48px_rgba(15,23,42,0.12)] p-4"
+                  className="md:hidden fixed left-4 right-4 top-[72px] z-50 rounded-[24px] border border-white/70 bg-[var(--surface)] shadow-[0_16px_48px_rgba(15,23,42,0.12)] p-4"
                 >
                   <div className="flex flex-col gap-1">
                     <Link
@@ -370,7 +370,7 @@ export default function HomePage() {
 
               <div className="relative hero-stage">
                 <div
-                  className="floating-note pointer-events-none absolute right-0 top-0 z-20 w-52 rounded-[28px] border border-white/70 bg-white/88 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.14)] backdrop-blur xl:block hidden"
+                  className="floating-note pointer-events-none absolute right-0 top-0 z-20 w-52 rounded-[28px] border border-white/70 bg-[var(--surface)]/88 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.14)] backdrop-blur xl:block hidden"
                   aria-hidden="true"
                 >
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--t3)]">
@@ -399,7 +399,7 @@ export default function HomePage() {
                   <LaptopMockup />
                 </div>
                 <div
-                  className="floating-callout pointer-events-none absolute bottom-5 left-3 z-20 rounded-[24px] border border-[var(--brand-border)] bg-white/92 px-4 py-3 shadow-[0_22px_55px_rgba(15,23,42,0.12)] backdrop-blur md:block hidden"
+                  className="floating-callout pointer-events-none absolute bottom-5 left-3 z-20 rounded-[24px] border border-[var(--brand-border)] bg-[var(--surface)]/92 px-4 py-3 shadow-[0_22px_55px_rgba(15,23,42,0.12)] backdrop-blur md:block hidden"
                   aria-hidden="true"
                 >
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--primary)]">
@@ -448,7 +448,7 @@ export default function HomePage() {
                 },
               ].map((item, i) => (
                 <FadeIn key={item.step} delay={i * 150}>
-                  <div className="relative rounded-[28px] border border-[var(--border)] bg-white p-6 shadow-sm hover:shadow-md transition-shadow text-center">
+                  <div className="relative rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm hover:shadow-md transition-shadow text-center">
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-[var(--brand-ink)] text-white text-xs font-bold flex items-center justify-center">
                       {item.step}
                     </div>
@@ -471,7 +471,7 @@ export default function HomePage() {
           <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <FadeIn>
               <div className="text-center mb-4">
-                <span className="inline-flex items-center gap-2 rounded-full border border-[var(--brand-ink)]/10 bg-white px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[var(--brand-ink)] shadow-sm">
+                <span className="inline-flex items-center gap-2 rounded-full border border-[var(--brand-ink)]/10 bg-[var(--surface)] px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[var(--brand-ink)] shadow-sm">
                   <MaterialIcon icon="travel_explore" className="text-sm" />
                   See it for yourself
                 </span>
@@ -525,7 +525,10 @@ export default function HomePage() {
                 </p>
                 <div className="mt-8 grid gap-3">
                   {storyMoments.map((item) => (
-                    <div key={item} className="story-card rounded-[22px] border border-white/10 bg-white/6 px-4 py-4">
+                    <div
+                      key={item}
+                      className="story-card rounded-[22px] border border-white/10 bg-[var(--surface)]/6 px-4 py-4"
+                    >
                       <p className="text-sm leading-6 text-white/82">{item}</p>
                     </div>
                   ))}
@@ -535,7 +538,7 @@ export default function HomePage() {
 
             <div className="grid gap-5">
               <FadeIn>
-                <div className="rounded-[34px] border border-[var(--border)] bg-white p-6 shadow-sm lg:p-8">
+                <div className="rounded-[34px] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm lg:p-8">
                   <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
                     What became obvious
                   </p>
@@ -601,7 +604,7 @@ export default function HomePage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 {modules.map((module, i) => (
                   <FadeIn key={module.label} delay={i * 80}>
-                    <div className="rounded-[24px] border border-[var(--border)] bg-white px-4 py-4 shadow-sm hover:shadow-md hover:border-[var(--brand-green)]/30 transition-all cursor-default">
+                    <div className="rounded-[24px] border border-[var(--border)] bg-[var(--surface)] px-4 py-4 shadow-sm hover:shadow-md hover:border-[var(--brand-green)]/30 transition-all cursor-default">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)]">
                           <MaterialIcon icon={module.icon} className="text-[20px]" />
@@ -665,7 +668,7 @@ export default function HomePage() {
                 },
               ].map((item, i) => (
                 <FadeIn key={item.platform} delay={i * 100}>
-                  <div className="rounded-[24px] border border-[var(--border)] bg-white p-5 shadow-sm hover:shadow-md transition-all h-full">
+                  <div className="rounded-[24px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm hover:shadow-md transition-all h-full">
                     <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${item.color}`}>
                       <MaterialIcon icon={item.icon} className="text-[22px]" />
                     </div>
@@ -679,7 +682,7 @@ export default function HomePage() {
         </section>
 
         {/* ===== OSX ===== */}
-        <section id="osx" className="bg-white py-18 lg:py-24">
+        <section id="osx" className="bg-[var(--surface)] py-18 lg:py-24">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <FadeIn>
               <div className="grid gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-start">
@@ -700,7 +703,7 @@ export default function HomePage() {
                 <div className="grid gap-4">
                   <div className="rounded-[32px] border border-[var(--border)] bg-[var(--brand-surface-cool)] p-6 shadow-sm lg:p-8">
                     <div className="grid gap-4 md:grid-cols-2">
-                      <div className="rounded-[24px] bg-white p-5 ring-1 ring-[var(--border)] hover:shadow-md transition-shadow">
+                      <div className="rounded-[24px] bg-[var(--surface)] p-5 ring-1 ring-[var(--border)] hover:shadow-md transition-shadow">
                         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--t3)]">OSX</p>
                         <p className="mt-3 text-xl font-semibold tracking-tight text-[var(--t3)]">
                           Drives transformation
@@ -723,7 +726,7 @@ export default function HomePage() {
 
                   {osxLinks.map((item, i) => (
                     <FadeIn key={item} delay={i * 100}>
-                      <div className="story-card flex items-start gap-3 rounded-[26px] border border-[var(--border)] bg-white px-5 py-4 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="story-card flex items-start gap-3 rounded-[26px] border border-[var(--border)] bg-[var(--surface)] px-5 py-4 shadow-sm hover:shadow-md transition-shadow">
                         <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)] flex-shrink-0">
                           <MaterialIcon icon="north_east" className="text-[18px]" />
                         </div>
@@ -768,7 +771,7 @@ export default function HomePage() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {securityDetails.map((feature, i) => (
               <FadeIn key={feature.title} delay={i * 100}>
-                <div className="rounded-[28px] border border-[var(--border)] bg-white p-6 shadow-sm hover:shadow-md hover:border-[var(--brand-green)]/30 transition-all h-full">
+                <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm hover:shadow-md hover:border-[var(--brand-green)]/30 transition-all h-full">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)]">
                     <MaterialIcon icon={feature.icon} className="text-[24px]" />
                   </div>
@@ -812,8 +815,8 @@ export default function HomePage() {
                   <div
                     className={`rounded-[32px] border p-6 h-full flex flex-col ${
                       plan.featured
-                        ? "border-white/20 bg-white text-[var(--t3)] shadow-[0_24px_60px_rgba(0,0,0,0.28)]"
-                        : "border-white/12 bg-white/6 backdrop-blur"
+                        ? "border-white/20 bg-[var(--surface)] text-[var(--t3)] shadow-[0_24px_60px_rgba(0,0,0,0.28)]"
+                        : "border-white/12 bg-[var(--surface)]/6 backdrop-blur"
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -891,7 +894,7 @@ export default function HomePage() {
                       className={`mt-8 inline-flex w-full items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold transition ${
                         plan.featured
                           ? "bg-[var(--primary)] text-[var(--on-primary)] hover:opacity-90"
-                          : "bg-white text-[var(--t1)] hover:bg-[var(--surface-container)]"
+                          : "bg-[var(--surface)] text-[var(--t1)] hover:bg-[var(--surface-container)]"
                       }`}
                     >
                       Start with {plan.name}
@@ -1008,7 +1011,7 @@ export default function HomePage() {
         </section>
 
         {/* ===== FOOTER ===== */}
-        <footer className="border-t border-[var(--border)] bg-white pb-24 sm:pb-0">
+        <footer className="border-t border-[var(--border)] bg-[var(--surface)] pb-24 sm:pb-0">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
               <div>
@@ -1126,7 +1129,7 @@ export default function HomePage() {
         </footer>
 
         {/* ===== STICKY MOBILE CTA ===== */}
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 border-t border-[var(--border)] px-4 py-3 shadow-[0_-4px_24px_rgba(15,23,42,0.10)]">
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-[var(--surface)]/95 border-t border-[var(--border)] px-4 py-3 shadow-[0_-4px_24px_rgba(15,23,42,0.10)]">
           <div className="flex gap-3 max-w-sm mx-auto">
             <Link href="/register" className="btn btn-primary flex-1 justify-center py-3 text-sm">
               Start free trial
@@ -1159,7 +1162,7 @@ export default function HomePage() {
             onClick={() => setShowIosModal(false)}
           >
             <div
-              className="bg-white rounded-2xl w-full max-w-sm max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto p-6 shadow-2xl"
+              className="bg-[var(--surface)] rounded-2xl w-full max-w-sm max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto p-6 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg font-bold text-[var(--t1)] mb-3">Add to Home Screen</h3>

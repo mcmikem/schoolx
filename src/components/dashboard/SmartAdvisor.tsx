@@ -134,7 +134,7 @@ export default function SmartAdvisor({
                 <MaterialIcon style={{ fontSize: 20 }}>auto_awesome</MaterialIcon>
                 <span className="text-sm font-semibold">Daily School Advisor</span>
               </div>
-              <button onClick={() => setIsExpanded(false)} className="p-2 hover:bg-white/20 rounded-lg">
+              <button onClick={() => setIsExpanded(false)} className="p-2 hover:bg-[var(--surface)]/20 rounded-lg">
                 <MaterialIcon style={{ fontSize: 20 }}>close</MaterialIcon>
               </button>
             </div>

@@ -57,7 +57,7 @@ const StatCard = memo(function StatCard({
               <Link
                 href={href}
                 aria-label={hrefLabel || `Open ${label}`}
-                className="w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-white flex items-center justify-center text-[var(--t1)] transition-transform hover:scale-105 flex-shrink-0 no-underline"
+                className="w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--t1)] transition-transform hover:scale-105 flex-shrink-0 no-underline"
               >
                 <MaterialIcon icon="arrow_outward" style={{ fontSize: 16 }} />
               </Link>

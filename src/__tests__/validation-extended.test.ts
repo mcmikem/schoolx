@@ -193,6 +193,8 @@ describe("Validation - Student Input", () => {
         opening_balance: 15000,
         photo_url: null,
         blood_type: null,
+        allergies: null,
+        medical_conditions: null,
         religion: null,
         nationality: null,
         boarding_status: "day",

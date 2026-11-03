@@ -56,7 +56,7 @@ export default function StudentIDCard({
 
   return (
     <div
-      className={`w-[85.6mm] h-[53.98mm] bg-white rounded-[4mm] shadow-xl overflow-hidden flex flex-col relative border border-slate-200 student-id-card print:shadow-none print:border-slate-300 ${
+      className={`w-[85.6mm] h-[53.98mm] bg-[var(--surface)] rounded-[4mm] shadow-xl overflow-hidden flex flex-col relative border border-slate-200 student-id-card print:shadow-none print:border-slate-300 ${
         isMinimal ? "border-2" : ""
       }`}
     >
@@ -89,7 +89,7 @@ export default function StudentIDCard({
             alt={school.name}
             width={24}
             height={24}
-            className="w-6 h-6 rounded object-contain bg-white/20 shrink-0"
+            className="w-6 h-6 rounded object-contain bg-[var(--surface)]/20 shrink-0"
           />
         ) : (
           <SkoolMateLogo size="sm" variant="white" showText={false} className="shrink-0" />
@@ -188,7 +188,7 @@ export default function StudentIDCard({
 
         {/* QR Code */}
         <div className="w-[15mm] flex flex-col items-center justify-center gap-1">
-          <div className="p-1 bg-white rounded-lg shadow-sm border border-slate-100">
+          <div className="p-1 bg-[var(--surface)] rounded-lg shadow-sm border border-slate-100">
             <QRCodeSVG
               value={`https://skoolmate.omuto.org/dashboard/students/${student.id}/`}
               size={48}

@@ -137,7 +137,7 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
                   "mx-auto flex h-11 w-11 items-center justify-center rounded-xl border transition-all",
                   hasActive
                     ? "border-[var(--primary)] bg-[var(--primary)] text-white shadow-[0_10px_20px_rgba(0,92,230,0.18)]"
-                    : "border-[var(--border)] bg-white text-[var(--t3)] hover:bg-[var(--surface-container-low)] hover:text-[var(--t2)]",
+                    : "border-[var(--border)] bg-[var(--surface)] text-[var(--t3)] hover:bg-[var(--surface-container-low)] hover:text-[var(--t2)]",
                 )}
                 aria-label={group.label}
                 aria-current={hasActive ? "page" : undefined}
@@ -154,7 +154,7 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
   return (
     <nav className="sidebar-nav overflow-y-auto flex-1 px-2 py-3" role="navigation" aria-label="Main navigation">
       <div className="px-2 pb-2">
-        <div className="flex items-center gap-2 bg-white border border-[var(--border)] focus-within:border-[var(--primary)]/40 focus-within:ring-2 focus-within:ring-[var(--primary)]/10 rounded-[16px] px-3 py-2.5 transition-all shadow-[var(--sh1)]">
+        <div className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] focus-within:border-[var(--primary)]/40 focus-within:ring-2 focus-within:ring-[var(--primary)]/10 rounded-[16px] px-3 py-2.5 transition-all shadow-[var(--sh1)]">
           <span className="material-symbols-outlined text-[16px] text-[var(--t4)]">search</span>
           <input
             value={query}
@@ -245,7 +245,7 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
                         )}
                         aria-current={isActive ? "page" : undefined}
                       >
-                        {isActive && <div className="absolute left-0 w-1 h-4 bg-white rounded-r-full" />}
+                        {isActive && <div className="absolute left-0 w-1 h-4 bg-[var(--surface)] rounded-r-full" />}
                         <MaterialIcon
                           icon={item.icon}
                           className={cn(

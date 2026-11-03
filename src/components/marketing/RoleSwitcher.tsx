@@ -28,7 +28,7 @@ export function RoleSwitcher() {
               className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-200 border ${
                 activeRole === i
                   ? "bg-[var(--primary-navy)] text-white border-[#001F3F] shadow-md"
-                  : "bg-white text-[var(--t2)] border-[var(--border)] hover:border-[#001F3F]/30 hover:text-[var(--t1)]"
+                  : "bg-[var(--surface)] text-[var(--t2)] border-[var(--border)] hover:border-[#001F3F]/30 hover:text-[var(--t1)]"
               }`}
             >
               <span className="material-symbols-outlined text-[18px]">{r.icon}</span>
@@ -52,7 +52,7 @@ export function RoleSwitcher() {
             <div className="mt-8 pt-6 border-t border-white/15">
               <Link
                 href="/register"
-                className="inline-flex items-center gap-2 rounded-full bg-white/15 hover:bg-white/25 transition-colors px-5 py-2.5 text-sm font-semibold text-white"
+                className="inline-flex items-center gap-2 rounded-full bg-[var(--surface)]/15 hover:bg-[var(--surface)]/25 transition-colors px-5 py-2.5 text-sm font-semibold text-white"
               >
                 Try it free
                 <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
@@ -64,7 +64,7 @@ export function RoleSwitcher() {
             {role.tasks.map((task, i) => (
               <div
                 key={task.label}
-                className="flex items-center gap-4 rounded-[22px] border border-[var(--border)] bg-white px-5 py-4 shadow-sm hover:shadow-md hover:border-[var(--border2)] transition-all"
+                className="flex items-center gap-4 rounded-[22px] border border-[var(--border)] bg-[var(--surface)] px-5 py-4 shadow-sm hover:shadow-md hover:border-[var(--border2)] transition-all"
                 style={{ transitionDelay: `${i * 60}ms` }}
               >
                 <div

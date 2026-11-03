@@ -27,10 +27,10 @@ export function DesktopMockup() {
 
   return (
     <div
-      className={`mockup-shell mockup-desktop relative rounded-[32px] border border-[var(--border)] bg-white p-3 shadow-[0_40px_90px_rgba(15,23,42,0.14)] transition-all duration-700 min-h-[480px] ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+      className={`mockup-shell mockup-desktop relative rounded-[32px] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_40px_90px_rgba(15,23,42,0.14)] transition-all duration-700 min-h-[480px] ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
     >
       <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface-bright)] overflow-hidden">
-        <div className="flex items-center justify-between border-b border-[var(--border)] bg-white px-5 py-3">
+        <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-5 py-3">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
             <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
@@ -44,7 +44,7 @@ export function DesktopMockup() {
         <div className="grid gap-0 lg:grid-cols-[220px_minmax(0,1fr)]">
           <aside className="border-b border-[var(--border)] bg-[#0e2345] p-5 text-white lg:border-b-0 lg:border-r">
             <div className="mb-5 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/12 text-white">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--surface)]/12 text-white">
                 <MaterialIcon icon="school" className="text-[20px]" />
               </div>
               <div>
@@ -62,8 +62,8 @@ export function DesktopMockup() {
                   aria-pressed={index === activeTab}
                   className={`w-full text-left rounded-2xl px-3 py-2.5 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/50 ${
                     index === activeTab
-                      ? "bg-white text-[#0e2345] shadow-sm"
-                      : "bg-white/5 text-white/80 hover:bg-white/10"
+                      ? "bg-[var(--surface)] text-[#0e2345] shadow-sm"
+                      : "bg-[var(--surface)]/5 text-white/80 hover:bg-[var(--surface)]/10"
                   }`}
                 >
                   {item}
@@ -80,7 +80,7 @@ export function DesktopMockup() {
                   <div
                     key={label}
                     ref={counter.ref}
-                    className="story-card rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-[var(--border)] hover:shadow-md transition-shadow cursor-default"
+                    className="story-card rounded-[24px] bg-[var(--surface)] p-4 shadow-sm ring-1 ring-[var(--border)] hover:shadow-md transition-shadow cursor-default"
                   >
                     <p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--t3)]">{label}</p>
                     <p className="mt-3 text-2xl font-semibold tracking-tight text-[var(--t1)]">
@@ -93,7 +93,7 @@ export function DesktopMockup() {
             </div>
 
             {content.bars && (
-              <div className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-[var(--border)]">
+              <div className="rounded-[28px] bg-[var(--surface)] p-5 shadow-sm ring-1 ring-[var(--border)]">
                 <div className="mb-4 flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold text-[var(--t1)]">
@@ -129,7 +129,7 @@ export function DesktopMockup() {
             )}
 
             {content.students && (
-              <div className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-[var(--border)]">
+              <div className="rounded-[28px] bg-[var(--surface)] p-5 shadow-sm ring-1 ring-[var(--border)]">
                 <p className="text-sm font-semibold text-[var(--t1)] mb-4">Recent students</p>
                 <div className="space-y-3">
                   {content.students.map((s) => (
@@ -164,7 +164,7 @@ export function DesktopMockup() {
                   {content.actions.map((item, i) => (
                     <div
                       key={item.title}
-                      className={`story-card flex items-start gap-3 rounded-[22px] bg-white p-3.5 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer ${
+                      className={`story-card flex items-start gap-3 rounded-[22px] bg-[var(--surface)] p-3.5 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer ${
                         mounted ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4"
                       }`}
                       style={{ transitionDelay: `${i * 100 + 300}ms` }}

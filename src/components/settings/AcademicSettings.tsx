@@ -160,7 +160,7 @@ export default function AcademicSettings() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
+      <div className="bg-[var(--surface)] rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
         <h2 className="text-lg font-semibold text-[var(--t1)] mb-6 flex items-center gap-2">
           <MaterialIcon icon="calendar_month" className="text-primary" />
           Academic Configuration
@@ -198,7 +198,7 @@ export default function AcademicSettings() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
+      <div className="bg-[var(--surface)] rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-[var(--t1)] flex items-center gap-2">
             <MaterialIcon icon="calculate" className="text-primary" />
@@ -363,7 +363,7 @@ export function TermGradeBasisCard() {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
+    <div className="bg-[var(--surface)] rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
       <h2 className="text-lg font-semibold text-[var(--t1)] mb-2 flex items-center gap-2">
         <MaterialIcon icon="rule" className="text-primary" />
         What the term grade is made of
@@ -465,7 +465,7 @@ export function AssessmentMaximumsCard() {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
+    <div className="bg-[var(--surface)] rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
       <h2 className="text-lg font-semibold text-[var(--t1)] mb-2 flex items-center gap-2">
         <MaterialIcon icon="score" className="text-primary" />
         Assessment maximum marks
@@ -605,7 +605,7 @@ export function ReportRowsCard() {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
+    <div className="bg-[var(--surface)] rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
       <h2 className="text-lg font-semibold text-[var(--t1)] mb-2 flex items-center gap-2">
         <MaterialIcon icon="category" className="text-primary" />
         Report card lines

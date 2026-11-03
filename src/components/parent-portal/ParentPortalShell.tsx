@@ -59,7 +59,7 @@ export default function ParentPortalShell({ children, pageTitle }: { children: R
     return (
       <PageErrorBoundary>
         <div className="min-h-screen bg-[var(--surface-container-low)] flex items-center justify-center px-4">
-          <div className="max-w-sm w-full bg-white border border-[var(--border)] rounded-2xl p-6 text-center shadow-[var(--sh2)]">
+          <div className="max-w-sm w-full bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 text-center shadow-[var(--sh2)]">
             <div className="text-sm font-semibold text-[var(--t1)]">Loading parent portal...</div>
             <div className="text-xs text-[var(--t3)] mt-2">Checking your account access and child records.</div>
           </div>
@@ -72,7 +72,7 @@ export default function ParentPortalShell({ children, pageTitle }: { children: R
     return (
       <PageErrorBoundary>
         <div className="min-h-screen bg-[var(--surface-container-low)] flex items-center justify-center px-4">
-          <div className="max-w-sm w-full bg-white border border-[var(--border)] rounded-2xl p-6 text-center shadow-[var(--sh2)]">
+          <div className="max-w-sm w-full bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 text-center shadow-[var(--sh2)]">
             <div className="text-base font-semibold text-[var(--t1)]">Parent portal access unavailable</div>
             <div className="text-sm text-[var(--t3)] mt-2">
               Your account cannot open the parent portal right now. Please contact your school administrator.

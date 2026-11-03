@@ -61,7 +61,7 @@ export function FilterBar({
               <button
                 type="button"
                 onClick={() => onRemoveChip(c.key)}
-                className="min-w-11 min-h-11 rounded-full bg-white/70 hover:bg-white flex items-center justify-center"
+                className="min-w-11 min-h-11 rounded-full bg-[var(--surface)]/70 hover:bg-[var(--surface)] flex items-center justify-center"
                 aria-label={`Remove ${c.label} filter`}
               >
                 <MaterialIcon icon="close" className="text-[14px]" />

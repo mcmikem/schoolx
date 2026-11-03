@@ -45,7 +45,7 @@ export const EmptyState = memo(function EmptyState({
       {icon && (
         <div className="relative mb-6">
           <div className="absolute -inset-4 bg-[var(--navy-soft)] rounded-full blur-2xl opacity-50 animate-pulse" />
-          <div className="relative w-20 h-20 bg-white rounded-3xl shadow-xl flex items-center justify-center border border-[var(--border)] group hover:scale-110 transition-transform">
+          <div className="relative w-20 h-20 bg-[var(--surface)] rounded-3xl shadow-xl flex items-center justify-center border border-[var(--border)] group hover:scale-110 transition-transform">
             <MaterialIcon
               icon={icon}
               className="text-4xl text-[var(--navy)] group-hover:rotate-12 transition-transform"

@@ -202,7 +202,7 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto"
+        className="bg-[var(--surface)] rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6 border-b border-[var(--surface-container-high)]">
@@ -268,7 +268,7 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                     className={`relative w-10 h-5 rounded-full transition-colors ${showPreview ? "bg-[var(--primary-900)]" : "bg-[var(--border2)]"}`}
                   >
                     <span
-                      className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${showPreview ? "translate-x-5" : "translate-x-0.5"}`}
+                      className={`absolute top-0.5 w-4 h-4 rounded-full bg-[var(--surface)] shadow transition-transform ${showPreview ? "translate-x-5" : "translate-x-0.5"}`}
                     />
                   </button>
                 </div>

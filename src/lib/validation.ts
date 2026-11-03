@@ -308,6 +308,8 @@ export function normalizeStudentInput(input: Record<string, any>): Record<string
     opening_balance: isNaN(balance) ? 0 : balance,
     photo_url: input.photo_url || null,
     blood_type: input.blood_type || null,
+    allergies: input.allergies || null,
+    medical_conditions: input.medical_conditions || null,
     religion: input.religion || null,
     nationality: input.nationality || null,
     boarding_status: input.boarding_status || "day",
@@ -449,6 +451,8 @@ export function normalizeStudentUpdateInput(input: Record<string, any>): Record<
 
   if (input.photo_url !== undefined) out.photo_url = input.photo_url || null;
   if (input.blood_type !== undefined) out.blood_type = input.blood_type || null;
+  if (input.allergies !== undefined) out.allergies = input.allergies || null;
+  if (input.medical_conditions !== undefined) out.medical_conditions = input.medical_conditions || null;
   if (input.religion !== undefined) out.religion = input.religion || null;
   if (input.nationality !== undefined) out.nationality = input.nationality || null;
   if (input.boarding_status !== undefined) out.boarding_status = input.boarding_status || "day";

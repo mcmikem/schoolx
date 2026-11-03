@@ -567,7 +567,7 @@ export default function ReportCard({ report, onCustomize, assessmentColumns = nu
         <div className="flex gap-3 mb-4">
           <button
             onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="flex items-center gap-2 px-4 py-2 bg-[var(--surface)] border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             <MaterialIcon icon="print" size={16} className="h-4" />
             Print
@@ -583,7 +583,7 @@ export default function ReportCard({ report, onCustomize, assessmentColumns = nu
           {onCustomize && (
             <button
               onClick={onCustomize}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--surface)] border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               <MaterialIcon icon="settings" size={16} className="h-4" />
               Customize
@@ -592,7 +592,7 @@ export default function ReportCard({ report, onCustomize, assessmentColumns = nu
         </div>
         <div
           ref={reportRef}
-          className="report-card bg-white rounded-xl overflow-x-auto max-w-full"
+          className="report-card bg-[var(--surface)] rounded-xl overflow-x-auto max-w-full"
           style={{ border: `2px solid ${primaryColor}` }}
         >
           <div
@@ -612,7 +612,7 @@ export default function ReportCard({ report, onCustomize, assessmentColumns = nu
         <button
           onClick={handlePrint}
           aria-label="Print report card"
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+          className="flex items-center gap-2 px-4 py-2 bg-[var(--surface)] border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
           <MaterialIcon icon="print" size={16} className="h-4" />
           Print
@@ -629,7 +629,7 @@ export default function ReportCard({ report, onCustomize, assessmentColumns = nu
         {onCustomize && (
           <button
             onClick={onCustomize}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="flex items-center gap-2 px-4 py-2 bg-[var(--surface)] border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             <MaterialIcon icon="settings" size={16} className="h-4" />
             Customize
@@ -640,7 +640,7 @@ export default function ReportCard({ report, onCustomize, assessmentColumns = nu
       {/* Report Card Preview */}
       <div
         ref={reportRef}
-        className="report-card bg-white rounded-xl overflow-hidden max-w-2xl"
+        className="report-card bg-[var(--surface)] rounded-xl overflow-hidden max-w-2xl"
         style={{ border: `2px solid ${primaryColor}` }}
       >
         {/* Header */}
@@ -651,7 +651,7 @@ export default function ReportCard({ report, onCustomize, assessmentColumns = nu
               alt="School Logo"
               width={56}
               height={56}
-              className="mx-auto mb-2 rounded-lg object-cover bg-white/20"
+              className="mx-auto mb-2 rounded-lg object-cover bg-[var(--surface)]/20"
             />
           )}
           <div className="text-xl font-bold tracking-wide">{report.school?.name || "School Name"}</div>
@@ -674,7 +674,7 @@ export default function ReportCard({ report, onCustomize, assessmentColumns = nu
           style={{ borderColor: primaryColor, backgroundColor: "#fafbfc" }}
         >
           <div className="flex justify-center">
-            <div className="w-20 h-24 rounded-xl overflow-hidden border border-gray-200 bg-white flex items-center justify-center">
+            <div className="w-20 h-24 rounded-xl overflow-hidden border border-gray-200 bg-[var(--surface)] flex items-center justify-center">
               {report.student.photo_url ? (
                 <Image
                   src={report.student.photo_url}

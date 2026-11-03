@@ -387,7 +387,7 @@ export default function GeneralSettings({
 
   return (
     <>
-      <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
+      <div className="bg-[var(--surface)] rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
         <h2 className="text-lg font-semibold text-[var(--t1)] mb-6">School Logo</h2>
         <div className="flex items-center gap-6 mb-6">
           <div className="w-24 h-24 rounded-xl border-2 border-dashed border-[var(--border)] flex items-center justify-center overflow-hidden bg-[var(--surface-container-low)]">
@@ -573,7 +573,7 @@ export default function GeneralSettings({
       </div>
 
       {canEditSchool && (
-        <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl mt-6">
+        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl mt-6">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-lg font-semibold text-[var(--t1)]">Package stage</h2>
@@ -591,7 +591,9 @@ export default function GeneralSettings({
                   onClick={() => handleStageChange(stageKey)}
                   disabled={savingStage || isActive}
                   className={`w-full text-left rounded-2xl border px-4 py-4 transition ${
-                    isActive ? "border-[#2E9448] bg-[#eaf4ed]" : "border-[#e1e7f0] bg-white hover:border-[#2E9448]/60"
+                    isActive
+                      ? "border-[#2E9448] bg-[#eaf4ed]"
+                      : "border-[#e1e7f0] bg-[var(--surface)] hover:border-[#2E9448]/60"
                   }`}
                 >
                   <div className="flex items-center justify-between">

@@ -74,7 +74,7 @@ export default function MessageAutomation({
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${trigger.is_active ? "bg-green-600" : "bg-[var(--surface-container-highest)]"}`}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${trigger.is_active ? "translate-x-6" : "translate-x-1"}`}
+                      className={`inline-block h-4 w-4 transform rounded-full bg-[var(--surface)] transition-transform ${trigger.is_active ? "translate-x-6" : "translate-x-1"}`}
                     />
                   </button>
                 </div>

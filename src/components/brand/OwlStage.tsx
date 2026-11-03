@@ -35,7 +35,7 @@ export default function OwlStage({
     >
       <div className="relative flex flex-col gap-5">
         <div className={cn("flex flex-col gap-4", centered ? "items-center text-center" : "items-start text-left")}>
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#d5ddE8] bg-white/80 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-[#34507a] shadow-sm">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#d5ddE8] bg-[var(--surface)]/80 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-[#34507a] shadow-sm">
             <MaterialIcon icon="auto_stories" className="text-[15px]" />
             {eyebrow}
           </span>
@@ -59,7 +59,7 @@ export default function OwlStage({
               {chips.map((chip) => (
                 <span
                   key={chip}
-                  className="inline-flex items-center gap-2 rounded-full border border-[#dce4ee] bg-white/92 px-3 py-2 text-xs font-semibold text-[#314866] shadow-sm"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#dce4ee] bg-[var(--surface)]/92 px-3 py-2 text-xs font-semibold text-[#314866] shadow-sm"
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-[#c7aa5d]" />
                   {chip}

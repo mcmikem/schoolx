@@ -864,7 +864,7 @@ export default function StudentRegistryPanel({
                   type="button"
                   onClick={() => removeFilterChip(chip.key)}
                   aria-label={`Clear ${chip.label} filter`}
-                  className="flex h-5 w-5 items-center justify-center rounded-full bg-white/80 text-[var(--t4)] hover:text-[var(--t1)]"
+                  className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--surface)]/80 text-[var(--t4)] hover:text-[var(--t1)]"
                 >
                   <MaterialIcon size={13}>close</MaterialIcon>
                 </button>
