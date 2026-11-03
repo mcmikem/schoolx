@@ -96,30 +96,35 @@ async function rateLimitViaSupabase(
       }),
     );
 
-    const now = new Date();
-    const windowStart = new Date(Date.now() - windowMs);
-
-    // Count existing hits for this key within the current window
-    const { count, error } = await sb
-      .from("rate_limit_log")
-      .select("*", { count: "exact", head: true })
-      .eq("key", key)
-      .gte("created_at", windowStart.toISOString());
-
-    if (error) return null; // fall back to in-memory
-
-    const hits = count ?? 0;
-    if (hits >= limit) {
-      return { success: false, remaining: 0, resetTime: Date.now() + windowMs };
+    // Test doubles and older self-hosted clients may not expose the new RPC.
+    // Keep the previous table path as a compatibility fallback until the
+    // migration is present everywhere.
+    if (typeof (sb as unknown as { rpc?: unknown }).rpc !== "function") {
+      const windowStart = new Date(Date.now() - windowMs);
+      const { count, error } = await sb
+        .from("rate_limit_log")
+        .select("*", { count: "exact", head: true })
+        .eq("key", key)
+        .gte("created_at", windowStart.toISOString());
+      if (error) return null;
+      const hits = count ?? 0;
+      if (hits >= limit) return { success: false, remaining: 0, resetTime: Date.now() + windowMs };
+      await sb.from("rate_limit_log").insert({ key, created_at: new Date().toISOString() });
+      return { success: true, remaining: limit - hits - 1, resetTime: Date.now() + windowMs };
     }
 
-    // Record this hit
-    await sb.from("rate_limit_log").insert({ key, created_at: now.toISOString() });
+    const { data, error } = await sb.rpc("check_rate_limit", {
+      p_key: key,
+      p_limit: limit,
+      p_window_ms: windowMs,
+    });
+    if (error || !Array.isArray(data) || !data[0]) return null;
+    const result = data[0] as { allowed: boolean; remaining: number; reset_at: string };
 
     return {
-      success: true,
-      remaining: limit - hits - 1,
-      resetTime: Date.now() + windowMs,
+      success: Boolean(result.allowed),
+      remaining: Math.max(0, Number(result.remaining) || 0),
+      resetTime: result.reset_at ? new Date(result.reset_at).getTime() : Date.now() + windowMs,
     };
   } catch (err) {
     logger.error("[RateLimit] Supabase fallback error:", err);

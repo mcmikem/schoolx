@@ -5481,3 +5481,58 @@ CREATE TABLE IF NOT EXISTS webhook_events (
     processed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
+
+-- Compatibility declarations for objects already present in deployed
+-- databases and used by current application modules.
+CREATE TABLE IF NOT EXISTS promo_codes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code TEXT NOT NULL UNIQUE,
+    description TEXT,
+    percent_off INTEGER NOT NULL,
+    applies_to_plan TEXT,
+    max_redemptions INTEGER,
+    times_redeemed INTEGER NOT NULL DEFAULT 0,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    valid_from TIMESTAMPTZ,
+    valid_until TIMESTAMPTZ,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS student_behaviour_ratings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    class_id UUID REFERENCES classes(id) ON DELETE SET NULL,
+    academic_year TEXT NOT NULL,
+    term SMALLINT NOT NULL,
+    skill TEXT NOT NULL,
+    rating SMALLINT NOT NULL,
+    recorded_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT student_behaviour_ratings_unique UNIQUE (student_id, academic_year, term, skill)
+);
+
+CREATE TABLE IF NOT EXISTS user_roles (
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role TEXT NOT NULL,
+    is_primary BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, role)
+);
+
+ALTER TABLE report_cards ADD COLUMN IF NOT EXISTS remark_status TEXT;
+ALTER TABLE report_cards ADD COLUMN IF NOT EXISTS remark_submitted_at TIMESTAMPTZ;
+ALTER TABLE report_cards ADD COLUMN IF NOT EXISTS remark_submitted_by UUID;
+ALTER TABLE report_cards ADD COLUMN IF NOT EXISTS remark_approved_at TIMESTAMPTZ;
+ALTER TABLE report_cards ADD COLUMN IF NOT EXISTS remark_approved_by UUID;
+ALTER TABLE report_cards ADD COLUMN IF NOT EXISTS remark_published_at TIMESTAMPTZ;
+ALTER TABLE report_cards ADD COLUMN IF NOT EXISTS remark_published_by UUID;
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS scheduled_plan TEXT;
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS scheduled_plan_change_at TIMESTAMPTZ;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS takes_meals BOOLEAN;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS is_new_admission BOOLEAN;
+ALTER TABLE subscription_payments ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE subscription_payments ADD COLUMN IF NOT EXISTS intent JSONB;
+ALTER TABLE subscription_payments ADD COLUMN IF NOT EXISTS line_items JSONB;

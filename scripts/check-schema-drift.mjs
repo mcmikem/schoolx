@@ -48,6 +48,7 @@ const BASELINE_PATH = path.join(ROOT, "scripts", "schema-drift-baseline.json");
 const args = process.argv.slice(2);
 const WRITE_BASELINE = args.includes("--write-baseline");
 const NO_BASELINE = args.includes("--no-baseline");
+const SHOW_ALL = args.includes("--all");
 
 function loadEnvFile(file) {
   if (!fs.existsSync(file)) return;
@@ -124,7 +125,16 @@ function parseSchema(raw) {
       const token = part.split(/\s+/)[0].replace(/^"|"$/g, "").toLowerCase();
       if (/^[a-z_][a-z0-9_]*$/.test(token)) columns.push(token);
     }
-    tables.set(name, new Set(columns));
+    const existing = tables.get(name) || new Set();
+    for (const column of columns) existing.add(column);
+    tables.set(name, existing);
+  }
+  const alterRe = /ALTER\s+TABLE\s+(?:public\.)?([a-z_][a-z0-9_]*)\s+ADD\s+COLUMN\s+(?:IF\s+NOT\s+EXISTS\s+)?([a-z_][a-z0-9_]*)/gi;
+  while ((m = alterRe.exec(sql)) !== null) {
+    const table = m[1].toLowerCase();
+    const columns = tables.get(table) || new Set();
+    columns.add(m[2].toLowerCase());
+    tables.set(table, columns);
   }
   return tables;
 }
@@ -309,8 +319,8 @@ function main() {
       }
 
       console.error(`\nFAIL ${fresh.length} new drift finding(s):`);
-      for (const f of fresh.slice(0, 40)) console.error("  " + f.split("\t").join("  "));
-      if (fresh.length > 40) console.error(`  ... and ${fresh.length - 40} more`);
+      for (const f of (SHOW_ALL ? fresh : fresh.slice(0, 40))) console.error("  " + f.split("\t").join("  "));
+      if (!SHOW_ALL && fresh.length > 40) console.error(`  ... and ${fresh.length - 40} more`);
       console.error(
         "\nIf these are known and accepted, refresh the baseline:" +
           "\n  node scripts/check-schema-drift.mjs --write-baseline",

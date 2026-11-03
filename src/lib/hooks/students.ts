@@ -22,24 +22,59 @@ import type { Class, CreateStudentInput, Student } from "@/types";
 import { getCachedData, getOrFetchCached, invalidateCachePattern } from "./queryCache";
 import { getLocalDateString, getQuerySchoolId, isTimeoutResult, timeoutFallback, withTimeout } from "./utils";
 
-export type StudentWithClass = Student & {
-  classes?: { id: string; name: string; level: string } | Class;
-  houses?: { id: string; name: string; color: string } | null;
-  prefect_role?: string;
-  student_council_role?: string;
-  parent_phone2?: string;
-  parent_email?: string;
-  blood_type?: string;
-  house_id?: string;
-  previous_school?: string;
-  district_origin?: string;
-  sub_county?: string;
-  parish?: string;
-  village?: string;
-  boarding_status?: string;
-  games_house?: string;
-  is_class_monitor?: boolean;
-};
+import {
+  buildCoreStudentPayload,
+  isMissingStudentColumnError,
+  isStudentNumberConflict,
+  isAnyMissingStudentsColumnError,
+  getStudentSelectTimeoutFallback,
+  type StudentWithClass,
+} from "./students-helpers";
+export type { StudentWithClass } from "./students-helpers";
+
+function buildPortableStudentPayload(student: Record<string, unknown>) {
+  const payload = buildCoreStudentPayload(student) as Record<string, unknown>;
+
+  if (studentPhotoColumnSupported === false) {
+    delete payload.photo_url;
+  }
+
+  return payload;
+}
+
+function buildStudentSelectAttempts(fetchLabel: "select" | "fetch") {
+  const suffix = fetchLabel === "fetch" ? "fetch" : "select";
+
+  const attempts = [] as Array<{ fields: string; label: string }>;
+
+  if (studentPhotoColumnSupported !== false) {
+    attempts.push(
+      { fields: STUDENT_SELECT_FIELDS, label: `extended student ${suffix}` },
+      {
+        fields: STUDENT_SELECT_FIELDS_FALLBACK,
+        label: `fallback student ${suffix}`,
+      },
+      { fields: STUDENT_SELECT_FIELDS_CORE, label: `core student ${suffix}` },
+      {
+        fields: STUDENT_SELECT_FIELDS_MINIMAL,
+        label: `minimal student ${suffix}`,
+      },
+    );
+  }
+
+  attempts.push(
+    {
+      fields: STUDENT_SELECT_FIELDS_FALLBACK_LEGACY,
+      label: `fallback student ${suffix} (legacy)`,
+    },
+    {
+      fields: STUDENT_SELECT_FIELDS_MINIMAL_LEGACY,
+      label: `minimal student ${suffix} (legacy)`,
+    },
+  );
+
+  return attempts;
+}
 
 let studentPhotoColumnSupported: boolean | null = null;
 
@@ -77,6 +112,20 @@ const STUDENT_SELECT_FIELDS_MINIMAL = `
   date_of_birth, parent_name, parent_phone, parent_phone2,
   class_id, admission_date, ple_index_number, status, photo_url,
   created_at, classes(id, name, level, stream)
+`;
+
+const STUDENT_SELECT_FIELDS_FALLBACK_LEGACY = `
+  id, school_id, student_number, first_name, last_name, gender,
+  date_of_birth, parent_name, parent_phone, parent_phone2,
+  class_id, admission_date, ple_index_number, status,
+  house_id, boarding_status,
+  created_at, classes(id, name, level, stream)
+`;
+
+const STUDENT_SELECT_FIELDS_MINIMAL_LEGACY = `
+  id, school_id, student_number, first_name, last_name, gender,
+  date_of_birth, parent_name, parent_phone, parent_phone2,
+  class_id, admission_date, ple_index_number, status, created_at
 `;
 
 /**
@@ -135,152 +184,13 @@ export type StudentQueryOptions = {
   registry?: RegistryQuery;
 };
 
-function buildCoreStudentPayload(student: Record<string, unknown>) {
-  return {
-    school_id: student.school_id,
-    student_number: student.student_number,
-    first_name: student.first_name,
-    last_name: student.last_name,
-    gender: student.gender,
-    date_of_birth: student.date_of_birth,
-    parent_name: student.parent_name,
-    parent_phone: student.parent_phone,
-    parent_phone2: student.parent_phone2,
-    parent_email: student.parent_email,
-    address: student.address,
-    class_id: student.class_id,
-    ple_index_number: student.ple_index_number,
-    photo_url: student.photo_url,
-    blood_type: student.blood_type,
-    boarding_status: student.boarding_status,
-    // Explicit undefined is dropped rather than written as null, so an edit
-    // that never touches this field cannot silently clear a pupil's opt-in.
-    ...(student.takes_meals === undefined ? {} : { takes_meals: student.takes_meals }),
-    house_id: student.house_id,
-    previous_school: student.previous_school,
-    district_origin: student.district_origin,
-    sub_county: student.sub_county,
-    parish: student.parish,
-    village: student.village,
-    games_house: student.games_house,
-    is_class_monitor: student.is_class_monitor,
-    prefect_role: student.prefect_role,
-    student_council_role: student.student_council_role,
-    status: student.status,
-  };
-}
-
-const STUDENT_SELECT_FIELDS_FALLBACK_LEGACY = `
-  id, school_id, student_number, first_name, last_name, gender,
-  date_of_birth, parent_name, parent_phone, parent_phone2,
-  class_id, admission_date, ple_index_number, status,
-  house_id, boarding_status,
-  created_at, classes(id, name, level, stream)
-`;
-
-const STUDENT_SELECT_FIELDS_MINIMAL_LEGACY = `
-  id, school_id, student_number, first_name, last_name, gender,
-  date_of_birth, parent_name, parent_phone, parent_phone2,
-  class_id, admission_date, ple_index_number, status, created_at
-`;
-
-function isMissingStudentColumnError(error: unknown, columnName: string) {
-  if (!error || typeof error !== "object") return false;
-
-  const code = "code" in error ? String((error as { code?: unknown }).code || "") : "";
-  const message = "message" in error ? String((error as { message?: unknown }).message || "") : "";
-
-  return (
-    (code === "42703" && message.includes(`students.${columnName}`)) ||
-    ((code === "PGRST204" || code === "PGRST301") &&
-      message.includes(`'${columnName}'`) &&
-      message.toLowerCase().includes("students") &&
-      message.toLowerCase().includes("schema cache"))
-  );
-}
-
-/**
- * UNIQUE(school_id, student_number) was violated — the number handed out by the
- * sequence was already in the table. Distinguishable from every other insert
- * failure because it is the only one that a fresh allocation can fix.
- */
-function isStudentNumberConflict(error: unknown) {
-  if (!error || typeof error !== "object") return false;
-
-  const code = "code" in error ? String((error as { code?: unknown }).code || "") : "";
-  const message = "message" in error ? String((error as { message?: unknown }).message || "") : "";
-
-  return code === "23505" && message.includes("students_school_id_student_number");
-}
-
-function isAnyMissingStudentsColumnError(error: unknown) {
-  if (!error || typeof error !== "object") return false;
-
-  const code = "code" in error ? String((error as { code?: unknown }).code || "") : "";
-  const message = "message" in error ? String((error as { message?: unknown }).message || "") : "";
-
-  return (
-    (code === "42703" && /column students\."?[a-zA-Z0-9_]+"? does not exist/.test(message)) ||
-    ((code === "PGRST204" || code === "PGRST301") &&
-      /could not find the '.+' column of 'students' in the schema cache/i.test(message))
-  );
-}
-
-function buildStudentSelectAttempts(fetchLabel: "select" | "fetch") {
-  const suffix = fetchLabel === "fetch" ? "fetch" : "select";
-
-  const attempts = [] as Array<{ fields: string; label: string }>;
-
-  if (studentPhotoColumnSupported !== false) {
-    attempts.push(
-      { fields: STUDENT_SELECT_FIELDS, label: `extended student ${suffix}` },
-      {
-        fields: STUDENT_SELECT_FIELDS_FALLBACK,
-        label: `fallback student ${suffix}`,
-      },
-      { fields: STUDENT_SELECT_FIELDS_CORE, label: `core student ${suffix}` },
-      {
-        fields: STUDENT_SELECT_FIELDS_MINIMAL,
-        label: `minimal student ${suffix}`,
-      },
-    );
-  }
-
-  attempts.push(
-    {
-      fields: STUDENT_SELECT_FIELDS_FALLBACK_LEGACY,
-      label: `fallback student ${suffix} (legacy)`,
-    },
-    {
-      fields: STUDENT_SELECT_FIELDS_MINIMAL_LEGACY,
-      label: `minimal student ${suffix} (legacy)`,
-    },
-  );
-
-  return attempts;
-}
-
-function buildPortableStudentPayload(student: Record<string, unknown>) {
-  const payload = buildCoreStudentPayload(student) as Record<string, unknown>;
-
-  if (studentPhotoColumnSupported === false) {
-    delete payload.photo_url;
-  }
-
-  return payload;
-}
-
-function getStudentSelectTimeoutFallback(cachedData: StudentWithClass[] | null, previousData: StudentWithClass[]) {
-  if (cachedData && cachedData.length > 0) {
-    return cachedData;
-  }
-
-  if (previousData.length > 0) {
-    return previousData;
-  }
-
-  return null;
-}
+export {
+  buildCoreStudentPayload,
+  isMissingStudentColumnError,
+  isStudentNumberConflict,
+  isAnyMissingStudentsColumnError,
+  getStudentSelectTimeoutFallback,
+} from "./students-helpers";
 
 async function fetchStudentsWithFallback(options: {
   schoolId: string;

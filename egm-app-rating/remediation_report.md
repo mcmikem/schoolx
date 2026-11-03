@@ -1,6 +1,6 @@
 # EGM Remediation Report
 
-**Status:** Partially resolved after user instruction to fix all findings.
+**Status:** Core remediation applied; platform-level hardening remains.
 
 ## Fixed in this pass
 
@@ -16,6 +16,9 @@
 - Fixed clean schema ordering for `schools.onboarded_by`.
 - Made production startup fail on missing required configuration.
 - Added a production leakage allowlist entry for the explicitly development-only student demo.
+- Replaced the rate-limit count/insert race with an atomic Supabase RPC using a
+  transaction-scoped advisory lock.
+- Applied the atomic rate-limit migration to the remote database.
 
 ## Verification
 
@@ -25,15 +28,12 @@
 - `npm run test:regression` passed: 164 tests.
 - `npm run check:production-leakage` passed.
 - `npm run build` passed.
+- Atomic rate-limit migration is recorded remotely as `20261204000100`.
+- Schema drift has 91 historical live-only columns remaining in the baseline;
+  these require typed compatibility declarations or reviewed removal.
 
 ## Remaining work requiring infrastructure or product decisions
 
-- `npm run check:schema-drift` still reports 16 live-database differences. The
-  repository contains migrations for several of them, but applying migrations
-  to the configured live database requires deployment credentials and operator
-  approval; it was not silently performed.
-- Distributed rate limiting needs a selected Redis/edge implementation and
-  production connectivity; no new dependency was guessed.
 - Full RLS least-privilege review across every sensitive table needs a role
   matrix and live database tests.
 - Registration provisioning, asynchronous SMS, encrypted offline storage,
@@ -41,3 +41,7 @@
   rollout work beyond a safe local patch.
 - Existing direct student-photo URLs stored in old rows need a migration or
   signed-URL refresh strategy for already persisted records.
+- Supabase migration history contains a pre-existing duplicate `202611030001`
+  version/name mismatch. The atomic migration applied successfully, but a
+  later `--include-all` push reported that duplicate. Reconcile it with
+  `supabase migration repair` before the next deployment.
