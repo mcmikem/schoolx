@@ -205,7 +205,9 @@ export function useTimetableManager(schoolId?: string, schoolType: SchoolSetupTy
           if (insertError) {
             logger.warn("Failed to seed timetable slots:", insertError);
           }
-          slotRows = (inserted || defaults) as Array<Record<string, any>>;
+          slotRows = ((inserted && inserted.length ? inserted : defaults) as Array<Record<string, any>>).map(
+            (slot) => (slot.id ? slot : { ...slot, id: `seed-${slot.order_number}` }),
+          );
         }
 
         const normalizedSlots = slotRows.map((slot) => ({

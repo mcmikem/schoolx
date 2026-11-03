@@ -9,8 +9,10 @@ import { VideoLessonButton } from "@/components/onboarding/VideoLesson";
 import { useToast } from "@/components/Toast";
 import { getErrorMessage } from "@/lib/validation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback, isTimeoutResult } from "@/lib/hooks/utils";
 import { isClassScopedRole } from "@/lib/roles";
+import { isDemoSchool } from "@/lib/demo-utils";
+import { DEMO_BOOKS } from "@/lib/demo-data";
 import { Button, Modal, StatStrip } from "@/components/ui/index";
 import { PageHeader } from "@/components/ui/PageHeader";
 import SearchField from "@/components/ui/SearchField";
@@ -31,7 +33,7 @@ interface LibraryBook {
 }
 
 export default function LibraryPage() {
-  const { school, user } = useAuth();
+  const { school, user, isDemo } = useAuth();
   const canManageCatalog = !isClassScopedRole(user?.role);
   const toast = useToast();
   const [books, setBooks] = useState<LibraryBook[]>([]);
@@ -57,15 +59,44 @@ export default function LibraryPage() {
   const fetchBooks = useCallback(async () => {
     if (!school?.id) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from("library_books")
-      .select("*")
-      .eq("school_id", school.id)
-      .order("created_at", { ascending: false });
-
-    if (!error) setBooks((data || []) as LibraryBook[]);
-    setLoading(false);
-  }, [school?.id]);
+    if (isDemo || isDemoSchool(school.id)) {
+      setBooks(
+        DEMO_BOOKS.map((book) => ({
+          id: book.id,
+          title: book.title,
+          author: book.author,
+          isbn: book.isbn,
+          category: book.category,
+          total_copies: book.total_copies,
+          available_copies: book.available_copies,
+        })),
+      );
+      setLoading(false);
+      return;
+    }
+    try {
+      const result = await withTimeout(
+        supabase
+          .from("library_books")
+          .select("*")
+          .eq("school_id", school.id)
+          .order("created_at", { ascending: false }),
+        10000,
+        timeoutFallback(),
+      );
+      if (isTimeoutResult(result)) {
+        toast.error("Catalogue is taking too long to load. Check your connection and try again.");
+        return;
+      }
+      const { data, error } = result ?? {};
+      if (error) throw error;
+      setBooks((data || []) as LibraryBook[]);
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Could not load the catalogue. Check your connection and try again."));
+    } finally {
+      setLoading(false);
+    }
+  }, [school?.id, isDemo]);
 
   useEffect(() => {
     fetchBooks();
@@ -76,7 +107,7 @@ export default function LibraryPage() {
     (book) =>
       (category === "All" || book.category === category) &&
       (!needle ||
-        book.title.toLowerCase().includes(needle) ||
+        (book.title || "").toLowerCase().includes(needle) ||
         (book.author?.toLowerCase() || "").includes(needle) ||
         (book.isbn?.toLowerCase() || "").includes(needle)),
   );
@@ -102,35 +133,89 @@ export default function LibraryPage() {
 
     setSaving(true);
     try {
+      if (isDemo || isDemoSchool(school.id)) {
+        if (editingBook) {
+          setBooks((prev) =>
+            prev.map((book) =>
+              book.id === editingBook.id
+                ? {
+                    ...book,
+                    title: form.title.trim(),
+                    author: form.author.trim(),
+                    isbn: form.isbn.trim(),
+                    category: form.category,
+                    total_copies: totalCopies,
+                    available_copies: Math.max(
+                      0,
+                      (editingBook.available_copies || 0) + (totalCopies - editingBook.total_copies),
+                    ),
+                  }
+                : book,
+            ),
+          );
+          toast.success("Book updated");
+        } else {
+          setBooks((prev) => [
+            {
+              id: `demo-book-${Date.now()}`,
+              title: form.title.trim(),
+              author: form.author.trim(),
+              isbn: form.isbn.trim(),
+              category: form.category,
+              total_copies: totalCopies,
+              available_copies: totalCopies,
+            },
+            ...prev,
+          ]);
+          toast.success("Book added to catalogue");
+        }
+        closeAdd();
+        return;
+      }
       if (editingBook) {
         // Edit existing book
-        const { error } = await supabase
-          .from("library_books")
-          .update({
-            title: form.title.trim(),
-            author: form.author.trim(),
-            isbn: form.isbn.trim(),
-            category: form.category,
-            total_copies: totalCopies,
-            // Adjust available_copies by the delta in total_copies
-            available_copies: Math.max(
-              0,
-              (editingBook.available_copies || 0) + (totalCopies - editingBook.total_copies),
-            ),
-          })
-          .eq("id", editingBook.id);
-        if (error) throw error;
+        const updateResult = await withTimeout(
+          supabase
+            .from("library_books")
+            .update({
+              title: form.title.trim(),
+              author: form.author.trim(),
+              isbn: form.isbn.trim(),
+              category: form.category,
+              total_copies: totalCopies,
+              // Adjust available_copies by the delta in total_copies
+              available_copies: Math.max(
+                0,
+                (editingBook.available_copies || 0) + (totalCopies - editingBook.total_copies),
+              ),
+            })
+            .eq("id", editingBook.id),
+          15000,
+          timeoutFallback(),
+        );
+        if (isTimeoutResult(updateResult)) {
+          throw new Error("Updating the book timed out. Check your connection and try again.");
+        }
+        if (updateResult?.error) throw updateResult.error;
         toast.success("Book updated");
       } else {
         // Add new book
         if (form.isbn.trim()) {
-          const { data: dup } = await supabase
-            .from("library_books")
-            .select("id")
-            .eq("school_id", school.id)
-            .eq("isbn", form.isbn.trim())
-            .maybeSingle();
-          if (dup) throw new Error("A book with this ISBN already exists");
+          const dupResult = await withTimeout(
+            supabase
+              .from("library_books")
+              .select("id")
+              .eq("school_id", school.id)
+              .eq("isbn", form.isbn.trim())
+              .maybeSingle(),
+            10000,
+            timeoutFallback(),
+          );
+          if (isTimeoutResult(dupResult)) {
+            throw new Error("Checking for duplicate ISBN timed out. Check your connection and try again.");
+          }
+          if (dupResult?.error) throw dupResult.error;
+          if (dupResult?.data) throw new Error("A book with this ISBN already exists");
         }
         const result = await withTimeout(
           supabase.from("library_books").insert({
@@ -145,11 +230,14 @@ export default function LibraryPage() {
           15000,
           timeoutFallback(),
         );
+        if (isTimeoutResult(result)) {
+          throw new Error("Saving the book timed out. Check your connection and try again.");
+        }
         if (result?.error) throw result.error;
         toast.success("Book added to catalogue");
       }
 
-      fetchBooks();
+      await fetchBooks();
       closeAdd();
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to save book"));
@@ -179,7 +267,21 @@ export default function LibraryPage() {
     if (!pendingDelete) return;
     setDeleting(true);
     try {
-      const { error } = await supabase.from("library_books").delete().eq("id", pendingDelete.id);
+      if (isDemo || isDemoSchool(school?.id)) {
+        setBooks((prev) => prev.filter((book) => book.id !== pendingDelete.id));
+        toast.success("Book removed from catalogue");
+        setConfirmOpen(false);
+        return;
+      }
+      const delResult = await withTimeout(
+        supabase.from("library_books").delete().eq("id", pendingDelete.id),
+        15000,
+        timeoutFallback(),
+      );
+      if (isTimeoutResult(delResult)) {
+        throw new Error("Removing the book timed out. Check your connection and try again.");
+      }
+      const { error } = delResult ?? {};
       if (error) throw error;
       setBooks((prev) => prev.filter((book) => book.id !== pendingDelete.id));
       toast.success("Book removed from catalogue");

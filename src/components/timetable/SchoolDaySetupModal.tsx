@@ -127,6 +127,20 @@ export default function SchoolDaySetupModal({
         if (result?.error) throw new Error(result.error.message || label);
       };
 
+      // Snapshot the existing bell schedule so a failed insert can be restored
+      // instead of leaving the school with no periods at all. Best-effort:
+      // some callers (and tests) do not expose `.select` on this table.
+      let existingRows: Array<Record<string, unknown>> | null = null;
+      try {
+        const { data } = await (supabase as any)
+          .from("timetable_slots")
+          .select("school_id, name, start_time, end_time, is_lesson, order_number")
+          .eq("school_id", schoolId);
+        existingRows = (data as Array<Record<string, unknown>>) || null;
+      } catch {
+        existingRows = null;
+      }
+
       await run(supabase.from("timetable_slots").delete().eq("school_id", schoolId), "Replacing the bell schedule");
 
       const rows = slots.map((slot) => ({
@@ -138,7 +152,21 @@ export default function SchoolDaySetupModal({
         order_number: slot.order_number,
       }));
 
-      await run(supabase.from("timetable_slots").insert(rows), "Saving the bell schedule");
+      try {
+        await run(supabase.from("timetable_slots").insert(rows), "Saving the bell schedule");
+      } catch (insertError) {
+        if (existingRows && existingRows.length > 0) {
+          try {
+            await run(supabase.from("timetable_slots").insert(existingRows), "Restoring the previous bell schedule");
+            toast.error("Could not save the new bell schedule; the previous schedule was restored");
+          } catch {
+            toast.error("Could not save the new bell schedule and the previous one could not be restored");
+          }
+        } else {
+          toast.error("Could not save the new bell schedule");
+        }
+        throw insertError;
+      }
 
       if (clearLessons && classIds.length > 0) {
         try {
@@ -157,6 +185,7 @@ export default function SchoolDaySetupModal({
     } catch (err) {
       logger.error("Failed to apply school day:", err);
       toast.error(err instanceof Error ? err.message : "Failed to save the bell schedule");
+      setConfirming(false);
     } finally {
       setSaving(false);
     }

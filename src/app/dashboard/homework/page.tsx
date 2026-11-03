@@ -217,7 +217,7 @@ export default function HomeworkPage() {
     } finally {
       setLoading(false);
     }
-  }, [school?.id, academicYear, currentTerm, selectedClass]);
+  }, [school?.id, academicYear, currentTerm, selectedClass, isDemo, isOnline]);
 
   useEffect(() => {
     if (school?.id) {
@@ -266,7 +266,29 @@ export default function HomeworkPage() {
         return;
       }
 
+      if (isDemo) {
+        const classRow = classes.find((c) => c.id === payload.class_id);
+        const subjectRow = subjects.find((s) => s.id === payload.subject_id);
+        setHomework((prev) => [
+          {
+            ...(payload as unknown as Homework),
+            id: `demo-hw-${Date.now()}`,
+            subjects: subjectRow ? { name: subjectRow.name, code: subjectRow.code ?? "" } : undefined,
+            classes: classRow ? { name: classRow.name } : undefined,
+          },
+          ...prev,
+        ]);
+        toast.success("Class test added");
+        closeModal();
+        homeworkDraft.clearSaved();
+        setNewHomework(EMPTY_DRAFT);
+        return;
+      }
+
       const res = await withTimeout(supabase.from("homework").insert(payload), 15000, timeoutFallback());
+      if (isTimeoutResult(res)) {
+        throw new Error("Saving the class test timed out. Check your connection and try again.");
+      }
       const error = res?.error;
 
       if (error) throw error;
@@ -284,13 +306,26 @@ export default function HomeworkPage() {
     setPendingAction(() => async () => {
       setDeletingId(id);
       try {
+        if (isDemo) {
+          setHomework((prev) => prev.filter((hw) => hw.id !== id));
+          toast.success("Class test deleted");
+          return;
+        }
         if (!isOnline) {
           await offlineDB.delete("homework", id);
           setHomework((prev) => prev.filter((hw) => hw.id !== id));
           toast.success("Class test removed on this device. It will sync when you are back online.");
           return;
         }
-        const { error } = await supabase.from("homework").delete().eq("id", id);
+        const delResult = await withTimeout(
+          supabase.from("homework").delete().eq("id", id),
+          15000,
+          timeoutFallback(),
+        );
+        if (isTimeoutResult(delResult)) {
+          throw new Error("Deleting the class test timed out. Check your connection and try again.");
+        }
+        const { error } = delResult ?? {};
         if (error) throw error;
         setHomework((prev) => prev.filter((hw) => hw.id !== id));
         toast.success("Class test deleted");

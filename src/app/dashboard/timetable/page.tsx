@@ -16,7 +16,7 @@ import { Button, Modal, StatStrip } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { getErrorMessage } from "@/lib/validation";
 import { logger } from "@/lib/logger";
-import { getLocalDateString } from "@/lib/hooks/utils";
+import { getLocalDateString, withTimeout, timeoutFallback, isTimeoutResult } from "@/lib/hooks/utils";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import GenerateTimetableModal from "@/components/timetable/GenerateTimetableModal";
 import dynamic from "next/dynamic";
@@ -187,14 +187,23 @@ export default function TimetablePage() {
     }
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("teacher_timetable")
-        .select(
-          "id, class_id, subject_id, teacher_id, day_of_week, period_number, start_time, end_time, room, academic_year, subjects(name, code)",
-        )
-        .eq("class_id", selectedClassId)
-        .order("day_of_week")
-        .order("period_number");
+      const result = await withTimeout(
+        supabase
+          .from("teacher_timetable")
+          .select(
+            "id, class_id, subject_id, teacher_id, day_of_week, period_number, start_time, end_time, room, academic_year, subjects(name, code)",
+          )
+          .eq("class_id", selectedClassId)
+          .order("day_of_week")
+          .order("period_number"),
+        10000,
+        timeoutFallback(),
+      );
+      if (isTimeoutResult(result)) {
+        toast.error("Timetable is taking too long to load. Check your connection and try again.");
+        return;
+      }
+      const { data, error } = result ?? {};
       if (error) throw error;
       setTimetable((data || []) as TimetableEntry[]);
     } catch (err) {
@@ -225,9 +234,16 @@ export default function TimetablePage() {
     }
     if (!school?.id) return;
     try {
-      const { data } = await supabase
-        .from("teacher_timetable")
-        .select("id, teacher_id, day_of_week, period_number, class_id, start_time, end_time, room");
+      const result = await withTimeout(
+        supabase
+          .from("teacher_timetable")
+          .select("id, teacher_id, day_of_week, period_number, class_id, start_time, end_time, room"),
+        10000,
+        timeoutFallback(),
+      );
+      if (isTimeoutResult(result)) return;
+      const { data, error } = result ?? {};
+      if (error) throw error;
       setAllClassTimetables(data || []);
     } catch (err) {
       logger.error("Error fetching all timetables:", err);

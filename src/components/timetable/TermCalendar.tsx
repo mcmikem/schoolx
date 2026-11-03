@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import { useOfflineEvents } from "@/lib/offline-hooks";
 import MaterialIcon from "@/components/MaterialIcon";
-import { Button } from "@/components/ui/index";
+import { Button, Modal } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { getErrorMessage } from "@/lib/validation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -53,54 +53,13 @@ const UGANDA_TERM_DATES_2026 = [
   { date: "2026-12-05", name: "Term 3 Closes (EOT)", type: "academic", color: "#ef4444" },
 ];
 
-interface TimetableEntry {
-  id: string;
-  class_id: string;
-  subject_id: string;
-  teacher_id: string;
-  day_of_week: number;
-  period_number: number;
-  start_time: string;
-  end_time: string;
-  room?: string;
-  academic_year: string;
-  subjects?: { name?: string | null; code?: string | null } | null;
-}
-
-interface AllClassTimetableEntry {
-  id: string;
-  teacher_id: string;
-  day_of_week: number;
-  period_number: number;
-  class_id: string;
-  start_time: string;
-  end_time: string;
-  room: string | null;
-}
-
-interface Slot {
-  id: string;
-  name: string;
-  start_time: string;
-  end_time: string;
-  order_number: number;
-  is_break?: boolean;
-  is_lesson?: boolean;
-  period_number?: number;
-}
-
-type ClashInfo = {
-  type: "teacher" | "room";
-  description: string;
-  day: number;
-};
-
 const EVENT_COLORS: Record<string, string> = {
   holiday: "#10b981",
   academic: "#6366f1",
   exam: "#ef4444",
   meeting: "#3b82f6",
   event: "var(--amber)",
+  substitution: "var(--amber)",
 };
 
 function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }) {
@@ -242,7 +201,8 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
     return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString("en-UG", { month: "long", year: "numeric" });
   };
 
-  const today = new Date().toISOString().split("T")[0];
+  const todayDate = new Date();
+  const today = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, "0")}-${String(todayDate.getDate()).padStart(2, "0")}`;
 
   return (
     <>
@@ -278,14 +238,14 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
                     return (
                       <div
                         key={ev.id}
-                        className={`flex items-start gap-3 px-3 py-2.5 rounded-xl ${isToday ? "ring-2 ring-[var(--primary)]" : ""} ${isPast ? "opacity-60" : ""} bg-[var(--surface-container-low,#f9fafb)] group`}
+                        className={`flex items-start gap-3 px-3 py-2.5 rounded-xl ${isToday ? "ring-2 ring-[var(--primary)]" : ""} ${isPast ? "opacity-60" : ""} bg-[var(--surface-container-low)] group`}
                       >
                         <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: color }} />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start gap-2 flex-wrap">
                             <span className="text-sm font-medium text-[var(--t1)] leading-tight">{ev.title}</span>
                             {isToday && (
-                              <span className="px-1.5 py-0.5 bg-[var(--primary)] text-white text-xs font-bold rounded uppercase tracking-wide">
+                              <span className="px-1.5 py-0.5 bg-[var(--primary)] text-[var(--on-primary)] text-xs font-bold rounded uppercase tracking-wide">
                                 Today
                               </span>
                             )}
@@ -318,12 +278,14 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
                           <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity">
                             <button
                               onClick={() => openEdit(ev)}
+                              aria-label={`Edit ${ev.title}`}
                               className="p-1 hover:bg-[var(--surface)] rounded text-[var(--t3)] hover:text-[var(--t1)]"
                             >
                               <MaterialIcon icon="edit" className="text-sm" />
                             </button>
                             <button
                               onClick={() => setPendingDeleteEventId(ev.id)}
+                              aria-label={`Delete ${ev.title}`}
                               className="p-1 hover:bg-[var(--red-soft)] rounded text-[var(--t3)] hover:text-[var(--red-ink)]"
                             >
                               <MaterialIcon icon="delete" className="text-sm" />
@@ -339,30 +301,17 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
           </div>
         )}
 
-        {showModal && (
-          <div
-            className="fixed inset-0 bg-black/50 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4"
-            onClick={() => setShowModal(false)}
-          >
-            <div
-              className="bg-[var(--surface)] rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto p-6 space-y-4 my-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[var(--t1)]">
-                  {editingEvent ? "Edit Event" : "Add Calendar Event"}
-                </h2>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="p-1.5 hover:bg-[var(--bg)] rounded-lg text-[var(--t3)]"
-                >
-                  <MaterialIcon icon="close" />
-                </button>
-              </div>
-              <form onSubmit={handleSave} className="space-y-4">
+        <Modal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          title={editingEvent ? "Edit Event" : "Add Calendar Event"}
+          size="md"
+        >
+          <form onSubmit={handleSave} className="space-y-4">
                 <div>
-                  <label className="text-xs font-medium text-[var(--t2)] mb-1 block">Event Title *</label>
+                  <label htmlFor="event-title" className="text-xs font-medium text-[var(--t2)] mb-1 block">Event Title *</label>
                   <input
+                    id="event-title"
                     value={form.title}
                     onChange={(e) => setForm({ ...form, title: e.target.value })}
                     className="input w-full"
@@ -371,8 +320,9 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-[var(--t2)] mb-1 block">Type</label>
+                    <label htmlFor="event-type" className="text-xs font-medium text-[var(--t2)] mb-1 block">Type</label>
                     <select
+                      id="event-type"
                       value={form.event_type}
                       onChange={(e) => setForm({ ...form, event_type: e.target.value })}
                       className="input w-full"
@@ -385,8 +335,9 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-[var(--t2)] mb-1 block">Start Date *</label>
+                    <label htmlFor="event-start" className="text-xs font-medium text-[var(--t2)] mb-1 block">Start Date *</label>
                     <input
+                      id="event-start"
                       type="date"
                       value={form.start_date}
                       onChange={(e) => setForm({ ...form, start_date: e.target.value })}
@@ -396,9 +347,10 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-[var(--t2)] mb-1 block">End Date (optional)</label>
+                  <label htmlFor="event-end" className="text-xs font-medium text-[var(--t2)] mb-1 block">End Date (optional)</label>
                   <input
                     type="date"
+                    id="event-end"
                     value={form.end_date}
                     onChange={(e) => setForm({ ...form, end_date: e.target.value })}
                     className="input w-full"
@@ -406,8 +358,9 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-[var(--t2)] mb-1 block">Description</label>
+                  <label htmlFor="event-desc" className="text-xs font-medium text-[var(--t2)] mb-1 block">Description</label>
                   <textarea
+                    id="event-desc"
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                     className="input w-full"
@@ -423,10 +376,9 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
                   </Button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
+        </Modal>
       </div>
+
       <ConfirmDialog
         isOpen={!!pendingDeleteEventId}
         onClose={() => setPendingDeleteEventId(null)}
