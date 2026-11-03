@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import ActionPanel from "@/components/dashboard/ActionPanel";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
 import SchoolHero from "@/components/dashboard/SchoolHero";
+import LoadingState from "@/components/ui/LoadingState";
 import { EmptyState } from "@/components/EmptyState";
 import TaskManager from "@/components/dashboard/TaskManager";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -232,10 +233,7 @@ export function TeacherDashboardContent() {
       <div className="min-h-screen bg-[var(--bg)] flex flex-col">
         <TopLoadingBar />
         <div className="flex-1 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent" />
-            <p className="text-sm text-[var(--t3)]">Loading your dashboard…</p>
-          </div>
+          <LoadingState size="section" label="Loading your dashboard…" />
         </div>
         <StuckLoadingOverlay delay={60000} />
       </div>
