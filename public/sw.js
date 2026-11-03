@@ -270,7 +270,7 @@ self.addEventListener('fetch', (event) => {
         .then((response) => {
           if (response.ok) {
             const clone = response.clone();
-            caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone));
+            caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone)).catch(() => {});
           }
           return response;
         })
@@ -296,7 +296,7 @@ self.addEventListener('fetch', (event) => {
           const response = await fetch(request);
           if (response.ok) {
             const clone = response.clone();
-            caches.open(RSC_CACHE).then((cache) => cache.put(rsc.key, clone));
+            caches.open(RSC_CACHE).then((cache) => cache.put(rsc.key, clone)).catch(() => {});
           }
           return response;
         } catch {
@@ -352,7 +352,7 @@ self.addEventListener('fetch', (event) => {
             fetch(request).then((response) => {
               if (response.ok) {
                 const clone = response.clone();
-                caches.open(PAGE_CACHE).then((cache) => cache.put(request, clone));
+                caches.open(PAGE_CACHE).then((cache) => cache.put(request, clone)).catch(() => {});
               }
               return response;
             }),
@@ -435,7 +435,7 @@ self.addEventListener('fetch', (event) => {
           .then((response) => {
             if (response.ok) {
               const clone = response.clone();
-              caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone));
+              caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone)).catch(() => {});
             }
             return response;
           })
@@ -455,7 +455,7 @@ self.addEventListener('fetch', (event) => {
           if (!saveData) {
             fetch(request).then((response) => {
               if (response.ok) {
-                caches.open(IMAGE_CACHE).then((cache) => cache.put(request, response));
+                caches.open(IMAGE_CACHE).then((cache) => cache.put(request, response)).catch(() => {});
               }
             }).catch(() => {});
           }
@@ -464,7 +464,7 @@ self.addEventListener('fetch', (event) => {
         return fetch(request).then((response) => {
           if (response.ok) {
             const clone = response.clone();
-            caches.open(IMAGE_CACHE).then((cache) => cache.put(request, clone));
+            caches.open(IMAGE_CACHE).then((cache) => cache.put(request, clone)).catch(() => {});
           }
           return response;
         }).catch(() => new Response('', { status: 408 }));
@@ -485,7 +485,7 @@ self.addEventListener('fetch', (event) => {
         .then((response) => {
           if (response.ok) {
             const clone = response.clone();
-            caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone));
+            caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone)).catch(() => {});
           }
           return response;
         })
@@ -500,7 +500,7 @@ self.addEventListener('fetch', (event) => {
       .then((response) => {
         if (response.ok) {
           const clone = response.clone();
-          caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone));
+          caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone)).catch(() => {});
         }
         return response;
       })
@@ -522,14 +522,12 @@ async function processSyncQueue() {
       client.postMessage({ type: 'SYNC_REQUESTED' });
     });
 
-    const registration = await self.registration;
-    const notification = await registration.showNotification('Syncing data...', {
+    const registration = self.registration;
+    await registration.showNotification('Syncing data...', {
       body: 'Your offline changes will be synced now.',
       icon: '/icons/icon-512x512.png',
       tag: 'sync-status',
     });
-
-    if (notification) setTimeout(() => notification.close(), 3000);
   } catch (err) {
     console.error('Sync queue error:', err);
   }
@@ -585,33 +583,6 @@ self.addEventListener('message', (event) => {
       cache.put(key, new Response(JSON.stringify(data), {
         headers: { 'Content-Type': 'application/json' }
       }));
-    });
+    }).catch(() => {});
   }
-});
-
-// Push notification support
-self.addEventListener('push', (event) => {
-  if (!event.data) return;
-
-  const data = event.data.json();
-  const options = {
-    body: data.body || 'You have a new notification',
-    icon: '/icons/icon-512x512.png',
-    badge: '/icons/icon-512x512.png',
-    vibrate: [100, 50, 100],
-    data: data.url || '/',
-    actions: data.actions || [],
-  };
-
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'SkoolMate OS', options)
-  );
-});
-
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  const url = event.notification.data || '/';
-  event.waitUntil(
-    clients.openWindow(url)
-  );
 });
