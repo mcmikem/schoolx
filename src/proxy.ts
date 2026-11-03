@@ -98,6 +98,7 @@ const alwaysPublicPaths = [
   "/blog",
   "/demo",
   "/faq",
+  "/design-demo",
   "/case-studies",
   "/auth/callback",
   "/forgot-password",
