@@ -759,7 +759,7 @@ export default function StudentHubPage() {
                     aria-expanded={moreMenuOpen}
                     aria-haspopup="menu"
                     aria-label="More student actions"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)]/80 text-[var(--t2)] hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)]/80 text-[var(--t2)] hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
                   >
                     <MaterialIcon size={18}>more_horiz</MaterialIcon>
                   </button>
@@ -1103,111 +1103,96 @@ export default function StudentHubPage() {
           </Modal>
         )}
 
-        {pleConfirmOpen && (
-          <div
-            className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto"
-            onClick={() => setPleConfirmOpen(false)}
-          >
-            <div
-              className="bg-[var(--surface)] rounded-2xl w-full max-w-md p-6 max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto"
-              onClick={(e) => e.stopPropagation()}
+        <Modal isOpen={pleConfirmOpen} onClose={() => setPleConfirmOpen(false)} size="sm" showClose={false}>
+          <div style={{ textAlign: "center", marginBottom: 24 }}>
+            <MaterialIcon
+              style={{
+                fontSize: 48,
+                color: "var(--primary)",
+                marginBottom: 16,
+              }}
             >
-              <div style={{ textAlign: "center", marginBottom: 24 }}>
-                <MaterialIcon
-                  style={{
-                    fontSize: 48,
-                    color: "var(--primary)",
-                    marginBottom: 16,
-                  }}
-                >
-                  confirmation_number
-                </MaterialIcon>
-                <h3
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 700,
-                    marginBottom: 8,
-                  }}
-                >
-                  Generate PLE Index Numbers?
-                </h3>
-                <p style={{ color: "var(--t3)", fontSize: 14 }}>
-                  {!fullRegister
-                    ? "The complete P.7 register will be checked before assigning missing index numbers. This requires internet."
-                    : plePendingCount > 0
-                      ? `This will assign index numbers to ${plePendingCount} P.7 student${plePendingCount === 1 ? "" : "s"} who don't have one yet. Students who already have a number are left unchanged.`
-                      : "All P.7 students already have a PLE index number. Nothing will change."}
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <Button
-                  variant="ghost"
-                  onClick={() => setPleConfirmOpen(false)}
-                  className="flex-1"
-                  disabled={generatingPle}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={generatePLEIndexNumbers}
-                  className="flex-1"
-                  disabled={generatingPle || (fullRegister && plePendingCount === 0)}
-                  loading={generatingPle}
-                >
-                  Generate
-                </Button>
-              </div>
-            </div>
+              confirmation_number
+            </MaterialIcon>
+            <h3
+              style={{
+                fontSize: 18,
+                fontWeight: 700,
+                marginBottom: 8,
+              }}
+            >
+              Generate PLE Index Numbers?
+            </h3>
+            <p style={{ color: "var(--t3)", fontSize: 14 }}>
+              {!fullRegister
+                ? "The complete P.7 register will be checked before assigning missing index numbers. This requires internet."
+                : plePendingCount > 0
+                  ? `This will assign index numbers to ${plePendingCount} P.7 student${plePendingCount === 1 ? "" : "s"} who don't have one yet. Students who already have a number are left unchanged.`
+                  : "All P.7 students already have a PLE index number. Nothing will change."}
+            </p>
           </div>
-        )}
+          <div className="flex gap-3">
+            <Button
+              variant="ghost"
+              onClick={() => setPleConfirmOpen(false)}
+              className="flex-1"
+              disabled={generatingPle}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={generatePLEIndexNumbers}
+              className="flex-1"
+              disabled={generatingPle || (fullRegister && plePendingCount === 0)}
+              loading={generatingPle}
+            >
+              Generate
+            </Button>
+          </div>
+        </Modal>
 
-        {deleteConfirm.open && (
-          <div
-            className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto"
-            onClick={() => setDeleteConfirm({ open: false, studentId: null })}
-          >
-            <div
-              className="bg-[var(--surface)] rounded-2xl w-full max-w-md p-6 max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto"
-              onClick={(e) => e.stopPropagation()}
+        <Modal
+          isOpen={deleteConfirm.open}
+          onClose={() => setDeleteConfirm({ open: false, studentId: null })}
+          size="sm"
+          showClose={false}
+        >
+          <div style={{ textAlign: "center", marginBottom: 24 }}>
+            <MaterialIcon
+              style={{
+                fontSize: 48,
+                color: "var(--error)",
+                marginBottom: 16,
+              }}
             >
-              <div style={{ textAlign: "center", marginBottom: 24 }}>
-                <MaterialIcon
-                  style={{
-                    fontSize: 48,
-                    color: "var(--error)",
-                    marginBottom: 16,
-                  }}
-                >
-                  warning
-                </MaterialIcon>
-                <h3
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 700,
-                    marginBottom: 8,
-                  }}
-                >
-                  Remove Student?
-                </h3>
-                <p style={{ color: "var(--t3)", fontSize: 14 }}>
-                  This action cannot be undone. All records for this student will be permanently deleted.
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <Button
-                  variant="ghost"
-                  onClick={() => setDeleteConfirm({ open: false, studentId: null })}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleDeleteStudent} className="flex-1" style={{ background: "var(--error)" }}>
-                  Remove
-                </Button>
-              </div>
-            </div>
+              warning
+            </MaterialIcon>
+            <h3
+              style={{
+                fontSize: 18,
+                fontWeight: 700,
+                marginBottom: 8,
+              }}
+            >
+              Remove Student?
+            </h3>
+            <p style={{ color: "var(--t3)", fontSize: 14 }}>
+              This action cannot be undone. All records for this student will be permanently deleted.
+            </p>
           </div>
-        )}
+          <div className="flex gap-3">
+            <Button
+              variant="ghost"
+              onClick={() => setDeleteConfirm({ open: false, studentId: null })}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleDeleteStudent} className="flex-1" style={{ background: "var(--error)" }}>
+              Remove
+            </Button>
+          </div>
+        </Modal>
       </div>
     </PageErrorBoundary>
   );

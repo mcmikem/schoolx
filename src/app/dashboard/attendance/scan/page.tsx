@@ -12,9 +12,11 @@ import { Card } from "@/components/ui/Card";
 import { parseApiResponse } from "@/lib/api-response";
 import { getLocalDateString } from "@/lib/hooks/utils";
 import { supabase } from "@/lib/supabase";
+import { isDemoSchool } from "@/lib/demo-utils";
+import { DEMO_STUDENTS } from "@/lib/demo-data";
 
 export default function AttendanceScanPage() {
-  const { school, user } = useAuth();
+  const { school, user, isDemo } = useAuth();
   const { classes } = useClasses(school?.id);
   const toast = useToast();
   const isOnline = useOnlineStatus();
@@ -50,6 +52,40 @@ export default function AttendanceScanPage() {
       // Extract UUID from scanned value (URL or raw UUID)
       const uuidMatch = value.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
       const studentId = uuidMatch ? uuidMatch[0] : value.trim();
+
+      if (isDemo || isDemoSchool(school?.id)) {
+        const needle = studentId.trim().toLowerCase();
+        const demoStudent = DEMO_STUDENTS.find(
+          (s) =>
+            s.student_number?.toLowerCase() === needle ||
+            s.id === studentId ||
+            `${s.first_name} ${s.last_name}`.toLowerCase() === needle,
+        );
+        if (!demoStudent) {
+          toast.error("Student not found");
+          return;
+        }
+        if (marked.has(demoStudent.id)) {
+          toast.info(`${demoStudent.first_name} ${demoStudent.last_name} already marked`);
+          setScanValue("");
+          return;
+        }
+        setMarked((prev) => new Set(prev).add(demoStudent.id));
+        setRecent((prev) =>
+          [
+            {
+              name: `${demoStudent.first_name} ${demoStudent.last_name}`,
+              status: "Present",
+              time: new Date().toLocaleTimeString(),
+            },
+            ...prev,
+          ].slice(0, 15),
+        );
+        toast.success(`${demoStudent.first_name} ${demoStudent.last_name} marked present`);
+        lastScannedRef.current = { value: value.trim(), time: Date.now() };
+        setScanValue("");
+        return;
+      }
 
       const { data: student, error: studentError } = await supabase
         .from("students")

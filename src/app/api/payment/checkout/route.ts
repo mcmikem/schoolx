@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
         let session;
         const priceId = STRIPE_PRICE_IDS[plan];
         if (priceId) {
-          // Legacy configured price-id path (e.g. pre-created products).
+          // Configured price-id path: recurring subscription when available.
           session = await createCheckoutSession({
             priceId,
             quantity: studentCount || 50,
@@ -170,6 +170,7 @@ export async function POST(request: NextRequest) {
             successUrl: stripeSuccessUrl,
             cancelUrl: stripeCancelUrl,
             customerEmail: auth.context.user.email,
+            mode: "subscription",
             metadata: { intent_transaction_id: transactionId },
           });
         } else {

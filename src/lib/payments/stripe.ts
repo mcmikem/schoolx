@@ -150,10 +150,11 @@ export async function createCheckoutSession(params: {
   cancelUrl: string;
   customerEmail?: string;
   metadata?: Record<string, string>;
+  mode?: "payment" | "subscription";
 }) {
   try {
     const session = await getStripeClientOrThrow().checkout.sessions.create({
-      mode: "payment",
+      mode: params.mode || "payment",
       line_items: [
         {
           price: params.priceId,

@@ -42,21 +42,9 @@ export interface School {
   created_at: string;
 }
 
-// User types
-export type UserRole =
-  | "super_admin"
-  | "school_admin"
-  | "admin"
-  | "board"
-  | "headmaster"
-  | "dean_of_studies"
-  | "bursar"
-  | "teacher"
-  | "secretary"
-  | "dorm_master"
-  | "student"
-  | "parent"
-  | "marketer";
+// User types — canonical UserRole lives in src/lib/roles.ts (single source of truth).
+import type { UserRole } from "@/lib/roles";
+export type { UserRole };
 
 export interface User {
   id: string;

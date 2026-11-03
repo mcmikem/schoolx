@@ -171,18 +171,10 @@ function NotificationsPanel({
           }
 
           return (
-            <div
-              role="button"
-              tabIndex={0}
+            <button
+              type="button"
               key={n.id}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  if (!n.read) onDismiss(n.id);
-                  if (n.link) notifRouter.push(n.link);
-                }
-              }}
-              className={`w-full text-left flex gap-3 px-4 py-3.5 border-b border-[var(--border)] hover:bg-[var(--surface-container-low)] transition-colors cursor-pointer ${!n.read ? "bg-[var(--primary)]/10 font-medium" : ""}`}
+              className={`w-full text-left flex gap-3 px-4 py-3.5 border-b border-[var(--border)] hover:bg-[var(--surface-container-low)] transition-colors ${!n.read ? "bg-[var(--primary)]/10 font-medium" : ""}`}
               onClick={() => {
                 if (!n.read) onDismiss(n.id);
                 if (n.link) notifRouter.push(n.link);
@@ -216,7 +208,7 @@ function NotificationsPanel({
                   <MaterialIcon icon="check" style={{ fontSize: 14 }} />
                 </button>
               )}
-            </div>
+            </button>
           );
         })}
       </div>
@@ -507,7 +499,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
           type="button"
           onClick={handleSyncChipClick}
           disabled={isSyncing}
-          className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[var(--surface-container-low)] border border-[var(--border)] shrink-0 text-xs font-semibold min-h-[32px] disabled:opacity-70"
+          className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[var(--surface-container-low)] border border-[var(--border)] shrink-0 text-xs font-semibold min-h-[44px] disabled:opacity-70"
           title={
             isSyncing
               ? "Syncing your saved changes"

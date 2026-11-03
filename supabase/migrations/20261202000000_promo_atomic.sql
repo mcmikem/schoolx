@@ -1,5 +1,7 @@
 -- Atomic, cap-aware promo redemption counter.
 -- Returns: 1 = redeemed, 0 = cap reached, -1 = code not found / inactive.
+DROP FUNCTION IF EXISTS increment_promo_redemption(TEXT);
+
 CREATE OR REPLACE FUNCTION increment_promo_redemption(p_code TEXT)
 RETURNS INTEGER
 LANGUAGE plpgsql

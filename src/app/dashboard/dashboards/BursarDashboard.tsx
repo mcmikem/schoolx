@@ -377,7 +377,7 @@ function BursarDashboardContent() {
                   key={option.value}
                   aria-pressed={period === option.value}
                   onClick={() => setPeriod(option.value)}
-                  className={`min-h-9 flex-1 whitespace-nowrap rounded-lg px-2 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:flex-none sm:px-3 ${
+                  className={`min-h-11 flex-1 whitespace-nowrap rounded-lg px-2 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:flex-none sm:px-3 ${
                     period === option.value ? "bg-white text-[#123c35]" : "text-blue-100 hover:text-white"
                   }`}
                 >
