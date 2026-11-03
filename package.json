@@ -10,6 +10,8 @@
     "check:schema-drift:update": "node scripts/check-schema-drift.mjs --write-baseline",
     "audit:uiux:strict": "node scripts/audit-uiux.mjs --strict",
     "build": "next build",
+    "build:cloudflare": "npx opennextjs-cloudflare build",
+    "deploy:cloudflare": "npx opennextjs-cloudflare build && npx wrangler deploy",
     "prebuild": "node scripts/stamp-sw-version.mjs && node scripts/generate-offline-routes.mjs",
     "build:android": "MOBILE_BUILD=1 npm run build && npx cap sync android",
     "build:ios": "MOBILE_BUILD=1 npm run build && npx cap sync ios",
@@ -107,6 +109,7 @@
     "react": "^18.3.0",
     "react-countup": "^6.5.3",
     "react-dom": "^18.3.0",
+    "react-is": "^19.3.1",
     "react-joyride": "^3.2.0",
     "react-swipeable": "^7.0.2",
     "react-to-print": "^3.3.0",
@@ -114,6 +117,7 @@
     "sonner": "^2.0.8",
     "stripe": "^21.0.1",
     "tailwind-merge": "^3.5.0",
+    "temporal-polyfill": "^1.0.6",
     "tesseract.js": "^7.0.0",
     "web-push": "^3.6.7",
     "zod": "^3.23.0"
@@ -125,6 +129,7 @@
     "@biomejs/biome": "^2.5.3",
     "@jest/globals": "^30.3.0",
     "@next/bundle-analyzer": "^16.2.2",
+    "@opennextjs/cloudflare": "^1.20.15",
     "@playwright/test": "^1.59.1",
     "@tanstack/react-query-devtools": "^5.100.10",
     "@testing-library/jest-dom": "^6.9.1",
@@ -142,6 +147,7 @@
     "knip": "^6.26.0",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.19",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "wrangler": "^4.156.2"
   }
 }
