@@ -23,7 +23,14 @@ async function markOfflineFallback(response, requestedPath) {
     if (!contentType.includes('text/html')) return response;
     const html = await response.text();
     const payload = JSON.stringify(requestedPath).replace(/</g, '\\u003c');
-    const script = `<script>window.__SKOOLMATE_OFFLINE_FALLBACK__=${payload};</script>`;
+    // The browser URL still names the uncached route, so the App Router would
+    // try to fetch its RSC payload, fail (504), and re-navigate — looping on
+    // the same cached shell. Rewrite the URL to the dashboard before the app
+    // boots so it hydrates the shell we actually served. The requested path is
+    // preserved in __SKOOLMATE_OFFLINE_FALLBACK__ for the in-app banner.
+    const script =
+      `<script>window.__SKOOLMATE_OFFLINE_FALLBACK__=${payload};` +
+      `try{window.history.replaceState(null,'','/dashboard/');}catch(e){}</script>`;
     const injected = html.includes('</body>') ? html.replace('</body>', script + '</body>') : html + script;
     const headers = new Headers(response.headers);
     // The body changed, so the original length/encoding no longer describe it.
