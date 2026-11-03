@@ -2,10 +2,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import OwlMascot from "@/components/brand/OwlMascot";
+
 import ActionPanel from "@/components/dashboard/ActionPanel";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
 import SchoolHero from "@/components/dashboard/SchoolHero";
+import { EmptyState } from "@/components/EmptyState";
 import TaskManager from "@/components/dashboard/TaskManager";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -259,14 +260,11 @@ export function TeacherDashboardContent() {
             </div>
           }
         />
-        <div className="rounded-2xl border border-[var(--surface-container-low)] bg-[var(--surface)] p-6 text-center">
-          <OwlMascot size={64} premium ring glow animated />
-          <h2 className="mt-4 text-lg font-bold text-[var(--t1)] font-['Sora']">No classes assigned yet</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-[var(--t3)]">
-            Your school administrator hasn&apos;t assigned you to a class or subject. Contact them to request your
-            teaching assignments; your classes, students, attendance and marks will appear here once assigned.
-          </p>
-        </div>
+        <EmptyState
+          icon="school"
+          title="No classes assigned yet"
+          description="Your school administrator hasn't assigned you to a class or subject. Contact them to request your teaching assignments; your classes, students, attendance and marks will appear here once assigned."
+        />
         <div className="mt-5">
           <SchoolCalendar schoolId={school?.id} userId={user?.id} />
         </div>
