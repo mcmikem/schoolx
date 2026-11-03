@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { safeLocalStorage, safeSessionStorage } from "@/lib/safe-storage";
+import { safeLocalStorage } from "@/lib/safe-storage";
 import PdfSourceViewer from "@/components/exam/PdfSourceViewer";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Card } from "@/components/ui/Card";

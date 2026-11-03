@@ -12,7 +12,7 @@ import { canUseModule, DEFAULT_FEATURE_STAGE, type FeatureStage, type ModuleKey 
 import { getModuleDefinition } from "@/lib/modules/catalog";
 import { getNavigationForRoles } from "@/lib/navigation";
 import { type RoleRouteOverrides, resolveRouteAccess, useRoleRouteOverrides } from "@/lib/role-access-overrides";
-import { canAccess, type UserRole } from "@/lib/roles";
+import { type UserRole } from "@/lib/roles";
 import { useSyncStatus } from "@/lib/useSyncStatus";
 
 const CollapsibleSidebar = dynamic(() => import("@/components/CollapsibleSidebar"), { loading: () => null });

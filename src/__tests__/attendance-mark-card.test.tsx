@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import { AttendanceMarkCard } from "@/components/attendance/AttendanceMarkCard";
 import { ABSENT_SWIPE, LATE_SWIPE } from "@/components/attendance/SwipeRow";

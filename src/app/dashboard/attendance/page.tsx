@@ -1,6 +1,6 @@
 "use client";
 import { readDraft, writeDraft, clearDraft } from "@/lib/draft-storage";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { AttendanceMarkCard } from "@/components/attendance/AttendanceMarkCard";
@@ -21,7 +21,6 @@ import { StaleDataNotice } from "@/components/dashboard/StaleDataNotice";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
 import { useAuth } from "@/lib/auth-context";
-import { DEMO_ATTENDANCE, DEMO_STUDENTS } from "@/lib/demo-data";
 import { useClasses } from "@/lib/hooks";
 import { useUrlSyncedFilters } from "@/lib/hooks/useUrlSyncedFilters";
 import { getLocalDateString, notifyDashboardStatsChanged, timeoutFallback, withTimeout } from "@/lib/hooks/utils";

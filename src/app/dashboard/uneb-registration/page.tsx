@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
-import { Tabs, TabPanel } from "@/components/ui/Tabs";
+import { Tabs } from "@/components/ui/Tabs";
 import { EmptyState } from "@/components/EmptyState";
 
 interface Candidate {

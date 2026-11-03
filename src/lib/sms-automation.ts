@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { DEMO_STUDENTS, DEMO_FEE_STRUCTURE, DEMO_FEE_PAYMENTS, DEMO_ATTENDANCE } from "@/lib/demo-data";
+import { DEMO_STUDENTS, DEMO_FEE_PAYMENTS, DEMO_ATTENDANCE } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { getCurrentTerm } from "@/lib/automation";
 import { sendSchoolMessage, type ParentMessageKind } from "@/lib/messaging";

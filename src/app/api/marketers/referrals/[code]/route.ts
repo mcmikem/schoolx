@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { createServiceRoleClientOrThrow, apiSuccess, apiError, handleApiError } from "@/lib/api-utils";
+import { createServiceRoleClientOrThrow, apiError, handleApiError } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 
 // Track a referral click (public — no auth required)

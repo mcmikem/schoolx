@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { safeLocalStorage, safeSessionStorage } from "@/lib/safe-storage";
+import { safeLocalStorage } from "@/lib/safe-storage";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";

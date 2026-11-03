@@ -17,7 +17,6 @@ import {
   BILLING_CYCLES,
   PLANS_CONFIG,
   PLATFORM_PROMO_PERCENT,
-  formatCompactUgx,
   formatDate,
   formatUgx,
   planName,

@@ -39,7 +39,7 @@ import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import { readDemoStorage } from "@/lib/auth-demo";
 import { OFFLINE_USER_KEY } from "@/lib/auth-context-types";
 import { useSchoolColors } from "@/lib/useSchoolColors";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useSessionTimeout } from "@/lib/useSessionTimeout";
 
 const OwlAssistant = dynamic(() => import("@/components/OwlAssistant"), { ssr: false });

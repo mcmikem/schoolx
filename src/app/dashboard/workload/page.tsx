@@ -7,7 +7,6 @@ import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
-import { Button } from "@/components/ui/index";
 import { EmptyState } from "@/components/EmptyState";
 import { logger } from "@/lib/logger";
 

@@ -3,7 +3,6 @@ import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } fro
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { loadSchoolHouses } from "@/lib/houses";
 import { createPortal } from "react-dom";
-import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/index";
 import MaterialIcon from "@/components/MaterialIcon";
 import StudentPhotoField from "@/components/students/StudentPhotoField";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useAuth } from "@/lib/auth-context";
 import { useClasses } from "@/lib/hooks";
@@ -9,7 +9,6 @@ import { useOnlineStatus } from "@/lib/offline";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Button } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
-import { parseApiResponse } from "@/lib/api-response";
 import { getLocalDateString } from "@/lib/hooks/utils";
 import { supabase } from "@/lib/supabase";
 import { isDemoSchool } from "@/lib/demo-utils";

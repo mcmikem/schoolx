@@ -1,5 +1,4 @@
 "use client";
-import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -7,7 +6,6 @@ import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/index";
 import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
 import { ChildSelector } from "@/components/parent-portal/ChildSelector";
 import { useParentPortal } from "@/components/parent-portal/ParentPortalProvider";

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { assertApiAccessOrDeny, apiError, apiSuccess, handleApiError, requireUserWithSchool } from "@/lib/api-utils";
 import { parseStudentScanValue } from "@/lib/scan-parsers";

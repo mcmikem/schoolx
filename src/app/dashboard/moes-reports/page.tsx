@@ -1,6 +1,6 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { supabase } from "@/lib/supabase";
@@ -8,8 +8,6 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
-import { Tabs, TabPanel } from "@/components/ui/Tabs";
-import { TableSkeleton } from "@/components/ui/Skeleton";
 import { logger } from "@/lib/logger";
 
 export default function MOESReportsPage() {

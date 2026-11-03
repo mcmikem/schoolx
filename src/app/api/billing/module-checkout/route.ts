@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPayPalOrder } from "@/lib/payments/paypal";
 import { createMobileMoneyPaymentLink } from "@/lib/payments/mobile-money";
-import { normalizePlanType } from "@/lib/payments/subscription-client";
 import { getExchangeRate } from "@/lib/payments/exchange-rate";
 import { requireUserWithSchool, assertUserRoleOrDeny, rateLimit } from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
-import { errorWithWhatsApp } from "@/lib/support-contact";
 import {
   BillingError,
   buildQuote,
   generateTransactionRef,
   createPendingSubscriptionPayment,
 } from "@/lib/billing/service";
-import { resolveModuleKey, type ModuleKey } from "@/lib/modules/catalog";
 
 const BILLING_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "bursar"];
 

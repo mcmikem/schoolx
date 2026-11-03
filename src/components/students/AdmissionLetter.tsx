@@ -1,7 +1,6 @@
 "use client";
 
 import SkoolMateLogo from "@/components/SkoolMateLogo";
-import MaterialIcon from "@/components/MaterialIcon";
 
 interface AdmissionLetterProps {
   student: any;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Image from "next/image";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Modal } from "@/components/ui/Modal";

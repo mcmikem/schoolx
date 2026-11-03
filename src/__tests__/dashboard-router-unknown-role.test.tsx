@@ -23,7 +23,7 @@ jest.mock("@/lib/auth-context", () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-jest.mock("@/components/Skeletons", () => ({
+jest.mock("@/components/ui/Skeleton", () => ({
   DashboardSkeleton: () => <div data-testid="dashboard-skeleton" />,
 }));
 

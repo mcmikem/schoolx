@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSchoolPaymentHistory } from "@/lib/payments/utils";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
 import { requireUserWithSchool, assertUserRoleOrDeny } from "@/lib/api-utils";
 

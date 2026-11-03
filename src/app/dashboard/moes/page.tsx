@@ -10,7 +10,6 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
-import { formatCurrency } from "@/lib/currency";
 
 interface MoESRow {
   className: string;

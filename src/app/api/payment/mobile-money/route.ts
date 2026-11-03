@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createMobileMoneyPaymentLink } from "@/lib/payments/mobile-money";
-import { PLAN_TYPES, PlanType } from "@/lib/subscription";
+import { PLAN_TYPES } from "@/lib/subscription";
 import { normalizePlanType } from "@/lib/payments/subscription-client";
-import { getPlanPrice, calculateTotalPrice, recordPayment, savePendingMobilePayment } from "@/lib/payments/utils";
+import { calculateTotalPrice, recordPayment, savePendingMobilePayment } from "@/lib/payments/utils";
 import { requireUserWithSchool, assertUserRoleOrDeny, rateLimit } from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
 import { normalizeAuthPhone } from "@/lib/validation";
 import { errorWithWhatsApp } from "@/lib/support-contact";
-import { mobileMoneyBodySchema } from "@/lib/billing/schemas";
 
 const BILLING_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "bursar"];
 

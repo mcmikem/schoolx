@@ -2,7 +2,6 @@ import { NextRequest } from "next/server";
 import {
   apiError,
   apiSuccess,
-  handleApiError,
   requireUserWithSchool,
   withSecurity,
   createServiceRoleClientOrThrow,

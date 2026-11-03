@@ -1,7 +1,5 @@
-import { useOnboarding } from "@/lib/onboarding";
 import { isRouteAllowed } from "@/components/dashboard/AccessControlGuard";
-import { canAccess, type UserRole } from "@/lib/roles";
-import { render, screen } from "@testing-library/react";
+import { canAccess } from "@/lib/roles";
 import { describe, expect, it } from "@jest/globals";
 
 describe("Onboarding hook", () => {

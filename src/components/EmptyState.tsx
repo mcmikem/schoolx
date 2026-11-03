@@ -1,7 +1,6 @@
 "use client";
 import { memo } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
-import { Button } from "./ui/index";
 import EmptyStateGuide from "@/components/EmptyStateGuide";
 import OwlMascot from "@/components/brand/OwlMascot";
 import { askOwly } from "@/lib/owly-bus";

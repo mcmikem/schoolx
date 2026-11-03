@@ -1,14 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import {
-  type OwlyComm,
-  backOnlineComm,
-  failedSyncComm,
-  offlineComm,
-  slowInternetComm,
-  syncedComm,
-} from "@/lib/owly-comm";
+import { type OwlyComm, backOnlineComm, offlineComm, slowInternetComm, syncedComm } from "@/lib/owly-comm";
 import { useToast } from "@/components/Toast";
 import { useSyncStatus } from "@/lib/useSyncStatus";
 import { askOwly } from "@/lib/owly-bus";

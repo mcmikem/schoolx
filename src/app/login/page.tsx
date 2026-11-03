@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { safeLocalStorage, safeSessionStorage } from "@/lib/safe-storage";
+import { safeLocalStorage } from "@/lib/safe-storage";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useToast } from "@/components/Toast";
-import { Button, Input } from "@/components/ui";
+import { Input } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { DEMO_MODE_ENABLED } from "@/lib/auth-context-types";
 import { useOnlineStatus } from "@/lib/offline";

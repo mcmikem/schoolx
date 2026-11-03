@@ -11,7 +11,6 @@ import { getErrorMessage } from "@/lib/validation";
 import { loadSchoolSetting, saveSchoolSetting } from "@/lib/school-settings";
 import Image from "next/image";
 import { withTimeout, timeoutFallback, storageTimeoutFallback } from "@/lib/hooks/utils";
-import { safeGetItem, safeSetItem } from "@/lib/safe-storage";
 import { IMAGE_CACHE_CONTROL, withCacheBust } from "@/lib/student-photos";
 
 interface Props {

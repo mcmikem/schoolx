@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import MaterialIcon from "@/components/MaterialIcon";
-import { format, differenceInDays, startOfMonth, addMonths, isWithinInterval } from "date-fns";
+import { format, differenceInDays, startOfMonth, addMonths } from "date-fns";
 import { toLocalDateString } from "@/lib/date-utils";
 
 interface Event {

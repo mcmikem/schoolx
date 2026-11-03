@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenAI } from '@google/genai'
-import { apiError, apiSuccess, handleApiError, withSecurity, requireAuthenticatedUser } from '@/lib/api-utils'
+import { NextRequest } from "next/server";
+import { GoogleGenAI } from "@google/genai";
+import { apiError, apiSuccess, handleApiError, withSecurity, requireAuthenticatedUser } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 
 const promptTemplate = `
@@ -20,65 +20,70 @@ Try your best to guess gender from names if it's missing but obvious. Standardiz
 Return ONLY valid JSON. No markdown wrappers (\`\`\`json) or conversational text.
 
 Raw Text to Parse:
-`
+`;
 
 async function handlePost(request: NextRequest) {
   try {
-    const auth = await requireAuthenticatedUser(request)
-    if (!auth.ok) return auth.response
+    const auth = await requireAuthenticatedUser(request);
+    if (!auth.ok) return auth.response;
 
-    const { rawText } = await request.json()
+    const { rawText } = await request.json();
 
-    if (!rawText || rawText.trim() === '') {
-      return apiError('Raw text is required for parsing', 400)
+    if (!rawText || rawText.trim() === "") {
+      return apiError("Raw text is required for parsing", 400);
     }
 
     // Prevent excessive payload sizes (50KB max)
     if (rawText.length > 50_000) {
-      return apiError('Text too large. Please limit to 50KB or fewer rows.', 400)
+      return apiError("Text too large. Please limit to 50KB or fewer rows.", 400);
     }
 
     if (!process.env.GEMINI_API_KEY) {
-      return apiError('Gemini API key is not configured on the server', 500)
+      return apiError("Gemini API key is not configured on the server", 500);
     }
 
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: "gemini-2.5-flash",
       contents: promptTemplate + rawText,
       config: {
-        responseMimeType: 'application/json',
+        responseMimeType: "application/json",
         temperature: 0.1, // Low temperature for factual extraction
-      }
-    })
+      },
+    });
 
-    const resultText = response.text
+    const resultText = response.text;
     if (!resultText) {
-      return apiError('AI returned an empty response', 500)
+      return apiError("AI returned an empty response", 500);
     }
-    
+
     // Fallback if the AI accidentally wrapped it in markdown despite instructions
-    const cleanedText = resultText.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim()
-    
+    const cleanedText = resultText
+      .replace(/^```json\s*/, "")
+      .replace(/\s*```$/, "")
+      .trim();
+
     try {
-      const parsedData = JSON.parse(cleanedText)
+      const parsedData = JSON.parse(cleanedText);
       // Ensure it's an array
-      const studentsArray = Array.isArray(parsedData) ? parsedData : [parsedData]
-      
-      return apiSuccess({
-        count: studentsArray.length,
-        students: studentsArray
-      }, 'Parsed successfully')
+      const studentsArray = Array.isArray(parsedData) ? parsedData : [parsedData];
+
+      return apiSuccess(
+        {
+          count: studentsArray.length,
+          students: studentsArray,
+        },
+        "Parsed successfully",
+      );
     } catch (parseErr) {
-      logger.error('Failed to parse AI response as JSON:', cleanedText)
-      return apiError('Failed to parse the extracted data', 500)
+      logger.error("Failed to parse AI response as JSON:", cleanedText);
+      return apiError("Failed to parse the extracted data", 500);
     }
-    
   } catch (error) {
-    logger.error('AI Parsing Error:', error)
-    return handleApiError(error)
+    logger.error("AI Parsing Error:", error);
+    return handleApiError(error);
   }
 }
 
-export const POST = withSecurity(handlePost, { rateLimit: { limit: 20, windowMs: 60000 } })
+export const POST = withSecurity(handlePost, { rateLimit: { limit: 20, windowMs: 60000 } });

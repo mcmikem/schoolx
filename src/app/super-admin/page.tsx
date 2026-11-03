@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { safeLocalStorage, safeSessionStorage } from "@/lib/safe-storage";
+import { safeLocalStorage } from "@/lib/safe-storage";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { OwlLoader } from "@/components/loaders";

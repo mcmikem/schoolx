@@ -1,6 +1,6 @@
 "use client";
-import { useMemo, useState } from "react";
-import { Card, CardBody } from "@/components/ui/Card";
+import { useMemo } from "react";
+import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import MaterialIcon from "@/components/MaterialIcon";
 import { filterBulkRecipients, countUniquePhones } from "@/lib/bulk-recipients";

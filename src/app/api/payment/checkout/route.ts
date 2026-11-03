@@ -1,15 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPayPalOrder } from "@/lib/payments/paypal";
-import { createMobileMoneyPaymentLink } from "@/lib/payments/mobile-money";
 import { PLAN_TYPES, PlanType } from "@/lib/subscription";
 import { normalizePlanType } from "@/lib/payments/subscription-client";
-import {
-  getPlanPrice,
-  calculateTotalPrice,
-  recordPayment,
-  STRIPE_PRICE_IDS,
-  createSupabaseAdminClient,
-} from "@/lib/payments/utils";
+import { calculateTotalPrice, recordPayment, STRIPE_PRICE_IDS, createSupabaseAdminClient } from "@/lib/payments/utils";
 import { createCheckoutSession, createCheckoutSessionInline } from "@/lib/payments/stripe";
 import { getExchangeRate } from "@/lib/payments/exchange-rate";
 import { requireUserWithSchool, assertUserRoleOrDeny, rateLimit } from "@/lib/api-utils";

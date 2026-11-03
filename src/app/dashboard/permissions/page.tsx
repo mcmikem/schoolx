@@ -14,7 +14,6 @@ import {
   normalizeRoleRouteOverrides,
   useRoleRouteOverrides,
   type RouteOverrideValue,
-  type RoleRouteOverrides,
 } from "@/lib/role-access-overrides";
 import {
   PERMISSION_LABELS,

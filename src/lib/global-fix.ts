@@ -1,5 +1,4 @@
 import { supabase } from "./supabase";
-import { logger } from "@/lib/logger";
 
 export async function assignMissingClasses(): Promise<{ fixed: number; errors: string[] }> {
   const errors: string[] = [];
@@ -33,10 +32,7 @@ export async function assignMissingClasses(): Promise<{ fixed: number; errors: s
     }
 
     const studentIds = orphans.filter((s) => s.school_id === schoolId).map((s) => s.id);
-    const { error: updErr } = await supabase
-      .from("students")
-      .update({ class_id: classes[0].id })
-      .in("id", studentIds);
+    const { error: updErr } = await supabase.from("students").update({ class_id: classes[0].id }).in("id", studentIds);
 
     if (updErr) {
       errors.push(`Failed to update school ${schoolId}: ${updErr.message}`);
@@ -62,9 +58,7 @@ export async function normalizeParentPhones(): Promise<{ fixed1: number; fixed2:
   let fixed1 = 0;
   let fixed2 = 0;
 
-  const { data: students, error: fetchErr } = await supabase
-    .from("students")
-    .select("id, parent_phone, parent_phone2");
+  const { data: students, error: fetchErr } = await supabase.from("students").select("id, parent_phone, parent_phone2");
 
   if (fetchErr) {
     errors.push(fetchErr.message);

@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, Metric, Text, Flex, Badge, BadgeDelta } from "@tremor/react";
+import { Card, Metric, Text, BadgeDelta } from "@tremor/react";
 
 export default function TremorKPI({
   label,

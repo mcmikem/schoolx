@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
-import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print-window";
+import { writePrintDocument } from "@/lib/print-window";
 import {
   TeachingAssignmentsEditor,
   validateTeachingAssignments,

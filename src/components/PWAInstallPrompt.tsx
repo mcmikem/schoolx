@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useState, useEffect } from "react";
-import { safeLocalStorage, safeSessionStorage } from "@/lib/safe-storage";
+import { safeLocalStorage } from "@/lib/safe-storage";
 import { APP_NAME } from "@/lib/app-name";
 
 interface BeforeInstallPromptEvent extends Event {

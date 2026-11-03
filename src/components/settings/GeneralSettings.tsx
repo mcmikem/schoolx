@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import { logger } from "@/lib/logger";
-import { FEATURE_STAGES, FeatureStage, DEFAULT_FEATURE_STAGE } from "@/lib/featureStages";
+import { FEATURE_STAGES, FeatureStage } from "@/lib/featureStages";
 import MaterialIcon from "@/components/MaterialIcon";
 import SchoolColorPicker from "@/components/SchoolColorPicker";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";

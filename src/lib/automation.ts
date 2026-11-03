@@ -1,16 +1,7 @@
 // Automation utilities for SkoolMate OS
 // Auto-grade computation, UNEB division calculation, report card generation, etc.
 
-import {
-  getPLEGrade,
-  getPLEDivision,
-  getUCEGrade,
-  getUCEDivision,
-  getUACEGrade,
-  getUACEPoints,
-  getUNEBGrade,
-  SchoolLevel,
-} from "@/lib/grading";
+import { getPLEGrade, getPLEDivision, getUCEDivision, getUACEGrade, getUACEPoints, getUNEBGrade } from "@/lib/grading";
 
 // ============================================
 // AUTO-GRADE COMPUTATION
@@ -114,11 +105,7 @@ export function getGradeLabel(score: number): string {
   return "Fail";
 }
 
-export function generateAutoComment(
-  score: number,
-  subject: string,
-  studentName: string,
-): string {
+export function generateAutoComment(score: number, subject: string, studentName: string): string {
   const name = studentName.split(" ")[0]; // First name only
   const comments: Record<string, string[]> = {
     excellent: [
@@ -178,8 +165,7 @@ export function computeFeeBalance(
   status: "paid" | "partial" | "unpaid" | "overpaid";
 } {
   const balance = totalFees - totalPaid;
-  const percentagePaid =
-    totalFees > 0 ? Math.round((totalPaid / totalFees) * 100) : 0;
+  const percentagePaid = totalFees > 0 ? Math.round((totalPaid / totalFees) * 100) : 0;
   let status: "paid" | "partial" | "unpaid" | "overpaid";
 
   if (balance <= 0 && totalPaid > totalFees) status = "overpaid";
@@ -190,10 +176,7 @@ export function computeFeeBalance(
   return { balance, percentagePaid, status };
 }
 
-export function generateReceiptNumber(
-  schoolCode: string,
-  studentId: string,
-): string {
+export function generateReceiptNumber(schoolCode: string, studentId: string): string {
   const date = new Date();
   const dateStr =
     date.getFullYear().toString().slice(2) +
@@ -244,13 +227,10 @@ export function identifyAtRiskStudents(
   return students
     .map((student) => {
       const risks: string[] = [];
-      if (student.attendanceRate < thresholds.attendanceMin)
-        risks.push("low_attendance");
+      if (student.attendanceRate < thresholds.attendanceMin) risks.push("low_attendance");
       if (student.avgScore < thresholds.scoreMin) risks.push("low_grades");
       if (student.feeBalance > thresholds.feeMax) risks.push("fee_arrears");
-      return risks.length > 0
-        ? { id: student.id, name: student.name, risks }
-        : null;
+      return risks.length > 0 ? { id: student.id, name: student.name, risks } : null;
     })
     .filter(Boolean) as Array<{ id: string; name: string; risks: string[] }>;
 }
@@ -327,10 +307,7 @@ export function checkPromotionEligibility(
     minAttendance: 60,
   },
 ): { eligible: boolean; reason: string } {
-  const average =
-    studentGrades.length > 0
-      ? studentGrades.reduce((sum, g) => sum + g, 0) / studentGrades.length
-      : 0;
+  const average = studentGrades.length > 0 ? studentGrades.reduce((sum, g) => sum + g, 0) / studentGrades.length : 0;
 
   if (average < thresholds.minAverage) {
     return {
@@ -378,9 +355,7 @@ export function getCurrentTerm(): { term: number; year: number } {
 // The source of truth is the `academic_terms` table.
 // This function is also inconsistent with the one in businessRules.ts.
 /** @deprecated Use academic_terms table instead or useAcademic hook to get current term dates. */
-export function getTermDates(
-  year: number,
-): Array<{ term: number; start: string; end: string }> {
+export function getTermDates(year: number): Array<{ term: number; start: string; end: string }> {
   return [
     { term: 1, start: `${year}-02-05`, end: `${year}-05-10` },
     { term: 2, start: `${year}-06-03`, end: `${year}-08-15` },

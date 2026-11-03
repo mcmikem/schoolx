@@ -16,18 +16,12 @@ import { Button } from "@/components/ui/index";
 import { Modal, ModalFooter } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import PersonInitials from "@/components/ui/PersonInitials";
-import { FullPageLoader, TableSkeleton } from "@/components/ui/Skeleton";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 import { useAcademic } from "@/lib/academic-context";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
 import { useAuth } from "@/lib/auth-context";
 import { createRecord, updateRecord, upsertRecordReturning } from "@/lib/crud-service";
-import {
-  COMPETENCY_SCHEME,
-  CompetencyValue,
-  calculateSubjectTotal,
-  getCompetencyLabel,
-  isCompetencyScale,
-} from "@/lib/grading";
+import { COMPETENCY_SCHEME, CompetencyValue, calculateSubjectTotal, getCompetencyLabel } from "@/lib/grading";
 import { GRADING_TRACKS, resolveTrackForClass, resolveUseBot } from "@/lib/grading-tracks";
 import {
   ASSESSMENT_MAX,

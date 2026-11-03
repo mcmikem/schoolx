@@ -1,6 +1,6 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useOfflineCanteenItems, useOfflineCanteenOrders } from "@/lib/offline-hooks";

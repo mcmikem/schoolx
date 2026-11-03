@@ -1,6 +1,6 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/index";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Badge } from "@/components/ui/index";
-import { checkPromotionEligibility } from "@/lib/automation";
 import { logger } from "@/lib/logger";
 
 interface TermEndStep {

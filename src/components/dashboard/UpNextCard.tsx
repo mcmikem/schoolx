@@ -51,7 +51,7 @@ const UpNextCard = memo(function UpNextCard({ task }: { task: UpNextTask | null 
               )}
               <Link
                 href={task.href}
-                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-white px-5 text-xs font-bold text-[#123c35] transition-colors hover:bg-blue-50 sm:w-auto sm:min-w-[150px]"
+                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-white px-5 text-xs font-bold text-[var(--green-ink)] transition-colors hover:bg-[var(--surface-container-low)] sm:w-auto sm:min-w-[150px]"
                 aria-label={`${task.cta}: ${task.label}`}
               >
                 <MaterialIcon icon={task.icon} style={{ fontSize: 16 }} />

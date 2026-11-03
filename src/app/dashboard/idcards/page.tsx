@@ -1,11 +1,10 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState } from "react";
-import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useStudents, useClasses } from "@/lib/hooks";
 import MaterialIcon from "@/components/MaterialIcon";
-import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print-window";
+import { printWhenReady, writePrintDocument } from "@/lib/print-window";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";

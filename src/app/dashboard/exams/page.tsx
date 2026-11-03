@@ -8,7 +8,6 @@ import { isHeadOffice } from "@/lib/head-office";
 import { useStudents, useClasses, useSubjects, useExamScores, useExams } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import {
-  EXAM_TYPES,
   SECONDARY_EXAM_TYPES,
   PRIMARY_EXAM_TYPES,
   calculateWeightedGrade,

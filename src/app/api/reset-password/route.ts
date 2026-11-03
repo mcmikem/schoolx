@@ -5,7 +5,7 @@
 //
 // To modify: Run full test suite (lint + typecheck + regression + e2e)
 // ============================================================================
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { apiSuccess, apiError, rateLimitAsync, supabaseClientOptions } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";

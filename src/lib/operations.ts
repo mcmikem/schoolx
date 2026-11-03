@@ -1,4 +1,4 @@
-import type { Student, Class, User, Attendance, SMSTrigger, FeeStructure } from "@/types";
+import type { Student, User, Attendance, SMSTrigger, FeeStructure } from "@/types";
 import { isChargedMeals, isMealFee } from "./meal-fee";
 import { isChargedNewAdmission, isNewAdmissionFee } from "./new-admission-fee";
 import { getLocalDateString } from "@/lib/hooks/utils";

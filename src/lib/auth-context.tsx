@@ -33,9 +33,7 @@ import {
   sanitizeDemoRole,
 } from "./auth-context-types";
 import { clearDemoStorage, decryptDemoData, readDemoStorage } from "./auth-demo";
-import { classifyAuthFailure } from "./auth-failure";
 import { buildAuthEmailFromPhone, buildAuthLoginAttempts, type AuthLoginAttempt } from "./auth-login";
-import { buildPhoneLookupCandidates } from "./auth-phone";
 import { DEFAULT_FEATURE_STAGE, FeatureStage } from "./featureStages";
 import { timeoutSignal } from "./hooks/utils";
 import { logger } from "./logger";

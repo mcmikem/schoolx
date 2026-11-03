@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
-import { Input, Select, Textarea } from "@/components/ui";
-import { Tabs, TabPanel } from "@/components/ui/Tabs";
+import { Input } from "@/components/ui";
+import { Tabs } from "@/components/ui/Tabs";
 
 describe("a11y contracts", () => {
   test("Input propagates aria-required and aria-invalid", () => {

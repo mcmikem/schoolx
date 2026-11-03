@@ -1,6 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
-import { safeLocalStorage, safeSessionStorage } from "@/lib/safe-storage";
+import { safeLocalStorage } from "@/lib/safe-storage";
 import { useAuth } from "@/lib/auth-context";
 import { useClasses } from "@/lib/hooks";
 import { buildRosterKeys, loadExistingStudents, type RosterKeys } from "@/lib/import/existing-roster";
@@ -16,7 +16,6 @@ import {
   studentIdentityKey,
   type ValidatedStudentRow,
 } from "@/lib/import/students";
-import { supabase } from "@/lib/supabase";
 import type { CreateStudentInput } from "@/types";
 
 interface ImportResult {

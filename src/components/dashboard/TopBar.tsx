@@ -11,7 +11,6 @@ import { useAuth } from "@/lib/auth-context";
 import { useNotifications } from "@/lib/notifications";
 import { canOpenSettingsPage } from "@/lib/role-tab-access";
 import { canAccess, type UserRole } from "@/lib/roles";
-import { supabase } from "@/lib/supabase";
 import { usePerformanceMode } from "@/lib/performance-mode";
 import { useTheme } from "@/lib/theme-context";
 import { logger } from "@/lib/logger";

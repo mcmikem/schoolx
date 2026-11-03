@@ -6,7 +6,7 @@
 //
 // To modify: Run full test suite (lint + typecheck + regression + e2e)
 // ============================================================================
-import { normalizeAuthPhone, sanitizePhone } from "./validation";
+import { normalizeAuthPhone } from "./validation";
 
 export type AuthLoginAttempt = {
   type: "email" | "phone";

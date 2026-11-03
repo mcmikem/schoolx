@@ -15,11 +15,9 @@ import { isModuleInFeatureStage, getRequiredModuleForPath, type FeatureStage } f
 import { StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
 import { useAcademic } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
-import { getDefaultSubjects } from "@/lib/curriculum";
 import { useAllStudents, useClasses, useDashboardStats, useSubjects } from "@/lib/hooks";
 import { getLocalDateString, withTimeout } from "@/lib/hooks/utils";
 import { isClassScopedRole } from "@/lib/roles";
-import { buildDefaultClasses, buildDefaultTimetableSlots, type SchoolSetupType } from "@/lib/school-setup";
 import { supabase } from "@/lib/supabase";
 import { greetingFor, todayLabelFor } from "@/lib/utils";
 

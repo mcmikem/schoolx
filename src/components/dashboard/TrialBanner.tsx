@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { safeLocalStorage, safeSessionStorage } from "@/lib/safe-storage";
+import { safeLocalStorage } from "@/lib/safe-storage";
 import { useAuth } from "@/lib/auth-context";
 import MaterialIcon from "@/components/MaterialIcon";
 import { canOpenSettingsPage } from "@/lib/role-tab-access";

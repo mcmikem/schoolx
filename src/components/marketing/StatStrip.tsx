@@ -1,6 +1,5 @@
 "use client";
 import { useCounter } from "@/hooks/useCounter";
-import { MaterialIcon } from "./MaterialIcon";
 
 export function StatStrip() {
   const studentsC = useCounter(500, 1800);

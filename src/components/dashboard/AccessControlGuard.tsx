@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { safeSessionStorage } from "../../lib/safe-storage";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -8,14 +8,13 @@ import { canAccess, type UserRole, type RolePermissions, getRoleLabel } from "@/
 import { useToast } from "@/components/Toast";
 import { useStudents, useClasses, useFeePayments, useFeeStructure } from "@/lib/hooks";
 import {
-  isModuleInFeatureStage,
   getRequiredModuleForPath,
   DEFAULT_FEATURE_STAGE,
   MODULE_CATALOG,
   type ModuleKey,
   type FeatureStage,
 } from "@/lib/modules/catalog";
-import { useModuleAccess, invalidateModuleAccessCache } from "@/lib/hooks/useModuleAccess";
+import { useModuleAccess } from "@/lib/hooks/useModuleAccess";
 import { deepFreeze } from "@/lib/deep-freeze";
 import { resolveRouteAccess, useRoleRouteOverrides } from "@/lib/role-access-overrides";
 import { canOpenSettingsPage } from "@/lib/role-tab-access";

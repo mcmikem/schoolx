@@ -11,7 +11,6 @@ import { canAccess, type UserRole } from "@/lib/roles";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
-import { EmptyState } from "@/components/EmptyState";
 import PersonInitials from "@/components/ui/PersonInitials";
 
 const PERIODS = ["Period 1", "Period 2", "Period 3", "Period 4", "Period 5", "Period 6", "Period 7", "Period 8"];

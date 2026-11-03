@@ -3,7 +3,6 @@ import { useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
-import { useSyllabusTimeline } from "@/lib/hooks/useSyllabusPlanner";
 import type { SyllabusWithTimeline } from "@/lib/hooks/useSyllabusPlanner";
 
 interface SyllabusTimelineViewProps {

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { safeLocalStorage, safeSessionStorage } from "./safe-storage";
+import { safeLocalStorage } from "./safe-storage";
 import { logger } from "./logger";
 
 interface UseAutoSaveOptions {

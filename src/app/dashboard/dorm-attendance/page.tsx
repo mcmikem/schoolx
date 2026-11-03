@@ -1,6 +1,6 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useDormAttendance } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";

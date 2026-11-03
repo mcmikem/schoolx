@@ -1,6 +1,5 @@
 "use client";
 import Link from "next/link";
-import MaterialIcon from "@/components/MaterialIcon";
 import { useAuth } from "@/lib/auth-context";
 import { isModuleInFeatureStage, getRequiredModuleForPath, type FeatureStage } from "@/lib/modules/catalog";
 

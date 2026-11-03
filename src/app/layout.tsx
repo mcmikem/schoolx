@@ -9,7 +9,6 @@ import DebugPing from "@/components/DebugPing";
 import DiagnosticsPanel from "@/components/DiagnosticsPanel";
 import { APP_NAME } from "@/lib/app-name";
 import { LEGACY_COMPAT_SCRIPT } from "@/lib/legacy-compat";
-import { logger } from "@/lib/logger";
 import DeferredChrome from "./deferred-chrome";
 import Providers from "./providers";
 

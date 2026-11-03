@@ -1,6 +1,6 @@
 "use client";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
-import { safeLocalStorage, safeSessionStorage } from "./safe-storage";
+import { safeLocalStorage } from "./safe-storage";
 import { useAuth } from "./auth-context";
 import { logger } from "./logger";
 import { loadSchoolSettings, saveSchoolSetting } from "./school-settings";

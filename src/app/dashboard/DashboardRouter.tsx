@@ -3,7 +3,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { DashboardSkeleton } from "@/components/Skeletons";
+import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import { greetingFor } from "@/lib/utils";

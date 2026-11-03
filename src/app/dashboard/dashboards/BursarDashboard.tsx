@@ -378,7 +378,7 @@ function BursarDashboardContent() {
                   aria-pressed={period === option.value}
                   onClick={() => setPeriod(option.value)}
                   className={`min-h-11 flex-1 whitespace-nowrap rounded-lg px-2 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:flex-none sm:px-3 ${
-                    period === option.value ? "bg-white text-[#123c35]" : "text-blue-100 hover:text-white"
+                    period === option.value ? "bg-white text-[var(--green-ink)]" : "text-white/80 hover:text-white"
                   }`}
                 >
                   {option.label}
@@ -393,7 +393,7 @@ function BursarDashboardContent() {
                 {channels.map((channel) => (
                   <div key={channel.key} className="min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <MaterialIcon icon={channel.icon} className="text-base text-[#b8f2dc]" />
+                      <MaterialIcon icon={channel.icon} className="text-base text-[var(--green-soft)]" />
                       <p className="text-[11px] font-medium leading-tight text-blue-100 sm:text-xs">{channel.label}</p>
                     </div>
                     <p
@@ -426,14 +426,14 @@ function BursarDashboardContent() {
                           <div
                             title={`${barLabels[index]}: UGX ${value.toLocaleString()}`}
                             className={`w-full rounded-t-md ${
-                              isCurrent ? "bg-[#b8f2dc]" : value > 0 ? "bg-white/45" : "bg-white/15"
+                              isCurrent ? "bg-[var(--green-soft)]" : value > 0 ? "bg-white/45" : "bg-white/15"
                             }`}
                             style={{ height: `${height}%` }}
                           />
                         </div>
                         <span
                           className={`truncate text-[10px] font-semibold ${
-                            isCurrent ? "text-[#b8f2dc]" : "text-blue-100"
+                            isCurrent ? "text-[var(--green-soft)]" : "text-white/80"
                           }`}
                         >
                           {barLabels[index]}

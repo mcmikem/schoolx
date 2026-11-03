@@ -2,7 +2,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { FadeIn } from "./FadeIn";
-import { MaterialIcon } from "./MaterialIcon";
 import { ROLES } from "./landing-data";
 
 export function RoleSwitcher() {

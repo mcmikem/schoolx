@@ -3,12 +3,12 @@ import type { PostgrestResponse, PostgrestSingleResponse } from "@supabase/supab
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/Toast";
 import { useAuth } from "@/lib/auth-context";
-import { DEMO_CLASSES, DEMO_STUDENTS, DemoStudent } from "@/lib/demo-data";
+import { DEMO_CLASSES, DEMO_STUDENTS } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { formatStudentNumber, highestStudentNumberSuffix } from "@/lib/import/students";
 import { logger } from "@/lib/logger";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
-import { getFeatureLimit, getPlanUsageWarning, normalizePlanType, PlanType } from "@/lib/payments/subscription-client";
+import { getFeatureLimit, normalizePlanType } from "@/lib/payments/subscription-client";
 import { supabase } from "@/lib/supabase";
 import {
   getErrorMessage,

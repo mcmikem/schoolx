@@ -29,7 +29,6 @@ import AcademicSettings from "@/components/settings/AcademicSettings";
 import ClassManager from "@/components/settings/ClassManager";
 import UserManager from "@/components/settings/UserManager";
 import SystemPreferences from "@/components/settings/SystemPreferences";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { type ModuleKey } from "@/lib/modules/catalog";
 import { tabsForRole } from "@/lib/role-tab-access";
 import { OwlyHelpLink } from "@/components/owly/OwlyHelpLink";

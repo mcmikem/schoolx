@@ -6,13 +6,11 @@ import { useAcademic } from "@/lib/academic-context";
 import { useStudents, useClasses } from "@/lib/hooks";
 import { getUCEGrade, getUCEDivision, getUACEGrade, getUACEPoints, getGradeForLevel } from "@/lib/grading";
 import { supabase } from "@/lib/supabase";
-import MaterialIcon from "@/components/MaterialIcon";
 import { logger } from "@/lib/logger";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
-import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
-import { Tabs, TabPanel } from "@/components/ui/Tabs";
+import { Tabs } from "@/components/ui/Tabs";
 import { EmptyState } from "@/components/EmptyState";
 
 interface StudentResult {

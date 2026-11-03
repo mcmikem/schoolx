@@ -7,7 +7,6 @@
 // ============================================================================
 "use client";
 import type { School, User } from "@/types";
-import { DEFAULT_FEATURE_STAGE, FeatureStage } from "./featureStages";
 import { normalizePlanType, PlanType } from "./payments/subscription-client";
 import { isSubscriptionLapsed, resolveSubscriptionStatus } from "./subscription-state";
 

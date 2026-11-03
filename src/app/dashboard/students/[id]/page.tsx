@@ -1,6 +1,6 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useMemo, useEffect, useCallback, useRef, type ReactNode } from "react";
+import { useState, useMemo, useEffect, useCallback, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
@@ -14,9 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { canAccess, type UserRole } from "@/lib/roles";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { Card, CardBody } from "@/components/ui/Card";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
-import { telHref, whatsappHref } from "@/lib/phone-links";
 import ContactActions from "@/components/students/ContactActions";
 import StudentDetailPanel from "@/components/students/StudentDetailPanel";
 import { normalizeStudentInput } from "@/lib/validation";

@@ -7,7 +7,6 @@ import { useAcademic } from "@/lib/academic-context";
 import { useStudents, useClasses } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
-import MaterialIcon from "@/components/MaterialIcon";
 import { Button } from "@/components/ui/index";
 import { buildRolloverPreview, getNextClassName } from "@/lib/operations";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";

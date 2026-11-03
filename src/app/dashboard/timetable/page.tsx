@@ -6,7 +6,6 @@ import { useClasses, useSubjects, useTimetableManager, useStaff } from "@/lib/ho
 import { useToast } from "@/components/Toast";
 import { EmptyState } from "@/components/EmptyState";
 import { supabase } from "@/lib/supabase";
-import { useOfflineEvents } from "@/lib/offline-hooks";
 import MaterialIcon from "@/components/MaterialIcon";
 import { VideoLessonButton } from "@/components/onboarding/VideoLesson";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -35,7 +34,6 @@ import {
   schoolLevelFromClassName,
   weeklyPeriodTargets,
 } from "@/lib/timetable/uganda-day";
-import type { Class, Subject, TimetableSlot } from "@/types";
 import { DEMO_SUBJECTS, DEMO_TIMETABLE } from "@/lib/demo-data";
 import { buildDefaultTimetableSlots } from "@/lib/school-setup";
 

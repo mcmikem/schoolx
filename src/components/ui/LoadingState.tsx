@@ -1,7 +1,5 @@
 "use client";
 
-import MaterialIcon from "@/components/MaterialIcon";
-
 /**
  * One loading affordance for the whole app.
  *

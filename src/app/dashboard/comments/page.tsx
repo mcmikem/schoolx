@@ -11,7 +11,6 @@ import PersonInitials from "@/components/ui/PersonInitials";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
-import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import { logger } from "@/lib/logger";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 

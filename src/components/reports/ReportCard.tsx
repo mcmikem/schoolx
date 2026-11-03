@@ -5,7 +5,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import OwlMascot from "@/components/brand/OwlMascot";
 import { sumUgandaTotals } from "@/lib/uganda-report";
 import { generateUgandaPrimaryBody } from "@/components/reports/ugandaPrimaryReport";
-import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print-window";
+import { writePrintDocument } from "@/lib/print-window";
 
 interface ReportCardProps {
   assessmentColumns?: string[] | null;

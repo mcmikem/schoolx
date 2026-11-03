@@ -20,10 +20,16 @@
         "noDebugger": "warn"
       },
       "correctness": {
-        "useHookAtTopLevel": "error"
+        "useHookAtTopLevel": "error",
+        "noUnusedImports": "error"
+      },
+      "suspicious": {
+        "noDebugger": "warn",
+        "noExplicitAny": "warn"
       }
     }
   },
+
   "formatter": {
     "enabled": true,
     "indentStyle": "space",

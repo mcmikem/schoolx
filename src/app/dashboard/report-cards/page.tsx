@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/index";
 import { PageHeader } from "@/components/ui/PageHeader";
 import PersonInitials from "@/components/ui/PersonInitials";
 import SearchField from "@/components/ui/SearchField";
-import { TableSkeleton } from "@/components/ui/Skeleton";
 import { useAcademic } from "@/lib/academic-context";
 import { APP_NAME } from "@/lib/app-name";
 import { useAuth } from "@/lib/auth-context";
@@ -22,7 +21,6 @@ import {
   type CBCSubjectEntry,
   calculateCBCSubject,
   cbcIdentifierValue,
-  escapeHtml,
   generateCBCReportHTML,
   summarizeCBCSubjects,
 } from "@/lib/cbc-report";

@@ -8,7 +8,6 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { useToast } from "@/components/Toast";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
-import { Button } from "@/components/ui/index";
 
 interface TeacherStats {
   teacherId: string;

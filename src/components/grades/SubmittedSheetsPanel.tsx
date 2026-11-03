@@ -1,6 +1,5 @@
 "use client";
 import * as React from "react";
-import MaterialIcon from "@/components/MaterialIcon";
 import type { GradeWorkflowStatus } from "@/lib/operations";
 
 export interface SubmittedSheet {

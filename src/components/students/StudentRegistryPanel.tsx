@@ -19,6 +19,7 @@ import { Modal } from "@/components/ui/Modal";
 import OnboardingTips from "@/components/OnboardingTips";
 import PersonInitials from "@/components/ui/PersonInitials";
 import NotifyParentsModal, { type NotifyParentEntry } from "@/components/students/NotifyParentsModal";
+import { StudentRow, HouseMeta, AttendanceStatusMeta } from "./types";
 import SearchField from "@/components/ui/SearchField";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/lib/auth-context";
@@ -29,34 +30,6 @@ interface StudentClassInfo {
   id: string;
   name: string;
   stream?: string | null;
-}
-
-interface StudentRow {
-  id: string;
-  first_name: string;
-  last_name: string;
-  gender: "M" | "F" | string;
-  class_id: string;
-  student_number?: string | null;
-  parent_name?: string | null;
-  parent_phone?: string | null;
-  opening_balance?: string | number | null;
-  photo_url?: string | null;
-  classes?: {
-    name?: string | null;
-    stream?: string | null;
-  } | null;
-  boarding_status?: string | null;
-  house_id?: string | null;
-  is_class_monitor?: boolean | null;
-  prefect_role?: string | null;
-  student_council_role?: string | null;
-}
-
-interface HouseMeta {
-  id: string;
-  name: string;
-  color?: string | null;
 }
 
 interface ClassOption {
@@ -80,11 +53,6 @@ interface ImportProgress {
   success: number;
   failed: number;
   skipped?: number;
-}
-
-interface AttendanceStatusMeta {
-  status: "present" | "absent" | "sick" | "late" | "excused";
-  label: string;
 }
 
 /**

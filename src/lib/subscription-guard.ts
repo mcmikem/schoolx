@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { toLegacyModuleKey } from "./modules/catalog";
 
 type SubscriptionStatus = "active" | "trial" | "past_due" | "expired" | "canceled" | "suspended" | "unpaid";

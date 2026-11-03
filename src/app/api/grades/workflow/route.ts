@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 import { rateLimit, supabaseClientOptions } from "@/lib/api-utils";
-import { requireModuleEntitlement } from "@/lib/subscription-guard";
 import {
   getNextGradeWorkflowStatusActions,
   getPrevGradeWorkflowStatusActions,

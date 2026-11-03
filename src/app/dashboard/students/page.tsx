@@ -15,6 +15,7 @@ import StudentDetailPanel from "@/components/students/StudentDetailPanel";
 import { useStudentImport } from "@/components/students/StudentImportModal";
 import StudentPromotionPanel from "@/components/students/StudentPromotionPanel";
 import StudentRegistryPanel, { type StudentBulkPatch } from "@/components/students/StudentRegistryPanel";
+import { HouseMeta, AttendanceStatusMeta } from "@/components/students/types";
 import StudentRetentionPanel from "@/components/students/StudentRetentionPanel";
 import StudentTransfersPanel from "@/components/students/StudentTransfersPanel";
 import StudentWorkspaceShell from "@/components/students/StudentWorkspaceShell";
@@ -62,12 +63,6 @@ interface ClassData {
   level: string;
 }
 
-interface HouseMeta {
-  id: string;
-  name: string;
-  color?: string | null;
-}
-
 interface SmsTarget {
   id: string;
   first_name: string;
@@ -102,11 +97,6 @@ interface EditingStudent {
   prefect_role?: string | null;
   student_council_role?: string | null;
   games_house?: string | null;
-}
-
-interface AttendanceStatusMeta {
-  status: "present" | "absent" | "sick" | "late" | "excused";
-  label: string;
 }
 
 export default function StudentHubPage() {

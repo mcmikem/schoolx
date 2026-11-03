@@ -1,7 +1,7 @@
 // Offboarding / onboarding state + server persistence
 // Used by the new RoleAwareOverlay + Teacher/Bursar step flows.
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 

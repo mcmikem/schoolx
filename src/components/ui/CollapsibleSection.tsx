@@ -1,6 +1,6 @@
 "use client";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
-import { safeLocalStorage, safeSessionStorage } from "@/lib/safe-storage";
+import { safeLocalStorage } from "@/lib/safe-storage";
 import MaterialIcon from "@/components/MaterialIcon";
 
 interface CollapsibleSectionProps {
