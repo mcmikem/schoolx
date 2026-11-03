@@ -214,7 +214,7 @@ export default function AcademicSettings() {
             <p className="text-sm text-on-surface-variant mb-4">
               Configure which exams to use and their weights. Total must equal 100%.
             </p>
-            <div className="bg-[#f8fafc] rounded-lg p-4">
+            <div className="bg-[var(--surface-container-low)] rounded-lg p-4">
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-3 text-xs font-medium text-[var(--t3)] uppercase">
                 <span className="col-span-2">Exam</span>
                 <span className="text-center">Weight</span>
@@ -246,7 +246,7 @@ export default function AcademicSettings() {
           <div>
             <div className="space-y-3 max-h-[400px] overflow-y-auto">
               {examWeights.map((exam) => (
-                <div key={exam.id} className="flex items-center gap-3 p-3 bg-[#f8fafc] rounded-lg">
+                <div key={exam.id} className="flex items-center gap-3 p-3 bg-[var(--surface-container-low)] rounded-lg">
                   <input
                     type="checkbox"
                     checked={exam.isActive}
@@ -254,7 +254,7 @@ export default function AcademicSettings() {
                     className="w-4 h-4 rounded border-[var(--border2)] text-primary"
                   />
                   <span className="flex-1 text-sm">{exam.name}</span>
-                  <span className="text-xs text-[#94a3b8] w-8">{exam.shortName}</span>
+                  <span className="text-xs text-[var(--t4)] w-8">{exam.shortName}</span>
                   <input
                     type="number"
                     inputMode="numeric"
@@ -377,7 +377,7 @@ export function TermGradeBasisCard() {
         {BASIS_OPTIONS.map((option) => {
           const on = basis.types.includes(option.id);
           return (
-            <div key={option.id} className="flex items-center gap-3 p-3 bg-[#f8fafc] rounded-lg">
+            <div key={option.id} className="flex items-center gap-3 p-3 bg-[var(--surface-container-low)] rounded-lg">
               <input
                 type="checkbox"
                 checked={on}
@@ -476,7 +476,10 @@ export function AssessmentMaximumsCard() {
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {Object.keys(ASSESSMENT_MAX).map((type) => (
-          <label key={type} className="flex items-center justify-between gap-3 rounded-lg bg-[#f8fafc] p-3 text-sm">
+          <label
+            key={type}
+            className="flex items-center justify-between gap-3 rounded-lg bg-[var(--surface-container-low)] p-3 text-sm"
+          >
             <span>{assessmentLabel(type)}</span>
             <span className="flex items-center gap-2">
               <input
@@ -630,7 +633,7 @@ export function ReportRowsCard() {
       </div>
 
       {rows.length === 0 ? (
-        <p className="text-sm text-[var(--t3)] bg-[#f8fafc] rounded-lg p-4">
+        <p className="text-sm text-[var(--t3)] bg-[var(--surface-container-low)] rounded-lg p-4">
           {levelKey === DEFAULT_LEVEL_KEY
             ? "No combined lines for the whole school. Add one if teachers mark subjects separately but the report shows a single grade."
             : `${levelKey} classes follow the default above. Add an override only if this level reports differently.`}

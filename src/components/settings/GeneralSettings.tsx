@@ -543,7 +543,7 @@ export default function GeneralSettings({
           {/* School Colors */}
           <div className="border-t border-[var(--surface-container-high)] pt-6 mt-6">
             <h3 className="text-sm font-semibold text-[var(--t1)] mb-4">School Colors</h3>
-            <p className="text-xs text-[#6b7280] mb-4">
+            <p className="text-xs text-[var(--t3)] mb-4">
               Choose colors that match your school brand. These will be used throughout the app.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -579,7 +579,9 @@ export default function GeneralSettings({
               <h2 className="text-lg font-semibold text-[var(--t1)]">Package stage</h2>
               <p className="text-sm text-[var(--t3)]">Disable modules that fall outside your current package.</p>
             </div>
-            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-[#2E9448]">{selectedStage}</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--green-ink)]">
+              {selectedStage}
+            </span>
           </div>
           <div className="grid gap-3">
             {stageOrder.map((stageKey) => {
@@ -592,8 +594,8 @@ export default function GeneralSettings({
                   disabled={savingStage || isActive}
                   className={`w-full text-left rounded-2xl border px-4 py-4 transition ${
                     isActive
-                      ? "border-[#2E9448] bg-[#eaf4ed]"
-                      : "border-[#e1e7f0] bg-[var(--surface)] hover:border-[#2E9448]/60"
+                      ? "border-[var(--green)] bg-[var(--green-soft)]"
+                      : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--green)]/60"
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -601,7 +603,7 @@ export default function GeneralSettings({
                       <p className="text-sm font-semibold text-[var(--t1)]">{stage.label}</p>
                       <p className="text-xs text-[var(--t3)] mt-1">{stage.description}</p>
                     </div>
-                    {isActive && <span className="text-xs font-semibold text-[#2E9448]">Active</span>}
+                    {isActive && <span className="text-xs font-semibold text-[var(--green-ink)]">Active</span>}
                   </div>
                 </button>
               );
