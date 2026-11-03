@@ -42,141 +42,17 @@ import { supabase } from "./supabase";
 import { isSupabaseLockAbortError, withSupabaseLockRetry } from "./supabase-lock";
 import { clearUserScopedStorage } from "./user-scoped-storage";
 import { getErrorMessage } from "./validation";
-
-// ---------------------------------------------------------------------------
-// Role normalisation
-// ---------------------------------------------------------------------------
-// Staff in rural schools routinely hold more than one hat, so the API returns
-// the full set. These keep the client honest whether the multi-role migration
-// has been applied or not: the primary role is always present, duplicates are
-// dropped, and unknown values never reach the permission layer.
-function normaliseRoles(roles: unknown, primary: unknown): User["roles"] {
-  const out: NonNullable<User["roles"]> = [];
-  const push = (value: unknown) => {
-    if (typeof value !== "string") return;
-    const trimmed = value.trim();
-    if (trimmed && !out.includes(trimmed as User["role"])) out.push(trimmed as User["role"]);
-  };
-  if (Array.isArray(roles)) roles.forEach(push);
-  push(primary);
-  return out;
-}
-
-function sameRoles(a: readonly string[] | undefined, b: readonly string[] | undefined): boolean {
-  const left = a ?? [];
-  const right = b ?? [];
-  if (left.length !== right.length) return false;
-  return left.every((role, i) => role === right[i]);
-}
-
-// ---------------------------------------------------------------------------
-// Network error detection — critical for poor internet (e.g. Uganda 3G)
-// We must NOT log users out just because a network request timed out.
-// ---------------------------------------------------------------------------
-function isNetworkError(error: unknown): boolean {
-  if (error === null || error === undefined) return false;
-  const msg = getErrorMessage(error, "").toLowerCase();
-  const status =
-    typeof error === "object" && error !== null && "status" in error
-      ? (error as { status?: number }).status
-      : undefined;
-
-  // Status 0 = network failure (fetch aborted, no connection, CORS blocked)
-  if (status === 0) return true;
-
-  // Common network error messages across browsers and Supabase
-  const networkKeywords = [
-    "fetch",
-    "network",
-    "timeout",
-    "timed out",
-    "abort",
-    "failed to fetch",
-    "networkerror",
-    "net::err",
-    "err_connection",
-    "ns_error",
-    "unable to connect",
-  ];
-  return networkKeywords.some((kw) => msg.includes(kw));
-}
-
-function isAuthSessionMissingError(error: unknown): boolean {
-  const msg = getErrorMessage(error, "").toLowerCase();
-  return msg.includes("session") && (msg.includes("missing") || msg.includes("not found"));
-}
-
-// Connection quality detection — reduces timeouts dynamically on slow networks.
-// Uses the Network Information API where available (Chrome, Edge, Samsung Internet).
-const SLOW_CONNECTION_EFFECTIVE_TYPES = new Set(["slow-2g", "2g", "3g"]);
-function getConnectionTimeout(base: number): number {
-  if (typeof navigator === "undefined" || !("connection" in navigator)) return base;
-  const conn = (navigator as any).connection as { effectiveType?: string; downlink?: number; rtt?: number } | undefined;
-  if (!conn) return base;
-  if (conn.effectiveType && SLOW_CONNECTION_EFFECTIVE_TYPES.has(conn.effectiveType)) return Math.round(base * 0.6);
-  if (conn.downlink !== undefined && conn.downlink < 1) return Math.round(base * 0.6);
-  return base;
-}
-
-function isSlowConnection(): boolean {
-  if (typeof navigator === "undefined" || !("connection" in navigator)) return false;
-  const conn = (navigator as any).connection as { effectiveType?: string; downlink?: number } | undefined;
-  if (!conn) return false;
-  if (conn.effectiveType && SLOW_CONNECTION_EFFECTIVE_TYPES.has(conn.effectiveType)) return true;
-  if (conn.downlink !== undefined && conn.downlink < 1) return true;
-  return false;
-}
-
-// Remembers which login format (e.g. legacy `0XXX@omuto.org` vs normalized)
-// worked last for an identifier, so repeat logins try it first instead of
-// burning seconds failing the primary format on every single sign-in.
-const LOGIN_FORMAT_KEY_PREFIX = "skoolmate_login_format_v1";
-
-// A device that has already felt a slow link. The Network Information API
-// reports "4g" until it has measured something, so on a brand new phone --
-// exactly the phone that has never logged in -- the API says the connection
-// is fast while the connection is anything but. The sign-in deadline
-// therefore cannot trust it, and a device that has seen a slow link keeps the
-// longer deadline next time.
-const SLOW_DEVICE_KEY = "skoolmate_slow_device_v1";
-
-function wasSlowDevice(): boolean {
-  try {
-    return localStorage.getItem(SLOW_DEVICE_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function rememberSlowDevice(): void {
-  try {
-    localStorage.setItem(SLOW_DEVICE_KEY, "1");
-  } catch {
-    // Private mode: the hint is a nicety, not a requirement.
-  }
-}
-
-function rememberedFormatKey(identifier: string): string {
-  const trimmed = identifier.trim();
-  const canonical = trimmed.includes("@") ? trimmed.toLowerCase() : buildAuthEmailFromPhone(trimmed);
-  return `${LOGIN_FORMAT_KEY_PREFIX}:${canonical}`;
-}
-
-function getRememberedFormat(identifier: string): string | null {
-  try {
-    return localStorage.getItem(rememberedFormatKey(identifier));
-  } catch {
-    return null;
-  }
-}
-
-function setRememberedFormat(identifier: string, signature: string): void {
-  try {
-    localStorage.setItem(rememberedFormatKey(identifier), signature);
-  } catch {
-    // Ignore storage errors (private mode) — just means no fast-path next time.
-  }
-}
+import {
+  normaliseRoles,
+  sameRoles,
+  isNetworkError,
+  getConnectionTimeout,
+  isSlowConnection,
+  wasSlowDevice,
+  rememberSlowDevice,
+  getRememberedFormat,
+  setRememberedFormat,
+} from "./auth-helpers";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 

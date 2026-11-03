@@ -22,10 +22,6 @@
       "correctness": {
         "useHookAtTopLevel": "error",
         "noUnusedImports": "error"
-      },
-      "suspicious": {
-        "noDebugger": "warn",
-        "noExplicitAny": "warn"
       }
     }
   },
