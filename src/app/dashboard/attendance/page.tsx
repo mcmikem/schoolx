@@ -1200,7 +1200,7 @@ export default function AttendancePage() {
                       variant="secondary"
                       size="sm"
                       onClick={() => setConfirmAbsentAlert(true)}
-                      className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+                      className="bg-[var(--red-soft)] text-[var(--red-ink)] border-[var(--red-soft)] hover:bg-[var(--red-soft)]"
                       icon={<MaterialIcon icon="notification_important" />}
                     >
                       Notify Parents ({absentCount})
@@ -1315,11 +1315,11 @@ export default function AttendancePage() {
             <div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-sm">
               <div className="flex items-center gap-3 min-w-0">
                 <div
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${absenteeAlertEnabled ? "bg-red-50" : "bg-surface-container-high"}`}
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${absenteeAlertEnabled ? "bg-[var(--red-soft)]" : "bg-surface-container-high"}`}
                 >
                   <MaterialIcon
                     icon={absenteeAlertEnabled ? "notifications_active" : "notifications_off"}
-                    className={absenteeAlertEnabled ? "text-red-600" : "text-[var(--t3)]"}
+                    className={absenteeAlertEnabled ? "text-[var(--red-ink)]" : "text-[var(--t3)]"}
                   />
                 </div>
                 <div className="min-w-0">
@@ -1329,7 +1329,7 @@ export default function AttendancePage() {
                       <span className="text-xs text-[var(--t3)]">Loading...</span>
                     ) : (
                       <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-bold ${absenteeAlertEnabled ? "bg-red-50 text-red-700" : "bg-surface-container-high text-[var(--t3)]"}`}
+                        className={`rounded-full px-2 py-0.5 text-xs font-bold ${absenteeAlertEnabled ? "bg-[var(--red-soft)] text-[var(--red-ink)]" : "bg-surface-container-high text-[var(--t3)]"}`}
                       >
                         {absenteeAlertEnabled ? "ON" : "OFF"}
                       </span>
@@ -1344,7 +1344,7 @@ export default function AttendancePage() {
                 onClick={handleToggleAbsenteeAlert}
                 disabled={loadingAutomation}
                 title={absenteeAlertEnabled ? "Disable absentee SMS alerts" : "Enable absentee SMS alerts"}
-                className={`relative h-8 w-14 min-w-[56px] shrink-0 rounded-full transition-colors duration-200 ${absenteeAlertEnabled ? "bg-red-600" : "bg-surface-container-highest"}`}
+                className={`relative h-8 w-14 min-w-[56px] shrink-0 rounded-full transition-colors duration-200 ${absenteeAlertEnabled ? "bg-[var(--red-ink)]" : "bg-surface-container-highest"}`}
                 role="switch"
                 aria-checked={absenteeAlertEnabled}
                 aria-label="Toggle absentee SMS alerts"
@@ -1370,13 +1370,13 @@ export default function AttendancePage() {
                     <p className="text-sm font-medium text-[var(--t1)]">Loading classes...</p>
                   </div>
                 ) : classes.length === 0 ? (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                  <div className="rounded-xl border border-[var(--amber-soft)] bg-[var(--amber-soft)] p-3">
                     {isClassTeacher && !isAdmin ? (
-                      <p className="text-sm text-amber-800">
+                      <p className="text-sm text-[var(--amber-ink)]">
                         No classes assigned yet. Ask your administrator to assign you a class.
                       </p>
                     ) : (
-                      <p className="text-sm text-amber-800">No classes found. Add classes from School Settings.</p>
+                      <p className="text-sm text-[var(--amber-ink)]">No classes found. Add classes from School Settings.</p>
                     )}
                   </div>
                 ) : (

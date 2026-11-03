@@ -133,6 +133,8 @@ type ClashInfo = {
   day: number;
 };
 
+const TIMETABLE_EDIT_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "dean_of_studies"];
+
 export default function TimetablePage() {
   const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
@@ -166,7 +168,6 @@ export default function TimetablePage() {
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showDaySetup, setShowDaySetup] = useState(false);
   const [showPrint, setShowPrint] = useState(false);
-  const TIMETABLE_EDIT_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "dean_of_studies"];
   const canAutoGenerate = !!user && TIMETABLE_EDIT_ROLES.includes(user.role);
   // Adding/removing lessons is a school-wide structural change, not a teacher's
   // own diary. RLS on teacher_timetable was `FOR ALL` to any authenticated user
