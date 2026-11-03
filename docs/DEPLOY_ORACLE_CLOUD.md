@@ -122,12 +122,33 @@ Replace `your-domain.com` with your actual domain. Point your domain's DNS A rec
 
 ## Updating the app
 
+### Manual
 ```bash
 cd ~/schoolx
 git pull
 docker compose -f docker-compose.prod.yml build
 docker compose -f docker-compose.prod.yml up -d
 ```
+
+### Automatic (GitHub Actions)
+A workflow is included at `.github/workflows/deploy-oracle.yml`. On every push to `main`,
+it SSHes into the VM, pulls, builds, and restarts automatically.
+
+**One-time setup — add these GitHub Secrets** (repo → Settings → Secrets and variables → Actions):
+| Secret | Value |
+|---|---|
+| `ORACLE_HOST` | Your VM's public IP |
+| `ORACLE_USER` | `ubuntu` (or your SSH user) |
+| `ORACLE_SSH_KEY` | Contents of your **private** SSH key (`~/.ssh/id_rsa` or `id_ed25519`) |
+
+Generate a dedicated deploy key (recommended):
+```bash
+ssh-keygen -t ed25519 -C "deploy@skoolmate" -f ~/.ssh/skoolmate_deploy
+# Add the PUBLIC key to the VM: cat ~/.ssh/skoolmate_deploy.pub >> ~/.ssh/authorized_keys
+# Add the PRIVATE key to GitHub Secrets as ORACLE_SSH_KEY
+```
+
+You can also trigger a deploy manually: GitHub → Actions → "Deploy to Oracle Cloud" → "Run workflow".
 
 ## Backups
 

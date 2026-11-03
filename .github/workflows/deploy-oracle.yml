@@ -1,0 +1,52 @@
+name: Deploy to Oracle Cloud
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Oracle Cloud VM
+    runs-on: ubuntu-latest
+    # Skip if GitHub billing is locked (won't start anyway)
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ${{ secrets.ORACLE_USER }}
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          port: 22
+          script_stop: true
+          script: |
+            set -e
+            cd ~/schoolx
+            echo "=== Pulling latest code ==="
+            git pull origin main
+
+            echo "=== Building Docker image ==="
+            DOCKER_BUILD=1 docker compose -f docker-compose.prod.yml build
+
+            echo "=== Restarting app ==="
+            docker compose -f docker-compose.prod.yml up -d
+
+            echo "=== Waiting for health check ==="
+            for i in $(seq 1 30); do
+              if wget -q --spider http://localhost:3000/api/health/ 2>/dev/null; then
+                echo "=== Deploy successful ==="
+                exit 0
+              fi
+              echo "Waiting... ($i/30)"
+              sleep 5
+            done
+
+            echo "=== Health check failed ==="
+            docker compose -f docker-compose.prod.yml logs --tail=50 app
+            exit 1
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "Deploy failed. Check the VM logs."
