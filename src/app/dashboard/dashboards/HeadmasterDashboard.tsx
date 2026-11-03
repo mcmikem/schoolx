@@ -255,13 +255,13 @@ function HeadmasterDashboardContent() {
       {timedOut && !refreshFailedDelivered ? (
         // Transient status belongs in Owly. This banner is only the fallback
         // for mounts with no assistant listening; the message is identical.
-        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 mb-4 flex items-start gap-2">
-          <span className="material-symbols-outlined text-amber-600 mt-0.5" aria-hidden>
+        <div className="rounded-xl border border-[var(--amber)]/30 bg-[var(--amber-soft)] px-4 py-3 mb-4 flex items-start gap-2">
+          <span className="material-symbols-outlined text-[var(--amber-ink)] mt-0.5" aria-hidden>
             wifi_off
           </span>
           <div>
-            <p className="text-sm font-semibold text-amber-800">Some dashboard data couldn&apos;t refresh</p>
-            <p className="text-xs text-amber-700 mt-0.5">
+            <p className="text-sm font-semibold text-[var(--amber-ink)]">Some dashboard data couldn&apos;t refresh</p>
+            <p className="text-xs text-[var(--amber-ink)] mt-0.5">
               Showing the most recent available data. This usually means your internet or the school server is slow — it
               will retry automatically.
             </p>

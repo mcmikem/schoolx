@@ -42,6 +42,6 @@
 - Existing direct student-photo URLs stored in old rows need a migration or
   signed-URL refresh strategy for already persisted records.
 - Supabase migration history contains a pre-existing duplicate `202611030001`
-  version/name mismatch. The atomic migration applied successfully, but a
-  later `--include-all` push reported that duplicate. Reconcile it with
-  `supabase migration repair` before the next deployment.
+  version/name mismatch. The duplicate local hardening filename was removed,
+  and `20261204000100` was repaired as applied. `supabase db push --dry-run`
+  now reports the remote database is up to date.
