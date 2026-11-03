@@ -130,7 +130,7 @@ button {
 /* -- TOKENS ----------------------------------------------- */
 :root {
   /* Core design system palette */
-  --navy: #0045ad;
+  --navy: #0045ad; /* DEPRECATED alias for --secondary; prefer --primary for brand blue */
   --navy-mid: #005ce6;
   --navy-soft: #d9e7fb;
 
@@ -140,7 +140,7 @@ button {
   --amber: #f59e0b;
   --amber-soft: #fff1cf;
 
-  --red: #f04444;
+  --red: #f04444; /* canonical red; --error is deprecated alias */
   --red-soft: #fac5c5;
 
   /* Badge foregrounds.
@@ -173,7 +173,7 @@ button {
   --on-error-container: var(--red-ink);
   --secondary-container: var(--green-soft);
   --on-secondary-container: var(--green-ink);
-  --blue: var(--navy);
+  --blue: var(--navy); /* DEPRECATED alias for --navy */
   --blue-soft: var(--navy-soft);
 
   /* Light Theme - Surface & Background */
@@ -265,7 +265,7 @@ button {
   --outline-variant: #d9e7fb;
   --background: #f5f8fe;
   --on-background: #171717;
-  --error: #f04444;
+  --error: #f04444; /* DEPRECATED alias for --red */
 
   /* Spacing & Effects (Soft UI) */
   --r: 16px;

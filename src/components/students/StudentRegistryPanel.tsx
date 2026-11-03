@@ -1013,7 +1013,7 @@ export default function StudentRegistryPanel({
                                 justifyContent: "center",
                                 fontSize: 12,
                                 fontWeight: 700,
-                                color: "#fff",
+                                color: "var(--on-primary, #fff)",
                                 overflow: "hidden",
                                 position: "relative",
                                 background: student.gender === "M" ? "var(--navy)" : "var(--red)",
