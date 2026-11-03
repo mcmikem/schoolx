@@ -259,7 +259,7 @@ export function TeacherDashboardContent() {
             </div>
           }
         />
-        <div className="rounded-2xl border border-[var(--surface-container-low)] bg-white p-6 text-center">
+        <div className="rounded-2xl border border-[var(--surface-container-low)] bg-[var(--surface)] p-6 text-center">
           <OwlMascot size={64} premium ring glow animated />
           <h2 className="mt-4 text-lg font-bold text-[var(--t1)] font-['Sora']">No classes assigned yet</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-[var(--t3)]">
@@ -298,7 +298,7 @@ export function TeacherDashboardContent() {
       {isClassScopedRole(user?.role) && needsSetup && myClasses.length > 0 && (
         <div
           role="status"
-          className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+          className="mb-5 rounded-xl border border-[var(--amber)]/30 bg-[var(--amber-soft)] px-4 py-3 text-sm text-[var(--amber-ink)]"
         >
           Your teaching subjects are not assigned yet. Ask your school administrator to complete your class and subject
           setup.
@@ -313,19 +313,19 @@ export function TeacherDashboardContent() {
               allClassesMarked
                 ? "border-[var(--green-soft)] bg-[var(--green-soft)]"
                 : markedCount !== null && markedCount > 0
-                  ? "border-amber-200 bg-amber-50"
+                  ? "border-[var(--amber)]/30 bg-[var(--amber-soft)]"
                   : "border-[var(--red-soft)] bg-[var(--red-soft)]"
             }`}
           >
             <div className="flex items-center gap-2">
               <MaterialIcon
                 icon={allClassesMarked ? "check_circle" : "how_to_reg"}
-                className={`text-lg ${allClassesMarked ? "text-[var(--green)]" : markedCount !== null && markedCount > 0 ? "text-amber-600" : "text-[var(--red)]"}`}
+                className={`text-lg ${allClassesMarked ? "text-[var(--green)]" : markedCount !== null && markedCount > 0 ? "text-[var(--amber-ink)]" : "text-[var(--red)]"}`}
               />
               <span className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--t3)]">Attendance</span>
             </div>
             <p
-              className={`mt-1 text-lg font-bold ${allClassesMarked ? "text-[var(--green)]" : markedCount !== null && markedCount > 0 ? "text-amber-700" : "text-[var(--red)]"}`}
+              className={`mt-1 text-lg font-bold ${allClassesMarked ? "text-[var(--green)]" : markedCount !== null && markedCount > 0 ? "text-[var(--amber-ink)]" : "text-[var(--red)]"}`}
             >
               {markedCount === null
                 ? "Checking…"
@@ -350,7 +350,7 @@ export function TeacherDashboardContent() {
               <Link
                 href="/dashboard/attendance"
                 className={`mt-3 flex min-h-[44px] items-center justify-center gap-1 rounded-xl px-3 text-[13px] font-bold text-white transition-opacity hover:opacity-90 ${
-                  markedCount === 0 ? "bg-[var(--red)]" : "bg-amber-600"
+                  markedCount === 0 ? "bg-[var(--red)]" : "bg-[var(--amber)]"
                 }`}
               >
                 {markedCount === 0 ? "Take attendance now" : "Finish marking"}
@@ -358,7 +358,7 @@ export function TeacherDashboardContent() {
               </Link>
             )}
           </div>
-          <div className="rounded-2xl border border-[var(--surface-container-low)] bg-white p-4">
+          <div className="rounded-2xl border border-[var(--surface-container-low)] bg-[var(--surface)] p-4">
             <div className="flex items-center gap-2">
               <MaterialIcon icon="assignment" className="text-lg text-[var(--t1)]" />
               <span className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--t3)]">Tasks</span>
@@ -471,7 +471,7 @@ export function TeacherDashboardContent() {
           )}
 
           {/* Today's Schedule */}
-          <div className="rounded-2xl border border-[var(--surface-container-low)] bg-white p-4">
+          <div className="rounded-2xl border border-[var(--surface-container-low)] bg-[var(--surface)] p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--amber)]/10">
