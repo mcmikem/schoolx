@@ -42,7 +42,7 @@ export function replacePhotoExtension(fileName: string, extension: string): stri
 
 /**
  * Storage object path behind a public URL, e.g.
- * `https://…/storage/v1/object/public/student-photos/<school>/<file>` →
+ * `https://…/storage/v1/object/(public|sign)/student-photos/<school>/<file>` →
  * `<school>/<file>`. Returns null for data-URLs, blank values, or foreign URLs.
  */
 export function extractStorageObjectPath(
@@ -240,7 +240,7 @@ export async function uploadStudentPhoto(options: {
 
   if (uploadResult.error && uploadResult.error.message.includes("bucket")) {
     await supabase.storage.createBucket("student-photos", {
-      public: true,
+      public: false,
       fileSizeLimit: MAX_FILE_SIZE_BYTES,
       allowedMimeTypes: Array.from(ALLOWED_IMAGE_TYPES),
     });
@@ -260,9 +260,10 @@ export async function uploadStudentPhoto(options: {
     throw uploadResult.error;
   }
 
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from("student-photos").getPublicUrl(filePath);
+  const { data: signed, error: signedUrlError } = await supabase.storage
+    .from("student-photos")
+    .createSignedUrl(filePath, 60 * 60);
+  if (signedUrlError || !signed?.signedUrl) throw signedUrlError || new Error("Could not create a private photo URL");
 
-  return { publicUrl: withCacheBust(publicUrl), filePath };
+  return { publicUrl: withCacheBust(signed.signedUrl), filePath };
 }

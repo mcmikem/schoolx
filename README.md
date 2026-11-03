@@ -1,6 +1,6 @@
-# Omuto School Management System
+# SkoolMate OS
 
-A comprehensive, offline-first school management platform designed for East African schools with a focus on Uganda's education system.
+A Uganda-focused school operations platform. SkoolMate OS is the canonical product name; Omuto is the organization/domain name and `schoolx` is the repository package name.
 
 ## Features
 
@@ -14,17 +14,17 @@ A comprehensive, offline-first school management platform designed for East Afri
 
 ### Specialized Features
 - **UNEB Support** - PLE, UCE, UACE registration and reporting
-- **Parent Portal** - Real-time student progress viewing
-- **Offline Mode** - IndexedDB for areas with poor connectivity
+- **Parent Portal** - Student progress, fees, homework, and notices; notification refresh is polled, not live-pushed
+- **Offline Mode** - IndexedDB caching and queued writes for selected workflows; billing, payments, bulk SMS, imports, AI, UNEB submissions, and some reports require connectivity
 - **Mobile Money** - MTN & Airtel Uganda payments
-- **Auto-SMS** - Automated fee reminders and absentee alerts
+- **Auto-SMS** - Scheduled fee reminders and absentee alerts when a provider, valid contacts, and an eligible plan are configured
 
 ## Tech Stack
 
 - **Frontend**: Next.js 16, React 18, TypeScript
 - **Styling**: Tailwind CSS 3.4
 - **Backend**: Supabase (PostgreSQL + Auth)
-- **Payments**: Stripe, PayPal, Flutterwave (Mobile Money)
+- **Payments**: Stripe and PayPal subscriptions; MoneyUnify or direct MTN MoMo/Airtel mobile-money flows when configured
 - **SMS**: Africa's Talking
 - **Offline**: IndexedDB (idb)
 
@@ -45,9 +45,11 @@ cp .env.example .env.local
 npm run dev
 ```
 
-### Demo Credentials
-- Phone: `0700000001`
-- Password: `skoolmate_demo_2024`
+### Demo mode
+
+Demo login is development-only. Set `ENABLE_DEV_TEST_ROUTES=true`,
+`NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES=true`, and a local `DEMO_ADMIN_PASSWORD`,
+then use the demo page. Production deployments must keep these flags disabled.
 
 ## Environment Variables
 
@@ -109,12 +111,21 @@ DEMO_ADMIN_PASSWORD=skoolmate_demo_2024
 - Keep `ENABLE_DEV_TEST_ROUTES` and `NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES` set to `false` in production.
 - Set `CRON_SECRET` in Vercel or scheduled automation routes will return 500.
 
-## Testing
+## Testing and release gates
 
 ```bash
-npm test        # Run tests
-npm run lint    # Check lint
-npm run build   # Production build
+npm run lint
+npm run typecheck
+npm test
+npm run test:regression
+npm run check:schema-drift
+npm run check:production-leakage
+npm run scan:secrets
+npm run build
+
+Use `npm run test:auth`, `npm run test:e2e`, and `npm run test:e2e:offline`
+when changing authentication, routes, or offline behavior. Use
+`npm run check:release` before a release and `npm run smoke:prod` after deploy.
 ```
 
 ## Project Structure
@@ -138,22 +149,31 @@ src/
     └── payments/     # Payment integrations
 ```
 
-## Subscription Plans
+## Subscription plans
 
-| Feature | Free Trial | Basic | Premium | Max |
-|---------|------------|-------|---------|-----|
-| Students | 100 | 300 | 1,000 | Unlimited |
-| SMS/Month | 20 | 100 | 500 | 2,000 |
-| UNEB Export | ❌ | ✅ | ✅ | ✅ |
-| Parent Portal | ❌ | ❌ | ✅ | ✅ |
-| Offline Mode | ❌ | ❌ | ❌ | ✅ |
-| Multi-School | ❌ | ❌ | ❌ | ✅ |
+The billing configuration is authoritative. Plan identifiers are
+`free_trial`, `starter`, `growth`, `enterprise`, and `lifetime`. Limits and
+entitlements can change; use `src/lib/billing/config.ts` and the pricing page
+as the source of truth.
+
+Do not infer offline, UNEB, parent-portal, or SMS availability from old plan
+names. Check the canonical billing configuration before publishing pricing or
+changing an entitlement.
 
 ## Security
 
-- Row Level Security (RLS) is used in Supabase
-- Some sensitive API routes enforce rate limiting and CSRF checks
-- Demo mode is session-scoped and should not be treated as secure storage
+- Row Level Security (RLS) is used in Supabase; test policies against
+  cross-school and multi-role access.
+- Some API routes enforce rate limiting and CSRF checks; this is not a claim of
+  complete security coverage.
+- Student photos are private storage objects and must be accessed through
+  authenticated, school-scoped signed URLs.
+- Offline data can remain on a shared device until storage is cleared; browser
+  storage is not a secure vault.
+- Demo mode is session-scoped and must never connect to production data.
+
+See [the production operations runbook](docs/OPERATIONS_RUNBOOK.md) for
+migrations, release gates, backups, incident response, and provider outages.
 - Production deployments must provide valid Supabase env vars; silent mock fallback is disabled
 
 ## License

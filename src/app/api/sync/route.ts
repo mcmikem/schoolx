@@ -12,7 +12,7 @@ import {
 } from "@/lib/api-utils";
 import type { Database } from "@/lib/supabase";
 import { SYNC_VALID_TABLES, SYNC_MAX_ITEMS, isValidSyncData } from "@/lib/server/sync-validation";
-import { stripLocalOnlySyncKeys } from "@/lib/sync-payload";
+import { stripLocalOnlySyncKeys, stripProtectedSyncUpdateKeys } from "@/lib/sync-payload";
 import { buildAuditInsertRow } from "@/lib/server/audit-sync";
 import { canAccessClass, isClassScopedRole } from "@/lib/server/class-scope";
 
@@ -416,7 +416,12 @@ async function handleSyncPost(request: NextRequest) {
               errors.push(`Missing id for update on ${item.table}`);
               continue;
             }
-            const { id, ...updateData } = stripLocalOnlySyncKeys(item.data);
+            const { id, ...updateData } = stripProtectedSyncUpdateKeys(item.data);
+            if (Object.keys(updateData).length === 0) {
+              failedCount++;
+              errors.push(`No mutable fields supplied for ${item.table}`);
+              continue;
+            }
             const query = supabase
               .from(item.table as any)
               .update(updateData as never)

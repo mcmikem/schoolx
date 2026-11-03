@@ -604,7 +604,7 @@ function DirectoryTab({
 
       if (uploadResult.error && uploadResult.error.message.includes("bucket")) {
         await supabase.storage.createBucket("student-photos", {
-          public: true,
+          public: false,
           fileSizeLimit: 5 * 1024 * 1024,
           allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"],
         });
@@ -620,11 +620,13 @@ function DirectoryTab({
         throw uploadResult.error;
       }
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("student-photos").getPublicUrl(filePath);
+      const { data: signed, error: signedUrlError } = await supabase.storage
+        .from("student-photos")
+        .createSignedUrl(filePath, 60 * 60);
+      if (signedUrlError || !signed?.signedUrl)
+        throw signedUrlError || new Error("Could not create a private staff photo URL");
 
-      return withCacheBust(publicUrl);
+      return withCacheBust(signed.signedUrl);
     },
     [school?.id, isDemo],
   );
@@ -2259,7 +2261,7 @@ function DirectoryTab({
                           includeMargin={false}
                         />
                       </div>
-                      <span className="text-[8px] text-[#475569] font-bold tracking-[0.03em] uppercase">Verify</span>
+                      <span className="text-[8px] text-[var(--t3)] font-bold tracking-[0.03em] uppercase">Verify</span>
                     </div>
                   </div>
                 </div>

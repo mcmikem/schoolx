@@ -126,9 +126,11 @@ jobs:
           SMS_USERNAME: ${{ secrets.SMS_USERNAME }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-          FLUTTERWAVE_PUBLIC_KEY: ${{ secrets.FLUTTERWAVE_PUBLIC_KEY }}
-          FLUTTERWAVE_SECRET_KEY: ${{ secrets.FLUTTERWAVE_SECRET_KEY }}
-          FLUTTERWAVE_WEBHOOK_SECRET: ${{ secrets.FLUTTERWAVE_WEBHOOK_SECRET }}
+          MONEY_UNIFY_AUTH_ID: ${{ secrets.MONEY_UNIFY_AUTH_ID }}
+          MONEY_UNIFY_API_URL: ${{ secrets.MONEY_UNIFY_API_URL }}
+          MTN_MOMO_COLLECTION_SUBSCRIPTION_KEY: ${{ secrets.MTN_MOMO_COLLECTION_SUBSCRIPTION_KEY }}
+          MTN_MOMO_API_USER: ${{ secrets.MTN_MOMO_API_USER }}
+          MTN_MOMO_API_KEY: ${{ secrets.MTN_MOMO_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           DEMO_ADMIN_PASSWORD: ${{ secrets.DEMO_ADMIN_PASSWORD }}
 
@@ -165,7 +167,7 @@ jobs:
           SMS_USERNAME: ${{ secrets.SMS_USERNAME }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-          FLUTTERWAVE_PUBLIC_KEY: ${{ secrets.FLUTTERWAVE_PUBLIC_KEY }}
-          FLUTTERWAVE_SECRET_KEY: ${{ secrets.FLUTTERWAVE_SECRET_KEY }}
+          MONEY_UNIFY_AUTH_ID: ${{ secrets.MONEY_UNIFY_AUTH_ID }}
+          MONEY_UNIFY_API_URL: ${{ secrets.MONEY_UNIFY_API_URL }}
           FLUTTERWAVE_WEBHOOK_SECRET: ${{ secrets.FLUTTERWAVE_WEBHOOK_SECRET }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

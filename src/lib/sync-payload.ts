@@ -8,6 +8,19 @@
 
 export const LOCAL_ONLY_SYNC_KEYS = ["updated_at", "isDemo", "schoolId", "pending_wallet_deduction"] as const;
 
+/** Fields that must never be changed through the generic service-role replay path. */
+export const PROTECTED_SYNC_UPDATE_KEYS = [
+  "school_id",
+  "student_id",
+  "class_id",
+  "user_id",
+  "auth_id",
+  "created_by",
+  "owner_id",
+  "parent_id",
+  "teacher_id",
+] as const;
+
 const LOCAL_ONLY = new Set<string>(LOCAL_ONLY_SYNC_KEYS);
 
 /**
@@ -22,6 +35,12 @@ export function stripLocalOnlySyncKeys(data: Record<string, unknown>): Record<st
   for (const [key, value] of Object.entries(data)) {
     if (!LOCAL_ONLY.has(key)) result[key] = value;
   }
+  return result;
+}
+
+export function stripProtectedSyncUpdateKeys(data: Record<string, unknown>): Record<string, unknown> {
+  const result = stripLocalOnlySyncKeys(data);
+  for (const key of PROTECTED_SYNC_UPDATE_KEYS) delete result[key];
   return result;
 }
 

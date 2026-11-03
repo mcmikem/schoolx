@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS schools (
     report_header TEXT,
     report_footer TEXT,
     id_card_style TEXT DEFAULT 'standard',
-    onboarded_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    onboarded_by UUID,
     is_tester BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -74,6 +74,11 @@ CREATE TABLE IF NOT EXISTS users (
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE schools
+  DROP CONSTRAINT IF EXISTS schools_onboarded_by_fkey;
+ALTER TABLE schools
+  ADD CONSTRAINT schools_onboarded_by_fkey FOREIGN KEY (onboarded_by) REFERENCES users(id) ON DELETE SET NULL;
 
 -- ============================================
 -- 3. ACADEMIC YEARS
@@ -2396,6 +2401,7 @@ VALUES (
     5242880,
     ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 ) ON CONFLICT (id) DO NOTHING;
+UPDATE storage.buckets SET public = false WHERE id = 'student-photos';
 
 -- Create policy for authenticated users to upload school logos
 DROP POLICY IF EXISTS "Allow authenticated users to upload school logos" ON storage.objects;
@@ -2430,7 +2436,7 @@ INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 VALUES (
     'student-photos',
     'student-photos',
-    true,
+    false,
     5242880,
     ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 ) ON CONFLICT (id) DO NOTHING;
@@ -2440,28 +2446,31 @@ DROP POLICY IF EXISTS "Allow authenticated users to upload student photos" ON st
 CREATE POLICY "Allow authenticated users to upload student photos"
 ON storage.objects FOR INSERT
 TO authenticated
-WITH CHECK (bucket_id = 'student-photos');
+WITH CHECK (bucket_id = 'student-photos' AND (storage.foldername(name))[1] = my_school_id()::text);
 
 -- Create policy for authenticated users to update student photos
 DROP POLICY IF EXISTS "Allow authenticated users to update student photos" ON storage.objects;
 CREATE POLICY "Allow authenticated users to update student photos"
 ON storage.objects FOR UPDATE
 TO authenticated
-USING (bucket_id = 'student-photos');
+USING (bucket_id = 'student-photos' AND (storage.foldername(name))[1] = my_school_id()::text)
+WITH CHECK (bucket_id = 'student-photos' AND (storage.foldername(name))[1] = my_school_id()::text);
 
--- Create policy for anyone to view student photos
+-- Student photos are private personal data. Signed URLs are issued only after
+-- this school-scoped policy allows the authenticated caller to read the object.
 DROP POLICY IF EXISTS "Allow public to view student photos" ON storage.objects;
-CREATE POLICY "Allow public to view student photos"
+DROP POLICY IF EXISTS "School users view student photos" ON storage.objects;
+CREATE POLICY "School users view student photos"
 ON storage.objects FOR SELECT
-TO public
-USING (bucket_id = 'student-photos');
+TO authenticated
+USING (bucket_id = 'student-photos' AND (storage.foldername(name))[1] = my_school_id()::text);
 
 -- Create policy for authenticated users to delete student photos
 DROP POLICY IF EXISTS "Authenticated can delete student photos" ON storage.objects;
 CREATE POLICY "Authenticated can delete student photos"
 ON storage.objects FOR DELETE
 TO authenticated
-USING (bucket_id = 'student-photos');
+USING (bucket_id = 'student-photos' AND (storage.foldername(name))[1] = my_school_id()::text);
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('exam-papers', 'exam-papers', false, 10485760, ARRAY['application/pdf'])
@@ -3169,7 +3178,7 @@ CREATE TABLE IF NOT EXISTS subscription_payments (
     currency TEXT DEFAULT 'UGX',
     provider TEXT CHECK (provider IN ('stripe', 'paypal', 'mtn', 'airtel', 'system')) NOT NULL,
     transaction_id TEXT NOT NULL,
-    payment_status TEXT CHECK (payment_status IN ('pending', 'completed', 'failed', 'refunded')) DEFAULT 'pending',
+    payment_status TEXT CHECK (payment_status IN ('pending', 'processing', 'completed', 'failed', 'refunded')) DEFAULT 'pending',
     customer_id TEXT,
     subscription_id TEXT,
     invoice_url TEXT,

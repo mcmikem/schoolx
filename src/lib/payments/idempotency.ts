@@ -26,10 +26,10 @@ export async function checkAndRecordIdempotency(
         logger.warn(`Duplicate webhook event detected: ${eventId} (${eventType}), already processed`);
         return { alreadyProcessed: true, shouldProcess: false };
       }
-      // "received" or "failed": a previous attempt did not complete (crash or 500).
-      // Allow reprocessing so provider retries actually take effect.
-      logger.warn(`Re-processing webhook event ${eventId} (${eventType}), previous status=${existing.status}`);
-      return { alreadyProcessed: false, shouldProcess: true };
+      if (existing.status === "processing") {
+        logger.warn(`Concurrent webhook event ignored: ${eventId} (${eventType}) is already processing`);
+        return { alreadyProcessed: true, shouldProcess: false };
+      }
     }
 
     const { error: insertError } = await supabase.from("webhook_events").insert({
@@ -40,18 +40,35 @@ export async function checkAndRecordIdempotency(
       status: "received",
     });
 
-    if (insertError) {
-      if (insertError.code === "23505") {
-        logger.warn(`Race condition: duplicate webhook event ${eventId} already inserted`);
-        return { alreadyProcessed: true, shouldProcess: false };
-      }
+    if (insertError && insertError.code !== "23505") {
       logger.error("Failed to record webhook event for idempotency:", insertError);
+      return { alreadyProcessed: false, shouldProcess: false };
+    }
+
+    // Claim the row atomically. Only one webhook worker may transition a
+    // received/failed event into processing; concurrent deliveries must wait
+    // for the provider retry after the first worker marks it failed.
+    const { data: claimed, error: claimError } = await supabase
+      .from("webhook_events")
+      .update({ status: "processing", error_message: null })
+      .eq("event_id", eventId)
+      .eq("provider", provider)
+      .in("status", ["received", "failed"])
+      .select("id")
+      .maybeSingle();
+
+    if (claimError) {
+      logger.error("Failed to claim webhook event:", claimError);
+      return { alreadyProcessed: false, shouldProcess: false };
+    }
+    if (!claimed) {
+      return { alreadyProcessed: true, shouldProcess: false };
     }
 
     return { alreadyProcessed: false, shouldProcess: true };
   } catch (error) {
-    logger.error("Idempotency check failed, allowing processing:", error);
-    return { alreadyProcessed: false, shouldProcess: true };
+    logger.error("Idempotency check failed; refusing untracked webhook processing:", error);
+    return { alreadyProcessed: false, shouldProcess: false };
   }
 }
 

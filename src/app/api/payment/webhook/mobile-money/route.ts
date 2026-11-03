@@ -117,6 +117,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, message: "Already processed" });
       }
 
+      const expectedAmount = Number(pendingPayment.amount);
+      if (!Number.isFinite(expectedAmount) || !Number.isFinite(amount) || Math.abs(expectedAmount - amount) > 0.01) {
+        logger.error(`Mobile money amount mismatch for ${txRef}: expected ${expectedAmount}, verified ${amount}`);
+        await updatePendingMobilePayment(txRef, "failed");
+        await markWebhookProcessed(referenceId, providerName, "Verified amount did not match pending payment");
+        return NextResponse.json({ error: "Payment amount mismatch" }, { status: 409 });
+      }
+
       // Activate subscription FIRST — the write is idempotent. If it throws, the
       // 500 response lets the provider retry, and idempotency allows reprocessing.
       await activateSchoolSubscription(

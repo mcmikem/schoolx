@@ -1,5 +1,3 @@
-import { logger } from "@/lib/logger";
-
 export async function register() {
   if (process.env.NEXT_PHASE !== "phase-production-build" && process.env.NODE_ENV === "production") {
     const required = [
@@ -12,7 +10,7 @@ export async function register() {
     const missing = required.filter((key) => !process.env[key] || process.env[key]!.includes("your-"));
 
     if (missing.length > 0) {
-      logger.error("[env] Missing or placeholder env vars in production:", missing.join(", "));
+      throw new Error(`[env] Missing or placeholder env vars in production: ${missing.join(", ")}`);
     }
   }
 

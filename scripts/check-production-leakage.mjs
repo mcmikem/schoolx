@@ -13,6 +13,7 @@ const patterns = [
 
 const allowed = [
   "src/app/api/demo-login/route.ts",
+  "src/app/demo-student/DemoStudentClient.tsx",
   "src/app/login/page.tsx",
   "src/lib/demo-data.ts",
   "src/lib/demo-utils.ts",

@@ -212,7 +212,7 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
               <div className="text-[14px] font-bold text-white tracking-[-.15px] leading-tight truncate">
                 {schoolName}
               </div>
-              <div className="text-xs text-white/55 mt-0.5 flex items-center gap-1.5">
+              <div className="text-xs text-white/75 mt-0.5 flex items-center gap-1.5">
                 <span className="inline-block w-[5px] h-[5px] rounded-full bg-[var(--green)] flex-shrink-0" />
                 {user?.role?.replace("_", " ") || "User"}
                 {currentTerm ? ` · Term ${currentTerm}` : ""}

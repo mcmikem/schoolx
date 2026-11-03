@@ -426,17 +426,30 @@ export async function applyCompletedPayment(
     skipSchoolUpdate?: boolean;
   } = {},
 ): Promise<{ applied: boolean; result?: AppliedActivation; reason?: string }> {
-  const { data: payment, error: paymentError } = await admin
+  const { data: existingPayment, error: paymentError } = await admin
     .from("subscription_payments")
     .select("*")
     .eq("transaction_id", transactionId)
     .maybeSingle();
 
-  if (paymentError || !payment) {
+  if (paymentError || !existingPayment) {
     throw new BillingError(`Unknown transaction ${transactionId}`, 404);
   }
-  if (payment.payment_status === "completed") {
+  if (existingPayment.payment_status === "completed" || existingPayment.payment_status === "processing") {
     return { applied: false, reason: "already applied" };
+  }
+
+  // Claim the pending ledger row before applying the intent. This prevents two
+  // concurrent webhook deliveries from both extending the same subscription.
+  const { data: payment, error: claimError } = await admin
+    .from("subscription_payments")
+    .update({ payment_status: "processing" })
+    .eq("transaction_id", transactionId)
+    .eq("payment_status", "pending")
+    .select("*")
+    .maybeSingle();
+  if (claimError || !payment) {
+    return { applied: false, reason: "payment is being processed or is no longer pending" };
   }
 
   const paidAt = opts.paidAt || new Date().toISOString();
@@ -446,12 +459,22 @@ export async function applyCompletedPayment(
   // 1) Apply to the school + entitlements FIRST. If this throws, the ledger
   //    row stays pending so a retry can re-attempt activation instead of
   //    leaving a "completed but never activated" payment stuck forever.
-  const result = await applyIntent(admin, payment.school_id, intent, {
-    amountPaid: Number(payment.amount) || 0,
-    paidAt,
-    quote,
-    skipSchoolUpdate: opts.skipSchoolUpdate,
-  });
+  let result: AppliedActivation;
+  try {
+    result = await applyIntent(admin, payment.school_id, intent, {
+      amountPaid: Number(payment.amount) || 0,
+      paidAt,
+      quote,
+      skipSchoolUpdate: opts.skipSchoolUpdate,
+    });
+  } catch (error) {
+    await admin
+      .from("subscription_payments")
+      .update({ payment_status: "pending" })
+      .eq("transaction_id", transactionId)
+      .eq("payment_status", "processing");
+    throw error;
+  }
 
   // 2) Flip the ledger row only after the intent applied successfully.
   const { data: finalized, error: finalizeError } = await admin
@@ -463,6 +486,7 @@ export async function applyCompletedPayment(
       customer_id: opts.confirmedBy || payment.customer_id,
     })
     .eq("transaction_id", transactionId)
+    .eq("payment_status", "processing")
     .select()
     .single();
   if (finalizeError) throw new BillingError(`Failed to finalize payment: ${finalizeError.message}`, 500);

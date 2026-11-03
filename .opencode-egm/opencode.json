@@ -1,0 +1,238 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "autoupdate": false,
+  "default_agent": "egm",
+  "skills": {
+    "paths": [
+      "/Users/me/schoolx-git/.opencode-egm/skills"
+    ]
+  },
+  "agent": {
+    "egm-codebase-details": {
+      "description": "EGM read-only codebase_details reviewer (experimental)",
+      "mode": "subagent",
+      "color": "#E86E00",
+      "permission": {
+        "*": "deny",
+        "read": {
+          "*": "allow",
+          "*.env": "deny",
+          "*.env.*": "deny",
+          "*.env.example": "allow",
+          "mcp:*": "deny"
+        },
+        "glob": "allow",
+        "grep": "deny",
+        "external_directory": {
+          "*": "deny",
+          "/Users/me/schoolx-git/.opencode-egm/bundle/**": "allow"
+        }
+      },
+      "prompt": "Read /Users/me/schoolx-git/.opencode-egm/bundle/docs/opencode.md first. EGM bundle root: /Users/me/schoolx-git/.opencode-egm/bundle. Resolve agents/, resources/, and docs/ against this root. Resolve references/ against the canonical skill directory. Resolve user files and outputs against the project working directory. Read /Users/me/schoolx-git/.opencode-egm/bundle/agents/codebase_details.md before the target and supplied standards. Return findings to the caller. Do not write reports or delegate. Read prior reports only when explicitly supplied and required by the canonical stage. Do not retrieve unsolicited history, memory, or earlier reviewer findings. Report inaccessible required files as an incomplete review."
+    },
+    "egm-comprehension": {
+      "description": "EGM read-only comprehension reviewer (experimental)",
+      "mode": "subagent",
+      "color": "#E86E00",
+      "permission": {
+        "*": "deny",
+        "read": {
+          "*": "allow",
+          "*.env": "deny",
+          "*.env.*": "deny",
+          "*.env.example": "allow",
+          "mcp:*": "deny"
+        },
+        "glob": "allow",
+        "grep": "deny",
+        "external_directory": {
+          "*": "deny",
+          "/Users/me/schoolx-git/.opencode-egm/bundle/**": "allow"
+        }
+      },
+      "prompt": "Read /Users/me/schoolx-git/.opencode-egm/bundle/docs/opencode.md first. EGM bundle root: /Users/me/schoolx-git/.opencode-egm/bundle. Resolve agents/, resources/, and docs/ against this root. Resolve references/ against the canonical skill directory. Resolve user files and outputs against the project working directory. Read /Users/me/schoolx-git/.opencode-egm/bundle/agents/comprehension.md before the target and supplied standards. Return findings to the caller. Do not write reports or delegate. Read prior reports only when explicitly supplied and required by the canonical stage. Do not retrieve unsolicited history, memory, or earlier reviewer findings. Report inaccessible required files as an incomplete review."
+    },
+    "egm-design": {
+      "description": "EGM read-only design_critic reviewer (experimental)",
+      "mode": "subagent",
+      "color": "#E86E00",
+      "permission": {
+        "*": "deny",
+        "read": {
+          "*": "allow",
+          "*.env": "deny",
+          "*.env.*": "deny",
+          "*.env.example": "allow",
+          "mcp:*": "deny"
+        },
+        "glob": "allow",
+        "grep": "deny",
+        "external_directory": {
+          "*": "deny",
+          "/Users/me/schoolx-git/.opencode-egm/bundle/**": "allow"
+        }
+      },
+      "prompt": "Read /Users/me/schoolx-git/.opencode-egm/bundle/docs/opencode.md first. EGM bundle root: /Users/me/schoolx-git/.opencode-egm/bundle. Resolve agents/, resources/, and docs/ against this root. Resolve references/ against the canonical skill directory. Resolve user files and outputs against the project working directory. Read /Users/me/schoolx-git/.opencode-egm/bundle/agents/design_critic.md before the target and supplied standards. Return findings to the caller. Do not write reports or delegate. Read prior reports only when explicitly supplied and required by the canonical stage. Do not retrieve unsolicited history, memory, or earlier reviewer findings. Report inaccessible required files as an incomplete review."
+    },
+    "egm-implementation-readiness": {
+      "description": "EGM read-only implementation_readiness reviewer (experimental)",
+      "mode": "subagent",
+      "color": "#E86E00",
+      "permission": {
+        "*": "deny",
+        "read": {
+          "*": "allow",
+          "*.env": "deny",
+          "*.env.*": "deny",
+          "*.env.example": "allow",
+          "mcp:*": "deny"
+        },
+        "glob": "allow",
+        "grep": "deny",
+        "external_directory": {
+          "*": "deny",
+          "/Users/me/schoolx-git/.opencode-egm/bundle/**": "allow"
+        }
+      },
+      "prompt": "Read /Users/me/schoolx-git/.opencode-egm/bundle/docs/opencode.md first. EGM bundle root: /Users/me/schoolx-git/.opencode-egm/bundle. Resolve agents/, resources/, and docs/ against this root. Resolve references/ against the canonical skill directory. Resolve user files and outputs against the project working directory. Read /Users/me/schoolx-git/.opencode-egm/bundle/agents/implementation_readiness.md before the target and supplied standards. Return findings to the caller. Do not write reports or delegate. Read prior reports only when explicitly supplied and required by the canonical stage. Do not retrieve unsolicited history, memory, or earlier reviewer findings. Report inaccessible required files as an incomplete review."
+    },
+    "egm-structural": {
+      "description": "EGM read-only structural reviewer (experimental)",
+      "mode": "subagent",
+      "color": "#E86E00",
+      "permission": {
+        "*": "deny",
+        "read": {
+          "*": "allow",
+          "*.env": "deny",
+          "*.env.*": "deny",
+          "*.env.example": "allow",
+          "mcp:*": "deny"
+        },
+        "glob": "allow",
+        "grep": "deny",
+        "external_directory": {
+          "*": "deny",
+          "/Users/me/schoolx-git/.opencode-egm/bundle/**": "allow"
+        }
+      },
+      "prompt": "Read /Users/me/schoolx-git/.opencode-egm/bundle/docs/opencode.md first. EGM bundle root: /Users/me/schoolx-git/.opencode-egm/bundle. Resolve agents/, resources/, and docs/ against this root. Resolve references/ against the canonical skill directory. Resolve user files and outputs against the project working directory. Read /Users/me/schoolx-git/.opencode-egm/bundle/agents/structural.md before the target and supplied standards. Return findings to the caller. Do not write reports or delegate. Read prior reports only when explicitly supplied and required by the canonical stage. Do not retrieve unsolicited history, memory, or earlier reviewer findings. Report inaccessible required files as an incomplete review."
+    },
+    "egm-style": {
+      "description": "EGM read-only style reviewer (experimental)",
+      "mode": "subagent",
+      "color": "#E86E00",
+      "permission": {
+        "*": "deny",
+        "read": {
+          "*": "allow",
+          "*.env": "deny",
+          "*.env.*": "deny",
+          "*.env.example": "allow",
+          "mcp:*": "deny"
+        },
+        "glob": "allow",
+        "grep": "deny",
+        "external_directory": {
+          "*": "deny",
+          "/Users/me/schoolx-git/.opencode-egm/bundle/**": "allow"
+        }
+      },
+      "prompt": "Read /Users/me/schoolx-git/.opencode-egm/bundle/docs/opencode.md first. EGM bundle root: /Users/me/schoolx-git/.opencode-egm/bundle. Resolve agents/, resources/, and docs/ against this root. Resolve references/ against the canonical skill directory. Resolve user files and outputs against the project working directory. Read /Users/me/schoolx-git/.opencode-egm/bundle/agents/style.md before the target and supplied standards. Return findings to the caller. Do not write reports or delegate. Read prior reports only when explicitly supplied and required by the canonical stage. Do not retrieve unsolicited history, memory, or earlier reviewer findings. Report inaccessible required files as an incomplete review."
+    },
+    "egm-zoom-out": {
+      "description": "EGM read-only zoom_out reviewer (experimental)",
+      "mode": "subagent",
+      "color": "#E86E00",
+      "permission": {
+        "*": "deny",
+        "read": {
+          "*": "allow",
+          "*.env": "deny",
+          "*.env.*": "deny",
+          "*.env.example": "allow",
+          "mcp:*": "deny"
+        },
+        "glob": "allow",
+        "grep": "deny",
+        "external_directory": {
+          "*": "deny",
+          "/Users/me/schoolx-git/.opencode-egm/bundle/**": "allow"
+        }
+      },
+      "prompt": "Read /Users/me/schoolx-git/.opencode-egm/bundle/docs/opencode.md first. EGM bundle root: /Users/me/schoolx-git/.opencode-egm/bundle. Resolve agents/, resources/, and docs/ against this root. Resolve references/ against the canonical skill directory. Resolve user files and outputs against the project working directory. Read /Users/me/schoolx-git/.opencode-egm/bundle/agents/zoom_out.md before the target and supplied standards. Return findings to the caller. Do not write reports or delegate. Read prior reports only when explicitly supplied and required by the canonical stage. Do not retrieve unsolicited history, memory, or earlier reviewer findings. Report inaccessible required files as an incomplete review."
+    },
+    "egm": {
+      "description": "EGM orchestrator (experimental OpenCode V1)",
+      "mode": "primary",
+      "color": "#1B6EF3",
+      "permission": {
+        "*": "ask",
+        "read": {
+          "*": "allow",
+          "*.env": "ask",
+          "*.env.*": "ask",
+          "*.env.example": "allow"
+        },
+        "glob": "allow",
+        "grep": "allow",
+        "skill": {
+          "*": "deny",
+          "egm-*": "allow"
+        },
+        "task": {
+          "*": "deny",
+          "egm-codebase-details": "allow",
+          "egm-comprehension": "allow",
+          "egm-design": "allow",
+          "egm-implementation-readiness": "allow",
+          "egm-structural": "allow",
+          "egm-style": "allow",
+          "egm-zoom-out": "allow"
+        },
+        "external_directory": {
+          "*": "ask",
+          "/Users/me/schoolx-git/.opencode-egm/bundle/**": "allow"
+        }
+      },
+      "prompt": "Read /Users/me/schoolx-git/.opencode-egm/bundle/docs/opencode.md first. EGM bundle root: /Users/me/schoolx-git/.opencode-egm/bundle. Resolve agents/, resources/, and docs/ against this root. Resolve references/ against the canonical skill directory. Resolve user files and outputs against the project working directory. Follow the canonical skill. Dispatch reviewers directly with task and the registered persona name as subagent_type. Omit task_id for every independent review; never resume a reviewer. Wait for foreground completion. Pass only the task, absolute resource paths, target, standards, and selected reading list, not conversation history. Stop if delegation or a required completion is missing. When running brainstorm before draft, complete all six brainstorm reviewers and synthesize their findings into concepts_brief.md before drafting. In review, write each completed stage report before starting the next stage. Before Step 8, verify zoom_out_report.md exists in the artifact directory and pass its absolute path to the reviewer; stop if it is missing. Write reports yourself. Preserve every human approval gate."
+    }
+  },
+  "command": {
+    "egm-bootstrap": {
+      "description": "Run egm-bootstrap (experimental)",
+      "agent": "egm",
+      "template": "Read /Users/me/schoolx-git/.opencode-egm/bundle/docs/opencode.md first. EGM bundle root: /Users/me/schoolx-git/.opencode-egm/bundle. Resolve agents/, resources/, and docs/ against this root. Resolve references/ against the canonical skill directory. Resolve user files and outputs against the project working directory. Read and execute /Users/me/schoolx-git/.opencode-egm/bundle/skills/egm-bootstrap/SKILL.md.\nUser request: $ARGUMENTS"
+    },
+    "egm-brainstorm": {
+      "description": "Run egm-brainstorm (experimental)",
+      "agent": "egm",
+      "template": "Read /Users/me/schoolx-git/.opencode-egm/bundle/docs/opencode.md first. EGM bundle root: /Users/me/schoolx-git/.opencode-egm/bundle. Resolve agents/, resources/, and docs/ against this root. Resolve references/ against the canonical skill directory. Resolve user files and outputs against the project working directory. Read and execute /Users/me/schoolx-git/.opencode-egm/bundle/skills/egm-brainstorm/SKILL.md.\nUser request: $ARGUMENTS"
+    },
+    "egm-draft": {
+      "description": "Run egm-draft (experimental)",
+      "agent": "egm",
+      "template": "Read /Users/me/schoolx-git/.opencode-egm/bundle/docs/opencode.md first. EGM bundle root: /Users/me/schoolx-git/.opencode-egm/bundle. Resolve agents/, resources/, and docs/ against this root. Resolve references/ against the canonical skill directory. Resolve user files and outputs against the project working directory. Read and execute /Users/me/schoolx-git/.opencode-egm/bundle/skills/egm-draft/SKILL.md.\nUser request: $ARGUMENTS"
+    },
+    "egm-drift-report": {
+      "description": "Run egm-drift-report (experimental)",
+      "agent": "egm",
+      "template": "Read /Users/me/schoolx-git/.opencode-egm/bundle/docs/opencode.md first. EGM bundle root: /Users/me/schoolx-git/.opencode-egm/bundle. Resolve agents/, resources/, and docs/ against this root. Resolve references/ against the canonical skill directory. Resolve user files and outputs against the project working directory. Read and execute /Users/me/schoolx-git/.opencode-egm/bundle/skills/egm-drift-report/SKILL.md.\nUser request: $ARGUMENTS"
+    },
+    "egm-resolve": {
+      "description": "Run egm-resolve (experimental)",
+      "agent": "egm",
+      "template": "Read /Users/me/schoolx-git/.opencode-egm/bundle/docs/opencode.md first. EGM bundle root: /Users/me/schoolx-git/.opencode-egm/bundle. Resolve agents/, resources/, and docs/ against this root. Resolve references/ against the canonical skill directory. Resolve user files and outputs against the project working directory. Read and execute /Users/me/schoolx-git/.opencode-egm/bundle/skills/egm-resolve/SKILL.md.\nUser request: $ARGUMENTS"
+    },
+    "egm-review": {
+      "description": "Run egm-review (experimental)",
+      "agent": "egm",
+      "template": "Read /Users/me/schoolx-git/.opencode-egm/bundle/docs/opencode.md first. EGM bundle root: /Users/me/schoolx-git/.opencode-egm/bundle. Resolve agents/, resources/, and docs/ against this root. Resolve references/ against the canonical skill directory. Resolve user files and outputs against the project working directory. Read and execute /Users/me/schoolx-git/.opencode-egm/bundle/skills/egm-review/SKILL.md.\nUser request: $ARGUMENTS"
+    },
+    "egm-review-loop": {
+      "description": "Run egm-review-loop (experimental)",
+      "agent": "egm",
+      "template": "Read /Users/me/schoolx-git/.opencode-egm/bundle/docs/opencode.md first. EGM bundle root: /Users/me/schoolx-git/.opencode-egm/bundle. Resolve agents/, resources/, and docs/ against this root. Resolve references/ against the canonical skill directory. Resolve user files and outputs against the project working directory. Read and execute /Users/me/schoolx-git/.opencode-egm/bundle/skills/egm-review-loop/SKILL.md.\nUser request: $ARGUMENTS"
+    }
+  }
+}
