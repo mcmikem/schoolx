@@ -8,6 +8,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { Button, Modal } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { getErrorMessage } from "@/lib/validation";
+import { withTimeout, timeoutFallback, isTimeoutResult } from "@/lib/hooks/utils";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 type CalendarEvent = {
@@ -127,12 +128,14 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
         created_by: userId,
       };
       if (editingEvent) {
-        const { error } = await supabase.from("events").update(payload).eq("id", editingEvent.id);
-        if (error) throw error;
+        const result = await withTimeout(supabase.from("events").update(payload).eq("id", editingEvent.id), 15000, timeoutFallback());
+        if (isTimeoutResult(result)) throw new Error("Updating the event timed out. Check your connection and try again.");
+        if (result?.error) throw new Error(result.error.message || "Failed to update event");
         toast.success("Event updated");
       } else {
-        const { error } = await supabase.from("events").insert(payload);
-        if (error) throw error;
+        const result = await withTimeout(supabase.from("events").insert(payload), 15000, timeoutFallback());
+        if (isTimeoutResult(result)) throw new Error("Adding the event timed out. Check your connection and try again.");
+        if (result?.error) throw new Error(result.error.message || "Failed to add event");
         toast.success("Event added");
       }
       setShowModal(false);
@@ -148,8 +151,11 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
     if (!pendingDeleteEventId) return;
     const id = pendingDeleteEventId;
     setPendingDeleteEventId(null);
-    const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
     const evResult = await withTimeout(supabase.from("events").delete().eq("id", id), 15000, timeoutFallback());
+    if (isTimeoutResult(evResult)) {
+      toast.error("Deleting the event timed out. Check your connection and try again.");
+      return;
+    }
     const error = evResult?.error;
     if (error) {
       toast.error("Failed to delete");
