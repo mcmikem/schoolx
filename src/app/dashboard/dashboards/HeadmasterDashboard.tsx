@@ -56,6 +56,7 @@ function HeadmasterDashboardContent() {
     lowAttendanceClasses,
     atRiskStudents,
     dropoutRiskCount,
+    classAttendance,
     loading: loadingExtra,
     timedOut,
   } = useDashboardExtraData(school?.id, rosterReady ? students : null, [], currentTerm, academicYear);
@@ -99,9 +100,25 @@ function HeadmasterDashboardContent() {
   // would drag the percentage down for a school that marked everyone present.
   // The fallback covers stats snapshots cached before `activeStudents` existed.
   const attendanceBase = stats.activeStudents > 0 ? stats.activeStudents : stats.totalStudents;
+  const attendanceKnown = stats.presentToday >= 0;
   const attendanceRate = useMemo(() => {
-    return stats.presentToday > 0 && attendanceBase > 0 ? Math.round((stats.presentToday / attendanceBase) * 100) : 0;
-  }, [stats.presentToday, attendanceBase]);
+    if (!attendanceKnown || stats.presentToday <= 0 || attendanceBase <= 0) return 0;
+    return Math.round((stats.presentToday / attendanceBase) * 100);
+  }, [stats.presentToday, attendanceBase, attendanceKnown]);
+
+  // Classes with attendance below 70% today — surfaced so the HM can see
+  // which classes need attention without clicking through.
+  const lowAttendanceClassList = useMemo(() => {
+    if (!classAttendance || !classes.length) return [];
+    return Object.entries(classAttendance)
+      .map(([classId, info]) => {
+        const cls = classes.find((c) => c.id === classId);
+        const rate = info.total > 0 ? Math.round((info.present / info.total) * 100) : 0;
+        return { id: classId, name: cls?.name || "Class", present: info.present, total: info.total, rate };
+      })
+      .filter((c) => c.total > 0 && c.rate < 70)
+      .sort((a, b) => a.rate - b.rate);
+  }, [classAttendance, classes]);
 
   const todayLabel = todayLabelFor(currentDate);
 
@@ -330,14 +347,14 @@ function HeadmasterDashboardContent() {
               >
                 <p className="text-[11px] font-medium text-[var(--t3)] sm:text-xs">Attendance today</p>
                 <p className="mt-1 break-words text-base font-bold tracking-tight text-[var(--t1)] tabular-nums sm:text-2xl">
-                  {statsLoading || stats.presentToday < 0
+                  {statsLoading || !attendanceKnown
                     ? "—"
                     : stats.presentToday > 0
                       ? `${attendanceRate}%`
                       : "Not recorded"}
                 </p>
                 <p className="mt-0.5 text-[11px] text-[var(--t3)] sm:text-xs">
-                  {statsLoading || stats.presentToday < 0
+                  {statsLoading || !attendanceKnown
                     ? "Updating…"
                     : stats.presentToday > 0
                       ? `${stats.presentToday} present`
@@ -413,6 +430,40 @@ function HeadmasterDashboardContent() {
           <div className="grid grid-cols-1 items-start xl:grid-cols-3 gap-6">
             {/* ── Left Column: Metrics + Task Manager ── */}
             <div className="xl:col-span-2 space-y-6">
+              {lowAttendanceClassList.length > 0 && (
+                <section
+                  aria-label="Classes needing attendance attention"
+                  className="rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5"
+                >
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <h3 className="text-sm font-bold text-[var(--t1)]">Classes below 70% attendance today</h3>
+                    <Link
+                      href="/dashboard/attendance/history"
+                      className="text-xs font-semibold text-[var(--primary)] hover:underline"
+                    >
+                      History
+                    </Link>
+                  </div>
+                  <ul className="space-y-2">
+                    {lowAttendanceClassList.map((cls) => (
+                      <li key={cls.id}>
+                        <Link
+                          href="/dashboard/attendance"
+                          className="flex items-center justify-between gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-[var(--surface-container-low)]"
+                        >
+                          <span className="truncate text-sm font-medium text-[var(--t1)]">{cls.name}</span>
+                          <span className="shrink-0 text-xs font-bold tabular-nums text-[var(--red-ink)]">
+                            {cls.rate}%{" "}
+                            <span className="font-normal text-[var(--t3)]">
+                              ({cls.present}/{cls.total})
+                            </span>
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
               <UpNextCard task={primaryTask} />
 
               {tasks.length > 1 && (
