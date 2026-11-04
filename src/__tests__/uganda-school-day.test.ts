@@ -43,6 +43,30 @@ describe("Uganda school day builder", () => {
     expect(errors).toEqual([]);
   });
 
+  it("treats a sub-8 nursery lesson count as advisory", () => {
+    const config: SchoolDayConfig = { ...SCHOOL_DAY_PRESETS.nursery, lessonsBeforeLunch: 2 };
+    const { errors, warnings } = validateSchoolDay(config);
+    expect(errors).toEqual([]);
+    expect(warnings.join(" ")).toMatch(/Nursery uses a level-specific advisory rule/i);
+  });
+
+  it("nursery preset meets the MoES 8-lesson minimum", () => {
+    const lessons = buildSchoolDay(SCHOOL_DAY_PRESETS.nursery).filter((slot) => slot.is_lesson).length;
+    expect(lessons).toBeGreaterThanOrEqual(8);
+  });
+
+  it("rejects malformed and negative schedule inputs", () => {
+    const { errors } = validateSchoolDay({
+      ...SCHOOL_DAY_PRESETS.primary,
+      startTime: "bad",
+      lessonMinutes: -1,
+      breakMinutes: Number.NaN,
+    });
+    expect(errors.join(" ")).toMatch(/startTime/);
+    expect(errors.join(" ")).toMatch(/lessonMinutes/);
+    expect(errors.join(" ")).toMatch(/breakMinutes/);
+  });
+
   it("rejects the old six-period schedule that shipped before this change", () => {
     const legacy: SchoolDayConfig = {
       level: "lower_secondary",

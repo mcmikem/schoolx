@@ -66,7 +66,7 @@ export const SCHOOL_DAY_PRESETS: Record<SchoolLevel, SchoolDayConfig> = {
     lessonMinutes: 30,
     lessonsBeforeBreak: 3,
     breakMinutes: 30,
-    lessonsBeforeLunch: 2,
+    lessonsBeforeLunch: 3,
     lunchMinutes: 60,
     lessonsAfterLunch: 2,
     coCurricularMinutes: 60,
@@ -210,9 +210,30 @@ export function validateSchoolDay(config: SchoolDayConfig): SchoolDayCheck {
   const errors: string[] = [];
   const warnings: string[] = [];
 
+  const numericFields: Array<[string, number]> = [
+    ["assemblyMinutes", config.assemblyMinutes],
+    ["lessonMinutes", config.lessonMinutes],
+    ["lessonsBeforeBreak", config.lessonsBeforeBreak],
+    ["breakMinutes", config.breakMinutes],
+    ["lessonsBeforeLunch", config.lessonsBeforeLunch],
+    ["lunchMinutes", config.lunchMinutes],
+    ["lessonsAfterLunch", config.lessonsAfterLunch],
+    ["coCurricularMinutes", config.coCurricularMinutes],
+    ["prepMinutes", config.prepMinutes],
+  ];
+  for (const [name, value] of numericFields) {
+    if (!Number.isFinite(value) || value < 0) errors.push(`${name} must be a finite non-negative number.`);
+  }
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(config.startTime)) {
+    errors.push("startTime must use HH:MM 24-hour format.");
+  }
+  if (errors.length > 0) return { errors, warnings };
+
   const lessons = totalLessonPeriods(config);
   if (lessons < 8) {
-    errors.push(`MoES requires at least 8 lessons a day; this schedule has ${lessons}.`);
+    const message = `MoES requires at least 8 lessons a day; this schedule has ${lessons}.`;
+    if (config.level === "nursery") warnings.push(`${message} Nursery uses a level-specific advisory rule.`);
+    else errors.push(message);
   }
   if (config.lessonMinutes < 30) {
     errors.push("Lessons shorter than 30 minutes fall below the curriculum minimum.");
