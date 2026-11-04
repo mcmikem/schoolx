@@ -403,9 +403,9 @@ export default function SchoolDaySetupModal({
         </div>
 
         {check.errors.length > 0 && (
-          <div className="space-y-1 rounded-xl border border-red-200 bg-red-50 p-3">
+          <div className="space-y-1 rounded-xl border border-[var(--red-soft)] bg-[var(--red-soft)] p-3">
             {check.errors.map((message) => (
-              <p key={message} className="flex items-start gap-2 text-sm text-red-700">
+              <p key={message} className="flex items-start gap-2 text-sm text-[var(--red-ink)]">
                 <MaterialIcon icon="error" className="mt-0.5 shrink-0 text-base" />
                 {message}
               </p>
@@ -415,7 +415,7 @@ export default function SchoolDaySetupModal({
         {check.warnings.map((message) => (
           <p
             key={message}
-            className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
+            className="flex items-start gap-2 rounded-xl border border-[var(--amber-soft)] bg-[var(--amber-soft)] p-3 text-sm text-[var(--amber-ink)]"
           >
             <MaterialIcon icon="warning" className="mt-0.5 shrink-0 text-base" />
             {message}
@@ -438,7 +438,7 @@ export default function SchoolDaySetupModal({
         </label>
 
         {confirming && (
-          <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <p className="rounded-xl border border-[var(--amber-soft)] bg-[var(--amber-soft)] p-3 text-sm text-[var(--amber-ink)]">
             This replaces the school&apos;s {slots.length} bell entries and removes any teacher unavailability tied to
             the old periods. Press <strong>Apply schedule</strong> again to confirm.
           </p>
