@@ -6,7 +6,7 @@ import UpNextCard from "@/components/dashboard/UpNextCard";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaterialIcon from "@/components/MaterialIcon";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
-import { PageHeader } from "@/components/ui/PageHeader";
+import SchoolHero from "@/components/dashboard/SchoolHero";
 import LoadingState from "@/components/ui/LoadingState";
 import { StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
 import { useAcademic } from "@/lib/academic-context";
@@ -294,10 +294,11 @@ function HeadmasterDashboardContent() {
         </div>
       ) : (
         <>
-          <PageHeader
-            title={`${greeting}, ${user?.full_name?.split(" ")[0] || "there"}`}
+          <SchoolHero
+            school={school}
+            userName={user?.full_name?.split(" ")[0] || "there"}
             subtitle={[school?.name, todayLabel, `Term ${currentTerm}, ${academicYear}`].filter(Boolean).join(" · ")}
-            actions={
+            rightSection={
               <Link href="/dashboard/students?action=add" className="btn-pill btn-primary">
                 <MaterialIcon icon="add" style={{ fontSize: 16 }} />
                 Add student

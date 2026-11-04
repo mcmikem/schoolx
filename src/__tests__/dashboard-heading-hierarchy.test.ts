@@ -28,10 +28,10 @@ const CASES: Array<{ role: string; file: string; h1: H1Source }> = [
   {
     role: "headmaster / school_admin / admin / board",
     file: "src/app/dashboard/dashboards/HeadmasterDashboard.tsx",
-    h1: "pageheader",
+    h1: "hero",
   },
   { role: "dean_of_studies", file: "src/app/dashboard/dashboards/DeanDashboard.tsx", h1: "hero" },
-  { role: "bursar", file: "src/app/dashboard/dashboards/BursarDashboard.tsx", h1: "pageheader" },
+  { role: "bursar", file: "src/app/dashboard/dashboards/BursarDashboard.tsx", h1: "hero" },
   { role: "teacher", file: "src/app/dashboard/dashboards/TeacherDashboard.tsx", h1: "hero" },
   { role: "secretary", file: "src/app/dashboard/DashboardRouter.tsx", h1: "roleheader" },
   { role: "dorm_master", file: "src/app/dashboard/DashboardRouter.tsx", h1: "roleheader" },

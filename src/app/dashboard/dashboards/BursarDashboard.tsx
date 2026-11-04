@@ -9,7 +9,7 @@ import TremorKPI from "@/components/dashboard/TremorKPI";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaterialIcon from "@/components/MaterialIcon";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
-import { PageHeader } from "@/components/ui/PageHeader";
+import SchoolHero from "@/components/dashboard/SchoolHero";
 import LoadingState from "@/components/ui/LoadingState";
 import { StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
 import { useAcademic } from "@/lib/academic-context";
@@ -322,10 +322,11 @@ function BursarDashboardContent() {
 
   return (
     <div className="content !gap-6 min-w-0">
-      <PageHeader
-        title={`${greeting}, ${user?.full_name?.split(" ")[0] || "Bursar"}`}
+      <SchoolHero
+        school={school}
+        userName={user?.full_name?.split(" ")[0] || "Bursar"}
         subtitle={[school?.name, todayLabel, `Term ${currentTerm}, ${academicYear}`].filter(Boolean).join(" · ")}
-        actions={
+        rightSection={
           <div className="flex flex-wrap items-center gap-2">
             <Link href="/dashboard/money" className="btn-pill btn-secondary">
               <MaterialIcon icon="analytics" className="text-lg" />
