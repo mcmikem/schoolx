@@ -102,3 +102,7 @@ stitch_ugandan_schools_ui_redesign/
 report cards samples/
 bugs and errors/
 schoolx/supabase/promo.mp4
+# Build artifacts
+.open-next/
+.wrangler/
+elephant-goldfish-model/
