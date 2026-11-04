@@ -403,7 +403,7 @@ export default function SchoolDaySetupModal({
         </div>
 
         {check.errors.length > 0 && (
-          <div className="space-y-1 rounded-xl border border-[var(--red-soft)] bg-[var(--red-soft)] p-3">
+          <div role="alert" className="space-y-1 rounded-xl border border-[var(--red-soft)] bg-[var(--red-soft)] p-3">
             {check.errors.map((message) => (
               <p key={message} className="flex items-start gap-2 text-sm text-[var(--red-ink)]">
                 <MaterialIcon icon="error" className="mt-0.5 shrink-0 text-base" />
