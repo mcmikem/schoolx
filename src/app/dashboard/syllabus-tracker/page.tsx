@@ -6,6 +6,7 @@ import { useAcademic } from "@/lib/academic-context";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
+import LoadingState from "@/components/ui/LoadingState";
 import { Button } from "@/components/ui/index";
 import { Card } from "@/components/ui/Card";
 import {
@@ -260,7 +261,7 @@ export default function SyllabusTrackerPage() {
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
                 <div className="w-12 h-12 rounded-full border-4 border-[var(--border)] border-t-[var(--primary)] animate-spin mx-auto mb-3" />
-                <p className="text-[var(--t3)]">Loading data...</p>
+                <LoadingState size="section" label="Loading data..." />
               </div>
             </div>
           )}

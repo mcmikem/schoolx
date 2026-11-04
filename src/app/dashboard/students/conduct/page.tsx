@@ -14,6 +14,8 @@ import { logger } from "@/lib/logger";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { Button } from "@/components/ui/index";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
+import LoadingState from "@/components/ui/LoadingState";
 
 interface BehaviorLog {
   id: string;
@@ -261,12 +263,9 @@ export default function ConductManagementPage() {
           </div>
 
           {loading ? (
-            <div className="text-center py-12 text-[var(--t3)]">Loading...</div>
+            <LoadingState size="section" label="Loading..." />
           ) : filtered.length === 0 ? (
-            <div className="text-center py-12 text-[var(--t3)]">
-              <MaterialIcon icon="gavel" className="text-4xl mx-auto mb-2" />
-              <p>No conduct records yet</p>
-            </div>
+            <EmptyState icon="gavel" title="No conduct records yet" />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">

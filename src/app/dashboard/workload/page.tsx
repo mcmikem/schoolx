@@ -8,6 +8,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { EmptyState } from "@/components/EmptyState";
+import LoadingState from "@/components/ui/LoadingState";
 import { logger } from "@/lib/logger";
 
 interface TimetableEntry {
@@ -154,7 +155,9 @@ export default function WorkloadPage() {
 
         {loading ? (
           <Card>
-            <CardBody className="text-center text-[var(--t3)]">Loading...</CardBody>
+            <CardBody className="text-center text-[var(--t3)]">
+              <LoadingState size="inline" label="Loading..." />
+            </CardBody>
           </Card>
         ) : workloads.length === 0 ? (
           <EmptyState

@@ -7,6 +7,7 @@ import { useOfflineLeaveRequests } from "@/lib/offline-hooks";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
+import LoadingState from "@/components/ui/LoadingState";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 
@@ -196,7 +197,7 @@ export default function LeavePage() {
         </div>
 
         {loading ? (
-          <div className="text-center py-12 text-[var(--t3)]">Loading...</div>
+          <LoadingState size="section" label="Loading..." />
         ) : requests.length === 0 ? (
           <div className="text-center py-12 text-[var(--t3)]">
             <MaterialIcon icon="event_busy" className="text-4xl mx-auto mb-2" />

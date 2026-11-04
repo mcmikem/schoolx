@@ -10,6 +10,7 @@ import { isHeadOffice } from "@/lib/head-office";
 import { DEMO_STAFF } from "@/lib/demo-data";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
+import LoadingState from "@/components/ui/LoadingState";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { suggestAvailableSubstitutes, type SubstituteSuggestion } from "@/lib/operations";
@@ -439,7 +440,7 @@ export default function SubstitutionsPage() {
             <h2 className="font-semibold text-[var(--t1)]">History</h2>
           </div>
           {loading ? (
-            <div className="p-8 text-center text-[var(--t3)]">Loading...</div>
+            <LoadingState size="section" label="Loading..." />
           ) : substitutions.length === 0 ? (
             <div className="p-12 text-center">
               <div className="w-16 h-16 bg-[var(--surface-container)] rounded-full flex items-center justify-center mx-auto mb-4">
