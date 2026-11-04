@@ -94,7 +94,7 @@ export function AppUpdatePrompt() {
         padding: "10px 14px",
         borderRadius: 12,
         background: "var(--navy)",
-        color: "#fff",
+        color: "var(--on-primary, #fff)",
         fontSize: 13,
         fontWeight: 600,
         boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
@@ -107,7 +107,7 @@ export function AppUpdatePrompt() {
         onClick={applyUpdate}
         disabled={applying}
         style={{
-          background: "#fff",
+          background: "var(--surface, #fff)",
           color: "var(--navy)",
           border: "none",
           padding: "7px 14px",

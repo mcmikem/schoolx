@@ -470,7 +470,7 @@ export default function BulkImport({ onComplete, createStudent, houses = [] }: B
                 style={{
                   padding: "10px 18px",
                   background: "var(--primary)",
-                  color: "#fff",
+                  color: "var(--on-primary, #fff)",
                   border: "none",
                   borderRadius: 8,
                   fontSize: 13,
