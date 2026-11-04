@@ -1016,7 +1016,7 @@ describe("Student totals agree across screens", () => {
   });
 
   it("offers an uncapped head count for screens that do not load rows", () => {
-    const src = read("src/lib/hooks/students.ts");
+    const src = read("src/lib/hooks/students.ts") + read("src/lib/hooks/students-roster.ts");
     expect(src).toContain("export function useStudentTotal");
     expect(read("src/app/dashboard/classes/page.tsx")).toContain("useStudentTotal(school?.id)");
   });
