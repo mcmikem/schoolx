@@ -1,4 +1,8 @@
 "use client";
+// NOTE: This module (useFormDraft + AutoSaveIndicator) is the form-draft
+// auto-save used by fee/homework entry forms. The generic useAutoSave hook in
+// @/lib/hooks/useAutoSave serves a different purpose (periodic data sync).
+// Both are intentionally separate; consolidate only if a unified API is needed.
 import { useState, useEffect, useCallback, useRef } from "react";
 import { safeLocalStorage } from "./safe-storage";
 import { logger } from "./logger";

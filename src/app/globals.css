@@ -130,7 +130,7 @@ button {
 /* -- TOKENS ----------------------------------------------- */
 :root {
   /* Core design system palette */
-  --navy: #0045ad; /* DEPRECATED alias for --secondary; prefer --primary for brand blue */
+  --navy: #0045ad; /* DEPRECATED alias for --secondary (#0045ad); prefer --primary (#005ce6) for brand blue */
   --navy-mid: #005ce6;
   --navy-soft: #d9e7fb;
 
@@ -227,7 +227,7 @@ button {
   --primary-700: #0045ad;
   --primary-800: #00398d;
   --primary-900: #0f295c;
-  --secondary: #0045ad;
+  --secondary: #0045ad; /* CANONICAL dark blue; --navy and --blue are deprecated aliases */
   --secondary-50: #f0fdfa;
   --secondary-100: #ccfbf1;
   --secondary-200: #99f6e4;
