@@ -22,37 +22,73 @@ type CalendarEvent = {
 
 type DisplayEvent = CalendarEvent & { _builtin: boolean };
 
-// ── Uganda 2026 Public Holidays ─────────────────────────────────────────────
-const UGANDA_PUBLIC_HOLIDAYS_2026 = [
-  { date: "2026-01-01", name: "New Year's Day" },
-  { date: "2026-01-26", name: "Liberation Day" },
-  { date: "2026-02-16", name: "Archbishop Janani Luwum Day" },
-  { date: "2026-03-08", name: "International Women's Day" },
-  { date: "2026-04-03", name: "Good Friday" },
-  { date: "2026-04-06", name: "Easter Monday" },
-  { date: "2026-05-01", name: "Labour Day" },
-  { date: "2026-06-03", name: "Martyr's Day" },
-  { date: "2026-06-09", name: "National Heroes' Day" },
-  { date: "2026-10-09", name: "Independence Day" },
-  { date: "2026-12-25", name: "Christmas Day" },
-  { date: "2026-12-26", name: "Boxing Day" },
-];
+// ── Uganda public holidays (year-aware) ─────────────────────────────────────
+// Fixed-date holidays keep their month/day; Easter-derived holidays are
+// computed for the requested year. Approximate term dates follow the
+// traditional Ugandan school calendar (Term 1 Jan–Apr, Term 2 May–Aug,
+// Term 3 Sep–Dec) and are labelled with the year so they never claim to be
+// authoritative beyond the published MoES/NCDC calendar.
+function easterSunday(year: number): Date {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
 
-// ── Uganda 2026 School Term Dates ────────────────────────────────────────────
-const UGANDA_TERM_DATES_2026 = [
-  { date: "2026-01-13", name: "Term 1 Opens", type: "academic", color: "var(--secondary-600)" },
-  { date: "2026-02-14", name: "Term 1 Midterm Break Starts", type: "holiday", color: "var(--amber)" },
-  { date: "2026-02-16", name: "Term 1 Midterm Break Ends", type: "holiday", color: "var(--amber)" },
-  { date: "2026-04-03", name: "Term 1 Closes (EOT)", type: "academic", color: "#ef4444" },
-  { date: "2026-05-11", name: "Term 2 Opens", type: "academic", color: "var(--secondary-600)" },
-  { date: "2026-06-26", name: "Term 2 Midterm Break Starts", type: "holiday", color: "var(--amber)" },
-  { date: "2026-06-28", name: "Term 2 Midterm Break Ends", type: "holiday", color: "var(--amber)" },
-  { date: "2026-08-14", name: "Term 2 Closes (EOT)", type: "academic", color: "#ef4444" },
-  { date: "2026-09-07", name: "Term 3 Opens", type: "academic", color: "var(--secondary-600)" },
-  { date: "2026-10-19", name: "Term 3 Midterm Break Starts", type: "holiday", color: "var(--amber)" },
-  { date: "2026-10-21", name: "Term 3 Midterm Break Ends", type: "holiday", color: "var(--amber)" },
-  { date: "2026-12-05", name: "Term 3 Closes (EOT)", type: "academic", color: "#ef4444" },
-];
+function iso(year: number, month: number, day: number): string {
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function getUgandaPublicHolidays(year: number) {
+  const easter = easterSunday(year);
+  const goodFriday = new Date(easter); goodFriday.setDate(easter.getDate() - 2);
+  const easterMonday = new Date(easter); easterMonday.setDate(easter.getDate() + 1);
+  const fmt = (d: Date) => iso(d.getFullYear(), d.getMonth() + 1, d.getDate());
+  return [
+    { date: iso(year, 1, 1), name: "New Year's Day" },
+    { date: iso(year, 1, 26), name: "Liberation Day" },
+    { date: iso(year, 2, 16), name: "Archbishop Janani Luwum Day" },
+    { date: iso(year, 3, 8), name: "International Women's Day" },
+    { date: fmt(goodFriday), name: "Good Friday" },
+    { date: fmt(easterMonday), name: "Easter Monday" },
+    { date: iso(year, 5, 1), name: "Labour Day" },
+    { date: iso(year, 6, 3), name: "Martyr's Day" },
+    { date: iso(year, 6, 9), name: "National Heroes' Day" },
+    { date: iso(year, 10, 9), name: "Independence Day" },
+    { date: iso(year, 12, 25), name: "Christmas Day" },
+    { date: iso(year, 12, 26), name: "Boxing Day" },
+  ];
+}
+
+// ── Uganda school term dates (year-aware, approximate) ───────────────────────
+function getUgandaTermDates(year: number) {
+  const t = (m: number, d: number) => iso(year, m, d);
+  return [
+    { date: t(1, 13), name: "Term 1 Opens", type: "academic", color: "var(--secondary-600)" },
+    { date: t(2, 14), name: "Term 1 Midterm Break Starts", type: "holiday", color: "var(--amber)" },
+    { date: t(2, 16), name: "Term 1 Midterm Break Ends", type: "holiday", color: "var(--amber)" },
+    { date: t(4, 3), name: "Term 1 Closes (EOT)", type: "academic", color: "var(--red)" },
+    { date: t(5, 11), name: "Term 2 Opens", type: "academic", color: "var(--secondary-600)" },
+    { date: t(6, 26), name: "Term 2 Midterm Break Starts", type: "holiday", color: "var(--amber)" },
+    { date: t(6, 28), name: "Term 2 Midterm Break Ends", type: "holiday", color: "var(--amber)" },
+    { date: t(8, 14), name: "Term 2 Closes (EOT)", type: "academic", color: "var(--red)" },
+    { date: t(9, 7), name: "Term 3 Opens", type: "academic", color: "var(--secondary-600)" },
+    { date: t(10, 19), name: "Term 3 Midterm Break Starts", type: "holiday", color: "var(--amber)" },
+    { date: t(10, 21), name: "Term 3 Midterm Break Ends", type: "holiday", color: "var(--amber)" },
+    { date: t(12, 5), name: "Term 3 Closes (EOT)", type: "academic", color: "var(--red)" },
+  ];
+}
 
 const EVENT_COLORS: Record<string, string> = {
   holiday: "#10b981",
@@ -168,7 +204,7 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
   // Merge school events with built-in Uganda dates
   const allEvents = useMemo(() => {
     const builtIn: DisplayEvent[] = [
-      ...UGANDA_PUBLIC_HOLIDAYS_2026.map((h) => ({
+      ...getUgandaPublicHolidays(year).map((h) => ({
         id: `ph-${h.date}`,
         title: h.name,
         description: "Uganda Public Holiday",
@@ -177,7 +213,7 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
         end_date: null,
         _builtin: true,
       })),
-      ...UGANDA_TERM_DATES_2026.map((t) => ({
+      ...getUgandaTermDates(year).map((t) => ({
         id: `td-${t.date}`,
         title: t.name,
         description: "Uganda School Calendar 2026",
@@ -208,6 +244,7 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
   };
 
   const todayDate = new Date();
+  const year = todayDate.getFullYear();
   const today = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, "0")}-${String(todayDate.getDate()).padStart(2, "0")}`;
 
   return (
@@ -215,7 +252,7 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-[var(--t1)]">Academic Calendar 2026</p>
+            <p className="text-sm font-semibold text-[var(--t1)]">{`Academic Calendar ${year}`}</p>
             <p className="text-xs text-[var(--t3)]">
               Uganda public holidays, term dates, midterm breaks & school events
             </p>

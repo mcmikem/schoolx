@@ -542,8 +542,7 @@ test Saturday behavior separately for the main grid and FullCalendar.
   UI state the school-wide limitation.
 - Upper-secondary target comparison: **release blocker** for any claim of full
   NCDC upper-secondary support; the time-valid preset itself is supported.
-- Year-aware public calendar: **release blocker** for any release claiming
-  support beyond 2026.
+- Year-aware public calendar: resolved (TermCalendar now derives holidays and term dates from the current year).
 - Server-side conflict and schedule transactions: **release blocker**.
 - Full optimization solver: deferred; the deterministic preview solver is
   acceptable for v1.
