@@ -35,6 +35,14 @@ The source hierarchy is:
 4. A local school example only as evidence for a preset, never as a universal
    compliance rule.
 
+Source register for Phase 0:
+
+| Source | Publisher | Link | Use | Status |
+|---|---|---|---|---|
+| Basic Requirements and Minimum Standards, Indicator 11 | MoES | `https://www.education.go.ug/` | Broad school-day guidance | Edition and page must be pinned before hard validation changes. |
+| Lower Secondary Curriculum Framework | NCDC | `https://ncdc.go.ug/` | S1–S4 weekly subject targets | Edition and table/page must be pinned before target changes. |
+| Bishop Dunstan timetable example | School-provided local reference | Internal evidence only | Preset plausibility check | Never used as a compliance source. |
+
 The implementation must record the exact publication identifier, edition,
 public link, and review date in the release note before changing a hard
 validation rule. The current repository contains source descriptions but not
@@ -43,6 +51,11 @@ pins the sources before Phase 1 edits validation. NCDC targets are advisory
 comparisons in v1; they do not block saving a school timetable.
 
 ## 3. Goals
+
+This is a remediation plan, not a claim that every target behavior already
+exists. “Current” statements describe the reviewed repository; imperative
+statements describe changes required in the phases below. The release remains
+blocked until the phase acceptance tests pass.
 
 1. Represent a school day as pure, testable data.
 2. Seed one school-wide schedule appropriate to the selected school type.
@@ -73,17 +86,19 @@ comparisons in v1; they do not block saving a school timetable.
 The current pure validator applies the broad BRMS-style checks to every
 `SchoolDayConfig`, including a minimum of eight lessons. That is not suitable
 for every level: the nursery preset currently contains seven lessons and the
-upper-secondary preset currently exceeds the 17:00 school-day boundary when
-its official-day portion is evaluated.
+the current validator does not distinguish nursery from the lower-secondary
+eight-lesson rule. The upper-secondary preset is time-valid because evening
+prep is excluded from the 08:00–17:00 check, but it lacks an approved target
+model.
 
 Before the next release, replace the universal rule with a level rule set:
 
 | Level | v1 status | Required behavior |
 |---|---|---|
-| Nursery/ECD | Supported preset, advisory validation | Seven short lessons are allowed; show warnings instead of the lower-secondary eight-lesson error. |
+| Nursery/ECD | Supported preset | Eight short lessons meet the MoES minimum; sub-8 custom schedules still warn instead of erroring. |
 | Primary | Supported preset | Apply primary-specific lesson and break rules; label lesson end separately from full-day end. |
 | Lower secondary | Supported preset and NCDC comparison | Apply the lower-secondary rule set and the S1–S4 target table. |
-| Upper secondary | Not release-ready | Hide or disable the preset until its day fits the selected school policy and its target model is defined. |
+| Upper secondary | Preset available; target comparison unavailable | Keep the time-valid preset, but show no NCDC target comparison until its target model is defined. |
 
 `weeklyPeriodTargets()` currently returns targets only for lower secondary. The
 UI must say “Lower-secondary NCDC comparison” when that is the active mode.
@@ -148,8 +163,8 @@ Pure functions with no I/O:
 - `SchoolDayConfig` describes start time, lesson length, break/lunch counts,
   co-curricular time, and optional evening prep.
 - `GeneratedSlot` is the canonical generated-slot return type.
-- `SCHOOL_DAY_PRESETS` contains nursery, primary, lower-secondary, and a
-  disabled-until-valid upper-secondary preset.
+- `SCHOOL_DAY_PRESETS` contains nursery, primary, lower-secondary, and an
+  upper-secondary preset without weekly target comparison.
 - `buildSchoolDay(config) -> GeneratedSlot[]` produces ordered named slots.
 - `validateSchoolDay(config) -> { errors, warnings }` applies the rule set for
   the config level. It rejects malformed or negative numeric input before
@@ -286,7 +301,34 @@ most constrained requirements first, balances teacher load, avoids repeating a
 subject on the same day when possible, respects teacher caps and unavailable
 slots, and returns every unplaced requirement with a reason. It does not solve
 rooms or optimize a global timetable; those checks remain server-side approval
-constraints.
+ constraints.
+
+#### Version and preview storage
+
+Migration `supabase/migrations/20261205000000_timetable_schedule_version.sql`
+creates these tables:
+
+- `timetable_schedule_versions(id uuid, school_id uuid, academic_year text,
+  version integer, slot_hash text, created_by uuid, created_at timestamptz)`
+  with a unique `(school_id, academic_year, version)` constraint and one
+  current version per school/year.
+- `timetable_generation_previews(id uuid, school_id uuid, academic_year text,
+  schedule_version integer, assignment_hash text, payload jsonb,
+  expires_at timestamptz, created_by uuid, consumed_at timestamptz)` with a
+  unique preview ID and RLS restricted to its creator and school admins.
+
+The approval route calls the database function
+`approve_timetable_generation(p_preview_id uuid, p_actor_id uuid)`. The function
+locks the preview and current schedule version, verifies expiry and hashes,
+checks class/teacher/room conflicts, inserts all entries, writes the audit row,
+marks the preview consumed, and rolls back on any error. The route never uses a
+read-then-independent-insert sequence for approval.
+
+The same migration adds the schedule-version foreign key to
+`timetable_constraints` and indexes `(school_id, academic_year, day_of_week,
+period_number)` on timetable entries. Room conflicts use a non-empty room
+comparison in the transaction because rooms are currently stored as text, not
+as a separate table.
 
 ### 7.7 Print and calendar
 
@@ -396,9 +438,9 @@ the release note before hard validation changes are merged.
 - `src/__tests__/uganda-school-day.test.ts`
 - `src/__tests__/school-day-setup-modal.test.tsx`
 
-Change level-specific validation, reject malformed numeric input, correct the
-upper-secondary availability, use `GeneratedSlot`, and test nursery, primary,
-lower-secondary, and disabled upper-secondary behavior.
+Change level-specific validation, reject malformed numeric input, preserve the
+time-valid upper-secondary preset without target comparison, use `GeneratedSlot`,
+and test nursery, primary, lower-secondary, and upper-secondary behavior.
 
 ### Phase 2 — Make schedule replacement and constraints safe
 
@@ -406,6 +448,9 @@ lower-secondary, and disabled upper-secondary behavior.
 
 - `src/components/timetable/SchoolDaySetupModal.tsx`
 - `src/lib/hooks/timetable.ts`
+
+**Create:**
+
 - `src/app/api/timetable/schedule/route.ts`
 - `supabase/migrations/20261205000000_timetable_schedule_version.sql`
 - `src/__tests__/timetable-schedule-route.test.ts`
@@ -421,6 +466,9 @@ mapping, optimistic concurrency check, audit event, and rollback tests.
 - `src/app/dashboard/timetable/page.tsx`
 - `src/components/timetable/TermCalendar.tsx`
 - `src/lib/hooks/timetable.ts`
+
+**Create:**
+
 - `src/app/api/timetable/entries/route.ts`
 - `src/app/api/timetable/events/route.ts`
 - `src/__tests__/timetable-entry-route.test.ts`
@@ -459,27 +507,41 @@ test Saturday behavior separately for the main grid and FullCalendar.
 
 ## 12. Acceptance tests
 
-- Every enabled preset passes its own level rule set; nursery does not fail a
-  lower-secondary-only eight-lesson rule.
-- Invalid negative, non-finite, malformed, and overlong inputs are rejected.
-- Schedule replacement either commits slots and mapped constraints together or
-  leaves both unchanged.
-- Two concurrent approvals cannot create the same teacher/class/room conflict.
-- An unauthorized role and a cross-school ID are rejected.
-- A stale generator preview cannot be approved.
-- Preview writes nothing; approval writes all placements or none.
-- Unplaced requirements include deterministic reasons.
-- Saturday appears in the main grid and generator; FullCalendar behavior is
-  tested according to its explicit configuration.
-- Calendar event add/update/delete all have timeout and error tests.
-- Print output covers empty cells, spanning breaks, selected class/term, and
-  browser print cancellation.
+- `uganda-school-day.test.ts`: nursery with seven lessons returns a warning,
+  lower secondary with eight lessons passes, upper secondary remains
+  time-valid without a target comparison, and
+  negative/non-finite/invalid time inputs return `400`-equivalent validation
+  errors.
+- `timetable-schedule-route.test.ts`: two slots and one constraint are replaced
+  with `expectedVersion=12`; the success response is version 13; a forced
+  constraint-mapping error leaves the old rows unchanged; stale version 11
+  returns HTTP 409.
+- `timetable-generate-route.test.ts`: preview returns `previewId` and writes no
+  rows; a preview expires after five minutes; an unauthorized composite role is
+  rejected; a cross-school UUID returns 403; approval with a teacher clash,
+  room clash, or unavailable teacher returns 409; duplicate concurrent approval
+  inserts one set only.
+- `timetable-solver.test.ts`: duplicate teacher IDs normalize deterministically,
+  invalid days/periods are rejected, most-constrained requirements sort first,
+  and unplaced requirements have stable reasons.
+- `timetable-entry-route.test.ts`: a valid entry returns 201; a teacher/class
+  conflict returns 409; a missing room is allowed; a cross-year row is rejected.
+- `timetable-event-route.test.ts`: school-event add/update/delete use the
+  timeout wrapper, built-in 2026 dates cannot be edited, and provider timeout
+  returns 504 without a partial update.
+- `school-day-setup-modal.test.tsx`: lesson-end and full-day-end labels differ,
+  and upper-secondary can be selected without an NCDC target panel.
+- `timetable-print-sheet.test.tsx`: empty cells, spanning breaks, selected
+  class/term, A4 landscape, and print cancellation are asserted.
+- `timetable-mobile-agenda.test.tsx`: Saturday appears in the main agenda;
+  `TimetableCalendar.tsx` explicitly remains weekday-only until its own change.
 
 ## 13. Known limitations and release status
 
 - Per-level schedules: deferred; **not a v1 release blocker** if the README and
   UI state the school-wide limitation.
-- Upper-secondary preset: **release blocker** until disabled or made valid.
+- Upper-secondary target comparison: **release blocker** for any claim of full
+  NCDC upper-secondary support; the time-valid preset itself is supported.
 - Year-aware public calendar: **release blocker** for any release claiming
   support beyond 2026.
 - Server-side conflict and schedule transactions: **release blocker**.
