@@ -2,6 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * DESIGN TOKENS — canonical palette documentation
+ *
+ * CANONICAL (use these in new code):
+ *   --primary (#005ce6)   brand blue — buttons, links, focus rings
+ *   --secondary (#0045ad) dark blue — nav, sidebar, headers
+ *   --green (#22c55e)     success, paid, present
+ *   --amber (#f59e0b)     warning, pending, late
+ *   --red (#f04444)       error, absent, overdue
+ *   --t1..--t4            text hierarchy (t1 darkest)
+ *   --surface*            surface layers
+ *   --border*             borders
+ *
+ * DEPRECATED ALIASES (do not use in new code):
+ *   --navy     → same as --secondary (#0045ad)
+ *   --blue     → alias for --navy
+ *   --error    → alias for --red (#f04444)
+ *   --bot-navy → legacy dark navy
+ *   --primary-navy → legacy
+ */
+
 /* Self-hosted fonts (no runtime dependency on fonts.googleapis.com — critical for low-bandwidth
    and offline-first environments). Variable woff2 for latin + latin-ext. */
 @font-face {
