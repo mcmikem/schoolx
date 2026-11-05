@@ -31,6 +31,7 @@ interface EntitlementLite {
 }
 
 interface AccessContext {
+  v: number;
   billing_mode: "full_suite" | "modular";
   feature_stage: string | null;
   school_size_band: string | null;
@@ -38,12 +39,16 @@ interface AccessContext {
 }
 
 const CACHE_PREFIX = "skoolmate_module_access:";
+const CACHE_VERSION = 2; // bump to invalidate stale caches (e.g. after billing mode change)
 
 function readCache(schoolId: string): AccessContext | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = sessionStorage.getItem(CACHE_PREFIX + schoolId);
-    if (raw) return JSON.parse(raw) as AccessContext;
+    if (raw) {
+      const parsed = JSON.parse(raw) as AccessContext;
+      if (parsed.v === CACHE_VERSION) return parsed;
+    }
   } catch {
     // ignore malformed cache
   }
@@ -53,7 +58,7 @@ function readCache(schoolId: string): AccessContext | null {
 function writeCache(schoolId: string, ctx: AccessContext) {
   if (typeof window === "undefined") return;
   try {
-    sessionStorage.setItem(CACHE_PREFIX + schoolId, JSON.stringify(ctx));
+    sessionStorage.setItem(CACHE_PREFIX + schoolId, JSON.stringify({ ...ctx, v: CACHE_VERSION }));
   } catch {
     // storage full/blocked — cache is best-effort
   }
@@ -98,6 +103,7 @@ export function useModuleAccess() {
         const body = await res.json();
         if (!body?.success || cancelled) return;
         const next: AccessContext = {
+          v: CACHE_VERSION,
           billing_mode: body.data?.school?.billing_mode || "full_suite",
           feature_stage: body.data?.school?.feature_stage || null,
           school_size_band: body.data?.school?.school_size_band || null,

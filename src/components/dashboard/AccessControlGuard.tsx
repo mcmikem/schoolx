@@ -9,6 +9,7 @@ import { useToast } from "@/components/Toast";
 import { useStudents, useClasses, useFeePayments, useFeeStructure } from "@/lib/hooks";
 import {
   getRequiredModuleForPath,
+  isModuleInFeatureStage,
   DEFAULT_FEATURE_STAGE,
   MODULE_CATALOG,
   type ModuleKey,
@@ -271,6 +272,22 @@ export function useAccessControl() {
       safeSessionStorage.removeItem("lastDeniedPath");
       return;
     }
+    // Full-suite schools: gate by feature stage from auth context (always fresh).
+    const schoolBillingMode = (school?.billing_mode as string) || "full_suite";
+    if (schoolBillingMode === "full_suite") {
+      if (moduleKey && !isModuleInFeatureStage(featureStage, moduleKey)) {
+        const lastDenied = safeSessionStorage.getItem("lastDeniedPath");
+        if (lastDenied !== pathname) {
+          safeSessionStorage.setItem("lastDeniedPath", pathname);
+          toast?.error("Upgrade your package to access this module");
+        }
+        router.replace(`/dashboard/no-access?reason=feature&from=${encodeURIComponent(pathname)}&module=${moduleKey}`);
+        return;
+      }
+      safeSessionStorage.removeItem("lastDeniedPath");
+      return;
+    }
+    // Modular mode: use the fetched entitlement context.
     const moduleAllowed = canAccessPath(pathname);
     if (moduleKey && !moduleAllowed) {
       const lastDenied = safeSessionStorage.getItem("lastDeniedPath");
