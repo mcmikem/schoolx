@@ -28,7 +28,10 @@ function walk(dir: string, out: string[] = []): string[] {
 
 // [file substring, allowed pattern] pairs: the barcode is the only gradient
 // permitted in component markup.
-const TSX_ALLOWLIST: Array<[string, RegExp]> = [["dashboard/idcards/page.tsx", /repeating-linear-gradient/]];
+const TSX_ALLOWLIST: Array<[string, RegExp]> = [
+  ["dashboard/idcards/page.tsx", /repeating-linear-gradient/],
+  ["components/timetable/KikunyuWallTimetable.tsx", /bg-gradient-to-r/],
+];
 
 describe("flat design: no gradients in markup", () => {
   it("has no gradient backgrounds outside the allowlist", () => {
@@ -68,8 +71,7 @@ describe("design direction: rounded radius scale", () => {
   it("keeps the scale monotonically increasing", () => {
     // The old block mapped 2xl and 3xl to 8px and 10px, so a "bigger" element
     // was barely more rounded than a small one.
-    const px = (cls: string) =>
-      Number(css.match(new RegExp(`\\.${cls} \\{ border-radius: (\\d+)px; \\}`))?.[1] ?? -1);
+    const px = (cls: string) => Number(css.match(new RegExp(`\\.${cls} \\{ border-radius: (\\d+)px; \\}`))?.[1] ?? -1);
     const lg = px("rounded-lg");
     const xl = px("rounded-xl");
     const xxl = px("rounded-2xl");

@@ -26,6 +26,7 @@ const TimetableCalendar = dynamic(() => import("@/components/timetable/Timetable
 import SchoolDaySetupModal from "@/components/timetable/SchoolDaySetupModal";
 import TermCalendar from "@/components/timetable/TermCalendar";
 import TimetablePrintSheet from "@/components/timetable/TimetablePrintSheet";
+import KikunyuWallTimetable from "@/components/timetable/KikunyuWallTimetable";
 import { useAcademic } from "@/lib/academic-context";
 import {
   SCHOOL_DAY_PRESETS,
@@ -114,6 +115,8 @@ interface AllClassTimetableEntry {
   start_time: string;
   end_time: string;
   room: string | null;
+  subject_id?: string | null;
+  subjects?: any;
 }
 
 interface Slot {
@@ -218,16 +221,20 @@ export default function TimetablePage() {
   const fetchAllTimetables = useCallback(async () => {
     if (isDemo) {
       setAllClassTimetables(
-        mapDemoTimetable().map(({ id, teacher_id, day_of_week, period_number, class_id, start_time, end_time }) => ({
-          id,
-          teacher_id,
-          day_of_week,
-          period_number,
-          class_id,
-          start_time,
-          end_time,
-          room: null,
-        })),
+        mapDemoTimetable().map(
+          ({ id, teacher_id, day_of_week, period_number, class_id, start_time, end_time, subject_id, subjects }) => ({
+            id,
+            teacher_id,
+            day_of_week,
+            period_number,
+            class_id,
+            start_time,
+            end_time,
+            room: null,
+            subject_id: subject_id || null,
+            subjects: subjects || null,
+          }),
+        ),
       );
       return;
     }
@@ -236,7 +243,9 @@ export default function TimetablePage() {
       const result = await withTimeout(
         supabase
           .from("teacher_timetable")
-          .select("id, teacher_id, day_of_week, period_number, class_id, start_time, end_time, room"),
+          .select(
+            "id, teacher_id, day_of_week, period_number, class_id, start_time, end_time, room, subject_id, subjects(name, code)",
+          ),
         10000,
         timeoutFallback(),
       );
@@ -466,10 +475,11 @@ export default function TimetablePage() {
   const dayTabs = DAYS.map((day) => ({ id: day.value.toString(), label: day.full }));
   const mainTabs = [
     { id: "timetable", label: "Class Timetable" },
+    { id: "wall", label: "Wall Chart" },
     { id: "calendar", label: "Term Calendar" },
     { id: "fc", label: "Week View" },
   ];
-  const [mainTab, setMainTab] = useState<"timetable" | "calendar" | "fc">("timetable");
+  const [mainTab, setMainTab] = useState<"timetable" | "wall" | "calendar" | "fc">("timetable");
 
   if (loadingSlots) {
     return (
@@ -560,6 +570,16 @@ export default function TimetablePage() {
         <div className="border-b border-[var(--border)] overflow-x-auto no-scrollbar">
           <Tabs tabs={mainTabs} activeTab={mainTab} onChange={(id) => setMainTab(id as "timetable" | "calendar")} />
         </div>
+
+        <TabPanel activeTab={mainTab} tabId="wall">
+          <KikunyuWallTimetable
+            schoolName={school?.name}
+            classes={classes as any}
+            entries={allClassTimetables as any}
+            slots={effectiveSlots as any}
+            teacherNames={teacherNameById}
+          />
+        </TabPanel>
 
         <TabPanel activeTab={mainTab} tabId="calendar">
           <TermCalendar schoolId={school?.id || ""} userId={user?.id || ""} />
