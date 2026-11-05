@@ -137,7 +137,7 @@ function SuperAdminDashboardContent() {
         supabase
           .from("schools")
           .select(
-            "id, name, district, school_type, subscription_plan, subscription_status, student_count, created_at, logo_url, primary_color, trial_ends_at",
+            "id, name, district, school_type, subscription_plan, subscription_status, student_count, created_at, logo_url, primary_color, trial_ends_at, is_tester",
           )
           .order("created_at", { ascending: false }),
         supabase.from("users").select("id", { count: "exact", head: true }),
@@ -168,6 +168,8 @@ function SuperAdminDashboardContent() {
       // Alerts: expiring trials & expired subscriptions
       const alertItems: AlertItem[] = [];
       schools.forEach((s) => {
+        // Tester schools are comped — don't surface trial expiry alerts for them.
+        if (s.is_tester) return;
         if (s.subscription_status === "trial" && s.trial_ends_at) {
           const daysLeft = Math.ceil((new Date(s.trial_ends_at).getTime() - Date.now()) / 86_400_000);
           if (daysLeft <= 5 && daysLeft >= 0) {

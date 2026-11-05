@@ -32,6 +32,7 @@ interface SchoolData {
   onboarding_complete?: boolean;
   custom_features?: string[];
   notes?: string;
+  is_tester?: boolean;
 }
 
 interface SchoolUser {
@@ -927,9 +928,10 @@ export default function SchoolsPage() {
                   <span className="text-[var(--t3)]">{school.student_count || 0} students</span>
                 </div>
                 {school.phone && <div className="text-sm text-[var(--t3)]">📞 {school.phone}</div>}
-                {school.trial_ends_at && school.subscription_status === "trial" && (
+                {school.trial_ends_at && school.subscription_status === "trial" && !school.is_tester && (
                   <div className="text-xs text-amber-600 mt-1">Trial ends: {formatDate(school.trial_ends_at)}</div>
                 )}
+                {school.is_tester && <div className="text-xs text-emerald-600 mt-1">Tester account — full access</div>}
                 <div className="mt-3 pt-3 border-t border-[var(--surface-container-high)] flex gap-3">
                   <button
                     onClick={(e) => {

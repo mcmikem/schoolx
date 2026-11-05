@@ -255,6 +255,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (schoolData) {
           const schoolObj = {
             ...schoolData,
+            is_tester: Boolean(schoolData.is_tester),
             feature_stage: (schoolData.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
           };
           setSchool(schoolObj);
@@ -1333,6 +1334,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (schoolData) {
         setSchool({
           ...schoolData,
+          is_tester: Boolean(schoolData.is_tester),
           feature_stage: (schoolData.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
         });
         setIsTrialExpired(computeTrialExpired(schoolData, user?.role));

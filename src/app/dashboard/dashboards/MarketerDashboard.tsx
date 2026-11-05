@@ -27,6 +27,7 @@ interface SchoolRow {
   email?: string;
   onboarding_completed?: boolean;
   onboarding_complete?: boolean;
+  is_tester?: boolean;
 }
 
 interface EarningsRow {
@@ -538,9 +539,11 @@ function OverviewTab({
               ) : (
                 schools.map((s) => {
                   const onboarded = s.onboarding_completed || s.onboarding_complete || s.student_count > 0;
-                  const daysLeft = s.trial_ends_at
-                    ? Math.ceil((new Date(s.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-                    : null;
+                  const isTester = s.is_tester === true;
+                  const daysLeft =
+                    s.trial_ends_at && !isTester
+                      ? Math.ceil((new Date(s.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                      : null;
                   return (
                     <tr key={s.id} className="border-b border-[var(--border)] hover:bg-[var(--bg)] transition-colors">
                       <td className="px-4 py-2.5">
@@ -569,7 +572,9 @@ function OverviewTab({
                         </span>
                       </td>
                       <td className="px-4 py-2.5 text-xs text-[var(--t3)]">
-                        {daysLeft !== null ? (
+                        {isTester ? (
+                          <span className="text-emerald-600 font-semibold">Tester</span>
+                        ) : daysLeft !== null ? (
                           <span className={daysLeft <= 7 ? "text-red-500 font-semibold" : ""}>
                             {daysLeft > 0 ? `${daysLeft}d` : "Expired"}
                           </span>

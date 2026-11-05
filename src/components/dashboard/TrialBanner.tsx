@@ -33,8 +33,13 @@ export default function TrialBanner() {
   };
 
   // Tester schools are comped through the current and next academic term —
-  // an "Upgrade now!" banner to a comp school is just noise.
-  if (dismissed || isDemo || school?.is_tester || school?.subscription_status !== "trial") return null;
+  // an "Upgrade now!" banner to a comp school is just noise. Also hide for
+  // enterprise/lifetime plans (which is what tester schools receive) and when
+  // tester status is unknown (stale cached data).
+  const isTester = school?.is_tester === true;
+  const plan = String(school?.subscription_plan || "");
+  const isPaidPlan = plan === "enterprise" || plan === "lifetime" || plan === "max" || plan === "premium";
+  if (dismissed || isDemo || isTester || isPaidPlan || school?.subscription_status !== "trial") return null;
 
   return (
     <div className="bg-[var(--navy)] border-b border-[var(--navy)] px-3 py-2">
