@@ -107,11 +107,11 @@ export default function WorkloadPage() {
       case "Light":
         return { bg: "bg-[var(--green-soft)]", text: "text-[var(--green-ink)]", bar: "bg-green-500" };
       case "Normal":
-        return { bg: "bg-[#fff8e1]", text: "text-[#b8860b]", bar: "bg-yellow-500" };
+        return { bg: "bg-[var(--amber-soft)]", text: "text-[var(--amber-ink)]", bar: "bg-[var(--amber)]" };
       case "Heavy":
-        return { bg: "bg-[var(--amber-soft)]", text: "text-[#b86e00]", bar: "bg-orange-500" };
+        return { bg: "bg-[var(--amber-soft)]", text: "text-[var(--amber-ink)]", bar: "bg-orange-500" };
       case "Overloaded":
-        return { bg: "bg-[#fef2f2]", text: "text-[#ba1a1a]", bar: "bg-red-500" };
+        return { bg: "bg-[var(--red-soft)]", text: "text-[var(--red)]", bar: "bg-[var(--red)]" };
     }
   };
 

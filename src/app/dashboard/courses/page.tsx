@@ -77,7 +77,7 @@ const mapSubjectToCourse = (subject: any): Course => ({
   credit_hours: 0,
   max_score: 100,
   passing_score: 50,
-  color: "#3b82f6",
+  color: "var(--primary)",
   icon: "menu_book",
 });
 
@@ -102,7 +102,7 @@ export default function CoursesPage() {
     credit_hours: 0,
     max_score: 100,
     passing_score: 50,
-    color: "#3b82f6",
+    color: "var(--primary)",
     icon: "menu_book",
   });
 
@@ -291,7 +291,7 @@ export default function CoursesPage() {
                   credit_hours: 0,
                   max_score: 100,
                   passing_score: 50,
-                  color: "#3b82f6",
+                  color: "var(--primary)",
                   icon: "menu_book",
                 });
                 setShowModal(true);

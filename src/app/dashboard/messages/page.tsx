@@ -1528,7 +1528,7 @@ export default function CommunicationHubPage() {
                   <div>
                     <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Image (Optional)</label>
                     <div className="flex items-center gap-3">
-                      <label className="inline-flex items-center gap-2 rounded-xl border border-[var(--surface-container-high)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--t3)] hover:bg-[#f8fafb] cursor-pointer">
+                      <label className="inline-flex items-center gap-2 rounded-xl border border-[var(--surface-container-high)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--t3)] hover:bg-[var(--surface)] cursor-pointer">
                         <MaterialIcon icon="upload" className="text-lg" />
                         {uploadingImage ? "Uploading..." : "Upload Image"}
                         <input
@@ -1547,7 +1547,7 @@ export default function CommunicationHubPage() {
                     </div>
                   </div>
                   <div
-                    className={`p-4 rounded-xl border-2 transition-all ${newNotice.category === "Emergency" || newNotice.send_sms ? "border-red-200 bg-red-50" : "border-[var(--surface-container-high)] bg-[#f8fafb]"}`}
+                    className={`p-4 rounded-xl border-2 transition-all ${newNotice.category === "Emergency" || newNotice.send_sms ? "border-red-200 bg-red-50" : "border-[var(--surface-container-high)] bg-[var(--surface)]"}`}
                   >
                     <label className="flex items-start gap-3 cursor-pointer">
                       <input

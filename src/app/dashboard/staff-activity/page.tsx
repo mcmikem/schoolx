@@ -66,7 +66,7 @@ export default function StaffActivityPage() {
       case "update":
         return "var(--navy)";
       case "delete":
-        return "var(--red, #dc2626)";
+        return "var(--red, var(--red))";
       default:
         return "var(--t3)";
     }

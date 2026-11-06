@@ -155,6 +155,10 @@ export default function TimetablePage() {
     () => Object.fromEntries(teachers.map((teacher): [string, string] => [teacher.id, teacher.full_name])),
     [teachers],
   );
+  const staffNameById = useMemo(
+    () => Object.fromEntries(staff.map((member): [string, string] => [member.id, member.full_name])),
+    [staff],
+  );
 
   const [selectedClassId, setSelectedClassId] = useState("");
   const [timetable, setTimetable] = useState<TimetableEntry[]>([]);
@@ -252,11 +256,12 @@ export default function TimetablePage() {
       if (isTimeoutResult(result)) return;
       const { data, error } = result ?? {};
       if (error) throw error;
-      setAllClassTimetables(data || []);
+      const knownClassIds = new Set(classes.map((classItem) => classItem.id));
+      setAllClassTimetables((data || []).filter((entry) => knownClassIds.has(entry.class_id)));
     } catch (err) {
       logger.error("Error fetching all timetables:", err);
     }
-  }, [school?.id, isDemo]);
+  }, [school?.id, isDemo, classes]);
 
   useEffect(() => {
     if (selectedClassId) fetchTimetable();
@@ -355,7 +360,7 @@ export default function TimetablePage() {
           const classB = classes.find((c) => c.id === b.class_id)?.name || "Unknown";
           result.push({
             type: "teacher",
-            description: `${teacherNameById[a.teacher_id] || "Teacher"} double-booked: ${classA} ↔ ${classB} on ${DAYS.find((d) => d.value === a.day_of_week)?.full}`,
+            description: `${staffNameById[a.teacher_id] || teacherNameById[a.teacher_id] || "Teacher"} double-booked: ${classA} ↔ ${classB} on ${DAYS.find((d) => d.value === a.day_of_week)?.full}`,
             day: a.day_of_week,
           });
         }
@@ -372,8 +377,10 @@ export default function TimetablePage() {
         }
       }
     }
-    return result;
-  }, [allClassTimetables, classes, teacherNameById]);
+    const unique = new Map<string, ClashInfo>();
+    for (const clash of result) unique.set(`${clash.type}:${clash.description}`, clash);
+    return [...unique.values()];
+  }, [allClassTimetables, classes, staffNameById, teacherNameById]);
   const globalClashes = clashes;
 
   const handleTeacherChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -577,7 +584,7 @@ export default function TimetablePage() {
             classes={classes as any}
             entries={allClassTimetables as any}
             slots={effectiveSlots as any}
-            teacherNames={teacherNameById}
+            teacherNames={staffNameById}
           />
         </TabPanel>
 

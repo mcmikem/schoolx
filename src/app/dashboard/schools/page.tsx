@@ -96,7 +96,7 @@ async function parseApiResponse(response: Response): Promise<Record<string, unkn
 }
 
 const PLANS: Record<string, { monthly: number; annual: number; perStudent: number; label: string; color: string }> = {
-  starter: { monthly: 350_000, annual: 3_800_000, perStudent: 50_000, label: "Starter", color: "#3b82f6" },
+  starter: { monthly: 350_000, annual: 3_800_000, perStudent: 50_000, label: "Starter", color: "var(--primary)" },
   growth: { monthly: 550_000, annual: 6_000_000, perStudent: 65_000, label: "Growth", color: "var(--secondary-600)" },
   enterprise: { monthly: 850_000, annual: 9_500_000, perStudent: 80_000, label: "Enterprise", color: "var(--amber)" },
 };
@@ -175,7 +175,7 @@ export default function SchoolsPage() {
   const [customizeForm, setCustomizeForm] = useState({
     primary_color: "#002045",
     school_motto: "",
-    accent_color: "#3b82f6",
+    accent_color: "var(--primary)",
   });
   const [onboardingSteps, setOnboardingSteps] = useState<Record<string, boolean>>({});
   const [ticketForm, setTicketForm] = useState({
@@ -578,7 +578,7 @@ export default function SchoolsPage() {
     setCustomizeForm({
       primary_color: school.primary_color || "#002045",
       school_motto: school.school_motto || "",
-      accent_color: "#3b82f6",
+      accent_color: "var(--primary)",
     });
     setShowCustomizeModal(true);
   };
@@ -990,30 +990,30 @@ export default function SchoolsPage() {
               <div className="p-6 space-y-6">
                 {/* School Info */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-[#f8f9fa] rounded-xl p-4">
+                  <div className="bg-[var(--surface-container-low)] rounded-xl p-4">
                     <div className="text-sm text-[var(--t3)] mb-1">Plan</div>
                     <div className="font-semibold text-[var(--primary-900)]">
                       {PLANS[normalizePlan(selectedSchool.subscription_plan)]?.label ||
                         selectedSchool.subscription_plan}
                     </div>
                   </div>
-                  <div className="bg-[#f8f9fa] rounded-xl p-4">
+                  <div className="bg-[var(--surface-container-low)] rounded-xl p-4">
                     <div className="text-sm text-[var(--t3)] mb-1">Status</div>
                     <div className="font-semibold capitalize">{selectedSchool.subscription_status}</div>
                   </div>
-                  <div className="bg-[#f8f9fa] rounded-xl p-4">
+                  <div className="bg-[var(--surface-container-low)] rounded-xl p-4">
                     <div className="text-sm text-[var(--t3)] mb-1">Students</div>
                     <div className="font-semibold">{selectedSchool.student_count || 0}</div>
                   </div>
-                  <div className="bg-[#f8f9fa] rounded-xl p-4">
+                  <div className="bg-[var(--surface-container-low)] rounded-xl p-4">
                     <div className="text-sm text-[var(--t3)] mb-1">Users</div>
                     <div className="font-semibold">{selectedSchool.user_count || 0}</div>
                   </div>
-                  <div className="bg-[#f8f9fa] rounded-xl p-4">
+                  <div className="bg-[var(--surface-container-low)] rounded-xl p-4">
                     <div className="text-sm text-[var(--t3)] mb-1">Trial Ends</div>
                     <div className="font-semibold">{formatDate(selectedSchool.trial_ends_at)}</div>
                   </div>
-                  <div className="bg-[#f8f9fa] rounded-xl p-4">
+                  <div className="bg-[var(--surface-container-low)] rounded-xl p-4">
                     <div className="text-sm text-[var(--t3)] mb-1">Sub Ends</div>
                     <div className="font-semibold">{formatDate(selectedSchool.subscription_ends_at)}</div>
                   </div>
@@ -1110,7 +1110,10 @@ export default function SchoolsPage() {
                   ) : (
                     <div className="space-y-2">
                       {schoolUsers.map((u) => (
-                        <div key={u.id} className="flex items-center justify-between p-3 bg-[#f8f9fa] rounded-xl">
+                        <div
+                          key={u.id}
+                          className="flex items-center justify-between p-3 bg-[var(--surface-container-low)] rounded-xl"
+                        >
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-sm text-[var(--primary-900)] truncate">{u.full_name}</div>
                             <div className="text-xs text-[var(--t3)]">
@@ -1369,7 +1372,7 @@ export default function SchoolsPage() {
                   {createdSchool.name} has been set up with a 14-day trial.
                 </p>
 
-                <div className="bg-[#f8f9fa] rounded-xl p-4 text-left space-y-3 mb-6">
+                <div className="bg-[var(--surface-container-low)] rounded-xl p-4 text-left space-y-3 mb-6">
                   <div>
                     <div className="text-xs text-[var(--t3)] uppercase tracking-wide mb-0.5">
                       Admin Phone (Login ID)
@@ -1485,7 +1488,7 @@ export default function SchoolsPage() {
                     <option value="monthly">Monthly</option>
                   </select>
                 </div>
-                <div className="bg-[#f8f9fa] rounded-xl p-4">
+                <div className="bg-[var(--surface-container-low)] rounded-xl p-4">
                   <div className="text-sm text-[var(--t3)]">
                     Plan: <span className="font-semibold">{PLANS[subForm.plan].label}</span>
                   </div>
@@ -1589,7 +1592,7 @@ export default function SchoolsPage() {
                     max={90}
                   />
                 </div>
-                <div className="bg-[#f8f9fa] rounded-xl p-4">
+                <div className="bg-[var(--surface-container-low)] rounded-xl p-4">
                   <div className="text-sm text-[var(--t3)]">New trial end date:</div>
                   <div className="font-semibold">
                     {new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toLocaleDateString("en-UG", {

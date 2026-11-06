@@ -1148,7 +1148,7 @@ function DirectoryTab({
       .join(" ");
 
   const parseHexColor = (hex: string) => {
-    const normalized = (hex || "#1e40af").replace("#", "");
+    const normalized = (hex || "var(--secondary)").replace("#", "");
     if (normalized.length === 3) {
       const expanded = normalized
         .split("")
@@ -1172,8 +1172,8 @@ function DirectoryTab({
 
   const buildStaffIdCardHtml = (member: StaffMember) => {
     const schoolName = school?.name || "School";
-    const schoolColor = school?.primary_color || "#1e40af";
-    const schoolAccent = school?.accent_color || "#1d4ed8";
+    const schoolColor = school?.primary_color || "var(--secondary)";
+    const schoolAccent = school?.accent_color || "var(--primary)";
     const primaryRgb = parseHexColor(schoolColor);
     const accentRgb = parseHexColor(schoolAccent);
     const schoolLogo = school?.logo_url || "";
@@ -1228,7 +1228,7 @@ function DirectoryTab({
             border-radius: 18px;
             overflow: hidden;
             box-shadow: 0 14px 34px rgba(15, 23, 42, 0.18);
-            border: 1px solid #dbe3f5;
+            border: 1px solid var(--primary-soft, var(--surface-container-low));
             display: grid;
             grid-template-columns: 108px 1fr;
             position: relative;
@@ -1499,8 +1499,8 @@ function DirectoryTab({
     );
   });
 
-  const staffCardPrimary = school?.primary_color || "#1e40af";
-  const staffCardAccent = school?.accent_color || "#1d4ed8";
+  const staffCardPrimary = school?.primary_color || "var(--secondary)";
+  const staffCardAccent = school?.accent_color || "var(--primary)";
 
   // null = the count query failed. Shown as "N+" rather than a wrong total.
   const staffTotal =
@@ -2156,7 +2156,7 @@ function DirectoryTab({
               </div>
             </div>
             <div className="p-6 overflow-y-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]">
-              <div className="mx-auto w-full max-w-[430px] rounded-[22px] overflow-hidden border border-[#dbe3f5] shadow-[0_16px_30px_rgba(15,23,42,0.16)] bg-[#ffffff] grid grid-cols-[110px_1fr] relative">
+              <div className="mx-auto w-full max-w-[430px] rounded-[22px] overflow-hidden border border-[var(--primary-soft, var(--surface-container-low))] shadow-[0_16px_30px_rgba(15,23,42,0.16)] bg-[#ffffff] grid grid-cols-[110px_1fr] relative">
                 <div
                   className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full"
                   style={{

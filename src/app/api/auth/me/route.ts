@@ -145,10 +145,12 @@ export async function GET(request: NextRequest) {
   // Every role this person holds, not just the primary one. In rural schools
   // the headmaster usually also teaches and the bursar is often also a
   // teacher, so the client needs the full set to gate navigation and
-  // permissions. Falls back to the single primary role so a database that has
-  // not run the multi-role migration yet still returns a usable array.
+  // permissions. The v2 RPC (20261205000000) returns roles inline, so we
+  // skip the extra round-trip when they're present.
   let roles: string[] = [String(userData.role ?? "")].filter(Boolean);
-  if (userData.id) {
+  if (Array.isArray(userData.roles) && userData.roles.length > 0) {
+    roles = [...new Set((userData.roles as unknown[]).map((r) => String(r)))];
+  } else if (userData.id) {
     const { data: roleRows } = await client.from("user_roles").select("role").eq("user_id", String(userData.id));
     if (roleRows && roleRows.length > 0) {
       roles = [...new Set(roleRows.map((r) => String((r as { role: unknown }).role)))];

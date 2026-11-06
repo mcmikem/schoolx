@@ -150,13 +150,13 @@ export default function StaffAttendancePage() {
     {
       status: "absent",
       label: "Absent",
-      color: "bg-[#fef2f2] text-[#ba1a1a] border-[#ba1a1a]",
+      color: "bg-[#fef2f2] text-[var(--red)] border-[var(--red)]",
       active: false,
     },
     {
       status: "late",
       label: "Late",
-      color: "bg-[var(--portal-warning-soft-2)] text-[#b86e00] border-[#b86e00]",
+      color: "bg-[var(--portal-warning-soft-2)] text-[var(--amber-ink)] border-[var(--amber-ink)]",
       active: false,
     },
     {
@@ -215,11 +215,11 @@ export default function StaffAttendancePage() {
             <div className="text-sm text-[var(--t3)] mt-1">Present</div>
           </Card>
           <Card className="text-center">
-            <div className="text-2xl font-bold text-[#ba1a1a]">{absentCount}</div>
+            <div className="text-2xl font-bold text-[var(--red)]">{absentCount}</div>
             <div className="text-sm text-[var(--t3)] mt-1">Absent</div>
           </Card>
           <Card className="text-center">
-            <div className="text-2xl font-bold text-[#b86e00]">{lateCount}</div>
+            <div className="text-2xl font-bold text-[var(--amber-ink)]">{lateCount}</div>
             <div className="text-sm text-[var(--t3)] mt-1">Late</div>
           </Card>
         </div>

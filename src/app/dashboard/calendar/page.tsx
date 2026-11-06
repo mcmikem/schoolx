@@ -448,7 +448,7 @@ export default function CalendarPage() {
   return (
     <PageErrorBoundary>
       <div className="p-4 sm:p-6 lg:p-8">
-        <div className="mx-auto max-w-[1420px] relative overflow-hidden rounded-[30px] border border-[var(--border)] bg-[#eff7f5] p-4 sm:p-6">
+        <div className="mx-auto max-w-[1420px] relative overflow-hidden rounded-[30px] border border-[var(--border)] bg-[var(--green-soft)] p-4 sm:p-6">
           <div className="pointer-events-none absolute -left-20 -top-20 h-48 w-48 rounded-full bg-[var(--surface-container-high)]/40 blur-3xl" />
           <div className="pointer-events-none absolute -right-16 bottom-0 h-40 w-40 rounded-full bg-[var(--surface-container-high)]/60 blur-3xl" />
 
@@ -589,7 +589,7 @@ export default function CalendarPage() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl bg-[#0e8a96] p-4 text-white shadow-lg">
+                <div className="rounded-2xl bg-[var(--green-ink)] p-4 text-white shadow-lg">
                   <p className="text-xs uppercase tracking-[0.16em] text-white/75">Meeting reminder</p>
                   {featuredEvent ? (
                     <>

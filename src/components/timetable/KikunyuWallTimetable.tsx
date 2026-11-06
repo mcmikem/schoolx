@@ -69,7 +69,7 @@ export default function KikunyuWallTimetable({
   const lessonSlots = slots.filter((slot) => slot.is_lesson !== false && !slot.is_break);
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-rose-200 bg-[#fff8fb] shadow-sm dark:border-rose-900/50 dark:bg-rose-950/20">
+    <section className="overflow-hidden rounded-2xl border border-rose-200 bg-[var(--surface)] shadow-sm dark:border-rose-900/50 dark:bg-rose-950/20">
       <div className="border-b border-rose-200 bg-gradient-to-r from-rose-100 via-pink-50 to-amber-50 px-5 py-5 dark:border-rose-900/50 dark:from-rose-950/50 dark:via-slate-950 dark:to-amber-950/40">
         <p className="text-center text-xs font-black uppercase tracking-[0.28em] text-rose-700 dark:text-rose-300">
           Wall chart view

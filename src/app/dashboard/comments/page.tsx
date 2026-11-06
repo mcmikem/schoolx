@@ -332,7 +332,7 @@ export default function CommentsPage() {
                               <textarea
                                 value={comment}
                                 onChange={(e) => setComments((prev) => ({ ...prev, [studentId]: e.target.value }))}
-                                className="w-full resize-none rounded-[16px] border border-[#dce4ee] bg-[var(--surface)] p-3 text-sm text-[var(--t2)] shadow-sm outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/12"
+                                className="w-full resize-none rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-3 text-sm text-[var(--t2)] shadow-sm outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/12"
                                 rows={2}
                               />
                             </div>
