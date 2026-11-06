@@ -486,7 +486,7 @@ export default function TimetablePage() {
     { id: "calendar", label: "Term Calendar" },
     { id: "fc", label: "Week View" },
   ];
-  const [mainTab, setMainTab] = useState<"timetable" | "wall" | "calendar" | "fc">("timetable");
+  const [mainTab, setMainTab] = useState<"timetable" | "wall" | "calendar" | "fc">("wall");
 
   if (loadingSlots) {
     return (
@@ -575,7 +575,7 @@ export default function TimetablePage() {
 
         {/* Main tabs: Class Timetable vs Term Calendar */}
         <div className="border-b border-[var(--border)] overflow-x-auto no-scrollbar">
-          <Tabs tabs={mainTabs} activeTab={mainTab} onChange={(id) => setMainTab(id as "timetable" | "calendar")} />
+          <Tabs tabs={mainTabs} activeTab={mainTab} onChange={(id) => setMainTab(id as "timetable" | "wall" | "calendar" | "fc")} />
         </div>
 
         <TabPanel activeTab={mainTab} tabId="wall">
