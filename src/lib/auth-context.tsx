@@ -353,16 +353,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
       }
       setUser(restored);
+      // If we have cached school data, use it and don't trigger the
+      // "Reconnecting..." spinner — the background heal will retry.
+      let hasCachedSchool = false;
       try {
         const rawSchool = localStorage.getItem(OFFLINE_SCHOOL_KEY);
-        if (rawSchool) setSchool(JSON.parse(rawSchool));
+        if (rawSchool) {
+          setSchool(JSON.parse(rawSchool));
+          hasCachedSchool = true;
+        }
       } catch (error) {
         logger.warn("[Auth] Failed to restore cached school for degraded login:", error);
       }
       setIsDemo(false);
       setLoading(false);
       setAuthInitialized(true);
-      setProfileDegraded(true);
+      if (!hasCachedSchool) {
+        setProfileDegraded(true);
+      }
       degradedUserIdRef.current = verifiedUser.id;
       logger.warn("[Auth] Degraded login fallback applied — profile endpoint unreachable");
     },
@@ -384,7 +392,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const profile = await fetchUserData(id);
       if (!cancelled && profile) setProfileDegraded(false);
     };
-    const interval = window.setInterval(attempt, 8000);
+    const interval = window.setInterval(attempt, 5000);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
