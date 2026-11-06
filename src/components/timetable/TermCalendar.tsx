@@ -201,6 +201,10 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
     toast.success("Event deleted");
   };
 
+  const todayDate = new Date();
+  const year = todayDate.getFullYear();
+  const today = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, "0")}-${String(todayDate.getDate()).padStart(2, "0")}`;
+
   // Merge school events with built-in Uganda dates
   const allEvents = useMemo(() => {
     const builtIn: DisplayEvent[] = [
@@ -225,7 +229,7 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
     ];
     const school: DisplayEvent[] = events.map((e) => ({ ...e, _builtin: false }));
     return [...builtIn, ...school].sort((a, b) => a.start_date.localeCompare(b.start_date));
-  }, [events]);
+  }, [events, year]);
 
   // Group by month
   const byMonth = useMemo(() => {
@@ -243,9 +247,7 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
     return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString("en-UG", { month: "long", year: "numeric" });
   };
 
-  const todayDate = new Date();
-  const year = todayDate.getFullYear();
-  const today = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, "0")}-${String(todayDate.getDate()).padStart(2, "0")}`;
+
 
   return (
     <>
