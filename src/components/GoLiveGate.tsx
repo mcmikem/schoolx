@@ -99,7 +99,7 @@ export default function GoLiveGate({ onDismiss }: { onDismiss: () => void }) {
   if (loading) {
     return (
       <div className="fixed inset-0 z-[90] bg-[var(--surface)]/95 dark:bg-[var(--surface-container-high)] flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-[var(--navy)] border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-4 border-[var(--secondary)] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -112,8 +112,8 @@ export default function GoLiveGate({ onDismiss }: { onDismiss: () => void }) {
     <div className="fixed inset-0 z-[90] bg-[var(--surface)]/95 dark:bg-[var(--surface-container-high)] flex items-center justify-center p-4 overflow-auto">
       <div className="w-full max-w-lg">
         <div className="text-center mb-6">
-          <div className="w-16 h-16 rounded-2xl bg-[var(--navy)]/10 flex items-center justify-center mx-auto mb-4">
-            <MaterialIcon icon="rocket_launch" className="text-3xl text-[var(--navy)]" />
+          <div className="w-16 h-16 rounded-2xl bg-[var(--secondary)]/10 flex items-center justify-center mx-auto mb-4">
+            <MaterialIcon icon="rocket_launch" className="text-3xl text-[var(--secondary)]" />
           </div>
           <h2 className="font-['Sora'] text-2xl font-bold text-[var(--t1)] dark:text-[var(--t4)] mb-2">
             Almost ready to go live!
@@ -156,7 +156,7 @@ export default function GoLiveGate({ onDismiss }: { onDismiss: () => void }) {
                 {!check.check && (
                   <a
                     href={check.href}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-[var(--navy)] hover:text-[var(--green)] mt-1.5"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-[var(--secondary)] hover:text-[var(--green)] mt-1.5"
                   >
                     {check.action}
                     <MaterialIcon icon="arrow_forward" className="text-xs" />
@@ -173,7 +173,7 @@ export default function GoLiveGate({ onDismiss }: { onDismiss: () => void }) {
           </p>
           <button
             onClick={onDismiss}
-            className="text-sm text-[var(--t3)] dark:text-[var(--t3)] hover:text-[var(--navy)] dark:hover:text-white underline underline-offset-2"
+            className="text-sm text-[var(--t3)] dark:text-[var(--t3)] hover:text-[var(--secondary)] dark:hover:text-white underline underline-offset-2"
           >
             Skip for now &mdash; I&apos;ll set up later
           </button>

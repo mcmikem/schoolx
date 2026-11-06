@@ -1574,7 +1574,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                             onClick={() => setBranding({ ...branding, primary_color: color })}
                             className={`w-10 h-10 rounded-full border-[3px] transition-transform hover:scale-110 ${
                               branding.primary_color === color
-                                ? "border-[var(--navy)] ring-2 ring-offset-2 ring-[var(--border)]"
+                                ? "border-[var(--secondary)] ring-2 ring-offset-2 ring-[var(--border)]"
                                 : "border-transparent"
                             }`}
                             style={{ backgroundColor: color }}
@@ -1605,7 +1605,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                             onClick={() => setBranding({ ...branding, accent_color: color })}
                             className={`w-10 h-10 rounded-full border-[3px] transition-transform hover:scale-110 ${
                               branding.accent_color === color
-                                ? "border-[var(--navy)] ring-2 ring-offset-2 ring-[var(--border)]"
+                                ? "border-[var(--secondary)] ring-2 ring-offset-2 ring-[var(--border)]"
                                 : "border-transparent"
                             }`}
                             style={{ backgroundColor: color }}

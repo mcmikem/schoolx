@@ -49,7 +49,7 @@ export function Button({
     ghost: "bg-transparent text-[var(--on-surface)] hover:bg-[var(--surface-container)]",
     outline:
       "bg-transparent border border-[var(--border)] text-[var(--on-surface)] hover:bg-[var(--surface-container)]",
-    danger: "bg-[var(--error)] text-white hover:opacity-90",
+    danger: "bg-[var(--red)] text-white hover:opacity-90",
   };
 
   const sizes = {
@@ -82,7 +82,7 @@ export function Input({ label, error, className = "", endAdornment, id: idProp, 
   const generatedId = useId();
   const inputId = idProp ?? generatedId;
   const paddingRight = endAdornment ? "pr-12" : "";
-  const fieldClass = `w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] placeholder-[var(--t4)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors ${error ? "border-[var(--error)]" : ""} ${paddingRight} ${className} text-base`;
+  const fieldClass = `w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] placeholder-[var(--t4)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors ${error ? "border-[var(--red)]" : ""} ${paddingRight} ${className} text-base`;
 
   return (
     <div className="space-y-1">
@@ -118,7 +118,7 @@ export function Input({ label, error, className = "", endAdornment, id: idProp, 
         />
       )}
       {error && (
-        <p id={`${inputId}-error`} role="alert" className="text-sm text-[var(--error)]">
+        <p id={`${inputId}-error`} role="alert" className="text-sm text-[var(--red)]">
           {error}
         </p>
       )}
@@ -171,7 +171,7 @@ export function Select({
         ))}
       </select>
       {error && (
-        <p id={`${id}-error`} className="text-sm text-[var(--error)]">
+        <p id={`${id}-error`} className="text-sm text-[var(--red)]">
           {error}
         </p>
       )}
@@ -201,11 +201,11 @@ export function Textarea({ label, error, className = "", id: idProp, required, .
         aria-describedby={error ? `${textareaId}-error` : undefined}
         aria-required={required ? true : undefined}
         required={required}
-        className={`w-full min-h-[100px] resize-vertical px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors ${error ? "border-[var(--error)]" : ""} ${className} text-base`}
+        className={`w-full min-h-[100px] resize-vertical px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors ${error ? "border-[var(--red)]" : ""} ${className} text-base`}
         {...props}
       />
       {error && (
-        <p id={`${textareaId}-error`} role="alert" className="text-sm text-[var(--error)]">
+        <p id={`${textareaId}-error`} role="alert" className="text-sm text-[var(--red)]">
           {error}
         </p>
       )}

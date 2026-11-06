@@ -330,7 +330,7 @@ export function useDashboardNotifications() {
           desc: "Across 14 classes from Baby Class to P.7. 29 active, 1 transferred, 1 completed.",
           time: "Academic Year 2025",
           icon: "group",
-          color: "var(--navy)",
+          color: "var(--secondary)",
           href: "/dashboard/students",
         },
         {
@@ -421,7 +421,7 @@ export function useDashboardNotifications() {
         desc: "Start with the bursar workflow so balances and receipts become reliable.",
         time: "Action needed",
         icon: "receipt_long",
-        color: "var(--navy)",
+        color: "var(--secondary)",
         href: "/dashboard/fees",
       });
     }

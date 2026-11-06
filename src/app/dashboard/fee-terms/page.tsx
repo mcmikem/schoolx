@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
 import { Button, Badge } from "@/components/ui/index";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -268,11 +269,11 @@ export default function FeeTermsPage() {
             <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : feeTerms.length === 0 ? (
-          <div className="text-center py-12">
-            <MaterialIcon icon="payments" className="text-5xl text-[var(--t4)] mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-[var(--t2)]">No fee terms configured</h3>
-            <p className="text-[var(--t3)] mt-1">Create fee terms to manage payments</p>
-          </div>
+          <EmptyState
+            icon="payments"
+            title="No fee terms configured"
+            description="Create fee terms to manage payments"
+          />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {feeTerms.map((term) => (

@@ -212,7 +212,7 @@ function DiagnosticsPanelBody() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Open phone health"
-        className="fixed bottom-4 right-4 z-[9990] flex h-11 w-11 items-center justify-center rounded-full bg-[var(--navy)] text-[var(--on-primary)] shadow-lg"
+        className="fixed bottom-4 right-4 z-[9990] flex h-11 w-11 items-center justify-center rounded-full bg-[var(--secondary)] text-[var(--on-primary)] shadow-lg"
       >
         <MaterialIcon icon="bug_report" style={{ fontSize: 20 }} />
       </button>
@@ -339,7 +339,7 @@ function DiagnosticsPanelBody() {
           <button
             type="button"
             onClick={() => void copyReport()}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[var(--navy)] px-3 py-2 text-[11px] font-bold text-[var(--on-primary)]"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[var(--secondary)] px-3 py-2 text-[11px] font-bold text-[var(--on-primary)]"
           >
             <MaterialIcon icon={copied ? "check" : "content_copy"} style={{ fontSize: 14 }} />
             {copied ? "Copied" : "Copy for support"}

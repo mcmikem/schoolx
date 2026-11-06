@@ -240,7 +240,7 @@ export default function ForcePasswordChangeGate() {
                   }
                   window.location.href = "/login/";
                 }}
-                className="w-full rounded-lg border border-[var(--border2)] px-4 py-2 text-sm font-semibold text-[var(--t2)] hover:bg-[var(--surface-container-low)] dark:border-[var(--border)] dark:text-[var(--t4)] dark:hover:bg-[var(--navy)]"
+                className="w-full rounded-lg border border-[var(--border2)] px-4 py-2 text-sm font-semibold text-[var(--t2)] hover:bg-[var(--surface-container-low)] dark:border-[var(--border)] dark:text-[var(--t4)] dark:hover:bg-[var(--secondary)]"
               >
                 Sign in again
               </button>

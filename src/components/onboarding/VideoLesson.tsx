@@ -67,7 +67,7 @@ export function VideoLessonCard({
         data-video-lesson={lesson}
         className="group block w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--brand-green)]/40 hover:shadow-md"
       >
-        <span className="relative block aspect-video w-full overflow-hidden bg-[var(--navy)]">
+        <span className="relative block aspect-video w-full overflow-hidden bg-[var(--secondary)]">
           <Image
             src={onboardingPosterUrl(lesson)}
             alt=""
@@ -75,12 +75,12 @@ export function VideoLessonCard({
             sizes="(max-width: 640px) 100vw, 380px"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
-          <span className="absolute inset-0 flex items-center justify-center bg-[var(--navy)] transition-colors group-hover:bg-[var(--navy)]">
+          <span className="absolute inset-0 flex items-center justify-center bg-[var(--secondary)] transition-colors group-hover:bg-[var(--secondary)]">
             <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-[var(--surface)]/95 text-[var(--t1)] shadow-lg">
               <MaterialIcon icon="play_arrow" size={28} />
             </span>
           </span>
-          <span className="absolute bottom-2.5 right-2.5 rounded-full bg-[var(--navy)] px-2 py-0.5 text-[11px] font-semibold text-white">
+          <span className="absolute bottom-2.5 right-2.5 rounded-full bg-[var(--secondary)] px-2 py-0.5 text-[11px] font-semibold text-white">
             {meta.duration}s
           </span>
         </span>

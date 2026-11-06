@@ -1356,7 +1356,7 @@ export default function CommunicationHubPage() {
                   <button
                     key={cat}
                     onClick={() => setCategoryFilter(cat === "All" ? "" : cat)}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 ${(cat === "All" && !categoryFilter) || categoryFilter === cat ? "bg-[var(--navy)] text-white shadow-md" : "bg-[var(--surface)] text-[var(--t3)] border border-[var(--border)] hover:bg-[var(--surface-container-low)]"}`}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 ${(cat === "All" && !categoryFilter) || categoryFilter === cat ? "bg-[var(--secondary)] text-white shadow-md" : "bg-[var(--surface)] text-[var(--t3)] border border-[var(--border)] hover:bg-[var(--surface-container-low)]"}`}
                   >
                     {cat !== "All" && <MaterialIcon icon={getCategoryIcon(cat)} className="text-sm" />}
                     {cat}
@@ -1386,7 +1386,7 @@ export default function CommunicationHubPage() {
                   .map((notice) => (
                     <Card
                       key={notice.id}
-                      className={`overflow-hidden ${notice.priority === "high" ? "border-l-4 border-l-red-500" : notice.category === "Emergency" ? "border-l-4 border-l-red-600 bg-red-50/30" : "border-l-4 border-l-[var(--navy)]"}`}
+                      className={`overflow-hidden ${notice.priority === "high" ? "border-l-4 border-l-red-500" : notice.category === "Emergency" ? "border-l-4 border-l-red-600 bg-red-50/30" : "border-l-4 border-l-[var(--secondary)]"}`}
                     >
                       {notice.image_url && (
                         <div className="h-48 overflow-hidden">

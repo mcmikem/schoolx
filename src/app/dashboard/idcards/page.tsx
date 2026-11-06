@@ -37,7 +37,7 @@ export default function IDCardsPage() {
     const cardWindow = window.open("", "_blank");
     if (!cardWindow) return;
 
-    const schoolColor = school?.primary_color || "#002045";
+    const schoolColor = school?.primary_color || "var(--secondary, #002045)";
     const schoolLogo = school?.logo_url || "";
     const schoolName = school?.name || "School";
     const escapeHtml = (s: string) =>
@@ -46,7 +46,7 @@ export default function IDCardsPage() {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+        .replace(/'/g, "&var(--primary, #039);");
     const firstName = student.first_name || "";
     const lastName = student.last_name || "";
 

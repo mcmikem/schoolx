@@ -256,7 +256,7 @@ export default function SyncCenterPage() {
       header: "Reason",
       hideOnMobile: true,
       render: (item) => (
-        <span className="block max-w-[28rem] break-words text-xs text-[var(--error)]">{item.reason || "—"}</span>
+        <span className="block max-w-[28rem] break-words text-xs text-[var(--red)]">{item.reason || "—"}</span>
       ),
     },
   ];
@@ -372,7 +372,7 @@ export default function SyncCenterPage() {
                 {syncResult.success} synced, {syncResult.failed} failed
               </div>
               {syncResult.errors.length > 0 && (
-                <ul className="mt-2 space-y-1 text-xs text-[var(--error)]">
+                <ul className="mt-2 space-y-1 text-xs text-[var(--red)]">
                   {syncResult.errors.slice(0, 3).map((error) => (
                     <li key={error}>{error}</li>
                   ))}
@@ -462,7 +462,7 @@ export default function SyncCenterPage() {
 
         {otherFailed.length > 0 && (
           <section className="space-y-2">
-            <h2 className="text-sm font-semibold text-[var(--error)]">Could not sync</h2>
+            <h2 className="text-sm font-semibold text-[var(--red)]">Could not sync</h2>
             <DataTable
               caption="Offline changes that could not be synced"
               columns={failedColumns}

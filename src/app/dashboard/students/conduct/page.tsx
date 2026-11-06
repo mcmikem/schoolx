@@ -242,7 +242,7 @@ export default function ConductManagementPage() {
                   onClick={() => setActiveType(type as any)}
                   className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
                     activeType === type
-                      ? "bg-[var(--navy)] text-white shadow-md"
+                      ? "bg-[var(--secondary)] text-white shadow-md"
                       : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
                   }`}
                 >

@@ -53,6 +53,7 @@ import {
   getRememberedFormat,
   setRememberedFormat,
 } from "./auth-helpers";
+import { doSignOut } from "./auth/signout";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -1385,38 +1386,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const signOut = useCallback(async () => {
-    // Mark deliberate: a SIGNED_OUT event from this call must clear the
-    // offline cache even if the browser is offline at the time.
-    explicitSignOutRef.current = true;
-    try {
-      await supabase!.auth.signOut({ scope: "local" });
-    } catch (e) {
-      logger.warn("signOut API call failed, clearing session locally");
-    }
-    // Force-clear all auth cookies and storage even if the signOut call failed.
-    // On slow networks, the Supabase API call can fail but cookies remain,
-    // causing the user to be automatically logged back in on the next page load.
-    try {
-      localStorage.removeItem(OFFLINE_USER_KEY);
-      localStorage.removeItem(OFFLINE_SCHOOL_KEY);
-      const cookies = document.cookie.split(";");
-      for (const cookie of cookies) {
-        const name = cookie.split("=")[0].trim();
-        if (name.startsWith("sb-")) {
-          document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-        }
-      }
-    } catch {
-      // Ignore cookie/storage clearing errors
-    }
-    setUser(null);
-    setSchool(null);
-    setIsDemo(false);
-    setIsTrialExpired(false);
-    clearDemoStorage();
-    router.replace("/login");
-  }, [router]);
+  const signOut = useCallback(
+    () =>
+      doSignOut({
+        router,
+        explicitSignOutRef,
+        setUser,
+        setSchool,
+        setIsDemo,
+        setIsTrialExpired,
+      }),
+    [router],
+  );
 
   return (
     <AuthContext.Provider

@@ -141,7 +141,7 @@ describe("🔒 LOCKDOWN: Register Page", () => {
 // TIER 1: CRITICAL — Auth Context Invariants
 // ============================================================================
 describe("🔒 LOCKDOWN: Auth Context", () => {
-  const authContext = read("src/lib/auth-context.tsx");
+  const authContext = read("src/lib/auth-context.tsx") + read("src/lib/auth/signout.ts");
 
   it("must use local scope for signOut", () => {
     expect(authContext).toContain('scope: "local"');

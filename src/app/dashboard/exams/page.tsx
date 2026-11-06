@@ -464,7 +464,7 @@ export default function ExamsPage() {
                           <td className="sticky left-0 bg-[var(--surface)] z-10 border-r border-[var(--border)]">
                             <div className="flex items-center justify-between gap-2 group/student">
                               <div className="flex items-center gap-2 min-w-0">
-                                <div className="w-7 h-7 rounded-full bg-[var(--navy)] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                                <div className="w-7 h-7 rounded-full bg-[var(--secondary)] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
                                   {student.first_name?.[0] || "?"}
                                   {student.last_name?.[0] || ""}
                                 </div>

@@ -22,10 +22,9 @@ describe("Production Hardening Regression Tests", () => {
     });
 
     it("should use local scope for signOut", () => {
-      const authContext = require("fs").readFileSync(
-        require("path").join(process.cwd(), "src/lib/auth-context.tsx"),
-        "utf8",
-      );
+      const authContext =
+        require("fs").readFileSync(require("path").join(process.cwd(), "src/lib/auth-context.tsx"), "utf8") +
+        require("fs").readFileSync(require("path").join(process.cwd(), "src/lib/auth/signout.ts"), "utf8");
       expect(authContext).toContain('scope: "local"');
       expect(authContext).not.toContain('scope: "global"');
     });
@@ -1022,7 +1021,7 @@ describe("Student totals agree across screens", () => {
   });
 
   it("fetches slim rows on pick-list screens instead of 35-column rows", () => {
-    const hook = read("src/lib/hooks/students.ts");
+    const hook = read("src/lib/hooks/students.ts") + read("src/lib/hooks/students-types.ts");
     expect(hook).toContain("STUDENT_SLIM_FIELDS");
     expect(hook).toContain("export type SlimStudent");
     // The slim overload is what stops a future edit from silently reading a

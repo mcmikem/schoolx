@@ -1183,7 +1183,7 @@ function DirectoryTab({
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/\"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+        .replace(/'/g, "&var(--primary, #039);");
 
     const initials =
       member.full_name
@@ -1307,7 +1307,7 @@ function DirectoryTab({
           .school-name {
             font-size: 12px;
             font-weight: 800;
-            color: #0f172a;
+            color: var(--secondary, #0f172a);
             text-transform: uppercase;
             letter-spacing: .04em;
           }
@@ -1322,7 +1322,7 @@ function DirectoryTab({
           .staff-name {
             font-size: 16px;
             font-weight: 800;
-            color: #0f172a;
+            color: var(--secondary, #0f172a);
             margin-bottom: 6px;
           }
           .staff-role {
@@ -1375,7 +1375,7 @@ function DirectoryTab({
           }
           .qr-label {
             font-size: 8px;
-            color: #475569;
+            color: var(--t3, #475569);
             font-weight: 700;
             letter-spacing: .03em;
             text-transform: uppercase;

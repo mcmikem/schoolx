@@ -71,8 +71,8 @@ export default function StudentWorkspaceShell({
   };
 
   const stats = [
-    { label: "Total enrolled", value: totalStudents, color: "var(--navy)", icon: "group" },
-    { label: "Boys", value: boysCount, color: "var(--navy)", icon: "male" },
+    { label: "Total enrolled", value: totalStudents, color: "var(--secondary)", icon: "group" },
+    { label: "Boys", value: boysCount, color: "var(--secondary)", icon: "male" },
     { label: "Girls", value: girlsCount, color: "var(--green)", icon: "female" },
     { label: "Classes", value: classesCount, color: "var(--green)", icon: "school" },
   ];

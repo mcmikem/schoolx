@@ -95,7 +95,7 @@ export default function PrivacyPage() {
         {/* Privacy Notice */}
         <div className="bg-[var(--surface)] dark:bg-[var(--surface-container-high)] rounded-xl border border-[var(--border)] dark:border-[var(--border)] p-6 mb-6 shadow-sm">
           <h2 className="text-lg font-semibold text-[var(--t1)] dark:text-[var(--t4)] mb-4 flex items-center gap-2">
-            <MaterialIcon icon="policy" className="text-[var(--navy)]" />
+            <MaterialIcon icon="policy" className="text-[var(--secondary)]" />
             Privacy Notice
           </h2>
           <div className="space-y-4 text-sm text-[var(--t2)] dark:text-[var(--t4)] leading-relaxed">
@@ -183,7 +183,7 @@ export default function PrivacyPage() {
           <button
             onClick={handleExport}
             disabled={exporting}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--navy)] text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--secondary)] text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             {exporting ? (
               <>
@@ -240,7 +240,7 @@ export default function PrivacyPage() {
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="px-4 py-2 rounded-xl border border-[var(--border2)] dark:border-[var(--border)] text-sm font-medium text-[var(--t2)] dark:text-[var(--t4)] hover:bg-[var(--surface-container-low)] dark:hover:bg-[var(--navy)] transition-colors"
+                  className="px-4 py-2 rounded-xl border border-[var(--border2)] dark:border-[var(--border)] text-sm font-medium text-[var(--t2)] dark:text-[var(--t4)] hover:bg-[var(--surface-container-low)] dark:hover:bg-[var(--secondary)] transition-colors"
                 >
                   Cancel
                 </button>

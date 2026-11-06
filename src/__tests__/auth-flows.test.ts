@@ -358,9 +358,11 @@ describe("offline cold start keeps the signed-in profile", () => {
   });
 
   it("distinguishes a failed offline refresh from a deliberate sign-out", () => {
-    const signOutStart = src.indexOf("const signOut = useCallback");
-    const mark = src.indexOf("explicitSignOutRef.current = true", signOutStart);
-    const call = src.indexOf('supabase!.auth.signOut({ scope: "local" })', signOutStart);
+    const signoutSrc = readFileSync(join(__dirname, "..", "lib", "auth", "signout.ts"), "utf8");
+    const combined = src + signoutSrc;
+    const signOutStart = Math.max(0, combined.indexOf("explicitSignOutRef.current = true") - 10);
+    const mark = combined.indexOf("explicitSignOutRef.current = true", signOutStart);
+    const call = combined.indexOf('supabase!.auth.signOut({ scope: "local" })', mark);
 
     expect(signOutStart).toBeGreaterThan(-1);
     expect(mark).toBeGreaterThan(signOutStart);

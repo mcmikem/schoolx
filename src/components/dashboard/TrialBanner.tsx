@@ -42,7 +42,7 @@ export default function TrialBanner() {
   if (dismissed || isDemo || isTester || isPaidPlan || school?.subscription_status !== "trial") return null;
 
   return (
-    <div className="bg-[var(--navy)] border-b border-[var(--navy)] px-3 py-2">
+    <div className="bg-[var(--secondary)] border-b border-[var(--secondary)] px-3 py-2">
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <div className="w-7 h-7 bg-amber-400 rounded-lg flex items-center justify-center shrink-0">
@@ -73,7 +73,7 @@ export default function TrialBanner() {
             href="https://essentials.omuto.org"
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-[var(--t4)] hover:text-white px-2 py-1.5 rounded-lg bg-[var(--navy)] hover:bg-[var(--navy)] transition-colors"
+            className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-[var(--t4)] hover:text-white px-2 py-1.5 rounded-lg bg-[var(--secondary)] hover:bg-[var(--secondary)] transition-colors"
           >
             <MaterialIcon icon="shopping_bag" style={{ fontSize: 14 }} />
             Shop Omuto Essentials
@@ -87,7 +87,7 @@ export default function TrialBanner() {
               Upgrade Now
             </a>
           ) : (
-            <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-amber-200 px-3 py-1.5 rounded-lg bg-[var(--navy)]">
+            <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-amber-200 px-3 py-1.5 rounded-lg bg-[var(--secondary)]">
               Ask an administrator to upgrade
             </span>
           )}

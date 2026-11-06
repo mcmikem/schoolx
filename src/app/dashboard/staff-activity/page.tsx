@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
 
 interface Activity {
   id: string;
@@ -64,7 +65,7 @@ export default function StaffActivityPage() {
       case "create":
         return "var(--green)";
       case "update":
-        return "var(--navy)";
+        return "var(--secondary)";
       case "delete":
         return "var(--red, var(--red))";
       default:
@@ -99,13 +100,11 @@ export default function StaffActivityPage() {
           {loading ? (
             <div className="p-8 text-center text-[var(--t3)]">Loading activity…</div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-12">
-              <MaterialIcon icon="history" className="text-4xl text-[var(--t3)] opacity-30 mb-2" />
-              <p className="text-sm font-medium text-[var(--t2)]">No activity recorded</p>
-              <p className="text-xs text-[var(--t3)] mt-1">
-                Actions like attendance, grading, and fee payments will appear here
-              </p>
-            </div>
+            <EmptyState
+              icon="history"
+              title="No activity recorded"
+              description="Actions like attendance, grading, and fee payments will appear here"
+            />
           ) : (
             filtered.map((a) => (
               <div key={a.id} className="card !p-4 flex items-center gap-3">

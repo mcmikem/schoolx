@@ -290,7 +290,7 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
             <Link
               href="/dashboard"
               onClick={onNavigate}
-              className="block mt-2 text-[var(--navy)] no-underline font-semibold"
+              className="block mt-2 text-[var(--secondary)] no-underline font-semibold"
             >
               Go to dashboard home
             </Link>

@@ -105,7 +105,7 @@ export function AppActivityTab() {
               label="Total Events"
               value={summary.totalEvents.toLocaleString()}
               icon="insights"
-              color="var(--navy)"
+              color="var(--secondary)"
             />
             <StatCard
               label="Page Views"
@@ -246,7 +246,7 @@ export function AppActivityTab() {
                   label="Total Events"
                   value={usageEvents.length.toLocaleString()}
                   icon="insights"
-                  color="var(--navy)"
+                  color="var(--secondary)"
                 />
                 <StatCard
                   label="Page Views"

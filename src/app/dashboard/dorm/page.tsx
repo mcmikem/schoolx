@@ -308,7 +308,7 @@ export default function DormitoryPage() {
                               <div className="h-1.5 w-full bg-[var(--surface-container)] rounded-full overflow-hidden">
                                 <div
                                   className={`h-full transition-all duration-500 ${
-                                    ratio > 0.9 ? "bg-[var(--error)]" : "bg-[var(--primary)]"
+                                    ratio > 0.9 ? "bg-[var(--red)]" : "bg-[var(--primary)]"
                                   }`}
                                   style={{ width: `${Math.min(100, ratio * 100)}%` }}
                                 />

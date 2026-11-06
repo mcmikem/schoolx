@@ -108,13 +108,7 @@ export function useUndo() {
 }
 
 // Undo notification component
-export function UndoNotification({
-  actions,
-  onUndo,
-}: {
-  actions: UndoAction[];
-  onUndo: (id: string) => void;
-}) {
+export function UndoNotification({ actions, onUndo }: { actions: UndoAction[]; onUndo: (id: string) => void }) {
   if (actions.length === 0) return null;
 
   return (
@@ -153,7 +147,7 @@ export function UndoNotification({
               marginLeft: "auto",
               background: "none",
               border: "none",
-              color: "var(--navy)",
+              color: "var(--secondary)",
               cursor: "pointer",
               fontSize: 14,
               fontWeight: 700,
@@ -187,12 +181,7 @@ export function useConfirm() {
   } | null>(null);
 
   const confirm = useCallback(
-    (options: {
-      title?: string;
-      message: string;
-      confirmText?: string;
-      type?: "danger" | "warning" | "info";
-    }) => {
+    (options: { title?: string; message: string; confirmText?: string; type?: "danger" | "warning" | "info" }) => {
       return new Promise<boolean>((resolve) => {
         setConfig({
           title: options.title || "Confirm",
@@ -224,7 +213,7 @@ export function useConfirm() {
         case "warning":
           return "var(--amber)";
         default:
-          return "var(--navy)";
+          return "var(--secondary)";
       }
     };
 
@@ -262,9 +251,7 @@ export function useConfirm() {
           >
             {config.title}
           </h3>
-          <p style={{ fontSize: 14, color: "var(--t2)", marginBottom: 24 }}>
-            {config.message}
-          </p>
+          <p style={{ fontSize: 14, color: "var(--t2)", marginBottom: 24 }}>{config.message}</p>
           <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
             <button
               onClick={config.onCancel}

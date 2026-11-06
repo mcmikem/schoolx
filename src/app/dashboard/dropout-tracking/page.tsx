@@ -9,6 +9,7 @@ import { useToast } from "@/components/Toast";
 import { DEMO_CLASSES, DEMO_STUDENTS } from "@/lib/demo-data";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 
@@ -317,11 +318,11 @@ export default function DropoutTrackingPage() {
             {loading ? (
               <div className="text-center py-8 text-[var(--on-surface-variant)]">Analysing attendance data…</div>
             ) : students.length === 0 ? (
-              <div className="text-center py-12">
-                <MaterialIcon icon="check_circle" className="text-5xl text-emerald-400 mb-3" />
-                <p className="font-bold text-[var(--on-surface-variant)]">No at-risk students detected</p>
-                <p className="text-sm text-[var(--on-surface-variant)] mt-1">All students have regular attendance</p>
-              </div>
+              <EmptyState
+                icon="check_circle"
+                title="No at-risk students detected"
+                description="All students have regular attendance"
+              />
             ) : (
               <div className="space-y-3">
                 {students.map((s) => (

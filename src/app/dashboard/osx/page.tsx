@@ -102,8 +102,8 @@ export default function OSXPage() {
                       step.status === "complete"
                         ? "bg-green-500 text-white"
                         : step.status === "current"
-                          ? "bg-[var(--surface)] text-[var(--navy)] ring-4 ring-white/30 animate-pulse"
-                          : "bg-[var(--navy)] text-white/40"
+                          ? "bg-[var(--surface)] text-[var(--secondary)] ring-4 ring-white/30 animate-pulse"
+                          : "bg-[var(--secondary)] text-white/40"
                     }`}
                   >
                     {step.status === "complete" ? <MaterialIcon icon="check" /> : step.id}

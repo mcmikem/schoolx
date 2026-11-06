@@ -98,7 +98,7 @@ export function DayTimeline() {
                 <button
                   onClick={() => setActiveStep((p) => Math.min(DAY_STEPS.length - 1, p + 1))}
                   disabled={activeStep === DAY_STEPS.length - 1}
-                  className="flex items-center gap-2 rounded-full bg-[var(--navy)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 rounded-full bg-[var(--secondary)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   Next
                   <span className="material-symbols-outlined text-[16px]">arrow_forward</span>

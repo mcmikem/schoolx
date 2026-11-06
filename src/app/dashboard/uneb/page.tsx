@@ -287,7 +287,7 @@ export default function UNEBAnalysisPage() {
                                 student.grade.startsWith("D") || student.grade === "A"
                                   ? "text-[var(--green)]"
                                   : student.grade.startsWith("C") || student.grade === "B"
-                                    ? "text-[var(--navy)]"
+                                    ? "text-[var(--secondary)]"
                                     : student.grade.startsWith("P") || student.grade === "C"
                                       ? "text-[var(--amber)]"
                                       : "text-[var(--red)]"

@@ -180,7 +180,7 @@ export default function StudentRetentionPanel({
                         <div
                           className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
                           style={{
-                            background: student.gender === "M" ? "var(--navy)" : "var(--red)",
+                            background: student.gender === "M" ? "var(--secondary)" : "var(--red)",
                           }}
                         >
                           {student.first_name?.charAt(0)}

@@ -246,7 +246,7 @@ export default function AuditLogPage() {
             <Card>
               <CardBody className="p-5 flex items-center gap-4">
                 <div className="w-11 h-11 rounded-xl bg-[var(--navy-soft)] flex items-center justify-center">
-                  <MaterialIcon icon="today" className="text-[var(--navy)]" size={22} />
+                  <MaterialIcon icon="today" className="text-[var(--secondary)]" size={22} />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-[var(--t1)]">{summary.todayCount}</p>

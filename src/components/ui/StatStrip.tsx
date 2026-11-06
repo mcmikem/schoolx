@@ -33,7 +33,7 @@ const toneClass: Record<StatTone, string> = {
   default: "text-[var(--t1)]",
   positive: "text-[var(--green-ink)]",
   warning: "text-[var(--amber-ink)]",
-  negative: "text-[var(--error)]",
+  negative: "text-[var(--red)]",
   info: "text-[var(--primary)]",
 };
 

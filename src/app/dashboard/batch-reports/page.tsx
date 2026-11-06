@@ -113,7 +113,7 @@ export default function BatchReportsPage() {
                 <button
                   onClick={loadStudents}
                   disabled={!selectedClass || loading}
-                  className="px-4 py-3 bg-[var(--navy)] text-white rounded-2xl font-bold text-sm hover:scale-105 transition-all disabled:opacity-40"
+                  className="px-4 py-3 bg-[var(--secondary)] text-white rounded-2xl font-bold text-sm hover:scale-105 transition-all disabled:opacity-40"
                 >
                   {loading ? (
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
@@ -171,7 +171,7 @@ export default function BatchReportsPage() {
                     </p>
                   </div>
                   <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity">
-                    <span className="px-3 py-1 bg-[var(--navy)] text-white text-xs font-black uppercase tracking-widest rounded-full">
+                    <span className="px-3 py-1 bg-[var(--secondary)] text-white text-xs font-black uppercase tracking-widest rounded-full">
                       Preview
                     </span>
                   </div>
@@ -186,7 +186,7 @@ export default function BatchReportsPage() {
               <button
                 onClick={handleGenerate}
                 disabled={selected.length === 0}
-                className="flex items-center gap-2 px-8 py-3 bg-[var(--navy)] text-white rounded-2xl font-bold shadow-lg hover:scale-105 transition-all disabled:opacity-40"
+                className="flex items-center gap-2 px-8 py-3 bg-[var(--secondary)] text-white rounded-2xl font-bold shadow-lg hover:scale-105 transition-all disabled:opacity-40"
               >
                 <MaterialIcon icon="print" />
                 Print All ({selected.length})

@@ -786,7 +786,7 @@ export default function StudentProfilePage() {
         )}
 
         <section className="overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
-          <div className="h-20 bg-[var(--navy)] opacity-90 sm:h-24" />
+          <div className="h-20 bg-[var(--secondary)] opacity-90 sm:h-24" />
           <div className="px-5 pb-5 sm:px-7">
             <div className="-mt-10 flex flex-col gap-5 sm:-mt-12 sm:flex-row sm:items-end sm:justify-between">
               <div className="flex min-w-0 items-end gap-4">
@@ -801,7 +801,7 @@ export default function StudentProfilePage() {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-3xl font-bold text-[var(--navy)]">
+                    <div className="flex h-full w-full items-center justify-center text-3xl font-bold text-[var(--secondary)]">
                       {initials}
                     </div>
                   )}

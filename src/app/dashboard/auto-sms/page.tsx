@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import {
@@ -272,7 +273,7 @@ export default function AutoSMSPage() {
                 <button
                   key={f}
                   onClick={() => setLogFilter(f)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${logFilter === f ? "bg-[var(--navy)] text-white" : "bg-[var(--surface-container-low)] text-[var(--t3)] hover:bg-[var(--surface-container-high)]"}`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${logFilter === f ? "bg-[var(--secondary)] text-white" : "bg-[var(--surface-container-low)] text-[var(--t3)] hover:bg-[var(--surface-container-high)]"}`}
                 >
                   {f === "all" ? "All" : f.replace(/_/g, " ")}
                 </button>
@@ -289,10 +290,7 @@ export default function AutoSMSPage() {
                 ))}
               </div>
             ) : filteredLogs.length === 0 ? (
-              <div className="text-center py-12 text-[var(--t3)]">
-                <MaterialIcon icon="sms" className="text-4xl mx-auto mb-2" />
-                <p className="text-sm">No SMS logs found</p>
-              </div>
+              <EmptyState icon="sms" title="No SMS logs found" />
             ) : (
               <div className="space-y-2">
                 {filteredLogs.map((log) => (

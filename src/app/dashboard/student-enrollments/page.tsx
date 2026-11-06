@@ -8,6 +8,7 @@ import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/index";
 import { Modal } from "@/components/ui/Modal";
 import { getErrorMessage } from "@/lib/validation";
@@ -242,11 +243,11 @@ export default function StudentEnrollmentsPage() {
             <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : enrollments.length === 0 ? (
-          <div className="text-center py-12">
-            <MaterialIcon icon="school" className="text-5xl text-[var(--t4)] mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-[var(--t2)]">No enrollments found</h3>
-            <p className="text-[var(--t3)] mt-1">Add student enrollments to track course registrations</p>
-          </div>
+          <EmptyState
+            icon="school"
+            title="No enrollments found"
+            description="Add student enrollments to track course registrations"
+          />
         ) : (
           <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] overflow-x-auto">
             <table className="w-full min-w-[640px]">

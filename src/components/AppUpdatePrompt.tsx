@@ -93,7 +93,7 @@ export function AppUpdatePrompt() {
         flexWrap: "wrap",
         padding: "10px 14px",
         borderRadius: 12,
-        background: "var(--navy)",
+        background: "var(--secondary)",
         color: "var(--on-primary, #fff)",
         fontSize: 13,
         fontWeight: 600,
@@ -108,7 +108,7 @@ export function AppUpdatePrompt() {
         disabled={applying}
         style={{
           background: "var(--surface, #fff)",
-          color: "var(--navy)",
+          color: "var(--secondary)",
           border: "none",
           padding: "7px 14px",
           borderRadius: 6,

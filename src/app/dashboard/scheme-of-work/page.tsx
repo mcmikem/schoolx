@@ -8,6 +8,8 @@ import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useToast } from "@/components/Toast";
 import { PageHeader } from "@/components/ui/PageHeader";
+import LoadingState from "@/components/ui/LoadingState";
+import { EmptyState } from "@/components/EmptyState";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { buildAcademicYear, mapSchemeWeekFromRecord } from "@/lib/academics-utils";
@@ -226,14 +228,9 @@ export default function SchemeOfWorkPage() {
         </div>
 
         {loading ? (
-          <div className="text-center py-12">
-            <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin mx-auto"></div>
-          </div>
+          <LoadingState size="section" />
         ) : !selectedClass || !selectedSubject ? (
-          <div className="text-center py-12 text-[var(--t3)]">
-            <MaterialIcon className="text-5xl opacity-50 mx-auto">list_alt</MaterialIcon>
-            <p className="mt-2">Select a class and subject to create scheme of work</p>
-          </div>
+          <EmptyState icon="list_alt" title="Select a class and subject to create scheme of work" />
         ) : (
           <div className="space-y-4">
             <section

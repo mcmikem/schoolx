@@ -291,7 +291,7 @@ export default function StudentWalletsPage() {
                         <td className="px-6 py-4 text-right">
                           <button
                             onClick={() => setShowTopup(wallet)}
-                            className="px-4 py-2 bg-[var(--navy)] text-white rounded-xl text-xs font-black uppercase tracking-wider hover:scale-105 transition-all shadow-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                            className="px-4 py-2 bg-[var(--secondary)] text-white rounded-xl text-xs font-black uppercase tracking-wider hover:scale-105 transition-all shadow-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                           >
                             Top Up
                           </button>

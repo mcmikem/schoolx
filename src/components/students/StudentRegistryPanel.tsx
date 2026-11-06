@@ -514,7 +514,7 @@ export default function StudentRegistryPanel({
           {canBulkAdmin && (
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <div className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--navy)] mb-2">
+                <div className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--secondary)] mb-2">
                   Quick import
                 </div>
                 <p className="text-sm text-[var(--t3)] max-w-2xl">
@@ -885,7 +885,7 @@ export default function StudentRegistryPanel({
             className="flex flex-wrap items-center gap-2 px-4 py-2.5"
             style={{ borderBottom: "1px solid var(--border)", background: "var(--navy-soft)" }}
           >
-            <span className="text-xs font-bold text-[var(--navy)]">{selectedIds.size} selected on this page</span>
+            <span className="text-xs font-bold text-[var(--secondary)]">{selectedIds.size} selected on this page</span>
             {canBulkAdmin && (
               <button
                 type="button"
@@ -1016,7 +1016,7 @@ export default function StudentRegistryPanel({
                                 color: "var(--on-primary, #fff)",
                                 overflow: "hidden",
                                 position: "relative",
-                                background: student.gender === "M" ? "var(--navy)" : "var(--red)",
+                                background: student.gender === "M" ? "var(--secondary)" : "var(--red)",
                               }}
                             >
                               {student.photo_url && showPhotos ? (
@@ -1225,7 +1225,7 @@ export default function StudentRegistryPanel({
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          background: student.gender === "M" ? "var(--navy)" : "var(--red)",
+                          background: student.gender === "M" ? "var(--secondary)" : "var(--red)",
                         }}
                       >
                         {student.photo_url && showPhotos ? (
@@ -1445,7 +1445,7 @@ export default function StudentRegistryPanel({
           </div>
 
           {bulkError && (
-            <p className="text-xs" style={{ color: "var(--error)" }}>
+            <p className="text-xs" style={{ color: "var(--red)" }}>
               {bulkError}
             </p>
           )}

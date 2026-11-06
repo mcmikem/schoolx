@@ -317,7 +317,7 @@ export default function AnalyticsPage() {
               <CardBody>
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-bold text-[var(--on-surface)] flex items-center gap-2">
-                    <div className="w-1.5 h-6 bg-[var(--error)] rounded-full" />
+                    <div className="w-1.5 h-6 bg-[var(--red)] rounded-full" />
                     At-Risk Students
                   </h2>
                   <span className="px-2 py-1 bg-red-500/10 text-red text-xs font-bold rounded uppercase tracking-wider">
@@ -389,7 +389,7 @@ export default function AnalyticsPage() {
                           fontSize: "12px",
                         }}
                       />
-                      <Bar dataKey="value" fill="var(--navy)" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="value" fill="var(--secondary)" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

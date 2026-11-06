@@ -8,6 +8,7 @@ import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/index";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -323,11 +324,7 @@ export default function CoursesPage() {
             <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : courses.length === 0 ? (
-          <div className="text-center py-12">
-            <MaterialIcon icon="menu_book" className="text-5xl text-[var(--t4)] mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-[var(--t2)]">No courses found</h3>
-            <p className="text-[var(--t3)] mt-1">Add courses to get started</p>
-          </div>
+          <EmptyState icon="menu_book" title="No courses found" description="Add courses to get started" />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {courses.map((course) => (

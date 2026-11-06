@@ -84,7 +84,7 @@ export default function FeeInvoiceList({
       align: "right",
       sortValue: (invoice) => invoice.balance,
       render: (invoice) => (
-        <span className={`font-medium ${invoice.balance > 0 ? "text-[var(--error)]" : "text-[var(--green)]"}`}>
+        <span className={`font-medium ${invoice.balance > 0 ? "text-[var(--red)]" : "text-[var(--green)]"}`}>
           {formatCurrency(invoice.balance)}
         </span>
       ),
@@ -217,7 +217,7 @@ export default function FeeInvoiceList({
               <span className="text-[var(--t3)]">
                 Paid {formatCurrency(invoice.amount_paid)} of {formatCurrency(invoice.total_amount)}
               </span>
-              <span className={`font-bold ${invoice.balance > 0 ? "text-[var(--error)]" : "text-[var(--green)]"}`}>
+              <span className={`font-bold ${invoice.balance > 0 ? "text-[var(--red)]" : "text-[var(--green)]"}`}>
                 {formatCurrency(invoice.balance)}
               </span>
             </div>

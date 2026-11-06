@@ -50,7 +50,7 @@ export function StorageWarning() {
       className={[
         "flex items-start gap-2.5 border-b px-3 py-2 text-[12px] leading-snug sm:px-6",
         critical
-          ? "border-[var(--error)] bg-[var(--red-soft)] text-[var(--red-ink)]"
+          ? "border-[var(--red)] bg-[var(--red-soft)] text-[var(--red-ink)]"
           : "border-[var(--amber)] bg-[var(--amber-soft)] text-[var(--t2)]",
       ].join(" ")}
     >

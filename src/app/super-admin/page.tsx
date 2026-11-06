@@ -345,7 +345,7 @@ export default function SuperAdminPage() {
           <div className="flex items-center gap-4">
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md border border-[var(--border)]"
-              style={{ background: "var(--navy)" }}
+              style={{ background: "var(--secondary)" }}
             >
               <MaterialIcon icon="shield" style={{ fontSize: 28, color: "white" }} />
             </div>
@@ -402,7 +402,7 @@ export default function SuperAdminPage() {
                   value={dataLoading ? "\u2026" : stats.totalSchools}
                   sub={`${stats.activeSchools} active \u00b7 ${stats.trialSchools} trial`}
                   icon="school"
-                  color="var(--navy)"
+                  color="var(--secondary)"
                 />
                 <StatCard
                   label="Total Students"
@@ -461,7 +461,7 @@ export default function SuperAdminPage() {
                     <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)]">Recent Schools</div>
                     <button
                       onClick={() => setTab("schools")}
-                      className="text-xs text-[var(--navy)] font-semibold hover:underline flex items-center gap-1"
+                      className="text-xs text-[var(--secondary)] font-semibold hover:underline flex items-center gap-1"
                     >
                       View all <MaterialIcon icon="arrow_forward" style={{ fontSize: 12 }} />
                     </button>
@@ -487,7 +487,7 @@ export default function SuperAdminPage() {
                             <div
                               className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-white text-xs font-bold overflow-hidden"
                               style={{
-                                background: s.primary_color || "var(--navy)",
+                                background: s.primary_color || "var(--secondary)",
                               }}
                             >
                               {s.logo_url ? (
@@ -498,7 +498,7 @@ export default function SuperAdminPage() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5">
-                                <span className="text-[12px] font-semibold text-[var(--t1)] truncate group-hover:text-[var(--navy)]">
+                                <span className="text-[12px] font-semibold text-[var(--t1)] truncate group-hover:text-[var(--secondary)]">
                                   {s.name}
                                 </span>
                                 {s.is_tester && (
@@ -605,7 +605,7 @@ export default function SuperAdminPage() {
                       label: "Manage Schools",
                       desc: "View, edit, suspend",
                       icon: "domain",
-                      color: "var(--navy)",
+                      color: "var(--secondary)",
                       action: () => setTab("schools"),
                     },
                     {
@@ -750,7 +750,7 @@ export default function SuperAdminPage() {
                                 <div
                                   className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden"
                                   style={{
-                                    background: s.primary_color || "var(--navy)",
+                                    background: s.primary_color || "var(--secondary)",
                                   }}
                                 >
                                   {s.logo_url ? (

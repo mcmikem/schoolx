@@ -41,7 +41,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
       <body>
         <a
           href="#error-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-50 bg-[var(--navy)] text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--primary)]/20"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-50 bg-[var(--secondary)] text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--primary)]/20"
         >
           Skip to main content
         </a>
@@ -65,7 +65,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
                     reset();
                   }
                 }}
-                className="px-4 py-2 bg-[var(--navy)] text-white rounded-lg font-medium text-sm flex items-center gap-2 hover:bg-[var(--navy)] transition-colors"
+                className="px-4 py-2 bg-[var(--secondary)] text-white rounded-lg font-medium text-sm flex items-center gap-2 hover:bg-[var(--secondary)] transition-colors"
               >
                 <MaterialIcon icon="refresh" size={16} className="h-4" /> {t("error.tryAgain")}
               </button>

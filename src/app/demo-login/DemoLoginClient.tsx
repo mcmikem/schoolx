@@ -72,7 +72,7 @@ export default function DemoLoginClient() {
               onClick={() => setPhone(account.phone)}
               className={`rounded-xl border px-3 py-2 text-left text-sm transition-colors ${
                 phone === account.phone
-                  ? "border-[var(--navy)] bg-[var(--navy)] text-white"
+                  ? "border-[var(--secondary)] bg-[var(--secondary)] text-white"
                   : "border-[var(--border)] bg-white text-[var(--t1)] hover:bg-[var(--surface-container-low)]"
               }`}
             >
@@ -123,7 +123,7 @@ export default function DemoLoginClient() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-[var(--navy)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--navy)] disabled:opacity-60"
+            className="w-full rounded-xl bg-[var(--secondary)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--secondary)] disabled:opacity-60"
           >
             {loading ? "Signing in…" : "Continue"}
           </button>

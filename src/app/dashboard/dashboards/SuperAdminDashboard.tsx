@@ -373,7 +373,7 @@ function SuperAdminDashboardContent() {
                     >
                       <span
                         className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl text-[13px] font-bold text-white"
-                        style={{ background: s.primary_color || "var(--navy)" }}
+                        style={{ background: s.primary_color || "var(--secondary)" }}
                       >
                         {s.logo_url ? (
                           <Image

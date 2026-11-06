@@ -843,7 +843,7 @@ export default function ParentFeesPage() {
                     {payDetails.airtel ? (
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-sm font-semibold text-[var(--on-surface)] flex items-center gap-2">
-                          <MaterialIcon icon="smartphone" className="text-[var(--error)]" /> Airtel Money
+                          <MaterialIcon icon="smartphone" className="text-[var(--red)]" /> Airtel Money
                         </span>
                         <button
                           type="button"
@@ -851,7 +851,7 @@ export default function ParentFeesPage() {
                             navigator.clipboard?.writeText(payDetails.airtel.replace(/\s/g, ""));
                             toast.success("Number copied");
                           }}
-                          className="font-mono text-sm font-bold text-[var(--error)] underline underline-offset-2 shrink-0"
+                          className="font-mono text-sm font-bold text-[var(--red)] underline underline-offset-2 shrink-0"
                         >
                           {payDetails.airtel}
                         </button>

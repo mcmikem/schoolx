@@ -107,7 +107,7 @@ export default function EmptyStateGuide({ title, description, action, icon = "in
         <div className="relative w-20 h-20 bg-[var(--surface)] rounded-3xl shadow-xl flex items-center justify-center border border-[var(--border)] group hover:scale-110 transition-transform">
           <MaterialIcon
             icon={icon}
-            className="text-4xl text-[var(--navy)] group-hover:rotate-12 transition-transform"
+            className="text-4xl text-[var(--secondary)] group-hover:rotate-12 transition-transform"
           />
         </div>
       </div>
@@ -120,7 +120,7 @@ export default function EmptyStateGuide({ title, description, action, icon = "in
       )}
       <a
         href="/contact"
-        className="mt-6 text-xs text-[var(--t3)] hover:text-[var(--navy)] underline underline-offset-2 transition-colors"
+        className="mt-6 text-xs text-[var(--t3)] hover:text-[var(--secondary)] underline underline-offset-2 transition-colors"
       >
         Need help?
       </a>

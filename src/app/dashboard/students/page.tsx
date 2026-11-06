@@ -725,7 +725,7 @@ export default function StudentHubPage() {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(true)}
-                  className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-bold text-white bg-[var(--primary)] hover:bg-[var(--navy)] transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-bold text-white bg-[var(--primary)] hover:bg-[var(--secondary)] transition-colors"
                 >
                   <MaterialIcon size={16}>person_add</MaterialIcon>
                   Register Student
@@ -735,7 +735,7 @@ export default function StudentHubPage() {
                 <button
                   type="button"
                   onClick={() => setShowBulkImportModal(true)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/80 px-3.5 py-2 text-[13px] font-bold text-[var(--t2)] hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/80 px-3.5 py-2 text-[13px] font-bold text-[var(--t2)] hover:text-[var(--secondary)] hover:border-[var(--secondary)] transition-colors"
                 >
                   <MaterialIcon size={16}>upload_file</MaterialIcon>
                   Quick import
@@ -749,7 +749,7 @@ export default function StudentHubPage() {
                     aria-expanded={moreMenuOpen}
                     aria-haspopup="menu"
                     aria-label="More student actions"
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)]/80 text-[var(--t2)] hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)]/80 text-[var(--t2)] hover:text-[var(--secondary)] hover:border-[var(--secondary)] transition-colors"
                   >
                     <MaterialIcon size={18}>more_horiz</MaterialIcon>
                   </button>
@@ -791,7 +791,7 @@ export default function StudentHubPage() {
                 <button
                   type="button"
                   onClick={handleExport}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/80 px-3.5 py-2 text-[13px] font-bold text-[var(--t2)] hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/80 px-3.5 py-2 text-[13px] font-bold text-[var(--t2)] hover:text-[var(--secondary)] hover:border-[var(--secondary)] transition-colors"
                 >
                   <MaterialIcon size={16}>download</MaterialIcon>
                   Export
@@ -816,21 +816,21 @@ export default function StudentHubPage() {
             <div className="ml-auto flex flex-wrap items-center gap-2">
               <Link
                 href="/dashboard/students/id-cards"
-                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-1.5 text-[12px] font-bold text-[var(--t2)] no-underline hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-1.5 text-[12px] font-bold text-[var(--t2)] no-underline hover:text-[var(--secondary)] hover:border-[var(--secondary)] transition-colors"
               >
                 <MaterialIcon size={15}>id_card</MaterialIcon>
                 ID Card Studio
               </Link>
               <Link
                 href="/dashboard/reports"
-                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-1.5 text-[12px] font-bold text-[var(--t2)] no-underline hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-1.5 text-[12px] font-bold text-[var(--t2)] no-underline hover:text-[var(--secondary)] hover:border-[var(--secondary)] transition-colors"
               >
                 <MaterialIcon size={15}>description</MaterialIcon>
                 Individual Reports
               </Link>
               <Link
                 href="/dashboard/report-cards"
-                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-1.5 text-[12px] font-bold text-[var(--t2)] no-underline hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-1.5 text-[12px] font-bold text-[var(--t2)] no-underline hover:text-[var(--secondary)] hover:border-[var(--secondary)] transition-colors"
               >
                 <MaterialIcon size={15}>print</MaterialIcon>
                 Batch Reports
@@ -1151,7 +1151,7 @@ export default function StudentHubPage() {
             <MaterialIcon
               style={{
                 fontSize: 48,
-                color: "var(--error)",
+                color: "var(--red)",
                 marginBottom: 16,
               }}
             >
@@ -1178,7 +1178,7 @@ export default function StudentHubPage() {
             >
               Cancel
             </Button>
-            <Button onClick={handleDeleteStudent} className="flex-1" style={{ background: "var(--error)" }}>
+            <Button onClick={handleDeleteStudent} className="flex-1" style={{ background: "var(--red)" }}>
               Remove
             </Button>
           </div>

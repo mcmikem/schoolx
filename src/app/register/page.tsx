@@ -393,7 +393,7 @@ function RegisterPageContent() {
           </div>
           <div className="mb-8">
             <div className="mb-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--navy)]/10 bg-[var(--navy-soft)] px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[var(--blue-ink)]">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--secondary)]/10 bg-[var(--navy-soft)] px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[var(--blue-ink)]">
                 <MaterialIcon icon="school" className="text-sm" />
                 Register your school
               </div>
@@ -492,7 +492,7 @@ function RegisterPageContent() {
           <div className="card-premium p-8 md:p-10 shadow-[0_32px_64px_rgba(15,23,42,0.1)]">
             {apiError && (
               <div
-                className="mb-4 p-3 rounded-xl text-sm border bg-[var(--red-soft)] border-[var(--error)]/25 text-[var(--error)]"
+                className="mb-4 p-3 rounded-xl text-sm border bg-[var(--red-soft)] border-[var(--red)]/25 text-[var(--red)]"
                 role="alert"
               >
                 {apiError}
@@ -680,7 +680,7 @@ function RegisterPageContent() {
                     </>
                   )}
                   {formValidation.isTouched("district") && formValidation.getFieldError("district") && (
-                    <p className="text-sm text-[var(--error)]">{formValidation.getFieldError("district")}</p>
+                    <p className="text-sm text-[var(--red)]">{formValidation.getFieldError("district")}</p>
                   )}
                   <div className="flex items-center gap-1 mt-1 text-xs text-[var(--t3)]">
                     <MaterialIcon icon="help" className="text-xs align-middle" />
@@ -836,7 +836,7 @@ function RegisterPageContent() {
               {step === 3 && (
                 <div className="space-y-5">
                   {googleRegisterMode && (
-                    <div className="rounded-xl border border-[var(--navy)]/15 bg-[var(--navy-soft)] p-3 text-sm text-[var(--blue-ink)]">
+                    <div className="rounded-xl border border-[var(--secondary)]/15 bg-[var(--navy-soft)] p-3 text-sm text-[var(--blue-ink)]">
                       Google account linked. Complete these details to create your school workspace.
                     </div>
                   )}

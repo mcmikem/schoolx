@@ -103,7 +103,7 @@ export default function SetupAdminPage() {
 
           {error && (
             <div
-              className="bg-[var(--red-soft)] text-[var(--error)] text-sm rounded-xl p-3 mb-4 border border-[var(--error)]/20"
+              className="bg-[var(--red-soft)] text-[var(--red)] text-sm rounded-xl p-3 mb-4 border border-[var(--red)]/20"
               role="alert"
             >
               {error}

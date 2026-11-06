@@ -161,7 +161,7 @@ export default function TransportPage() {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
           {[
-            { label: "Routes", value: routes.length, icon: "route", color: "var(--navy)" },
+            { label: "Routes", value: routes.length, icon: "route", color: "var(--secondary)" },
             { label: "Students Enrolled", value: totalStudents, icon: "school", color: "var(--green)" },
             {
               label: "Vehicles",

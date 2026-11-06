@@ -48,14 +48,7 @@ export function buildDashboardTrendData(options: {
   isDemo?: boolean;
   currentDate?: Date;
 }): DashboardTrendPoint[] {
-  const {
-    stats,
-    activeStudentsCount,
-    payments,
-    attendanceRate,
-    isDemo = false,
-    currentDate = new Date(),
-  } = options;
+  const { stats, activeStudentsCount, payments, attendanceRate, isDemo = false, currentDate = new Date() } = options;
 
   const months = Array.from({ length: 6 }, (_, index) => {
     const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - (5 - index), 1);
@@ -67,10 +60,7 @@ export function buildDashboardTrendData(options: {
   });
 
   if (isDemo) {
-    const baseFees = payments.reduce(
-      (sum, payment) => sum + Number(payment.amount_paid || 0),
-      0,
-    );
+    const baseFees = payments.reduce((sum, payment) => sum + Number(payment.amount_paid || 0), 0);
     const demoFees = baseFees > 0 ? Math.max(baseFees / 6, 50000) : 50000;
     const demoAttendance = attendanceRate > 0 ? attendanceRate : 88;
 
@@ -88,10 +78,7 @@ export function buildDashboardTrendData(options: {
     if (Number.isNaN(date.getTime())) return;
 
     const key = monthKey(date);
-    feesByMonth.set(
-      key,
-      (feesByMonth.get(key) || 0) + Number(payment.amount_paid || 0),
-    );
+    feesByMonth.set(key, (feesByMonth.get(key) || 0) + Number(payment.amount_paid || 0));
   });
 
   const hasAttendance = attendanceRate > 0;
@@ -141,7 +128,7 @@ export function buildEcosystemActivities(options: {
       detail: `${smsStats?.sentToday} SMS messages delivered to parents`,
       time: "Today",
       icon: "sms",
-      color: "var(--navy)",
+      color: "var(--secondary)",
     });
   }
 

@@ -104,7 +104,7 @@ export default function WorkflowGuide() {
         <div className="flex items-center gap-2">
           <Link
             href={nextStep.href}
-            className="inline-flex items-center gap-1.5 px-3 h-9 rounded-lg bg-[var(--navy)] text-white text-[12px] font-semibold no-underline whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 px-3 h-9 rounded-lg bg-[var(--secondary)] text-white text-[12px] font-semibold no-underline whitespace-nowrap"
           >
             <MaterialIcon icon="arrow_forward" style={{ fontSize: 15 }} />
             Do this next: {nextStep.label}
@@ -129,7 +129,7 @@ export default function WorkflowGuide() {
               href={step.href}
               className={`rounded-xl border p-3 no-underline transition-all ${
                 isActive
-                  ? "border-[var(--navy)] bg-[var(--navy-soft)]"
+                  ? "border-[var(--secondary)] bg-[var(--navy-soft)]"
                   : isComplete
                     ? "border-[var(--green)] bg-[var(--green-soft)]"
                     : "border-[var(--border)] hover:bg-[var(--bg)]"
@@ -141,7 +141,7 @@ export default function WorkflowGuide() {
                   {step.label}
                 </div>
                 {isComplete && <MaterialIcon icon="check_circle" style={{ fontSize: 16, color: "var(--green)" }} />}
-                {isActive && <span className="text-xs font-bold text-[var(--navy)] uppercase">Current</span>}
+                {isActive && <span className="text-xs font-bold text-[var(--secondary)] uppercase">Current</span>}
               </div>
               <div className="text-xs text-[var(--t3)] mt-1.5">{step.description}</div>
             </Link>

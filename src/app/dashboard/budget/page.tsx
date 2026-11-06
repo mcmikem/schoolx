@@ -246,7 +246,7 @@ export default function BudgetPage() {
   const getUsageColor = (budgeted: number, actual: number) => {
     if (budgeted === 0) return "text-[var(--t3)]";
     const pct = (actual / budgeted) * 100;
-    if (pct > 90) return "text-[var(--error)]";
+    if (pct > 90) return "text-[var(--red)]";
     if (pct > 75) return "text-[var(--amber)]";
     return "text-[var(--green)]";
   };
@@ -254,7 +254,7 @@ export default function BudgetPage() {
   const getUsageBarColor = (budgeted: number, actual: number) => {
     if (budgeted === 0) return "bg-[var(--border)]";
     const pct = (actual / budgeted) * 100;
-    if (pct > 90) return "bg-[var(--error)]";
+    if (pct > 90) return "bg-[var(--red)]";
     if (pct > 75) return "bg-[var(--amber)]";
     return "bg-[var(--green)]";
   };
@@ -302,13 +302,13 @@ export default function BudgetPage() {
             <Card className="text-center">
               <CardBody>
                 <div className="text-sm text-[var(--t3)]">Total Expenses</div>
-                <div className="text-2xl font-bold text-[var(--error)]">UGX {totalExpense.toLocaleString()}</div>
+                <div className="text-2xl font-bold text-[var(--red)]">UGX {totalExpense.toLocaleString()}</div>
               </CardBody>
             </Card>
             <Card className="text-center">
               <CardBody>
                 <div className="text-sm text-[var(--t3)]">Surplus / Deficit</div>
-                <div className={`text-2xl font-bold ${surplus >= 0 ? "text-[var(--green)]" : "text-[var(--error)]"}`}>
+                <div className={`text-2xl font-bold ${surplus >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
                   UGX {surplus.toLocaleString()}
                 </div>
                 {surplus < 0 && (
@@ -383,7 +383,7 @@ export default function BudgetPage() {
                   })}
                   <div className="border-t border-[var(--border)] pt-3 flex items-center justify-between">
                     <span className="font-semibold text-[var(--t1)]">Total Expenses</span>
-                    <span className="font-bold text-[var(--error)]">UGX {totalExpense.toLocaleString()}</span>
+                    <span className="font-bold text-[var(--red)]">UGX {totalExpense.toLocaleString()}</span>
                   </div>
                 </div>
               </CardBody>
@@ -402,14 +402,14 @@ export default function BudgetPage() {
             <Card className="text-center">
               <CardBody>
                 <div className="text-sm text-[var(--t3)]">Total Spent</div>
-                <div className="text-xl font-bold text-[var(--error)]">UGX {actualExpense.toLocaleString()}</div>
+                <div className="text-xl font-bold text-[var(--red)]">UGX {actualExpense.toLocaleString()}</div>
               </CardBody>
             </Card>
             <Card className="text-center">
               <CardBody>
                 <div className="text-sm text-[var(--t3)]">Remaining</div>
                 <div
-                  className={`text-xl font-bold ${totalExpense - actualExpense >= 0 ? "text-[var(--green)]" : "text-[var(--error)]"}`}
+                  className={`text-xl font-bold ${totalExpense - actualExpense >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}
                 >
                   UGX {(totalExpense - actualExpense).toLocaleString()}
                 </div>
@@ -424,7 +424,7 @@ export default function BudgetPage() {
                       ? (
                           () => {
                             const p = (actualExpense / totalExpense) * 100;
-                            if (p > 90) return "text-[var(--error)]";
+                            if (p > 90) return "text-[var(--red)]";
                             if (p > 75) return "text-[var(--amber)]";
                             return "text-[var(--green)]";
                           }
@@ -465,7 +465,7 @@ export default function BudgetPage() {
                         <td className="px-4 py-3 text-right text-[var(--t1)]">UGX {item.budgeted.toLocaleString()}</td>
                         <td className="px-4 py-3 text-right text-[var(--t1)]">UGX {item.actual.toLocaleString()}</td>
                         <td
-                          className={`px-4 py-3 text-right ${remaining >= 0 ? "text-[var(--green)]" : "text-[var(--error)]"}`}
+                          className={`px-4 py-3 text-right ${remaining >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}
                         >
                           UGX {remaining.toLocaleString()}
                         </td>

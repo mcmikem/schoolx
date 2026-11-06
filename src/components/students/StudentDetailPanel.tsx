@@ -17,7 +17,7 @@ function FieldHint({ tip }: { tip: string }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-4 h-4 rounded-full bg-[var(--navy-soft)] text-[var(--blue-ink)] flex items-center justify-center text-xs font-black leading-none border border-[var(--border)] hover:bg-[var(--navy)] hover:text-white transition-colors"
+        className="w-4 h-4 rounded-full bg-[var(--navy-soft)] text-[var(--blue-ink)] flex items-center justify-center text-xs font-black leading-none border border-[var(--border)] hover:bg-[var(--secondary)] hover:text-white transition-colors"
         aria-label="Help"
         title={tip}
       >

@@ -10,6 +10,8 @@ import { useToast } from "@/components/Toast";
 import type { NSDCTopic } from "@/lib/ndc-syllabus";
 import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/index";
+import LoadingState from "@/components/ui/LoadingState";
+import { EmptyState } from "@/components/EmptyState";
 import {
   buildAcademicYear,
   parseStoredSubtopics,
@@ -480,22 +482,15 @@ export default function SyllabusPage() {
 
         {/* Topics List */}
         {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin w-8 h-8 border-2 border-[var(--t1)] border-t-transparent rounded-full mx-auto"></div>
-          </div>
+          <LoadingState size="section" />
         ) : !selectedClass || !selectedSubject ? (
-          <div className="text-center py-12 text-[var(--t3)]">
-            <MaterialIcon style={{ fontSize: 48, opacity: 0.5 }}>menu_book</MaterialIcon>
-            <p className="mt-2">Select a class and subject to view syllabus</p>
-          </div>
+          <EmptyState icon="menu_book" title="Select a class and subject to view syllabus" />
         ) : topics.length === 0 ? (
-          <div className="text-center py-12 text-[var(--t3)]">
-            <MaterialIcon style={{ fontSize: 48, opacity: 0.5 }}>menu_book</MaterialIcon>
-            <p className="mt-2">No topics added yet</p>
-            <Button onClick={() => setShowAddModal(true)} className="mt-4">
-              Add First Topic
-            </Button>
-          </div>
+          <EmptyState
+            icon="menu_book"
+            title="No topics added yet"
+            action={{ label: "Add First Topic", onClick: () => setShowAddModal(true) }}
+          />
         ) : (
           <>
             {/* Search */}

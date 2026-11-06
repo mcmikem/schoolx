@@ -8,6 +8,8 @@ import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useToast } from "@/components/Toast";
 import { PageHeader } from "@/components/ui/PageHeader";
+import LoadingState from "@/components/ui/LoadingState";
+import { EmptyState } from "@/components/EmptyState";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { ErrorState } from "@/components/EmptyState";
@@ -334,19 +336,15 @@ export default function LessonPlansPage() {
         </section>
 
         {loading ? (
-          <div className="text-center py-12">
-            <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin mx-auto"></div>
-          </div>
+          <LoadingState size="section" />
         ) : loadError ? (
           <ErrorState onRetry={fetchPlans} message={loadError} />
         ) : plans.length === 0 ? (
-          <Card className="p-6 text-center sm:p-12">
-            <MaterialIcon className="text-5xl text-[var(--t3)] opacity-50 mx-auto">assignment</MaterialIcon>
-            <p className="mt-2 text-[var(--t3)]">No lesson plans yet</p>
-            <Button className="mt-4" onClick={() => setShowForm(true)}>
-              Create First Lesson Plan
-            </Button>
-          </Card>
+          <EmptyState
+            icon="assignment"
+            title="No lesson plans yet"
+            action={{ label: "Create First Lesson Plan", onClick: () => setShowForm(true) }}
+          />
         ) : (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 md:gap-4">
             {plans.map((plan) => (

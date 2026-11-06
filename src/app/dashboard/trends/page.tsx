@@ -299,7 +299,13 @@ export default function TrendAnalyticsPage() {
                       <XAxis dataKey="term" stroke="var(--t3)" />
                       <YAxis stroke="var(--t3)" />
                       <Tooltip />
-                      <Line type="monotone" dataKey="students" stroke="var(--navy)" strokeWidth={2} name="Students" />
+                      <Line
+                        type="monotone"
+                        dataKey="students"
+                        stroke="var(--secondary)"
+                        strokeWidth={2}
+                        name="Students"
+                      />
                     </LineChart>
                   </div>
                 </CardBody>

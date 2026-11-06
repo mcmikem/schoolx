@@ -259,7 +259,7 @@ export default function ReportsPage() {
       const printWindow = window.open("", "_blank");
       if (!printWindow) return;
 
-      const primaryColor = school?.primary_color || "#002045";
+      const primaryColor = school?.primary_color || "var(--secondary, #002045)";
       const reportHeader = (school as any)?.report_header_text || (school as any)?.report_header || "";
       const logoUrl = school?.logo_url || "";
 
@@ -277,7 +277,7 @@ export default function ReportsPage() {
         .info-value { font-size: 13px; font-weight: 600; color: #1a1a1a; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; }
         th { background: ${primaryColor}; color: white; padding: 8px 4px; text-align: center; border: 1px solid ${primaryColor}; }
-        td { padding: 6px 4px; text-align: center; border: 1px solid #ddd; }
+        td { padding: 6px 4px; text-align: center; border: 1px solid var(--border, #ddd); }
         td:first-child { text-align: left; padding-left: 8px; font-weight: 500; }
         .summary { padding: 15px; border-top: 2px solid ${primaryColor}; }
         .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
@@ -296,7 +296,7 @@ export default function ReportsPage() {
         .progressive-table td.num { text-align:center }
         .progressive-summary { display:flex;justify-content:space-around;margin:8px 0;padding:8px;border:1px solid #cbd5e1 }
         .progressive-remark { border:1px solid #cbd5e1;padding:7px;margin:6px 0;min-height:38px }
-        .progressive-note { font-size:8px;color:#475569;margin-top:7px }
+        .progressive-note { font-size:8px;color:var(--t3, #475569);margin-top:7px }
         @media print { body { padding: 0; } }
       `;
 
@@ -370,7 +370,7 @@ export default function ReportsPage() {
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;")
                 .replace(/\"/g, "&quot;")
-                .replace(/'/g, "&#039;");
+                .replace(/'/g, "&var(--primary, #039);");
             const reportAssessmentColumns = Array.from(
               new Set<string>(
                 (report.subjects || []).flatMap((subject: any) =>
@@ -623,7 +623,7 @@ export default function ReportsPage() {
         const { default: autoTable } = await import("jspdf-autotable");
 
         const doc = new jsPDF();
-        const primaryColor = data.school?.primary_color || school?.primary_color || "#002045";
+        const primaryColor = data.school?.primary_color || school?.primary_color || "var(--secondary, #002045)";
 
         const hexToRgb = (hex: string) => {
           const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);

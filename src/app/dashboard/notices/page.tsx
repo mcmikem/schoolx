@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
+import LoadingState from "@/components/ui/LoadingState";
+import { EmptyState } from "@/components/EmptyState";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { DEMO_NOTICES } from "@/lib/demo-data";
@@ -230,16 +232,13 @@ export default function NoticesPage() {
         </p>
 
         {loading ? (
-          <div className="text-center py-12 text-[var(--t3)]">Loading notices...</div>
+          <LoadingState size="section" label="Loading notices..." />
         ) : notices.length === 0 ? (
-          <div className="text-center py-12 text-[var(--t3)]">
-            <MaterialIcon icon="campaign" className="text-4xl mx-auto mb-2" />
-            <p>No notices posted yet</p>
-            <Button className="mt-4" onClick={() => setShowPostModal(true)}>
-              <MaterialIcon icon="add" />
-              Post Notice
-            </Button>
-          </div>
+          <EmptyState
+            icon="campaign"
+            title="No notices posted yet"
+            action={{ label: "Post Notice", onClick: () => setShowPostModal(true) }}
+          />
         ) : (
           <div className="space-y-4">
             {notices.map((notice) => (

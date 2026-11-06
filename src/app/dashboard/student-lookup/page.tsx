@@ -8,6 +8,7 @@ import { DEMO_CLASSES, DEMO_STUDENTS } from "@/lib/demo-data";
 import MaterialIcon from "@/components/MaterialIcon";
 import { RollCallPhoto } from "@/components/attendance/RollCallPhoto";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/index";
 
 export default function StudentLookupPage() {
@@ -165,10 +166,7 @@ export default function StudentLookupPage() {
         </div>
 
         {search.length >= 2 && students.length === 0 && !loading && (
-          <div className="text-center py-12 text-[var(--on-surface-variant)]">
-            <MaterialIcon icon="search_off" className="text-4xl mb-2" />
-            <p className="font-medium">No students found for "{search}"</p>
-          </div>
+          <EmptyState icon="search_off" title={`No students found for "${search}"`} />
         )}
 
         {students.length > 0 && (

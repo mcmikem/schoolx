@@ -426,7 +426,7 @@ export default function SMSCenterPage() {
                 onClick={() => selectTemplate(t)}
                 className={`w-full p-4 rounded-[24px] flex items-center gap-4 transition-all text-left border ${
                   activeTemplate.id === t.id
-                    ? "bg-[var(--navy)] text-white border-[var(--navy)] shadow-xl"
+                    ? "bg-[var(--secondary)] text-white border-[var(--secondary)] shadow-xl"
                     : "bg-[var(--surface)] text-[var(--t2)] border-[var(--border)] hover:border-[var(--border)]"
                 }`}
               >
@@ -461,7 +461,7 @@ export default function SMSCenterPage() {
                         onClick={() => switchSegment(opt.value)}
                         className={`flex items-center gap-3 p-3 rounded-2xl border transition-all text-left ${
                           segment === opt.value
-                            ? "bg-[var(--navy)] text-white border-[var(--navy)] shadow-md"
+                            ? "bg-[var(--secondary)] text-white border-[var(--secondary)] shadow-md"
                             : "bg-[var(--surface)] text-[var(--t2)] border-[var(--border)] hover:border-[var(--border2)]"
                         }`}
                       >
@@ -626,7 +626,7 @@ export default function SMSCenterPage() {
                 <button
                   onClick={handleSend}
                   disabled={!canSend}
-                  className="w-full py-4 bg-[var(--navy)] text-white rounded-[28px] font-black uppercase tracking-[2px] hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-xl"
+                  className="w-full py-4 bg-[var(--secondary)] text-white rounded-[28px] font-black uppercase tracking-[2px] hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-xl"
                 >
                   {sending ? (
                     <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

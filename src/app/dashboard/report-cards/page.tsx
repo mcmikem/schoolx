@@ -141,7 +141,7 @@ function buildSecondaryProgressMarkup(
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/\"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+      .replace(/'/g, "&var(--primary, #039);");
   const remarkFacts = {
     pupilName: report.name,
     className: report.className,
@@ -278,7 +278,7 @@ const SECONDARY_PROGRESS_STYLES = (schoolColor: string) => `
   .school-name{font-size:19px;font-weight:bold;color:var(--school-color)}
   .motto{font-style:italic;margin:2px 0}
   .ministry{font-size:9px;font-weight:bold;letter-spacing:.3px;margin:2px 0}
-  .school-details{font-size:8px;color:#475569;margin:2px 0}
+  .school-details{font-size:8px;color:var(--t3, #475569);margin:2px 0}
   .report-header h1{font-size:13px;margin:4px 0 1px;color:var(--school-color);text-decoration:underline}
   .student-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:7px 0;padding:0;border:1px solid #cbd5e1}
   .student-details>div{min-height:30px;padding:4px 6px;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0}
@@ -293,12 +293,12 @@ const SECONDARY_PROGRESS_STYLES = (schoolColor: string) => `
   .grades-table tbody tr:nth-child(even){background:#f8fafc}
   .numeric{text-align:center;white-space:nowrap}.emphasis{font-weight:bold}.teacher-initials{text-align:center;font-weight:bold;white-space:nowrap}
   .points-row{display:flex;gap:32px;align-items:center;border:1px solid #cbd5e1;padding:5px 8px;margin:5px 0;font-size:10px}
-  .remark{border:1px solid #cbd5e1;padding:6px 8px;margin:5px 0;min-height:36px}.remark strong{font-size:8px;text-transform:uppercase;color:#475569}.remark p{margin:4px 0 0;min-height:14px}
-  .conduct-section{border:1px solid #cbd5e1;padding:5px 8px;margin:5px 0}.conduct-section h2{font-size:8px;text-transform:uppercase;margin:0 0 4px}.conduct-section p{margin:0;font-size:8px;color:#475569}.conduct-item{display:inline-flex;gap:6px;min-width:130px;margin:2px 10px 2px 0;font-size:8px}
+  .remark{border:1px solid #cbd5e1;padding:6px 8px;margin:5px 0;min-height:36px}.remark strong{font-size:8px;text-transform:uppercase;color:var(--t3, #475569)}.remark p{margin:4px 0 0;min-height:14px}
+  .conduct-section{border:1px solid #cbd5e1;padding:5px 8px;margin:5px 0}.conduct-section h2{font-size:8px;text-transform:uppercase;margin:0 0 4px}.conduct-section p{margin:0;font-size:8px;color:var(--t3, #475569)}.conduct-item{display:inline-flex;gap:6px;min-width:130px;margin:2px 10px 2px 0;font-size:8px}
   .report-bottom{display:grid;grid-template-columns:1fr 70px 2fr;gap:8px;align-items:center;margin-top:5px;min-height:48px}
   .fees-balance{font-size:9px}.stamp-box{height:45px;border:1px dashed #64748b;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:7px;letter-spacing:.3px}
-  .signature-row{display:flex;gap:12px;justify-content:space-between}.signature{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-width:90px;flex:1;font-size:7px}.signature img{height:24px;max-width:90px;object-fit:contain}.signature-line{width:100%;height:23px;border-bottom:1px solid #475569}.signature small{margin-top:2px;color:#475569;text-transform:uppercase}.signature strong{font-size:7px}
-  footer{border-top:1px solid #cbd5e1;margin-top:5px;padding-top:4px;font-size:7px;color:#475569;line-height:1.35}
+  .signature-row{display:flex;gap:12px;justify-content:space-between}.signature{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-width:90px;flex:1;font-size:7px}.signature img{height:24px;max-width:90px;object-fit:contain}.signature-line{width:100%;height:23px;border-bottom:1px solid var(--t3, #475569)}.signature small{margin-top:2px;color:var(--t3, #475569);text-transform:uppercase}.signature strong{font-size:7px}
+  footer{border-top:1px solid #cbd5e1;margin-top:5px;padding-top:4px;font-size:7px;color:var(--t3, #475569);line-height:1.35}
   @media print{body{width:auto}.secondary-progress-report{width:100%;break-after:page}.secondary-progress-report:last-child{break-after:auto}}
 `;
 
@@ -1927,7 +1927,7 @@ export default function ReportCardsPage() {
     return {
       schoolName: school?.name || "School Name",
       schoolCode: (school as any)?.school_code || "",
-      schoolColor: school?.primary_color || "#002045",
+      schoolColor: school?.primary_color || "var(--secondary, #002045)",
       logoUrl: school?.logo_url || "",
       photoUrl: report.photoUrl || "",
       motto: (school as any)?.school_motto || (school as any)?.motto || "",
@@ -1998,7 +1998,7 @@ export default function ReportCardsPage() {
         progressivePrintOptions(report, studentComment.classTeacher, studentComment.hm, filteredStudents.length),
       );
       writePrintDocument(printWindow, `Progress Report - ${report.name}`, body, {
-        styles: SECONDARY_PROGRESS_STYLES(school?.primary_color || "#002045"),
+        styles: SECONDARY_PROGRESS_STYLES(school?.primary_color || "var(--secondary, #002045)"),
       });
       void printWhenReady(printWindow);
       return;
@@ -2008,7 +2008,7 @@ export default function ReportCardsPage() {
       hm: "",
     };
     const schoolName = school?.name || "School Name";
-    const schoolColor = school?.primary_color || "#002045";
+    const schoolColor = school?.primary_color || "var(--secondary, #002045)";
     const logoUrl = school?.logo_url || "";
     const schoolMotto = (school as any)?.school_motto || (school as any)?.motto || "";
     const schoolAddress = (school as any)?.address || "";
@@ -2048,17 +2048,17 @@ export default function ReportCardsPage() {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+        .replace(/'/g, "&var(--primary, #039);");
 
     const subjectRows = report.subjects
       .map((s) => {
         const compCell =
           reportFormat !== "numerical"
-            ? `<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">${escapeHtml(competencyLabelForReport(s.competencyLevel))}</td>`
+            ? `<td style="padding:6px 10px;border:1px solid var(--border, #ddd);text-align:center">${escapeHtml(competencyLabelForReport(s.competencyLevel))}</td>`
             : "";
         const competencyNoteCell =
           reportFormat !== "numerical"
-            ? `<td style="padding:6px 10px;border:1px solid #ddd">${escapeHtml(s.competencyNotes || "")}</td>`
+            ? `<td style="padding:6px 10px;border:1px solid var(--border, #ddd)">${escapeHtml(s.competencyNotes || "")}</td>`
             : "";
         if (isSecondaryProgressive) {
           const assessments = s.uganda?.assessmentBreakdown || [];
@@ -2077,11 +2077,11 @@ export default function ReportCardsPage() {
           </tr>`;
         }
         return `<tr>
-          <td style="padding:6px 10px;border:1px solid #ddd">${escapeHtml(s.name)}</td>
+          <td style="padding:6px 10px;border:1px solid var(--border, #ddd)">${escapeHtml(s.name)}</td>
           ${
             reportFormat !== "competency"
-              ? `<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">${s.isMissing ? "—" : s.score}</td>
-          <td style="padding:6px 10px;border:1px solid #ddd;text-align:center;font-weight:bold">${escapeHtml(s.grade)}</td>`
+              ? `<td style="padding:6px 10px;border:1px solid var(--border, #ddd);text-align:center">${s.isMissing ? "—" : s.score}</td>
+          <td style="padding:6px 10px;border:1px solid var(--border, #ddd);text-align:center;font-weight:bold">${escapeHtml(s.grade)}</td>`
               : ""
           }
           ${compCell}
@@ -2112,7 +2112,7 @@ export default function ReportCardsPage() {
       .logo{position:absolute;left:12px;top:12px;max-width:64px;max-height:58px;object-fit:contain}
       .student-photo{position:absolute;right:12px;top:8px;width:64px;height:76px;object-fit:cover;border:1px solid #cbd5e1;border-radius:4px}
       .school-name{font-size:22px;font-weight:bold;color:${schoolColor}}
-      .school-motto{font-size:12px;font-style:italic;margin:2px 0;color:#475569}
+      .school-motto{font-size:12px;font-style:italic;margin:2px 0;color:var(--t3, #475569)}
       .school-info{font-size:10px;color:#555;margin:2px 0}
       .report-title{font-size:15px;font-weight:bold;color:${schoolColor};margin:5px 0}
       .info-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px 14px;margin:8px 0;font-size:11px;border:1px solid #cbd5e1;padding:7px 10px}
@@ -2132,7 +2132,7 @@ export default function ReportCardsPage() {
       .competency-key{border:1px solid #cbd5e1;padding:8px 10px;margin:10px 0;font-size:10px;line-height:1.5;background:#f8fafc}
       .comment-box{border:1px solid #cbd5e1;padding:8px;margin:7px 0;min-height:48px}
       .comment-label{font-size:11px;font-weight:bold;text-transform:uppercase;color:#888;margin-bottom:4px}
-      .notes{font-size:9px;color:#475569;border-top:1px solid #cbd5e1;padding-top:6px;margin-top:8px;line-height:1.4}
+      .notes{font-size:9px;color:var(--t3, #475569);border-top:1px solid #cbd5e1;padding-top:6px;margin-top:8px;line-height:1.4}
       .footer{text-align:center;margin-top:10px;font-size:9px;color:#64748b;border-top:1px solid #cbd5e1;padding-top:7px}
     `;
 
@@ -2253,7 +2253,7 @@ export default function ReportCardsPage() {
         address: (school as any)?.address || "",
         logoUrl: school?.logo_url || "",
         motto: (school as any)?.motto || "",
-        primaryColor: school?.primary_color || "#002045",
+        primaryColor: school?.primary_color || "var(--secondary, #002045)",
       },
       student: {
         firstName: student.first_name,
@@ -2338,7 +2338,7 @@ export default function ReportCardsPage() {
         })
         .join("");
       writePrintDocument(printWindow, `Progress Reports - ${selectedClassName} (${displayedReports.length})`, pages, {
-        styles: SECONDARY_PROGRESS_STYLES(school?.primary_color || "#002045"),
+        styles: SECONDARY_PROGRESS_STYLES(school?.primary_color || "var(--secondary, #002045)"),
       });
       void printWhenReady(printWindow);
       return;

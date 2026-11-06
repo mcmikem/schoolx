@@ -158,7 +158,7 @@ function SessionTimeoutWarning({ remainingTime, onExtend }: { remainingTime: num
         </div>
         <h2 className="text-lg font-semibold text-[var(--t1)] mb-1">Session Expiring Soon</h2>
         <p className="text-sm text-[var(--t2)] mb-4">
-          You will be signed out in <span className="font-bold text-[var(--error)]">{timeStr}</span> due to inactivity.
+          You will be signed out in <span className="font-bold text-[var(--red)]">{timeStr}</span> due to inactivity.
         </p>
         <button
           onClick={onExtend}

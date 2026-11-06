@@ -509,7 +509,7 @@ export default function PerformanceDNAPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className={cardClassName + " p-6 bg-[var(--navy)] border-none relative overflow-hidden"}>
+                <div className={cardClassName + " p-6 bg-[var(--secondary)] border-none relative overflow-hidden"}>
                   <MaterialIcon
                     icon="analytics"
                     className="absolute -right-4 -top-4 text-white/10"

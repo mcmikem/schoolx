@@ -481,7 +481,7 @@ function OverviewTab({
   return (
     <>
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <StatCard label="Total Schools" value={pipelineStats.total} icon="school" color="var(--navy)" />
+        <StatCard label="Total Schools" value={pipelineStats.total} icon="school" color="var(--secondary)" />
         <StatCard
           label="Active"
           value={pipelineStats.active}
@@ -1201,7 +1201,7 @@ function LeadsTab({ onConvertToSchool }: { onConvertToSchool?: (lead: LeadRow) =
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard label="Total Leads" value={leadCounts.total} icon="group" color="var(--navy)" />
+        <StatCard label="Total Leads" value={leadCounts.total} icon="group" color="var(--secondary)" />
         <StatCard label="New" value={leadCounts.new} icon="fiber_new" color="var(--primary)" />
         <StatCard
           label="Interested"

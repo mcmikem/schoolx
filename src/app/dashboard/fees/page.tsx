@@ -1448,7 +1448,7 @@ export default function FinanceHubPage() {
     if (!selectedStudent) return;
     const logoUrl = school?.logo_url || "";
     const schoolName = school?.name || "School";
-    const schoolColor = school?.primary_color || "#002045";
+    const schoolColor = school?.primary_color || "var(--secondary, #002045)";
     const today = new Date().toLocaleDateString();
     const invoiceNo = `INV-${Date.now().toString().slice(-6)}`;
 
@@ -1458,7 +1458,7 @@ export default function FinanceHubPage() {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+        .replace(/'/g, "&var(--primary, #039);");
 
     const html = `
         <html><head><title>Invoice</title><style>
@@ -1468,7 +1468,7 @@ export default function FinanceHubPage() {
         .school-name{font-size:20px;font-weight:bold;color:${schoolColor};margin:5px 0}
         .school-info{font-size:11px;color:#666;margin-bottom:5px}
         .invoice-title{font-size:16px;font-weight:bold;color:${schoolColor};margin:10px 0}
-        .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed #ddd}
+        .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--border, #ddd)}
         .label{color:#666;font-size:13px}
         .value{font-weight:bold;font-size:13px}
         .total{font-size:16px;border-top:2px solid ${schoolColor};margin-top:10px;padding-top:10px;font-weight:bold}
@@ -1529,7 +1529,7 @@ export default function FinanceHubPage() {
           .replace(/</g, "&lt;")
           .replace(/>/g, "&gt;")
           .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#039;");
+          .replace(/'/g, "&var(--primary, #039);");
 
       const html = `
           <html><head><title>Fee Receipt</title><style>
@@ -1838,7 +1838,7 @@ export default function FinanceHubPage() {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+        .replace(/'/g, "&var(--primary, #039);");
     const html = `
       <html>
         <head>
@@ -1847,14 +1847,14 @@ export default function FinanceHubPage() {
             * { font-family: Arial, sans-serif; margin: 0; padding: 0; box-sizing: border-box; }
             body { padding: 20px; }
             .invoice { max-width: 600px; margin: 0 auto; }
-            .header { background: #1e3a5f; color: white; padding: 20px; text-align: center; }
+            .header { background: var(--secondary, #1e3a5f); color: white; padding: 20px; text-align: center; }
             .school-name { font-size: 20px; font-weight: bold; }
             .subtitle { font-size: 12px; margin-top: 4px; }
             .info { padding: 15px; background: #f5f5f5; margin-bottom: 15px; }
             .info-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; }
             .info-label { color: #666; }
             table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-            th { background: #1e3a5f; color: white; padding: 10px; text-align: left; }
+            th { background: var(--secondary, #1e3a5f); color: white; padding: 10px; text-align: left; }
             td { padding: 10px; border-bottom: 1px solid #eee; }
             .total-row { font-weight: bold; background: #f0f9ff; }
             .balance { text-align: right; padding: 15px; }

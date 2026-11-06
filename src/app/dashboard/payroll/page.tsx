@@ -341,7 +341,7 @@ export default function PayrollPage() {
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: "Total Staff", value: staff.length, icon: "badge", color: "bg-[var(--navy)]", suffix: "" },
+            { label: "Total Staff", value: staff.length, icon: "badge", color: "bg-[var(--secondary)]", suffix: "" },
             {
               label: "Gross Payroll",
               value: `UGX ${(totals.gross / 1000000).toFixed(1)}M`,
@@ -530,7 +530,7 @@ export default function PayrollPage() {
                 )}
               </tbody>
               {!loading && staff.length > 0 && (
-                <tfoot className="bg-[var(--navy)] text-white">
+                <tfoot className="bg-[var(--secondary)] text-white">
                   <tr>
                     <td className="px-6 py-4 text-xs font-black uppercase tracking-wider">School Totals</td>
                     <td className="px-6 py-4 text-right font-black text-xs text-blue-300">

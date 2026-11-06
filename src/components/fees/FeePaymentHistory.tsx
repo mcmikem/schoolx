@@ -141,7 +141,7 @@ export default function FeePaymentHistory({
             onClick={() => onDeletePayment(payment.id)}
             aria-label={`Delete payment for ${nameFor(payment)}`}
             title="Void payment"
-            className="rounded-lg p-2 text-[var(--error)] hover:bg-[var(--error-container)]"
+            className="rounded-lg p-2 text-[var(--red)] hover:bg-[var(--error-container)]"
           >
             <MaterialIcon icon="delete" className="text-lg" />
           </button>
@@ -220,7 +220,7 @@ export default function FeePaymentHistory({
                 type="button"
                 onClick={() => onDeletePayment(payment.id)}
                 aria-label={`Delete payment for ${nameFor(payment)}`}
-                className="text-xs font-semibold text-[var(--error)]"
+                className="text-xs font-semibold text-[var(--red)]"
               >
                 Void payment
               </button>

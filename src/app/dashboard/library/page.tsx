@@ -76,11 +76,7 @@ export default function LibraryPage() {
     }
     try {
       const result = await withTimeout(
-        supabase
-          .from("library_books")
-          .select("*")
-          .eq("school_id", school.id)
-          .order("created_at", { ascending: false }),
+        supabase.from("library_books").select("*").eq("school_id", school.id).order("created_at", { ascending: false }),
         10000,
         timeoutFallback(),
       );
@@ -414,7 +410,7 @@ export default function LibraryPage() {
               const total = Number(book.total_copies || 0);
               const available = Number(book.available_copies || 0);
               const pct = total > 0 ? Math.round((available / total) * 100) : 0;
-              const barTone = pct > 50 ? "bg-[var(--green)]" : pct > 20 ? "bg-[var(--amber)]" : "bg-[var(--error)]";
+              const barTone = pct > 50 ? "bg-[var(--green)]" : pct > 20 ? "bg-[var(--amber)]" : "bg-[var(--red)]";
 
               return (
                 <article
