@@ -1507,7 +1507,7 @@ describe("Teacher class scope", () => {
   const read = (rel: string) => require("fs").readFileSync(require("path").join(process.cwd(), rel), "utf8");
 
   it("useClasses selects class_teacher_id", () => {
-    const src = read("src/lib/hooks/students.ts");
+    const src = read("src/lib/hooks/students/use-classes.ts");
     // The attendance class dropdown filters (or used to filter) on
     // class_teacher_id; leaving it out of the select made every row undefined
     // and teachers got an empty class list.
