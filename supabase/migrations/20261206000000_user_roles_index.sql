@@ -1,0 +1,2 @@
+-- Add missing index on user_roles.user_id for the profile RPC join.
+CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON public.user_roles(user_id);
