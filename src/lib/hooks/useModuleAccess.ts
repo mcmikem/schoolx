@@ -35,6 +35,7 @@ interface AccessContext {
   billing_mode: "full_suite" | "modular";
   feature_stage: string | null;
   school_size_band: string | null;
+  is_tester?: boolean;
   entitlements: EntitlementLite[];
 }
 
@@ -107,6 +108,7 @@ export function useModuleAccess() {
           billing_mode: body.data?.school?.billing_mode || "full_suite",
           feature_stage: body.data?.school?.feature_stage || null,
           school_size_band: body.data?.school?.school_size_band || null,
+          is_tester: body.data?.school?.is_tester === true,
           entitlements: Array.isArray(body.data?.entitlements) ? body.data.entitlements : [],
         };
         writeCache(schoolId, next);
@@ -130,6 +132,7 @@ export function useModuleAccess() {
   }, [schoolId, user]);
 
   function isModuleAllowed(moduleKey: ModuleKey): boolean {
+    if (ctx?.is_tester) return true;
     if (!ctx) {
       // Cached/fetched context unavailable: fall back to feature-stage logic
       // exactly as the proxy does for full-suite schools.

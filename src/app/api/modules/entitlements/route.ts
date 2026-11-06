@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
     ] = await Promise.all([
       supabase
         .from("schools")
-        .select("id, billing_mode, school_size_band")
+        .select("id, billing_mode, school_size_band, is_tester")
         .eq("id", auth.context.schoolId)
         .maybeSingle(),
       supabase
@@ -134,6 +134,7 @@ export async function GET(request: NextRequest) {
       school: {
         billing_mode: (school as Record<string, unknown>).billing_mode || "full_suite",
         school_size_band: sizeBand,
+        is_tester: (school as Record<string, unknown>).is_tester === true,
       },
       catalog: normalizedCatalog,
       entitlements: entitlements || [],

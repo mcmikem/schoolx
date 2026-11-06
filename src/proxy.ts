@@ -485,14 +485,14 @@ export async function proxy(request: NextRequest) {
     try {
       const { data: schoolBilling, error: billingError } = await supabase
         .from("schools")
-        .select("billing_mode, feature_stage")
+        .select("billing_mode, feature_stage, is_tester")
         .eq("id", user.school_id)
         .maybeSingle();
 
       // If the schema is not available yet, fail open to avoid outages.
       const missingSchema = billingError && ["42P01", "42703"].includes((billingError as { code?: string }).code || "");
 
-      if (!missingSchema && schoolBilling) {
+      if (!missingSchema && schoolBilling && schoolBilling.is_tester !== true) {
         const moduleDef = getModuleDefinition(requiredModule);
         if (moduleDef && !moduleDef.is_billable) {
           // Free module — always accessible, skip entitlement check
