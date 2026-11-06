@@ -33,7 +33,7 @@ import {
   sanitizeDemoRole,
 } from "./auth-context-types";
 import { clearDemoStorage, decryptDemoData, readDemoStorage } from "./auth-demo";
-import { buildAuthEmailFromPhone, buildAuthLoginAttempts, type AuthLoginAttempt } from "./auth-login";
+import { buildAuthLoginAttempts, type AuthLoginAttempt } from "./auth-login";
 import { DEFAULT_FEATURE_STAGE, FeatureStage } from "./featureStages";
 import { timeoutSignal } from "./hooks/utils";
 import { logger } from "./logger";
@@ -54,6 +54,7 @@ import {
   setRememberedFormat,
 } from "./auth-helpers";
 import { doSignOut } from "./auth/signout";
+import { doSignUp, doRefreshSchool, doRefreshSchoolFromAPI } from "./auth/account";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -83,8 +84,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!cachedUser) return false;
       const parsedUser = JSON.parse(cachedUser) as User;
       const cachedSchool = localStorage.getItem(OFFLINE_SCHOOL_KEY);
+      const parsedSchool = cachedSchool ? (JSON.parse(cachedSchool) as School) : null;
+      // Invalidate stale cache that predates is_tester tracking.
+      if (parsedSchool && parsedSchool.is_tester === undefined) {
+        localStorage.removeItem(OFFLINE_SCHOOL_KEY);
+        localStorage.removeItem(OFFLINE_USER_KEY);
+      }
       setUser(parsedUser);
-      setSchool(cachedSchool ? (JSON.parse(cachedSchool) as School) : null);
+      setSchool(parsedSchool);
+      setIsTrialExpired(computeTrialExpired(parsedSchool, parsedUser.role));
       setIsDemo(false);
       setLoading(false);
       setAuthInitialized(true);
@@ -486,8 +494,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               const cachedUser = localStorage.getItem(OFFLINE_USER_KEY);
               const cachedSchool = localStorage.getItem(OFFLINE_SCHOOL_KEY);
               if (cachedUser) {
-                setUser(JSON.parse(cachedUser) as User);
-                setSchool(cachedSchool ? JSON.parse(cachedSchool) : null);
+                const __cu = JSON.parse(cachedUser) as User;
+                const __cs = cachedSchool ? (JSON.parse(cachedSchool) as School) : null;
+                setUser(__cu);
+                setSchool(__cs);
+                setIsTrialExpired(computeTrialExpired(__cs, __cu.role));
                 setIsDemo(false);
                 setLoading(false);
                 setAuthInitialized(true);
@@ -517,8 +528,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const cachedUser = localStorage.getItem(OFFLINE_USER_KEY);
             if (cachedUser) {
               const cachedSchool = localStorage.getItem(OFFLINE_SCHOOL_KEY);
-              setUser(JSON.parse(cachedUser) as User);
-              setSchool(cachedSchool ? JSON.parse(cachedSchool) : null);
+              const __cu = JSON.parse(cachedUser) as User;
+              const __cs = cachedSchool ? (JSON.parse(cachedSchool) as School) : null;
+              setUser(__cu);
+              setSchool(__cs);
+              setIsTrialExpired(computeTrialExpired(__cs, __cu.role));
               setIsDemo(false);
               setLoading(false);
               setAuthInitialized(true);
@@ -571,8 +585,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               const cachedUser = localStorage.getItem(OFFLINE_USER_KEY);
               const cachedSchool = localStorage.getItem(OFFLINE_SCHOOL_KEY);
               if (cachedUser) {
-                setUser(JSON.parse(cachedUser) as User);
-                setSchool(cachedSchool ? JSON.parse(cachedSchool) : null);
+                const __cu = JSON.parse(cachedUser) as User;
+                const __cs = cachedSchool ? (JSON.parse(cachedSchool) as School) : null;
+                setUser(__cu);
+                setSchool(__cs);
+                setIsTrialExpired(computeTrialExpired(__cs, __cu.role));
               }
             } catch {
               /* ignore cache parse errors */
@@ -732,7 +749,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   if (belongsToSession) {
                     const cachedSchool = localStorage.getItem(OFFLINE_SCHOOL_KEY);
                     setUser(parsedUser);
-                    setSchool(cachedSchool ? JSON.parse(cachedSchool) : null);
+                    const __pcs = cachedSchool ? (JSON.parse(cachedSchool) as School) : null;
+                    setSchool(__pcs);
+                    setIsTrialExpired(computeTrialExpired(__pcs, parsedUser.role));
                     setIsDemo(false);
                     setLoading(false);
                     setAuthInitialized(true);
@@ -1328,70 +1347,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signUp(phone: string, password: string, name: string) {
-    try {
-      const normalizedPhone = phone;
-      const email = buildAuthEmailFromPhone(normalizedPhone);
-      const { data, error } = await withSupabaseLockRetry(
-        async () =>
-          await supabase!.auth.signUp({
-            email,
-            password,
-            options: {
-              data: {
-                full_name: name,
-                phone: normalizedPhone,
-              },
-            },
-          }),
-      );
-
-      if (error) return { error };
-      return { error: null };
-    } catch (error) {
-      return { error };
-    }
+    return doSignUp(phone, password, name);
   }
 
   async function refreshSchool() {
-    if (!user?.school_id || !supabase) return;
-    try {
-      const { data: schoolData } = await supabase.from("schools").select("*").eq("id", user.school_id).single();
-      if (schoolData) {
-        setSchool({
-          ...schoolData,
-          is_tester: Boolean(schoolData.is_tester),
-          feature_stage: (schoolData.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
-        });
-        setIsTrialExpired(computeTrialExpired(schoolData, user?.role));
-      }
-    } catch (error) {
-      logger.error("Error refreshing school:", error);
-    }
+    return doRefreshSchool({ user, setSchool, setIsTrialExpired });
   }
 
   async function refreshSchoolFromAPI() {
-    try {
-      const { data: sessionData } = await supabase!.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) return;
-
-      const res = await fetch("/api/auth/me/", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data.school) {
-        setSchool({
-          ...data.school,
-          feature_stage: (data.school.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
-        });
-        setIsTrialExpired(computeTrialExpired(data.school, user?.role));
-      }
-    } catch (error) {
-      logger.error("Error refreshing school from API:", error);
-    }
+    return doRefreshSchoolFromAPI({ user, setSchool, setIsTrialExpired });
   }
 
   const signOut = useCallback(

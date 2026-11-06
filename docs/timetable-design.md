@@ -305,7 +305,7 @@ rooms or optimize a global timetable; those checks remain server-side approval
 
 #### Version and preview storage
 
-Migration `supabase/migrations/20261205000000_timetable_schedule_version.sql`
+Migration `supabase/migrations/20261207000000_timetable_schedule_version.sql`
 creates these tables:
 
 - `timetable_schedule_versions(id uuid, school_id uuid, academic_year text,
@@ -452,7 +452,7 @@ and test nursery, primary, lower-secondary, and upper-secondary behavior.
 **Create:**
 
 - `src/app/api/timetable/schedule/route.ts`
-- `supabase/migrations/20261205000000_timetable_schedule_version.sql`
+- `supabase/migrations/20261207000000_timetable_schedule_version.sql`
 - `src/__tests__/timetable-schedule-route.test.ts`
 - `src/__tests__/timetable-constraints.test.ts`
 

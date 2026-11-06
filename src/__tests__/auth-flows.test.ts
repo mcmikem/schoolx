@@ -246,7 +246,7 @@ describe("dashboard paints without waiting on the network", () => {
    */
   it("hydrates the cached profile as soon as a session exists", () => {
     expect(src).toContain("const cachedUser = localStorage.getItem(OFFLINE_USER_KEY);");
-    expect(src).toMatch(/setUser\(JSON\.parse\(cachedUser\) as User\)/);
+    expect(src).toMatch(/setUser\(parsedUser\)|setUser\(JSON\.parse\(cachedUser\) as User\)/);
   });
 
   it("unblocks a returning session after a matching cached profile is painted", () => {
