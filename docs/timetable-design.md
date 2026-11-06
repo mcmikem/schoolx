@@ -542,6 +542,6 @@ test Saturday behavior separately for the main grid and FullCalendar.
   UI state the school-wide limitation.
 - Upper-secondary (S5–S6): bell schedule validated; NCDC weekly subject targets are only published for S1–S4, so the weekly-load panel is hidden for S5–S6 (manual confirmation required).
 - Year-aware public calendar: resolved (TermCalendar now derives holidays and term dates from the current year).
-- Server-side conflict and schedule transactions: **release blocker**.
+- Server-side conflict and schedule transactions: resolved (approve_timetable_entries RPC with advisory lock + scope checks; generate route uses it when available).
 - Full optimization solver: deferred; the deterministic preview solver is
   acceptable for v1.
