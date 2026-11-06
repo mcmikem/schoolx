@@ -237,7 +237,7 @@ const MODULE_ROUTE_MAP: Record<ModuleKey, string[]> = {
     "/dashboard/suggestions",
     "/dashboard/comments",
   ],
-  dashboard: ["/dashboard", "/dashboard/calendar", "/dashboard/osx"],
+  dashboard: ["/dashboard", "/dashboard/calendar", "/dashboard/timetable", "/dashboard/osx"],
   discipline: ["/dashboard/discipline", "/dashboard/behavior", "/dashboard/warnings"],
   dorm: ["/dashboard/dorm", "/dashboard/dorm-attendance", "/dashboard/dorm-supplies"],
   exams: ["/dashboard/exams", "/dashboard/exam-timetable", "/dashboard/uneb", "/dashboard/uneb-registration"],
@@ -269,7 +269,6 @@ const MODULE_ROUTE_MAP: Record<ModuleKey, string[]> = {
     "/dashboard/substitutions",
   ],
   operations: [
-    "/dashboard/timetable",
     "/dashboard/academic-terms",
     "/dashboard/term-end",
     "/dashboard/rollover",
