@@ -175,6 +175,7 @@ export default function TimetablePage() {
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showDaySetup, setShowDaySetup] = useState(false);
   const [showPrint, setShowPrint] = useState(false);
+  const [showAllClashes, setShowAllClashes] = useState(false);
   const canAutoGenerate = !!user && TIMETABLE_EDIT_ROLES.includes(user.role);
   // Adding/removing lessons is a school-wide structural change, not a teacher's
   // own diary. RLS on teacher_timetable was `FOR ALL` to any authenticated user
@@ -629,14 +630,26 @@ export default function TimetablePage() {
                   <p className="text-sm font-semibold text-[var(--red-ink)]">
                     {globalClashes.length} clash{globalClashes.length > 1 ? "es" : ""} detected in timetable
                   </p>
+                  <p className="mt-1 text-xs text-[var(--red-ink)]/80">
+                    Teachers or rooms are double-booked across classes. Re-run Auto-generate after fixing assignments, or edit the affected periods.
+                  </p>
                   <ul className="mt-2 space-y-1">
-                    {globalClashes.map((clash, i) => (
+                    {(showAllClashes ? globalClashes : globalClashes.slice(0, 8)).map((clash, i) => (
                       <li key={i} className="text-xs text-[var(--red-ink)] flex items-start gap-2">
                         <span className="shrink-0 mt-1 w-1 h-1 rounded-full bg-[var(--red-ink)]" />
                         {clash.description}
                       </li>
                     ))}
                   </ul>
+                  {globalClashes.length > 8 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllClashes((v) => !v)}
+                      className="mt-2 text-xs font-semibold text-[var(--red-ink)] underline"
+                    >
+                      {showAllClashes ? "Show fewer" : `Show all ${globalClashes.length} clashes`}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
