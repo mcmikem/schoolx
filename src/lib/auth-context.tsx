@@ -101,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsTrialExpired(false);
     setProfileDegraded(false);
     degradedUserIdRef.current = null;
+    profileCache.clear();
     try {
       localStorage.removeItem(OFFLINE_USER_KEY);
       localStorage.removeItem(OFFLINE_SCHOOL_KEY);
@@ -121,6 +122,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return getPlan(school);
   }, [school]);
 
+  // Client-side in-memory cache for profile responses. Reduces repeated
+  // round-trips on page navigations within the same session.
+  const PROFILE_CACHE_TTL_MS = 30_000;
+  const profileCache = new Map<string, { data: { role: string } | null; expires: number }>();
+
   const fetchUserData = useCallback(
     async (
       authId: string,
@@ -128,6 +134,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       retryCount = 0,
     ): Promise<{ role: string } | null> => {
       if (authFetchAborted.current || !supabase) return null;
+
+      // Check cache first
+      const cached = profileCache.get(authId);
+      if (cached && Date.now() < cached.expires && !retryCount) {
+        return cached.data;
+      }
 
       // Declared out here so the retry below can hand the same session on.
       let session = knownSession ?? null;
@@ -249,7 +261,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (userData.role === "super_admin") {
           setSchool(null);
           setLoading(false);
-          return { role: userData.role };
+          const result = { role: userData.role };
+          profileCache.set(authId, { data: result, expires: Date.now() + PROFILE_CACHE_TTL_MS });
+          return result;
         }
 
         if (schoolData) {
@@ -268,7 +282,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         setLoading(false);
-        return { role: userData.role };
+        const result = { role: userData.role };
+        profileCache.set(authId, { data: result, expires: Date.now() + PROFILE_CACHE_TTL_MS });
+        return result;
       } catch (error) {
         const errMsg = getErrorMessage(error);
         // Retry once on network errors
