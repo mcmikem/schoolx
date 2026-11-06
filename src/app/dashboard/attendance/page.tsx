@@ -355,6 +355,10 @@ export default function AttendancePage() {
     refetch: refetchAttendance,
   } = useOfflineAttendance(selectedClass && school?.id ? school.id : undefined, date);
 
+  // School-wide data for the "who has marked today" panel (not gated on a selected class)
+  const { data: allStudents } = useOfflineStudents(school?.id ? school.id : undefined);
+  const { data: allAttendance } = useOfflineAttendance(school?.id ? school.id : undefined, date);
+
   const attendanceDraftKey = `skoolmate:draft:attendance:${user?.id}:${school?.id}:${selectedClass}:${date}`;
   const loadedDraftScope = useRef("");
   const [draftWarning, setDraftWarning] = useState(false);
@@ -915,7 +919,7 @@ export default function AttendancePage() {
   const todaysMarking = useMemo<ClassMarkingStatus[]>(() => {
     if (!isReviewer) return [];
     const markedByClass = new Map<string, { count: number; absent: number }>();
-    for (const row of (offlineAttendance ?? []) as Array<{
+    for (const row of (allAttendance ?? []) as Array<{
       class_id?: string;
       student_id?: string;
       status?: string;
@@ -927,7 +931,7 @@ export default function AttendancePage() {
       markedByClass.set(row.class_id, entry);
     }
     const pupilsByClass = new Map<string, number>();
-    for (const student of (offlineStudents ?? []) as Array<{ class_id?: string; status?: string }>) {
+    for (const student of (allStudents ?? []) as Array<{ class_id?: string; status?: string }>) {
       if (!student.class_id) continue;
       if (student.status && student.status !== "active") continue;
       pupilsByClass.set(student.class_id, (pupilsByClass.get(student.class_id) ?? 0) + 1);
@@ -942,7 +946,7 @@ export default function AttendancePage() {
         absent: entry?.absent ?? 0,
       };
     });
-  }, [isReviewer, offlineAttendance, offlineStudents, filteredClasses]);
+  }, [isReviewer, allAttendance, allStudents, filteredClasses]);
 
   const exportAttendance = () => {
     if (!selectedClass || students.length === 0) return;
@@ -1376,7 +1380,9 @@ export default function AttendancePage() {
                         No classes assigned yet. Ask your administrator to assign you a class.
                       </p>
                     ) : (
-                      <p className="text-sm text-[var(--amber-ink)]">No classes found. Add classes from School Settings.</p>
+                      <p className="text-sm text-[var(--amber-ink)]">
+                        No classes found. Add classes from School Settings.
+                      </p>
                     )}
                   </div>
                 ) : (
