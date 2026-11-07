@@ -28,6 +28,8 @@ const isRealBuild =
   process.env.GITHUB_ACTIONS === "true" ||
   process.env.CF_PAGES === "1" ||
   Boolean(process.env.CF_PAGES_COMMIT_SHA) ||
+  Boolean(process.env.CF_PAGES_BRANCH) ||
+  process.env.PAGES === "1" ||
   process.argv.includes("--force");
 
 if (!isRealBuild) {
