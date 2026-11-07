@@ -3,6 +3,12 @@ compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 main = ".open-next/worker.js"
 
+# CRITICAL: plain `wrangler deploy` replaces the Worker's variable set with
+# whatever is in this file. Without keep_vars, every deploy wipes the
+# dashboard/uploaded vars (NEXT_PUBLIC_APP_URL, SUPABASE_*, VAPID_*) and the
+# instrumentation env check throws → every route returns 500.
+keep_vars = true
+
 [assets]
 directory = ".open-next/assets"
 binding = "ASSETS"
