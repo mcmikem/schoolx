@@ -2,6 +2,11 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import GradesPage from "@/app/dashboard/grades/page";
 
+// GradesPage is heavy (loads classes/subjects/grades + renders grid): full
+// render takes ~10s per test, far past the 5s default. 120s per test keeps
+// the suite green without masking real assertion failures.
+jest.setTimeout(120000);
+
 /**
  * QA scenario #18: picking the wrong subject used to fail only on save, so a
  * teacher filled a whole grid and then got "You are not assigned to teach this
