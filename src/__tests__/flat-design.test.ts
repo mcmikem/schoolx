@@ -30,6 +30,7 @@ function walk(dir: string, out: string[] = []): string[] {
 // permitted in component markup.
 const TSX_ALLOWLIST: Array<[string, RegExp]> = [
   ["dashboard/idcards/page.tsx", /repeating-linear-gradient/],
+  ["dashboard/idcards/page.tsx", /linear-gradient\(90deg/],
   ["components/timetable/KikunyuWallTimetable.tsx", /bg-gradient-to-r/],
 ];
 

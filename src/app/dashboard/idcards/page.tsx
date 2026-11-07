@@ -52,153 +52,188 @@ export default function IDCardsPage() {
 
     const idCardStyles = `
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+      body { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f5f5f7; }
       .id-card {
         width: 350px;
         height: 220px;
         background: white;
-        border-radius: 12px;
+        border-radius: 14px;
         overflow: hidden;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        display: flex;
-        flex-direction: row;
-      }
-      .left-section {
-        width: 100px;
-        background: ${schoolColor};
+        box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+        border: 1px solid #e5e5ea;
+        position: relative;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 15px;
       }
-      .school-logo {
-        width: 28px;
-        height: 28px;
-        border-radius: 8px;
-        object-fit: contain;
-        background: rgba(255,255,255,0.2);
-        padding: 2px;
-        margin-bottom: 8px;
-      }
-      .school-logo-fallback {
-        width: 28px;
-        height: 28px;
-        border-radius: 8px;
-        background: rgba(255,255,255,0.2);
-        color: white;
-        font-size: 12px;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 8px;
-      }
-      .avatar {
-        width: 70px;
-        height: 70px;
-        border-radius: 50%;
-        background: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        font-weight: bold;
-        color: ${schoolColor};
-        border: 3px solid white;
-      }
-      .school-name-small {
-        color: white;
-        font-size: 8px;
-        text-align: center;
-        margin-top: 10px;
-        font-weight: 500;
-      }
-      .right-section {
-        flex: 1;
-        padding: 15px;
-        display: flex;
-        flex-direction: column;
+      .accent-bar {
+        height: 6px;
+        background: linear-gradient(90deg, ${schoolColor}, #2563eb);
       }
       .header {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        margin-bottom: 8px;
+        gap: 10px;
+        padding: 10px 16px 8px;
+        border-bottom: 1px solid #f0f0f2;
       }
-      .school-name {
-        font-size: 11px;
+      .school-logo {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        object-fit: contain;
+        background: #f0f0f2;
+        padding: 2px;
+        flex-shrink: 0;
+      }
+      .school-logo-fallback {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        background: ${schoolColor};
+        color: white;
+        font-size: 14px;
         font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .school-info { flex: 1; }
+      .school-name {
+        font-size: 12px;
+        font-weight: 600;
         color: ${schoolColor};
-        text-transform: uppercase;
+        line-height: 1.2;
+      }
+      .school-sub {
+        font-size: 9px;
+        color: #6e6e73;
+        margin-top: 1px;
       }
       .card-type {
         font-size: 8px;
-        color: #666;
-        background: #f0f0f0;
+        color: #6e6e73;
+        background: #f0f0f2;
         padding: 2px 6px;
         border-radius: 4px;
+        font-weight: 500;
       }
+      .body {
+        display: flex;
+        gap: 14px;
+        padding: 10px 16px;
+        flex: 1;
+      }
+      .photo {
+        width: 72px;
+        height: 88px;
+        border-radius: 8px;
+        background: #f0f0f2;
+        border: 1px solid #e5e5ea;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #aeaeb2;
+        font-size: 10px;
+        flex-shrink: 0;
+        overflow: hidden;
+      }
+      .photo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .details { flex: 1; }
       .student-name {
         font-size: 14px;
-        font-weight: 700;
-        color: #111;
-        margin-bottom: 2px;
+        font-weight: 600;
+        color: #1d1d1f;
+        margin-bottom: 6px;
+        line-height: 1.2;
       }
-      .student-info {
-        font-size: 9px;
-        color: #666;
-        margin-bottom: 1px;
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        margin-bottom: 3px;
       }
-      .barcode {
-        margin-top: auto;
-        height: 25px;
-        background: repeating-linear-gradient(
-          90deg,
-          #111 0px,
-          #111 1px,
-          transparent 1px,
-          transparent 3px
-        );
-        border-radius: 2px;
-      }
+      .detail-label { color: #6e6e73; }
+      .detail-value { color: #1d1d1f; font-weight: 500; }
       .footer {
         position: absolute;
         bottom: 0;
         left: 0;
         right: 0;
-        height: 4px;
-        background: ${schoolColor};
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 16px;
+        background: #f9f9fb;
+        border-top: 1px solid #f0f0f2;
       }
+      .qr {
+        width: 32px;
+        height: 32px;
+        background: white;
+        border: 1px solid #e5e5ea;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 7px;
+        color: #aeaeb2;
+      }
+      .validity {
+        font-size: 8px;
+        color: #6e6e73;
+        text-align: right;
+        line-height: 1.4;
+      }
+      .validity strong { color: #1d1d1f; }
       @media print {
-        body { margin: 0; }
+        body { margin: 0; background: white; }
         .id-card { box-shadow: none; }
       }
     `;
 
     const idCardBody = `
       <div class="id-card">
-        <div class="left-section">
+        <div class="accent-bar"></div>
+        <div class="header">
           ${
             schoolLogo
               ? `<img src="${escapeHtml(schoolLogo)}" alt="${escapeHtml(schoolName)} logo" class="school-logo" />`
               : `<div class="school-logo-fallback">${escapeHtml(schoolName.charAt(0).toUpperCase())}</div>`
           }
-          <div class="avatar">${firstName?.[0]}${lastName?.[0]}</div>
-          <div class="school-name-small">${escapeHtml(schoolName)}</div>
-        </div>
-        <div class="right-section">
-          <div class="header">
-            <span class="school-name">${escapeHtml(schoolName)}</span>
-            <span class="card-type">STUDENT</span>
+          <div class="school-info">
+            <div class="school-name">${escapeHtml(schoolName)}</div>
+            <div class="school-sub">${escapeHtml(school?.address || "School Address")}</div>
           </div>
-          <div class="student-name">${escapeHtml(firstName)} ${escapeHtml(lastName)}</div>
-          <div class="student-info">Class: ${escapeHtml(student.classes?.name || "N/A")}</div>
-          <div class="student-info">Student No: ${escapeHtml(student.student_number || "N/A")}</div>
-          <div class="student-info">Gender: ${student.gender === "M" ? "Male" : "Female"}</div>
-          ${(student as any).boarding_status && (student as any).boarding_status !== "day" ? `<div class="student-info">Boarder: ${(student as any).boarding_status}</div>` : ""}
-          ${(student as any).houses?.name ? `<div class="student-info">House: ${(student as any).houses.name}</div>` : ""}
-          <div class="barcode"></div>
+          <span class="card-type">STUDENT ID</span>
+        </div>
+        <div class="body">
+          <div class="photo">
+            ${
+              (student as any).photo_url
+                ? `<img src="${escapeHtml((student as any).photo_url)}" alt="Student photo" />`
+                : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:40px;height:40px;opacity:0.3"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>`
+            }
+          </div>
+          <div class="details">
+            <div class="student-name">${escapeHtml(firstName)} ${escapeHtml(lastName)}</div>
+            <div class="detail-row"><span class="detail-label">Class</span><span class="detail-value">${escapeHtml(student.classes?.name || "N/A")}</span></div>
+            <div class="detail-row"><span class="detail-label">Student No.</span><span class="detail-value">${escapeHtml(student.student_number || "N/A")}</span></div>
+            <div class="detail-row"><span class="detail-label">Gender</span><span class="detail-value">${student.gender === "M" ? "Male" : "Female"}</span></div>
+            ${(student as any).boarding_status && (student as any).boarding_status !== "day" ? `<div class="detail-row"><span class="detail-label">Boarder</span><span class="detail-value">${escapeHtml((student as any).boarding_status)}</span></div>` : ""}
+            ${(student as any).houses?.name ? `<div class="detail-row"><span class="detail-label">House</span><span class="detail-value">${escapeHtml((student as any).houses.name)}</span></div>` : ""}
+          </div>
+        </div>
+        <div class="footer">
+          <div class="qr">QR</div>
+          <div class="validity">
+            Valid until <strong>Dec 2026</strong><br />
+            ${escapeHtml(school?.phone || "+256 000 000 000")}
+          </div>
         </div>
       </div>
     `;
