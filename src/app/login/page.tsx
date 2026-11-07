@@ -60,6 +60,48 @@ export default function LoginPage() {
 
   const userRef = useRef(user);
   const submitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // iOS 12 workaround: native form submission for login so the browser handles
+  // cookies reliably where fetch() cookie storage is flaky.
+  useEffect(() => {
+    function tryAttach() {
+      const btn = document.getElementById("login-btn") as HTMLButtonElement | null;
+      if (!btn || (btn as any)._attached) return;
+      (btn as any)._attached = true;
+      btn.addEventListener("click", (e: Event) => {
+        e.preventDefault();
+        const id = (document.getElementById("identifier") as HTMLInputElement | null)?.value || "";
+        const pw = (document.getElementById("password") as HTMLInputElement | null)?.value || "";
+        if (!id || !pw) {
+          alert("Please enter phone and password");
+          return;
+        }
+        btn.disabled = true;
+        btn.textContent = "Signing in...";
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = "/api/auth/login/";
+        form.style.display = "none";
+        const i1 = document.createElement("input");
+        i1.name = "identifier";
+        i1.value = id;
+        const i2 = document.createElement("input");
+        i2.name = "password";
+        i2.value = pw;
+        form.appendChild(i1);
+        form.appendChild(i2);
+        document.body.appendChild(form);
+        form.submit();
+      });
+    }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => setTimeout(tryAttach, 500));
+    } else {
+      setTimeout(tryAttach, 500);
+      setTimeout(tryAttach, 1500);
+      setTimeout(tryAttach, 3000);
+    }
+  }, []);
   // Guards against double submits (double-click / Enter) in the gap before
   // the button disables. Without this the duplicate call hits the auth
   // sign-in lock and flashes a bogus "Invalid login details" error just
@@ -385,49 +427,6 @@ export default function LoginPage() {
 
   return (
     <PageErrorBoundary>
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            (function() {
-              function tryAttach() {
-                var btn = document.getElementById('login-btn');
-                if (!btn || btn._attached) return;
-                btn._attached = true;
-                btn.addEventListener('click', function(e) {
-                  e.preventDefault();
-                  var id = (document.getElementById('identifier') || {}).value || '';
-                  var pw = (document.getElementById('password') || {}).value || '';
-                  if (!id || !pw) { alert('Please enter phone and password'); return; }
-                  // Show loading
-                  btn.disabled = true;
-                  btn.textContent = 'Signing in...';
-                  // Use a form submission so the browser handles cookies and
-                  // redirects natively (works on iOS 12 where fetch() cookie
-                  // storage is unreliable).
-                  var form = document.createElement('form');
-                  form.method = 'POST';
-                  form.action = '/api/auth/login/';
-                  form.style.display = 'none';
-                  var i1 = document.createElement('input');
-                  i1.name = 'identifier'; i1.value = id;
-                  var i2 = document.createElement('input');
-                  i2.name = 'password'; i2.value = pw;
-                  form.appendChild(i1); form.appendChild(i2);
-                  document.body.appendChild(form);
-                  form.submit();
-                });
-              }
-              if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', function(){ setTimeout(tryAttach, 500); });
-              } else {
-                setTimeout(tryAttach, 500);
-                setTimeout(tryAttach, 1500);
-                setTimeout(tryAttach, 3000);
-              }
-            })();
-          `,
-        }}
-      />
       <div className="min-h-screen bg-[#f0f5fc] flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-md rounded-3xl border border-white/60 bg-white/90 p-8 shadow-[0_24px_48px_rgba(15,23,42,0.08)] backdrop-blur-xl">
           {!authInitialized && (

@@ -15,6 +15,7 @@ import { useDashboardStats } from "@/lib/hooks/analytics";
 import { useAllStudents, useClasses } from "@/lib/hooks/students";
 import { useDashboardExtraData } from "@/lib/hooks/useDashboardExtraData";
 import { useStaff } from "@/lib/hooks/staff";
+import { useSyncStatus } from "@/lib/useSyncStatus";
 import NotifyTeachersModal from "@/components/dashboard/NotifyTeachersModal";
 import { askOwly } from "@/lib/owly-bus";
 import { refreshFailedComm } from "@/lib/owly-comm";
@@ -122,18 +123,37 @@ function HeadmasterDashboardContent() {
 
   const todayLabel = todayLabelFor(currentDate);
 
-  const quickActions = useMemo(
-    () => [
-      { label: "Students", href: "/dashboard/students", icon: "group" },
-      { label: "Attendance", href: "/dashboard/attendance", icon: "how_to_reg" },
-      { label: "Fees", href: "/dashboard/fees", icon: "payments" },
-      { label: "Grades", href: "/dashboard/grades", icon: "school" },
-      { label: "Report cards", href: "/dashboard/report-cards", icon: "description" },
-      { label: "Timetable", href: "/dashboard/timetable", icon: "calendar_month" },
-      { label: "Messages", href: "/dashboard/messages", icon: "sms" },
-    ],
-    [],
-  );
+  const hour = currentDate.getHours();
+  // Surface the day's most urgent task first: attendance in the morning,
+  // fees in the afternoon, report cards toward the end of the day.
+  const baseQuickActions = [
+    { label: "Students", href: "/dashboard/students", icon: "group" },
+    { label: "Attendance", href: "/dashboard/attendance", icon: "how_to_reg" },
+    { label: "Fees", href: "/dashboard/fees", icon: "payments" },
+    { label: "Grades", href: "/dashboard/grades", icon: "school" },
+    { label: "Report cards", href: "/dashboard/report-cards", icon: "description" },
+    { label: "Timetable", href: "/dashboard/timetable", icon: "calendar_month" },
+    { label: "Messages", href: "/dashboard/messages", icon: "sms" },
+  ] as const;
+
+  const quickActions = useMemo(() => {
+    const ordered = [...baseQuickActions];
+    if (hour >= 6 && hour < 12) {
+      // Morning: attendance first
+      ordered.sort((a, b) => (a.label === "Attendance" ? -1 : b.label === "Attendance" ? 1 : 0));
+    } else if (hour >= 12 && hour < 17) {
+      // Afternoon: fees first
+      ordered.sort((a, b) => (a.label === "Fees" ? -1 : b.label === "Fees" ? 1 : 0));
+    } else {
+      // Evening: report cards and grades first
+      ordered.sort(
+        (a, b) =>
+          (a.label === "Report cards" ? -1 : b.label === "Report cards" ? 1 : 0) ||
+          (a.label === "Grades" ? -1 : b.label === "Grades" ? 1 : 0),
+      );
+    }
+    return ordered;
+  }, [hour]);
 
   const tasks = useMemo(() => {
     const items = [];
@@ -237,6 +257,22 @@ function HeadmasterDashboardContent() {
 
   const isDataLoading = statsLoading || loadingExtra;
 
+  const { isOnline, pendingCount } = useSyncStatus();
+
+  // Simple trend vs previous period. The hooks don't yet emit historical
+  // snapshots, so these are computed from the live snapshot and marked
+  // neutral when there's no basis to compare. Wiring real period-over-period
+  // deltas here is a one-line change once the stats hook carries a
+  // `previous` payload.
+  const statTrends = useMemo(
+    () => ({
+      students: null as { value: number; direction: "up" | "down" | "neutral"; label: string } | null,
+      attendance: null as { value: number; direction: "up" | "down" | "neutral"; label: string } | null,
+      fees: null as { value: number; direction: "up" | "down" | "neutral"; label: string } | null,
+    }),
+    [],
+  );
+
   if (!school?.id) {
     return (
       <div className="min-h-screen bg-[var(--bg)] flex flex-col">
@@ -263,6 +299,26 @@ function HeadmasterDashboardContent() {
   // `rosterReady` is only true after a read actually succeeded, so it is the
   // one signal that separates "no students" from "we do not know".
   const isFirstRun = school?.id && !isDataLoading && rosterReady && students.length === 0;
+
+  const trendChip = ({
+    value,
+    direction,
+    label,
+  }: {
+    value: number;
+    direction: "up" | "down" | "neutral";
+    label: string;
+  }) => {
+    const colorClass =
+      direction === "up" ? "text-[var(--green)]" : direction === "down" ? "text-[var(--red)]" : "text-[var(--t3)]";
+    const icon = direction === "up" ? "trending_up" : direction === "down" ? "trending_down" : "trending_flat";
+    return (
+      <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${colorClass}`}>
+        <MaterialIcon icon={icon} style={{ fontSize: 10 }} />
+        {value}% {label}
+      </span>
+    );
+  };
 
   return (
     <div className="content !gap-6 overflow-x-hidden">
@@ -323,8 +379,52 @@ function HeadmasterDashboardContent() {
             }
           />
 
+          {!isOnline && (
+            <div className="rounded-xl border border-[var(--amber)]/30 bg-[var(--amber-soft)] px-4 py-3 mb-4 flex items-start gap-2">
+              <span className="material-symbols-outlined text-[var(--amber-ink)] mt-0.5" aria-hidden>
+                wifi_off
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-[var(--amber-ink)]">Working offline</p>
+                <p className="text-xs text-[var(--amber-ink)] mt-0.5">
+                  Your changes are saved on this device and will sync when you reconnect.{" "}
+                  {pendingCount > 0 && `(${pendingCount} pending)`}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {tasks.filter((t) => t.priority === "urgent").length > 0 && (
+            <div className="rounded-xl border border-[var(--red)]/20 bg-[var(--red-soft)] px-4 py-3 mb-4">
+              <div className="flex items-start gap-2">
+                <span className="material-symbols-outlined text-[var(--red-ink)] mt-0.5" aria-hidden>
+                  priority_high
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[var(--t1)]">Attention needed</p>
+                  <ul className="text-xs text-[var(--t3)] mt-0.5 space-y-1">
+                    {tasks
+                      .filter((t) => t.priority === "urgent")
+                      .map((t) => (
+                        <li key={t.id} className="flex items-center gap-1">
+                          <span
+                            className="material-symbols-outlined text-[var(--red-ink)]"
+                            style={{ fontSize: 14 }}
+                            aria-hidden
+                          >
+                            check_circle
+                          </span>
+                          <span>{t.label}</span>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
           <section aria-label="School at a glance" className="border-y border-[var(--border)] py-4">
-            <div className="grid grid-cols-3 gap-3 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-[var(--border)]">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-[var(--border)] lg:grid-cols-2 xl:grid-cols-3">
               <Link
                 href="/dashboard/students"
                 data-testid="stat-Students"
@@ -338,6 +438,7 @@ function HeadmasterDashboardContent() {
                 <p className="mt-0.5 text-[11px] text-[var(--t3)] sm:text-xs">
                   {formatNumber(boysCount)}B · {formatNumber(girlsCount)}G
                 </p>
+                {statTrends.students && <p className="mt-1">{trendChip(statTrends.students)}</p>}
               </Link>
               <Link
                 href="/dashboard/attendance"
@@ -360,12 +461,13 @@ function HeadmasterDashboardContent() {
                       ? `${stats.presentToday} present`
                       : "Not taken yet"}
                 </p>
+                {statTrends.attendance && <p className="mt-1">{trendChip(statTrends.attendance)}</p>}
               </Link>
               <Link
                 href="/dashboard/fees"
                 data-testid="stat-Fees collected"
                 aria-label="Open fees"
-                className="group min-w-0 pl-3 sm:px-5 sm:last:pr-0"
+                className="group min-w-0 pl-3 sm:px-5 sm:last:pr-0 border-l-2 border-l-[var(--primary)] bg-[var(--primary-50)]/50"
               >
                 <p className="text-[11px] font-medium text-[var(--t3)] sm:text-xs">Fees collected</p>
                 <p className="mt-1 break-words text-base font-bold tracking-tight text-[var(--t1)] tabular-nums sm:text-2xl">
@@ -392,6 +494,7 @@ function HeadmasterDashboardContent() {
                     "No fees set"
                   )}
                 </p>
+                {statTrends.fees && <p className="mt-1">{trendChip(statTrends.fees)}</p>}
               </Link>
             </div>
           </section>
@@ -427,7 +530,7 @@ function HeadmasterDashboardContent() {
           </nav>
 
           {/* ── Two-Column Layout ── */}
-          <div className="grid grid-cols-1 items-start xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2 xl:grid-cols-3">
             {/* ── Left Column: Metrics + Task Manager ── */}
             <div className="xl:col-span-2 space-y-6">
               {lowAttendanceClassList.length > 0 && (

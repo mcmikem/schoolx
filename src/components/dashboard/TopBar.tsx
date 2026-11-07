@@ -116,6 +116,35 @@ function getNextStepForRole(
   return { label: "Back to dashboard", href: "/dashboard", icon: "dashboard" };
 }
 
+function priorityFor(type: DashboardNotification["type"]): "high" | "medium" | "low" {
+  switch (type) {
+    case "warning":
+    case "error":
+      return "high";
+    case "attendance":
+    case "payment":
+      return "medium";
+    default:
+      return "low";
+  }
+}
+
+function priorityChip(priority: "high" | "medium" | "low") {
+  const config: Record<"high" | "medium" | "low", { label: string; className: string }> = {
+    high: { label: "Needs action", className: "bg-[var(--red-soft)] text-[var(--red-ink)]" },
+    medium: { label: "Attention", className: "bg-[var(--amber-soft)] text-[var(--amber-ink)]" },
+    low: { label: "FYI", className: "bg-[var(--surface-container-low)] text-[var(--t3)]" },
+  };
+  const c = config[priority];
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 ${c.className}`}
+    >
+      {c.label}
+    </span>
+  );
+}
+
 function NotificationsPanel({
   open,
   onClose,
@@ -130,11 +159,21 @@ function NotificationsPanel({
   const notifRouter = useRouter();
   if (!open) return null;
 
+  const attentionCount = notifications.filter((n) => !n.read && priorityFor(n.type) === "high").length;
+
   return (
     <div className="absolute top-full right-0 mt-2 bg-[var(--surface)] border border-[var(--border)] rounded-[20px] shadow-[var(--sh3)] min-w-[300px] max-w-[min(360px,calc(100vw-2rem))] z-50 overflow-hidden isolate">
       <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between">
         <span className="text-[13px] font-semibold text-[var(--t1)]">Notifications</span>
-        <span className="text-xs text-[var(--t3)]">{notifications.length} items</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-[var(--t3)]">{notifications.length} items</span>
+          {attentionCount > 0 && (
+            <span className="text-[10px] font-bold text-[var(--red)] flex items-center gap-1">
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--red)" }} aria-hidden />
+              {attentionCount} needs action
+            </span>
+          )}
+        </div>
       </div>
       <div className="max-h-[320px] overflow-y-auto">
         {notifications.length === 0 && (
@@ -169,11 +208,13 @@ function NotificationsPanel({
               break;
           }
 
+          const priority = priorityFor(n.type);
+
           return (
             <button
               type="button"
               key={n.id}
-              className={`w-full text-left flex gap-3 px-4 py-3.5 border-b border-[var(--border)] hover:bg-[var(--surface-container-low)] transition-colors ${!n.read ? "bg-[var(--primary)]/10 font-medium" : ""}`}
+              className={`w-full text-left flex gap-3 px-4 py-3.5 border-b border-[var(--border)] hover:bg-[var(--surface-container-low)] transition-colors ${!n.read ? "bg-[var(--primary)]/10 font-medium" : ""} ${priority === "high" ? "border-l-2 border-l-[var(--red)]" : ""}`}
               onClick={() => {
                 if (!n.read) onDismiss(n.id);
                 if (n.link) notifRouter.push(n.link);
@@ -186,7 +227,10 @@ function NotificationsPanel({
                 <MaterialIcon icon={icon} style={{ fontSize: 16, color: color }} />
               </div>
               <div className="flex-1 min-w-0 cursor-pointer">
-                <div className={`text-xs text-[var(--t1)] ${!n.read ? "font-bold" : "font-semibold"}`}>{n.title}</div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className={`text-xs text-[var(--t1)] ${!n.read ? "font-bold" : "font-semibold"}`}>{n.title}</div>
+                  {priority !== "low" && priorityChip(priority)}
+                </div>
                 <div className="text-xs text-[var(--t3)] mt-0.5 truncate">{n.message}</div>
                 <div className="text-xs text-[var(--t4)] mt-1">
                   {new Date(n.created_at).toLocaleTimeString("en-US", {
@@ -356,6 +400,8 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
 
   const { notifications, unreadCount, markAsRead } = useNotifications();
   const toast = useToast();
+
+  const attentionCount = notifications.filter((n) => !n.read && priorityFor(n.type) === "high").length;
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -550,7 +596,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
               setUserMenuOpen(false);
             }}
             className="icon-btn-circle bg-[var(--surface)]"
-            aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
+            aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}${attentionCount > 0 ? `, ${attentionCount} need action` : ""}`}
             aria-expanded={notifOpen}
             aria-haspopup="dialog"
           >
@@ -559,6 +605,12 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
               <div className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full bg-[var(--red)] text-white text-xs font-bold flex items-center justify-center px-1 border-2 border-white shadow-sm">
                 {unreadCount > 99 ? "99+" : unreadCount}
               </div>
+            )}
+            {attentionCount > 0 && unreadCount === 0 && (
+              <div
+                className="absolute -top-0.5 -right-0.5 min-w-[10px] h-[10px] rounded-full bg-[var(--red)] border-2 border-[var(--surface)] shadow-sm"
+                aria-hidden
+              />
             )}
           </button>
           <NotificationsPanel

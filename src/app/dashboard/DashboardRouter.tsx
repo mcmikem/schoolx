@@ -39,11 +39,12 @@ function HeadmasterDashboardLoading() {
         </h1>
         <p className="mt-1 text-sm text-[var(--t3)]">{school?.name || "Your school"}</p>
       </section>
-      <nav aria-label="Quick actions" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <nav aria-label="Quick actions" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {[
-          ["/dashboard/attendance", "how_to_reg", "Take attendance"],
-          ["/dashboard/fees", "payments", "Record a payment"],
-          ["/dashboard/students?action=add", "person_add", "Add a student"],
+          ["/dashboard/students", "group", "Students"],
+          ["/dashboard/attendance", "how_to_reg", "Attendance"],
+          ["/dashboard/fees", "payments", "Fees"],
+          ["/dashboard/grades", "school", "Grades"],
         ].map(([href, icon, label]) => (
           <Link
             key={href}
