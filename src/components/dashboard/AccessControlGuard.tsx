@@ -273,6 +273,11 @@ export function useAccessControl() {
       return;
     }
     // Full-suite schools: gate by feature stage from auth context (always fresh).
+    // Tester schools bypass all module gates (they get full access).
+    if (school?.is_tester === true) {
+      safeSessionStorage.removeItem("lastDeniedPath");
+      return;
+    }
     const schoolBillingMode = (school?.billing_mode as string) || "full_suite";
     if (schoolBillingMode === "full_suite") {
       if (moduleKey && !isModuleInFeatureStage(featureStage, moduleKey)) {
