@@ -6,5 +6,5 @@
 //
 // They serve different purposes (form drafts vs periodic data sync) so both
 // APIs are preserved. This barrel is the single import site going forward.
-export { useFormDraft, AutoSaveIndicator } from "./useAutoSave";
+export { useFormDraft, useFormState, AutoSaveIndicator } from "./useAutoSave";
 export { useAutoSave, useFieldValidation } from "./hooks/useAutoSave";

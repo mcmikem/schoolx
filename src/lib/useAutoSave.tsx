@@ -1,8 +1,8 @@
 "use client";
-// NOTE: This module (useFormDraft + AutoSaveIndicator) is the form-draft
-// auto-save used by fee/homework entry forms. The generic useAutoSave hook in
-// @/lib/hooks/useAutoSave serves a different purpose (periodic data sync).
-// Both are intentionally separate; consolidate only if a unified API is needed.
+// Form-draft auto-save for fee/homework entry forms.
+// This module's state hook is useFormState (renamed from useAutoSave to avoid
+// confusion with src/lib/hooks/useAutoSave, which is periodic data sync).
+// Both hooks are re-exported from src/lib/autosave.ts (single import site).
 import { useState, useEffect, useCallback, useRef } from "react";
 import { safeLocalStorage } from "./safe-storage";
 import { logger } from "./logger";
@@ -13,7 +13,7 @@ interface UseAutoSaveOptions {
   onRestore?: (data: any) => void;
 }
 
-export function useAutoSave<T extends Record<string, any>>(initialData: T, options: UseAutoSaveOptions) {
+export function useFormState<T extends Record<string, any>>(initialData: T, options: UseAutoSaveOptions) {
   const { key, debounceMs = 2000, onRestore } = options;
   const [data, setData] = useState<T>(initialData);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -123,7 +123,7 @@ export function useFormDraft(formKey: string) {
     setShowRestoreDialog(true);
   }, []);
 
-  const { data, updateData, setData, lastSaved, isDirty, clearSaved, reset } = useAutoSave(
+  const { data, updateData, setData, lastSaved, isDirty, clearSaved, reset } = useFormState(
     {},
     {
       key: formKey,
