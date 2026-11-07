@@ -26,6 +26,8 @@ const isRealBuild =
   Boolean(process.env.VERCEL_ENV) ||
   process.env.CI === "true" ||
   process.env.GITHUB_ACTIONS === "true" ||
+  process.env.CF_PAGES === "1" ||
+  Boolean(process.env.CF_PAGES_COMMIT_SHA) ||
   process.argv.includes("--force");
 
 if (!isRealBuild) {
@@ -38,7 +40,8 @@ function resolveBuildId() {
     process.env.VERCEL_GIT_COMMIT_SHA ||
     process.env.GITHUB_SHA ||
     process.env.BUILD_ID ||
-    process.env.COMMIT_REF;
+    process.env.COMMIT_REF ||
+    process.env.CF_PAGES_COMMIT_SHA;
   if (fromEnv) return String(fromEnv).slice(0, 12);
 
   try {
