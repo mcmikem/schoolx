@@ -118,33 +118,7 @@ export default function SchoolDaySetupModal({
 
     setSaving(true);
     try {
-      const run = async (promise: PromiseLike<unknown>, label: string) => {
-        const result = (await withTimeout(promise, 15000, timeoutFallback())) as {
-          status?: number;
-          error?: { message?: string } | null;
-        };
-        if (result?.status === 408) throw new Error(`${label} timed out`);
-        if (result?.error) throw new Error(result.error.message || label);
-      };
-
-      // Snapshot the existing bell schedule so a failed insert can be restored
-      // instead of leaving the school with no periods at all. Best-effort:
-      // some callers (and tests) do not expose `.select` on this table.
-      let existingRows: Array<Record<string, unknown>> | null = null;
-      try {
-        const { data } = await (supabase as any)
-          .from("timetable_slots")
-          .select("school_id, name, start_time, end_time, is_lesson, order_number")
-          .eq("school_id", schoolId);
-        existingRows = (data as Array<Record<string, unknown>>) || null;
-      } catch {
-        existingRows = null;
-      }
-
-      await run(supabase.from("timetable_slots").delete().eq("school_id", schoolId), "Replacing the bell schedule");
-
       const rows = slots.map((slot) => ({
-        school_id: schoolId,
         name: slot.name,
         start_time: slot.start_time,
         end_time: slot.end_time,
@@ -152,28 +126,95 @@ export default function SchoolDaySetupModal({
         order_number: slot.order_number,
       }));
 
+      // Real schools replace the schedule atomically via the scoped endpoint
+      // (versioned transaction with constraint mapping, §7.6). Demo and
+      // offline/dev sessions keep the legacy client path.
+      let delivered = false;
       try {
-        await run(supabase.from("timetable_slots").insert(rows), "Saving the bell schedule");
-      } catch (insertError) {
-        if (existingRows && existingRows.length > 0) {
-          try {
-            await run(supabase.from("timetable_slots").insert(existingRows), "Restoring the previous bell schedule");
-            toast.error("Could not save the new bell schedule; the previous schedule was restored");
-          } catch {
-            toast.error("Could not save the new bell schedule and the previous one could not be restored");
-          }
-        } else {
-          toast.error("Could not save the new bell schedule");
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 25000);
+        let response: Response;
+        try {
+          response = await fetch("/api/timetable/schedule/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              schoolId,
+              academicYear: new Date().getFullYear().toString(),
+              slots: rows,
+              retainEntries: !clearLessons,
+            }),
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timer);
         }
-        throw insertError;
+        if (response.ok) {
+          delivered = true;
+        } else {
+          const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+          // Only fall back when the server endpoint is not reachable: auth
+          // denials (401/403) for demo sessions must still surface.
+          if (!(response.status === 404 || response.status >= 500)) {
+            toast.error(payload?.error || "Could not update the bell schedule");
+            setConfirming(false);
+            return;
+          }
+        }
+      } catch (endpointError) {
+        logger.warn("Schedule endpoint unavailable, using client fallback:", endpointError);
       }
 
-      if (clearLessons && classIds.length > 0) {
+      if (!delivered) {
+        const run = async (promise: PromiseLike<unknown>, label: string) => {
+          const result = (await withTimeout(promise, 15000, timeoutFallback())) as {
+            status?: number;
+            error?: { message?: string } | null;
+          };
+          if (result?.status === 408) throw new Error(`${label} timed out`);
+          if (result?.error) throw new Error(result.error.message || label);
+        };
+
+        // Snapshot the existing bell schedule so a failed insert can be restored
+        // instead of leaving the school with no periods at all. Best-effort:
+        // some callers (and tests) do not expose `.select` on this table.
+        let existingRows: Array<Record<string, unknown>> | null = null;
         try {
-          await run(supabase.from("teacher_timetable").delete().in("class_id", classIds), "Clearing old lessons");
-        } catch (clearError) {
-          logger.warn("Could not clear old timetable entries:", clearError);
-          toast.warning("Bell schedule saved, but old lessons could not be cleared");
+          const { data } = await (supabase as any)
+            .from("timetable_slots")
+            .select("school_id, name, start_time, end_time, is_lesson, order_number")
+            .eq("school_id", schoolId);
+          existingRows = (data as Array<Record<string, unknown>>) || null;
+        } catch {
+          existingRows = null;
+        }
+
+        await run(supabase.from("timetable_slots").delete().eq("school_id", schoolId), "Replacing the bell schedule");
+
+        try {
+          await run(supabase.from("timetable_slots").insert(rows), "Saving the bell schedule");
+        } catch (insertError) {
+          if (existingRows && existingRows.length > 0) {
+            try {
+              await run(supabase.from("timetable_slots").insert(existingRows), "Restoring the previous bell schedule");
+              toast.error("Could not save the new bell schedule; the previous schedule was restored");
+            } catch {
+              toast.error("Could not save the new bell schedule and the previous one could not be restored");
+            }
+          } else {
+            toast.error("Could not save the new bell schedule");
+          }
+          throw insertError;
+        }
+
+        if (clearLessons && classIds.length > 0) {
+          try {
+            await run(supabase.from("teacher_timetable").delete().in("class_id", classIds), "Clearing old lessons");
+          } catch (clearError) {
+            logger.warn("Could not clear old timetable entries:", clearError);
+            toast.warning("Bell schedule saved, but old lessons could not be cleared");
+          }
         }
       }
 
