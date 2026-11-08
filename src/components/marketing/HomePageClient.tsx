@@ -34,6 +34,7 @@ import {
   osxLinks,
   faqItems,
   ANDROID_APP_URL,
+  IOS_APP_URL,
   WINDOWS_APP_URL,
   MAC_APP_URL,
   DEFAULT_DEVICE_TARGET,
@@ -148,6 +149,16 @@ export default function HomePage() {
       }
 
       if (isIOS) {
+        if (IOS_APP_URL) {
+          return {
+            key: "ios",
+            href: IOS_APP_URL,
+            label: "Get iPhone app",
+            icon: "phone_iphone",
+            helper: "Download the iOS app, or open the web app in Safari and use Share > Add to Home Screen.",
+            badge: "iOS app",
+          };
+        }
         return {
           key: "ios",
           href: "/login",
@@ -641,7 +652,9 @@ export default function HomePage() {
                 {
                   icon: "phone_iphone",
                   platform: "iPhone & iPad",
-                  desc: "Open in Safari, tap Share, then Add to Home Screen.",
+                  desc: IOS_APP_URL
+                    ? "Download the iOS app directly."
+                    : "Open in Safari, tap Share, then Add to Home Screen.",
                   color: "bg-[var(--surface-container)] text-[var(--t2)]",
                 },
                 {

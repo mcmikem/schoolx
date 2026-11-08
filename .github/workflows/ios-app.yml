@@ -1,0 +1,54 @@
+name: iOS app (unsigned archive)
+
+# Builds the Capacitor iOS app on a macOS runner. A signed IPA needs an
+# Apple Developer account — add these repo secrets to produce a distributable:
+#   APPLE_TEAM_ID, APPLE_CERTIFICATE_P12, APPLE_CERTIFICATE_PASSWORD,
+#   APPLE_PROVISION_PROFILE, APPLE_KEYCHAIN_PASSWORD
+# Without them this produces an unsigned .app bundle, which is still useful
+# for testing but cannot be installed on someone else's iPhone.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "ios/**"
+      - "src/**"
+      - "capacitor.config.ts"
+
+defaults:
+  run:
+    working-directory: .
+
+jobs:
+  ios:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build web assets
+        run: npm run build
+      - name: Install CocoaPods
+        run: gem install cocoapods --no-document
+      - name: Capacitor sync
+        run: npx cap sync ios
+      - name: Build iOS app
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj \
+            -scheme App -configuration Release \
+            -sdk iphoneos -destination "generic/platform=iOS" \
+            -derivedDataPath ios/build \
+            CODE_SIGNING_ALLOWED=NO build
+      - name: Package IPA
+        run: |
+          mkdir -p ios/build/Payload
+          cp -R "ios/build/Build/Products/Release-iphoneos/App.app" ios/build/Payload/
+          cd ios/build && zip -r SkoolMateOS.ipa Payload > /dev/null
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SkoolMateOS-ipa
+          path: ios/build/SkoolMateOS.ipa

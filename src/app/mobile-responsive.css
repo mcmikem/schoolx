@@ -119,11 +119,14 @@ body {
 /* Safe-area padding for fixed bars so iOS/Android notches never overlap content */
 @supports (padding: max(0px)) {
   .topbar {
-    padding-top: max(env(safe-area-inset-top), 0px);
+    /* !important: globals.css mobile rules also touch this bar's padding,
+       and the OS status bar must never sit on top of the app icons —
+       anything within it can't be tapped. */
+    padding-top: max(env(safe-area-inset-top, 0px), 0px) !important;
   }
 
   .sidebar {
-    padding-top: env(safe-area-inset-top);
+    padding-top: env(safe-area-inset-top, 0px);
   }
 }
 

@@ -106,3 +106,7 @@ schoolx/supabase/promo.mp4
 .open-next/
 .wrangler/
 elephant-goldfish-model/
+
+# Android release signing (local only, never commit)
+android/*.jks
+android/keystore.properties

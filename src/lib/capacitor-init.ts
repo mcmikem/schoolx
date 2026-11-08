@@ -20,6 +20,12 @@ export async function initCapacitor() {
   if (typeof window === "undefined") return;
 
   try {
+    // Keep the OS status bar OUT of the web view: iOS "black-translucent"
+    // and Android edge-to-edge lay it over the page, so the status icons
+    // land on top of the app header and swallow taps there. With the
+    // overlay off the OS reserves that space and the header (plus its
+    // safe-area padding) sits below it.
+    await StatusBar.setOverlaysWebView({ overlay: false });
     // Set status bar style
     await StatusBar.setStyle({ style: Style.Dark });
     await StatusBar.setBackgroundColor({ color: "#001F3F" });

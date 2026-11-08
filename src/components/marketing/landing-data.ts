@@ -1,6 +1,7 @@
 import { DownloadTarget } from "./types";
 
 export const ANDROID_APP_URL = process.env.NEXT_PUBLIC_ANDROID_APP_URL || "";
+export const IOS_APP_URL = process.env.NEXT_PUBLIC_IOS_APP_URL || "";
 export const WINDOWS_APP_URL = process.env.NEXT_PUBLIC_WINDOWS_APP_URL || "";
 export const MAC_APP_URL = process.env.NEXT_PUBLIC_MAC_APP_URL || "";
 
