@@ -16,6 +16,8 @@ import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 import { rateLimitAsync, supabaseClientOptions } from "@/lib/api-utils";
 import { sendAfricasTalkingSMSWithRetry, formatUgandaPhone } from "@/lib/africas-talking";
+import { normalizeAuthPhone } from "@/lib/validation";
+import { buildPhoneLookupCandidates } from "@/lib/auth-phone";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
@@ -52,16 +54,43 @@ export async function POST(request: NextRequest) {
       }),
     );
 
-    // Find parent user by phone
-    const normalizedPhone = phone.replace(/[^0-9+]/g, "");
-    const { data: parentUser, error: userError } = await supabaseAdmin
+    // Find parent user by phone in any stored format. Production `users.phone`
+    // rows use several spellings (256XXXXXXXXX, +256…, 0XXXXXXXXX, and a few
+    // 13-char variants) — a single `.eq("phone", …)` silently missed registered
+    // parents and returned the fake success with no SMS. Two-stage lookup:
+    //   (a) exact format variants (canonical normalized + 0-led + 256-led)
+    //   (b) suffix fallback on the trailing 9-digit local part
+    // The route itself normalizes now, so it no longer depends on the client
+    // having pre-normalized the number. Normalization is authoritative:
+    // canonical key 256XXXXXXXXX, matching 153/158 of parent rows.
+    const normalizedPhone = normalizeAuthPhone(String(phone));
+    const phoneCandidates = buildPhoneLookupCandidates(String(phone));
+
+    // (a) Exact-format variants
+    let { data: parentUser, error: userError } = await supabaseAdmin
       .from("users")
       .select("id, phone, full_name, role, school_id")
-      .eq("phone", normalizedPhone)
+      .in("phone", phoneCandidates.length ? phoneCandidates : [String(phone)])
       .ilike("role", "parent")
       .eq("is_active", true)
       .limit(1)
       .maybeSingle();
+
+    // (b) Irregular stored formats (e.g. "+256…", "2560XXXXXXXXX") that none of
+    // the exact variants spell — match the trailing 9-digit local part instead.
+    if (!userError && !parentUser) {
+      const lastNine = normalizedPhone.replace(/\D/g, "").slice(-9);
+      if (lastNine.length === 9) {
+        ({ data: parentUser, error: userError } = await supabaseAdmin
+          .from("users")
+          .select("id, phone, full_name, role, school_id")
+          .like("phone", `%${lastNine}`)
+          .ilike("role", "parent")
+          .eq("is_active", true)
+          .limit(1)
+          .maybeSingle());
+      }
+    }
 
     if (userError || !parentUser) {
       // Don't reveal whether the phone exists — return success anyway

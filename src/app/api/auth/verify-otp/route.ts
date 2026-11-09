@@ -15,6 +15,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 import { supabaseClientOptions } from "@/lib/api-utils";
+import { normalizeAuthPhone } from "@/lib/validation";
+import { buildPhoneLookupCandidates } from "@/lib/auth-phone";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
@@ -34,9 +36,13 @@ export async function POST(request: NextRequest) {
       }),
     );
 
-    const normalizedPhone = phone.replace(/[^0-9+]/g, "");
+    // Server-authoritative normalization (was ad-hoc `.replace(...)`): the
+    // canonical 256XXXXXXXXX key must equal the one the send route stored, or
+    // valid codes never match. The stored-format fallback below then mirrors
+    // the send route, so a verified code can still find its user. (2026-11-09)
+    const normalizedPhone = normalizeAuthPhone(String(phone));
 
-    // Look up OTP
+    // Look up OTP — keyed on the same canonical value the send route saved
     const { data: otpRecord, error: otpError } = await supabaseAdmin
       .from("otps")
       .select("id, code, expires_at, used")
@@ -61,14 +67,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "OTP expired. Please request a new one." }, { status: 401 });
     }
 
-    // Find the parent user (include email for magic link generation)
-    const { data: parentUser, error: userError } = await supabaseAdmin
+    // Find the user behind the verified code. Two-stage lookup matching the
+    // send route: exact stored-format variants first, then a suffix fallback
+    // on the trailing 9-digit local part for irregular rows.
+    const phoneCandidates = buildPhoneLookupCandidates(String(phone));
+    let { data: parentUser, error: userError } = await supabaseAdmin
       .from("users")
       .select("auth_id, id, phone, email, full_name, role, school_id")
-      .eq("phone", normalizedPhone)
+      .in("phone", phoneCandidates.length ? phoneCandidates : [String(phone)])
       .eq("is_active", true)
       .limit(1)
       .maybeSingle();
+
+    if (!userError && !parentUser) {
+      const lastNine = normalizedPhone.replace(/\D/g, "").slice(-9);
+      if (lastNine.length === 9) {
+        ({ data: parentUser, error: userError } = await supabaseAdmin
+          .from("users")
+          .select("auth_id, id, phone, email, full_name, role, school_id")
+          .like("phone", `%${lastNine}`)
+          .eq("is_active", true)
+          .limit(1)
+          .maybeSingle());
+      }
+    }
 
     if (userError || !parentUser?.auth_id) {
       return NextResponse.json({ error: "Parent account not found" }, { status: 404 });
