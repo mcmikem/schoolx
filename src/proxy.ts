@@ -45,8 +45,7 @@ const isValidAnonKey = (key: string) => {
 
 const hasUsableSupabaseConfig = isValidHttpUrl(supabaseUrl) && isValidAnonKey(supabaseAnonKey);
 const DEMO_KEY = "skoolmate_demo_v1";
-const DEMO_MODE_ENABLED =
-  process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
+const DEMO_MODE_ENABLED = process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
 const DEMO_ALLOWED_ROLES = new Set([
   "headmaster",
   "dean_of_studies",
