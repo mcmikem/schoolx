@@ -324,24 +324,46 @@ export default function ExamLabPage() {
             paste its text. You get the parsed questions, the form a pupil would answer on, and an honest list of
             anything the parser was unsure about.
           </p>
-          <Link
-            href="/dashboard/exam-lab/submissions/"
-            style={{
-              display: "inline-flex",
-              marginTop: 8,
-              minHeight: 40,
-              alignItems: "center",
-              padding: "0 12px",
-              border: "1px solid #cbd1d9",
-              borderRadius: 7,
-              color: "#24384c",
-              fontSize: 13,
-              fontWeight: 700,
-              textDecoration: "none",
-            }}
-          >
-            Review student submissions
-          </Link>
+          <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+            <Link
+              href="/dashboard/exam-lab/submissions/"
+              style={{
+                display: "inline-flex",
+                minHeight: 40,
+                alignItems: "center",
+                padding: "0 12px",
+                border: "1px solid #cbd1d9",
+                borderRadius: 7,
+                color: "#24384c",
+                fontSize: 13,
+                fontWeight: 700,
+                textDecoration: "none",
+                background: "white",
+              }}
+            >
+              Review student submissions
+            </Link>
+            <a
+              href={process.env.NEXT_PUBLIC_STUDENT_EXAMS_URL || "http://localhost:3005"}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-flex",
+                minHeight: 40,
+                alignItems: "center",
+                padding: "0 12px",
+                border: "1px solid #005ce6",
+                borderRadius: 7,
+                color: "white",
+                background: "#005ce6",
+                fontSize: 13,
+                fontWeight: 700,
+                textDecoration: "none",
+              }}
+            >
+              Open Student Companion App (SkoolMate Exams) &rarr;
+            </a>
+          </div>
         </header>
 
         <section

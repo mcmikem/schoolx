@@ -34,7 +34,7 @@ export type OnboardingVideo = {
   surface: string;
 };
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gucxpmgwvnbqykevucbi.supabase.co";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zkyuicmssloyvrrkbbnd.supabase.co";
 const BUCKET = "app-videos";
 const PREFIX = "onboarding";
 
