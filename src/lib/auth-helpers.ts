@@ -61,8 +61,14 @@ export function getConnectionTimeout(base: number): number {
   if (typeof navigator === "undefined" || !("connection" in navigator)) return base;
   const conn = (navigator as any).connection as { effectiveType?: string; downlink?: number; rtt?: number } | undefined;
   if (!conn) return base;
-  if (conn.effectiveType && SLOW_CONNECTION_EFFECTIVE_TYPES.has(conn.effectiveType)) return Math.round(base * 0.6);
-  if (conn.downlink !== undefined && conn.downlink < 1) return Math.round(base * 0.6);
+  // Slow networks need LONGER deadlines, not shorter (see runDirectSignInAttempts,
+  // which scales 10s → 15s on slow devices). The factor here was inverted
+  // (×0.6), so 3G phones aborted sign-in calls that were still succeeding on
+  // the wire — the browser saw "aborted", classifyAuthFailure called it
+  // transient, and users with correct credentials read
+  // "Couldn't reach the sign-in service". (2026-11-10)
+  if (conn.effectiveType && SLOW_CONNECTION_EFFECTIVE_TYPES.has(conn.effectiveType)) return Math.round(base * 1.6);
+  if (conn.downlink !== undefined && conn.downlink < 1) return Math.round(base * 1.6);
   return base;
 }
 
