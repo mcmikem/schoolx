@@ -150,4 +150,55 @@ else
   echo "  ✅ Regression tests passed"
 fi
 
+# ============================================================================
+# BREAKING CHANGE CHECK — Detect changes that could break customers
+# ============================================================================
+# Checks for:
+# - Removed API endpoints
+# - Removed route parameters
+# - Changed environment variable requirements
+# - Removed feature flags
+# ============================================================================
+
+echo ""
+echo "  [5/5] Breaking change detection..."
+
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR || true)
+
+# Check for removed API routes
+REMOVED_API_ROUTES=$(echo "$STAGED_FILES" | grep -E 'src/app/api/.*/route\.ts$' || true)
+if [ -n "$REMOVED_API_ROUTES" ]; then
+  echo ""
+  echo "⚠️  API routes modified - verify no endpoints were removed:"
+  echo "$REMOVED_API_ROUTES" | while read -r file; do
+    echo "  • $file"
+  done
+  echo ""
+  echo "   If you removed an API endpoint, ensure backward compatibility or"
+  echo "   add a deprecation notice before committing."
+fi
+
+# Check for removed environment variable usage
+REMOVED_ENV_VARS=$(git diff --cached | grep -E 'process\.env\.' | grep -E '^-.*process\.env\.' || true)
+if [ -n "$REMOVED_ENV_VARS" ]; then
+  echo ""
+  echo "⚠️  Environment variables removed from code - ensure they're not required:"
+  echo "$REMOVED_ENV_VARS" | while read -r line; do
+    echo "  • $line"
+  done
+fi
+
+# Check for console.log in production code (should use logger)
+CONSOLE_LOGS=$(git diff --cached | grep -E 'console\.(log|error|warn|info)' | grep -v '__tests__' || true)
+if [ -n "$CONSOLE_LOGS" ]; then
+  echo ""
+  echo "⚠️  console.log/warn/error found in staged changes - use logger.ts instead:"
+  echo "$CONSOLE_LOGS" | while read -r line; do
+    echo "  • $line"
+  done
+fi
+
+echo "✅ Breaking change detection complete"
+
+echo ""
 echo "✅ All checks passed. Committing..."

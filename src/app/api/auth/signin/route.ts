@@ -39,6 +39,22 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 // publishable key, while existing projects still use the legacy anon key.
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
+// Derive Supabase project ID from URL for cookie name matching.
+// Supabase cookie format: sb-<project_id>-auth-token
+const supabaseProjectId = (() => {
+  try {
+    const url = new URL(supabaseUrl || "");
+    const host = url.hostname;
+    // host is like "zkyuicmssloyvrrkbbnd.supabase.co"
+    const parts = host.split(".");
+    return parts.length >= 2 ? parts[0] : "";
+  } catch {
+    return "";
+  }
+})();
+
+const authCookieName = supabaseProjectId ? `sb-${supabaseProjectId}-auth-token` : "sb-auth-token";
+
 const isUsableServiceKey = (key?: string): key is string => Boolean(key && key.length > 20 && !key.startsWith("your-"));
 
 /** No single outbound call may hold the whole sign-in open. */
