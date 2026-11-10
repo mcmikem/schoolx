@@ -1,6 +1,6 @@
 /** @jest-environment node */
 
-import { describe, it, expect, jest, beforeEach } from "@jest/globals";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { NextRequest } from "next/server";
 
 const mockRequireUserWithSchool = jest.fn<(req: unknown) => Promise<unknown>>();
@@ -213,13 +213,28 @@ describe("setup-progress route", () => {
     expect(res.status).toBe(403);
   });
 
+  it("does not write checklist rows during a demo GET", async () => {
+    mockRequireUserWithSchool.mockResolvedValue({
+      ok: true,
+      context: { schoolId: "00000000-0000-0000-0000-000000000001", isDemo: true },
+    });
+    const { GET } = await import("../app/api/setup-progress/route");
+    const res = await GET(makeRequest());
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.data.items).toHaveLength(8);
+    expect(body.data.progress).toBe(0);
+    expect(mockCreateServiceRoleClientOrThrow).not.toHaveBeenCalled();
+  });
+
   it("ensures plan items, auto-completes from data, returns counts + school completeness", async () => {
     mockRequireUserWithSchool.mockResolvedValue({ ok: true, context: { schoolId: "school-1" } });
     const client = buildMockClient({
       counts: {
         classes: 4,
         subjects: 9,
-        staff: 6,
+        users: 6,
         students: 120,
         fee_payments: 15,
         academic_terms: 1,
@@ -245,6 +260,8 @@ describe("setup-progress route", () => {
     expect(body.data.school_complete).toBe(true);
     expect(body.data.counts.classes).toBe(4);
     expect(body.data.counts.students).toBe(120);
+    expect(body.data.counts.staff).toBe(6);
+    expect(body.data.has_existing_data).toBe(true);
     expect(body.data.counts.attendance).toBe(0);
     expect(body.data.school).toEqual({
       has_name: true,
@@ -287,6 +304,7 @@ describe("setup-progress route", () => {
       .map((e) => e.value);
     expect(updatedItemKeys).toContain("classes");
     expect(updatedItemKeys).toContain("students");
+    expect(updatedItemKeys).toContain("teachers");
     expect(updatedItemKeys).toContain("first_payment");
     // term is current (count 1) and school complete -> also auto-completed
     expect(updatedItemKeys).toContain("academic_term");
@@ -310,5 +328,19 @@ describe("setup-progress route", () => {
     expect(body.data.school.has_name).toBe(false);
     expect(body.data.school.has_phone).toBe(false);
     expect(body.data.school.has_logo).toBe(false);
+  });
+
+  it("does not treat registration defaults as an established school", async () => {
+    mockRequireUserWithSchool.mockResolvedValue({ ok: true, context: { schoolId: "school-1" } });
+    buildMockClient({
+      counts: { classes: 8, subjects: 12, academic_terms: 1 },
+      school: { name: "New School", email: "admin@example.com", phone: "0700000000", logo_url: null },
+      items: PLAN_ITEMS,
+    });
+
+    const { GET } = await import("../app/api/setup-progress/route");
+    const res = await GET(makeRequest());
+    const body = await res.json();
+    expect(body.data.has_existing_data).toBe(false);
   });
 });

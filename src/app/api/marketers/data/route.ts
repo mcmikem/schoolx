@@ -40,17 +40,20 @@ export async function GET(request: NextRequest) {
     let payouts: any[] = [];
 
     // Schools data — gracefully handle missing onboarded_by column
-    const schoolsRes = await withTimeout(
-      supabase
-        .from("schools")
-        .select(
-          "id, name, school_code, district, school_type, subscription_plan, subscription_status, student_count, created_at, trial_ends_at, phone, email, onboarding_completed, onboarding_complete",
-        )
-        .order("created_at", { ascending: false })
-        .limit(200),
-      10000,
-      null,
-    );
+    let schoolsQuery = supabase
+      .from("schools")
+      .select(
+        "id, name, school_code, district, school_type, subscription_plan, subscription_status, student_count, created_at, trial_ends_at, phone, email, onboarding_completed, onboarding_complete",
+      )
+      .order("created_at", { ascending: false });
+
+    // Marketers may see only schools they onboarded. Service-role queries bypass
+    // RLS, so apply this owner filter before requesting any school contact data.
+    if (profile.role === "marketer") {
+      schoolsQuery = schoolsQuery.eq("onboarded_by", profile.id);
+    }
+
+    const schoolsRes = await withTimeout(schoolsQuery.limit(200), 10000, null);
 
     if (schoolsRes?.data) {
       schools = schoolsRes.data;

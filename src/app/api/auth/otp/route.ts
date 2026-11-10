@@ -7,11 +7,12 @@
 //   - Stores OTP in "otps" table with phone as unique key (upsert)
 //   - 5-minute expiry, 6-digit code
 //   - Returns success even if phone not found (security: don't leak user existence)
-//   - Demo mode: returns OTP in response if AFRICAS_TALKING_API_KEY not set
+//   - SMS delivery failures never return the OTP to the caller
 //
 // To modify: Run full test suite (lint + typecheck + regression + e2e)
 // ============================================================================
 import { NextRequest, NextResponse } from "next/server";
+import { randomInt } from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 import { rateLimitAsync, supabaseClientOptions } from "@/lib/api-utils";
@@ -26,12 +27,9 @@ const OTP_EXPIRY_MINUTES = 5;
 const OTP_LENGTH = 6;
 
 function generateOtp(): string {
-  const digits = "0123456789";
-  let otp = "";
-  for (let i = 0; i < OTP_LENGTH; i++) {
-    otp += digits[Math.floor(Math.random() * digits.length)];
-  }
-  return otp;
+  return randomInt(0, 10 ** OTP_LENGTH)
+    .toString()
+    .padStart(OTP_LENGTH, "0");
 }
 
 export async function POST(request: NextRequest) {
@@ -41,8 +39,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429 });
     }
 
-    const { phone, schoolId } = await request.json();
-    if (!phone) {
+    const body = await request.json();
+    const phone = typeof body?.phone === "string" ? body.phone : "";
+    const schoolId = typeof body?.schoolId === "string" ? body.schoolId : undefined;
+    if (!phone || phone.length > 32) {
       return NextResponse.json({ error: "Phone number required" }, { status: 400 });
     }
 
@@ -64,45 +64,43 @@ export async function POST(request: NextRequest) {
     // having pre-normalized the number. Normalization is authoritative:
     // canonical key 256XXXXXXXXX, matching 153/158 of parent rows.
     const normalizedPhone = normalizeAuthPhone(String(phone));
+    if (normalizedPhone.length < 9 || normalizedPhone.length > 16) {
+      return NextResponse.json({ success: true, message: "If this phone is registered, an OTP has been sent." });
+    }
     const phoneCandidates = buildPhoneLookupCandidates(String(phone));
 
     // (a) Exact-format variants
-    let { data: parentUser, error: userError } = await supabaseAdmin
+    let parentQuery = supabaseAdmin
       .from("users")
       .select("id, phone, full_name, role, school_id")
       .in("phone", phoneCandidates.length ? phoneCandidates : [String(phone)])
       .ilike("role", "parent")
-      .eq("is_active", true)
-      .limit(1)
-      .maybeSingle();
+      .eq("is_active", true);
+    if (schoolId) parentQuery = parentQuery.eq("school_id", schoolId);
+    let { data: parentMatches, error: userError } = await parentQuery.limit(2);
 
     // (b) Irregular stored formats (e.g. "+256…", "2560XXXXXXXXX") that none of
     // the exact variants spell — match the trailing 9-digit local part instead.
-    if (!userError && !parentUser) {
+    if (!userError && parentMatches?.length === 0) {
       const lastNine = normalizedPhone.replace(/\D/g, "").slice(-9);
       if (lastNine.length === 9) {
-        ({ data: parentUser, error: userError } = await supabaseAdmin
+        let suffixQuery = supabaseAdmin
           .from("users")
           .select("id, phone, full_name, role, school_id")
           .like("phone", `%${lastNine}`)
           .ilike("role", "parent")
-          .eq("is_active", true)
-          .limit(1)
-          .maybeSingle());
+          .eq("is_active", true);
+        if (schoolId) suffixQuery = suffixQuery.eq("school_id", schoolId);
+        ({ data: parentMatches, error: userError } = await suffixQuery.limit(2));
       }
     }
 
-    if (userError || !parentUser) {
+    if (userError || !parentMatches || parentMatches.length !== 1) {
       // Don't reveal whether the phone exists — return success anyway
-      logger.info(`[OTP] No parent found for phone ${normalizedPhone.slice(-4)}`);
+      logger.info(`[OTP] No unambiguous parent found for phone ${normalizedPhone.slice(-4)}`);
       return NextResponse.json({ success: true, message: "If this phone is registered, an OTP has been sent." });
     }
-
-    // If schoolId provided, verify match
-    if (schoolId && parentUser.school_id !== schoolId) {
-      logger.info(`[OTP] Phone ${normalizedPhone.slice(-4)} belongs to different school`);
-      return NextResponse.json({ success: true, message: "If this phone is registered, an OTP has been sent." });
-    }
+    const parentUser = parentMatches[0];
 
     // Generate OTP
     const otp = generateOtp();
@@ -137,13 +135,13 @@ export async function POST(request: NextRequest) {
       const smsResult = await sendAfricasTalkingSMSWithRetry(formattedPhone, smsMessage, { formatUgandaNumber: true });
 
       if (smsResult.demo) {
-        // Dev-only demo gateway (no API key): return the OTP so testing can proceed.
-        logger.info(`[OTP] Demo SMS (no gateway) — OTP for ${normalizedPhone.slice(-4)}`);
-        return NextResponse.json({
-          success: true,
-          message: "OTP generated (demo mode — check console)",
-          demoOtp: otp,
-        });
+        // Never return an authentication factor in an API response. A missing
+        // SMS configuration must fail closed, including in development.
+        logger.warn("[OTP] SMS provider is not configured; refusing to expose a demo code");
+        return NextResponse.json(
+          { success: false, message: "OTP delivery is temporarily unavailable. Please use password sign-in." },
+          { status: 503 },
+        );
       }
 
       if (!smsResult.success) {
@@ -158,14 +156,6 @@ export async function POST(request: NextRequest) {
       logger.info(`[OTP] Sent OTP to ${normalizedPhone.slice(-4)}`);
     } catch (smsError) {
       logger.error("[OTP] SMS send failed:", smsError);
-      // In demo mode (no SMS config), return OTP directly for testing
-      if (process.env.NODE_ENV === "development" && !process.env.AFRICAS_TALKING_API_KEY) {
-        return NextResponse.json({
-          success: true,
-          message: "OTP generated (demo mode — check console)",
-          demoOtp: otp,
-        });
-      }
       return NextResponse.json(
         { success: false, message: "Unable to send OTP right now. Please try again later." },
         { status: 500 },

@@ -39,3 +39,16 @@ export const mobileMoneyBodySchema = z.object({
   phoneNumber: z.string().min(9),
   promoCode: z.string().nullable().optional(),
 });
+
+export const moduleCheckoutBodySchema = z.object({
+  provider: z.enum(["mtn", "airtel", "paypal", "manual"]),
+  moduleKeys: z
+    .array(z.string().trim().min(1).max(64))
+    .min(1)
+    .max(21)
+    .refine((keys) => new Set(keys).size === keys.length),
+  promoCode: z.string().trim().max(64).nullable().optional(),
+  phoneNumber: z.string().trim().min(9).max(20).optional(),
+  method: z.enum(["cash", "bank"]).optional(),
+  reference: z.string().trim().min(3).max(100).optional(),
+});

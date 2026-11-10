@@ -1,6 +1,7 @@
 /** @jest-environment node */
 
 import type { NextRequest } from "next/server";
+import { PRIVACY_NOTICE_VERSION, SCHOOL_TERMS_VERSION } from "@/lib/legal-versions";
 
 type Json = Record<string, unknown>;
 
@@ -10,7 +11,7 @@ function makeRequest(url: string, init: RequestInit): NextRequest {
 
 interface MockClientConfig {
   single?: Record<string, { data: unknown; error: unknown }>;
-  maybeSingle?: Record<string, { data: unknown; error: unknown }>;
+  maybeSingle?: Record<string, { data: unknown; error: unknown } | Array<{ data: unknown; error: unknown }>>;
   insert?: Record<string, { data: unknown; error: unknown }>;
   upsert?: Record<string, { data: unknown; error: unknown }>;
   update?: Record<string, { data: unknown; error: unknown }>;
@@ -33,6 +34,8 @@ interface MockClient {
   eq: jest.Mock;
   in: jest.Mock;
   gte: jest.Mock;
+  gt: jest.Mock;
+  is: jest.Mock;
   order: jest.Mock;
   limit: jest.Mock;
   not: jest.Mock;
@@ -51,9 +54,16 @@ interface MockClient {
 }
 
 function buildMockClient(config: MockClientConfig = {}): MockClient {
+  const maybeSingleCallCount: Record<string, number> = {};
   const resolve = (table: string, lastMethod: string): { data: unknown; error: unknown; count?: number } => {
     if (lastMethod === "single") return config.single?.[table] ?? { data: null, error: null };
-    if (lastMethod === "maybeSingle") return config.maybeSingle?.[table] ?? { data: null, error: null };
+    if (lastMethod === "maybeSingle") {
+      const result = config.maybeSingle?.[table];
+      const callCount = maybeSingleCallCount[table] ?? 0;
+      maybeSingleCallCount[table] = callCount + 1;
+      if (Array.isArray(result)) return result[Math.min(callCount, result.length - 1)] ?? { data: null, error: null };
+      return result ?? { data: null, error: null };
+    }
     if (lastMethod === "insert") return config.insert?.[table] ?? { data: null, error: null };
     if (lastMethod === "upsert") return config.upsert?.[table] ?? { data: null, error: null };
     if (lastMethod === "update") return config.update?.[table] ?? { data: null, error: null };
@@ -96,6 +106,8 @@ function buildMockClient(config: MockClientConfig = {}): MockClient {
   builder.eq = makeMethod("eq");
   builder.in = makeMethod("in");
   builder.gte = makeMethod("gte");
+  builder.gt = makeMethod("gt");
+  builder.is = makeMethod("is");
   builder.order = makeMethod("order");
   builder.limit = makeMethod("limit");
   builder.not = makeMethod("not");
@@ -155,6 +167,9 @@ describe("register route", () => {
     adminName: "Test Admin",
     adminPhone: "0700000000",
     password: "StrongPass1",
+    acceptedSchoolAgreement: true,
+    termsVersion: SCHOOL_TERMS_VERSION,
+    privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
   };
 
   const post = (body: Json) =>
@@ -163,6 +178,15 @@ describe("register route", () => {
       headers: { "content-type": "application/json", "x-forwarded-for": "203.0.113.10" },
       body: JSON.stringify(body),
     });
+
+  test("rejects registration unless the current School Agreement and Privacy Notice versions are accepted", async () => {
+    const client = useClient();
+    const { POST } = await import("../app/api/register/route");
+    const res = await POST(post({ ...validBody, acceptedSchoolAgreement: false }));
+
+    expect(res.status).toBe(400);
+    expect(client.auth.admin.createUser).not.toHaveBeenCalled();
+  });
 
   test("rejects missing required fields with 400", async () => {
     useClient();
@@ -421,7 +445,32 @@ describe("reset-password route", () => {
     const res = await POST(post({ token: "valid", newPassword: "StrongPass1" }));
     expect(res.status).toBe(200);
     expect(client.auth.admin.updateUserById).toHaveBeenCalledWith("auth-1", { password: "StrongPass1" });
-    expect(client.update).toHaveBeenCalled();
+    expect(client.update).toHaveBeenCalledTimes(1);
+    expect(client.is).toHaveBeenCalledWith("used_at", null);
+    expect(client.gt).toHaveBeenCalledWith("expires_at", expect.any(String));
+  });
+
+  test("does not change a password when another request has already claimed the token", async () => {
+    const token = {
+      id: "tok-1",
+      user_id: "user-1",
+      expires_at: new Date(Date.now() + 3600_000).toISOString(),
+      used_at: null,
+    };
+    const client = useClient({
+      maybeSingle: {
+        password_reset_tokens: [
+          { data: token, error: null },
+          { data: null, error: null },
+        ],
+      },
+    });
+    const { POST } = await import("../app/api/reset-password/route");
+    const res = await POST(post({ token: "valid", newPassword: "StrongPass1" }));
+
+    expect(res.status).toBe(400);
+    expect(client.auth.admin.updateUserById).not.toHaveBeenCalled();
+    expect(client.from).not.toHaveBeenCalledWith("users");
   });
 
   test("returns 429 when rate limited", async () => {

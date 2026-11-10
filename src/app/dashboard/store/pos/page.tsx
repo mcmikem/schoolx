@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { supabase } from "@/lib/supabase";
-import { offlineDB, useOnlineStatus } from "@/lib/offline";
+import { newOfflineId, offlineDB, useOnlineStatus } from "@/lib/offline";
 import { useToast } from "@/components/Toast";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -293,9 +293,9 @@ export default function CanteenPOSPage() {
 
     try {
       const saleRecord = {
-        // Let Supabase gen the id online; offlineDB.save() generates one when
-        // offline and queues it as a create for the sync handler.
-        id: undefined,
+        // Stable client id is the idempotency key for both online wallet
+        // checkout and offline replay.
+        id: newOfflineId(),
         school_id: school.id,
         student_id: student?.id || null,
         total_amount: total,
@@ -325,24 +325,21 @@ export default function CanteenPOSPage() {
         await offlineDB.save("canteen_sales", saleRecord);
         toast.info("Offline: Order saved to sync queue");
       } else {
-        // Online: Direct Supabase insert
-        const { data: sale, error: saleError } = await supabase
-          .from("canteen_sales")
-          .insert(saleRecord)
-          .select()
-          .single();
-
-        if (saleError) throw saleError;
-
-        // If Wallet, Deduct Balance (Only works online right now)
+        // Wallet sale creation and deduction must commit atomically; an RPC
+        // retry uses the stable sale id and cannot double-charge the student.
         if (paymentMethod === "wallet" && student) {
-          const { error: walletError } = await supabase.rpc("deduct_student_wallet", {
+          const { error: walletError } = await supabase.rpc("record_canteen_wallet_sale", {
+            p_sale_id: saleRecord.id,
+            p_school_id: saleRecord.school_id,
             p_student_id: student.id,
             p_amount: total,
-            p_description: `Purchase at Canteen`,
-            p_ref: sale.id,
+            p_items: saleRecord.items,
+            p_created_at: saleRecord.created_at,
           });
           if (walletError) throw walletError;
+        } else {
+          const { error: saleError } = await supabase.from("canteen_sales").insert(saleRecord);
+          if (saleError) throw saleError;
         }
       }
 

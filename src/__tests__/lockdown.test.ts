@@ -311,8 +311,17 @@ describe("🔒 LOCKDOWN: Proxy Middleware", () => {
     expect(proxy).toContain('"/register"');
   });
 
-  it("must have parent role in DEMO_ALLOWED_ROLES", () => {
-    expect(proxy).toContain('"parent"');
+  it("must accept only the fixed demo tenant through the shared role validator", async () => {
+    const { DEMO_SCHOOL_ID, parseDemoSessionCookie } = await import("@/lib/server/demo-session");
+    const demoCookie = (schoolId: string) =>
+      btoa(
+        JSON.stringify({
+          demoUser: { name: "Demo Parent", role: "parent" },
+          demoSchool: { id: schoolId, name: "Demo School" },
+        }),
+      );
+    expect(parseDemoSessionCookie(demoCookie(DEMO_SCHOOL_ID), true)?.role).toBe("parent");
+    expect(parseDemoSessionCookie(demoCookie("another-school"), true)).toBeNull();
   });
 
   it("must have CSRF token issuance", () => {
@@ -363,6 +372,14 @@ describe("🔒 LOCKDOWN: Register API", () => {
     expect(registerApi).toContain("_gotcha");
   });
 
+  it("must fail closed on admin-phone and school-code lookup errors", () => {
+    expect(registerApi).toContain("existingUserError");
+    expect(registerApi).toContain(".limit(1)");
+    expect(registerApi).toContain("schoolCodeLookupError");
+    expect(registerApi).toContain("Unable to verify the registration phone number");
+    expect(registerApi).toContain("Unable to reserve a school code right now");
+  });
+
   it("must generate unique school code with timestamp", () => {
     expect(registerApi).toContain("Date.now()");
     expect(registerApi).toContain("schoolCode");
@@ -391,6 +408,19 @@ describe("🔒 LOCKDOWN: Register API", () => {
   it("must set trial subscription status", () => {
     expect(registerApi).toContain('"trial"');
     expect(registerApi).toContain("trial_ends_at");
+  });
+});
+
+describe("🔒 LOCKDOWN: Marketer school registration", () => {
+  const marketerRegister = read("src/app/api/marketers/register/route.ts");
+
+  it("fails closed when phone or school-code lookups fail or time out", () => {
+    expect(marketerRegister).toContain("isTimeoutResult(existingUserResult)");
+    expect(marketerRegister).toContain("existingUserResult.error");
+    expect(marketerRegister).toContain("isTimeoutResult(existingSchoolResult)");
+    expect(marketerRegister).toContain("existingSchoolResult.error");
+    expect(marketerRegister).toContain("Unable to verify the registration phone number");
+    expect(marketerRegister).toContain("Unable to reserve a school code right now");
   });
 });
 
@@ -466,9 +496,15 @@ describe("🔒 LOCKDOWN: OTP APIs", () => {
     expect(otpSend).toContain("If this phone is registered");
   });
 
-  it("OTP send must have demo mode fallback", () => {
-    expect(otpSend).toContain("demoOtp");
-    expect(otpSend).toContain("AFRICAS_TALKING_API_KEY");
+  it("OTP send must fail closed when the SMS provider is unavailable", () => {
+    expect(otpSend).not.toContain("demoOtp");
+    expect(otpSend).toContain("refusing to expose a demo code");
+    expect(otpSend).toContain("status: 503");
+  });
+
+  it("OTP send must use a cryptographically secure random code and reject ambiguous school accounts", () => {
+    expect(otpSend).toContain('import { randomInt } from "crypto"');
+    expect(otpSend).toContain("parentMatches.length !== 1");
   });
 
   it("OTP verify must return email for magiclink verification", () => {
@@ -487,6 +523,79 @@ describe("🔒 LOCKDOWN: OTP APIs", () => {
 
   it("OTP verify must check expiry", () => {
     expect(otpVerify).toContain("expires_at");
+  });
+
+  it("OTP verify must be rate limited and atomically claim a single-use parent code", () => {
+    expect(otpVerify).toContain("rateLimitAsync(request, 5, 5 * 60 * 1000)");
+    expect(otpVerify).toContain('.eq("role", "parent")');
+    expect(otpVerify).toContain('.eq("used", false)');
+    expect(otpVerify).toContain('.gt("expires_at"');
+    expect(otpVerify).toContain("const { data: claimedOtp, error: claimError }");
+  });
+});
+
+describe("🔒 LOCKDOWN: Profile RPC grants", () => {
+  const migration = read("supabase/migrations/20261205000200_harden_profile_with_school_rpc.sql");
+
+  it("revokes anonymous execution of the SECURITY DEFINER profile RPC", () => {
+    expect(migration).toContain("SECURITY DEFINER");
+    expect(migration).toContain("REVOKE ALL ON FUNCTION public.get_profile_with_school(UUID) FROM PUBLIC, anon");
+    expect(migration).not.toContain("TO anon");
+  });
+
+  it("allows authenticated users to request only their own profile", () => {
+    expect(migration).toContain("v_claim_role NOT IN ('service_role', 'authenticated')");
+    expect(migration).toContain("auth.uid() IS DISTINCT FROM p_auth_id");
+    expect(migration).toContain("TO service_role, authenticated");
+  });
+});
+
+describe("🔒 LOCKDOWN: Authenticated profile cache", () => {
+  const profileRoute = read("src/app/api/auth/profile/route.ts");
+
+  it("keys cached profile data with a digest of the complete access token", () => {
+    expect(profileRoute).toContain('createHash("sha256").update(token).digest("hex")');
+    expect(profileRoute).not.toContain("token.slice(-16)");
+  });
+
+  it("bounds private profile cache entries and disables HTTP caching", () => {
+    expect(profileRoute).toContain("profileCache.size >= 100");
+    expect(profileRoute).toContain('"Cache-Control": "private, no-store"');
+  });
+});
+
+describe("🔒 LOCKDOWN: Incoming SMS webhook", () => {
+  const route = read("src/app/api/sms/incoming/route.ts");
+
+  it("checks the provider signature before performing contact lookups", () => {
+    const signatureCheck = route.indexOf("hasValidWebhookSignature(rawBody, signatureHeader)");
+    const contactQuery = route.indexOf('.from("students")');
+    expect(signatureCheck).toBeGreaterThan(-1);
+    expect(contactQuery).toBeGreaterThan(signatureCheck);
+  });
+
+  it("uses parameterized phone candidates and refuses cross-school ambiguity", () => {
+    expect(route).toContain("buildPhoneLookupCandidates(from)");
+    expect(route).toContain('.in("parent_phone", phoneCandidates)');
+    expect(route).toContain('.in("parent_phone2", phoneCandidates)');
+    expect(route).not.toContain(".or(`parent_phone.eq.");
+    expect(route).toContain("schoolIds.size !== 1");
+  });
+
+  it("does not write raw SMS contents or the full sender number to application logs", () => {
+    expect(route).not.toContain("Incoming SMS from ${from}: ${message}");
+    expect(route).not.toContain("No student found for phone: ${from}");
+    expect(route).toContain("message.length > 1600");
+  });
+});
+
+describe("🔒 LOCKDOWN: Calendar event audience policies", () => {
+  const migration = read("supabase/migrations/20261205000300_drop_legacy_events_write_policy.sql");
+  const responsiblePolicy = read("supabase/migrations/20261109000400_event_responsible_owner_and_delegated_access.sql");
+
+  it("drops the legacy permissive school-wide write policy", () => {
+    expect(migration).toContain('DROP POLICY IF EXISTS "School users events write" ON public.events');
+    expect(responsiblePolicy).toContain('DROP POLICY IF EXISTS "School users events write" ON public.events');
   });
 });
 

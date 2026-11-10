@@ -43,25 +43,15 @@ const ALLOWED_ROLES = [
   "admin",
   "board",
   "parent",
-  "marketer",
   "super_admin",
 ] as const;
 
-/** Hats that are only ever worn by the person who owns the school. */
-const RESTRICTED_ROLES = ["super_admin", "admin"] as const;
+/** Roles that need an administrator with matching authority to grant. */
+const RESTRICTED_ROLES = ["super_admin", "admin", "school_admin"] as const;
 
 /** The screens a person can choose to land on. Mirrors the
  *  users_preferred_dashboard_check constraint. */
-const DASHBOARDS = [
-  "headmaster",
-  "dean_of_studies",
-  "bursar",
-  "teacher",
-  "secretary",
-  "dorm_master",
-  "super_admin",
-  "marketer",
-] as const;
+const DASHBOARDS = ["headmaster", "dean_of_studies", "bursar", "teacher", "secretary", "dorm_master"] as const;
 
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -129,9 +119,14 @@ export async function POST(request: NextRequest) {
     if (!(ALLOWED_ROLES as readonly string[]).includes(role)) {
       return NextResponse.json({ error: `Unknown role: ${role}` }, { status: 400 });
     }
-    // The platform roles are not a hat a school can hand out.
-    if ((RESTRICTED_ROLES as readonly string[]).includes(role) && role !== caller.role) {
-      return NextResponse.json({ error: `The ${role} role cannot be assigned here` }, { status: 400 });
+    if ((RESTRICTED_ROLES as readonly string[]).includes(role)) {
+      const mayAssign =
+        role === "school_admin"
+          ? callerRoles.some((item) => ["school_admin", "admin", "super_admin"].includes(item))
+          : callerRoles.includes("super_admin");
+      if (!mayAssign) {
+        return NextResponse.json({ error: `The ${role} role cannot be assigned here` }, { status: 403 });
+      }
     }
   }
 

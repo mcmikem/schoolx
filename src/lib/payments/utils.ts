@@ -1,7 +1,6 @@
 import { PLAN_PRICES, PlanType } from "../subscription";
 import { createSupabaseServerClient } from "../supabase/server";
 import { createClient } from "@supabase/supabase-js";
-import { logger } from "../logger";
 
 // Service-role client for ledger reads/writes that must bypass RLS
 // (payment status flips are triggered by webhooks, not by a user session).
@@ -239,37 +238,98 @@ export async function activateSchoolSubscription(
   provider: string,
   transactionId: string,
 ) {
-  const supabase = await createSupabaseServerClient();
   const admin = createSupabaseAdminClient();
 
-  try {
-    const { buildQuote, applyCompletedPayment } = await import("@/lib/billing/service");
+  let legacyPaymentClaimed = false;
+  if (transactionId) {
+    const { data: ledger, error: ledgerError } = await admin
+      .from("subscription_payments")
+      .select("id, school_id, intent, payment_status")
+      .eq("transaction_id", transactionId)
+      .maybeSingle();
+    if (ledgerError) throw ledgerError;
 
-    // New-style ledger rows (created with an intent) apply atomically.
-    if (transactionId) {
-      const { data: ledger } = await admin
-        .from("subscription_payments")
-        .select("id, intent, payment_status")
-        .eq("transaction_id", transactionId)
-        .maybeSingle();
-      if (ledger?.intent) {
-        await applyCompletedPayment(admin, transactionId, {
-          provider: (provider as any) || "cash",
-        });
-      }
+    if (ledger?.school_id && ledger.school_id !== schoolId) {
+      throw new Error("Payment school does not match the subscription being activated");
     }
-  } catch (err) {
-    logger.warn("[billing] intent-based activation unavailable, using legacy path:", err);
+
+    if (ledger?.intent) {
+      const { applyCompletedPayment } = await import("@/lib/billing/service");
+      const applied = await applyCompletedPayment(admin, transactionId, {
+        provider: (provider as any) || "cash",
+      });
+      if (applied.applied && applied.result?.school) return applied.result.school;
+      if (applied.reason === "already applied") {
+        const { data: currentSchool, error } = await admin
+          .from("schools")
+          .select("id, subscription_plan, subscription_status, next_payment_date")
+          .eq("id", schoolId)
+          .maybeSingle();
+        if (error) throw error;
+        if (currentSchool) return currentSchool;
+      }
+      throw new Error(`Payment activation did not complete: ${applied.reason || "unknown result"}`);
+    }
+
+    if (ledger && ["failed", "refunded"].includes(ledger.payment_status)) {
+      throw new Error("A failed or refunded payment cannot activate a subscription");
+    }
+
+    if (ledger?.payment_status === "completed") {
+      const { data: currentSchool, error } = await admin
+        .from("schools")
+        .select("id, subscription_plan, subscription_status, next_payment_date")
+        .eq("id", schoolId)
+        .maybeSingle();
+      if (error) throw error;
+      if (currentSchool) return currentSchool;
+      throw new Error("School not found for completed payment");
+    }
+
+    if (ledger) {
+      // Claim legacy rows before updating the plan. A replay must not extend a
+      // school's paid period a second time if the provider retries a callback.
+      const { data: claimed, error: claimError } = await admin
+        .from("subscription_payments")
+        .update({ payment_status: "processing" })
+        .eq("transaction_id", transactionId)
+        .eq("payment_status", "pending")
+        .select("id")
+        .maybeSingle();
+      if (claimError) throw claimError;
+      if (!claimed) throw new Error("Payment is already being processed or is no longer pending");
+      legacyPaymentClaimed = true;
+    }
   }
 
   const TERM_MONTHS = 4;
   const LIFETIME_YEARS = 100;
 
-  const { data: school } = await supabase
+  const { data: school, error: schoolReadError } = await admin
     .from("schools")
     .select("next_payment_date, subscription_plan, subscription_status")
     .eq("id", schoolId)
     .maybeSingle();
+  if (schoolReadError) {
+    if (legacyPaymentClaimed) {
+      await admin
+        .from("subscription_payments")
+        .update({ payment_status: "pending" })
+        .eq("transaction_id", transactionId)
+        .eq("payment_status", "processing");
+    }
+    throw schoolReadError;
+  }
+  if (!school) {
+    if (legacyPaymentClaimed) {
+      await admin
+        .from("subscription_payments")
+        .update({ payment_status: "pending" })
+        .eq("transaction_id", transactionId)
+        .eq("payment_status", "processing");
+    }
+    throw new Error("School not found");
+  }
 
   const now = new Date();
   const currentEnd = school?.next_payment_date ? new Date(school.next_payment_date) : null;
@@ -281,7 +341,7 @@ export async function activateSchoolSubscription(
     nextPaymentDate.setMonth(nextPaymentDate.getMonth() + TERM_MONTHS);
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("schools")
     .update({
       subscription_plan: plan,
@@ -289,9 +349,30 @@ export async function activateSchoolSubscription(
       last_payment_at: now.toISOString(),
       next_payment_date: nextPaymentDate.toISOString(),
     })
-    .eq("id", schoolId);
+    .eq("id", schoolId)
+    .select("id, subscription_plan, subscription_status, next_payment_date")
+    .maybeSingle();
 
-  if (error) throw error;
+  if (error || !data) {
+    if (legacyPaymentClaimed) {
+      await admin
+        .from("subscription_payments")
+        .update({ payment_status: "pending" })
+        .eq("transaction_id", transactionId)
+        .eq("payment_status", "processing");
+    }
+    if (error) throw error;
+    throw new Error("Subscription activation did not update the school");
+  }
+
+  if (legacyPaymentClaimed) {
+    const { error: finalizeError } = await admin
+      .from("subscription_payments")
+      .update({ payment_status: "completed", paid_at: now.toISOString(), provider })
+      .eq("transaction_id", transactionId)
+      .eq("payment_status", "processing");
+    if (finalizeError) throw finalizeError;
+  }
   return data;
 }
 

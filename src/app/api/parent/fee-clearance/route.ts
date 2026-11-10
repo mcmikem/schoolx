@@ -5,6 +5,7 @@ import {
   createServiceRoleClientOrThrow,
   handleApiError,
   requireUserWithSchool,
+  assertUserRoleOrDeny,
 } from "@/lib/api-utils";
 import { loadFeeClearanceMap } from "@/lib/server/fee-clearance";
 
@@ -22,6 +23,12 @@ export async function GET(request: NextRequest) {
   try {
     const auth = await requireUserWithSchool(request);
     if (!auth.ok) return auth.response;
+
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: ["parent"],
+    });
+    if (!roleCheck.ok) return roleCheck.response;
 
     const schoolId = auth.context.schoolId;
     if (!schoolId) return apiError("No school linked to this account", 400);

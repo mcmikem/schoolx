@@ -10,6 +10,8 @@ import { supabase } from "./supabase";
 
 interface OfflineHookOptions {
   skipCache?: boolean;
+  /** Internal users.id; personal calendar rows belong only to this profile. */
+  userId?: string;
 }
 
 const OFFLINE_READ_TIMEOUT_MS = 30000;
@@ -588,15 +590,55 @@ export function useOfflineClassStudents(schoolId?: string, classId?: string, opt
 }
 
 export function useOfflineEvents(schoolId?: string, options?: OfflineHookOptions) {
-  return useOfflineData<any>(
+  const userId = options?.userId;
+  const [supportsRecurrence, setSupportsRecurrence] = useState<boolean | null>(null);
+  const recurrenceCapabilityKey = schoolId ? `skoolmate:event-recurrence:${schoolId}` : null;
+  useEffect(() => {
+    if (!recurrenceCapabilityKey) return;
+    try {
+      const saved = localStorage.getItem(recurrenceCapabilityKey);
+      if (saved === "enabled") setSupportsRecurrence(true);
+      else if (saved === "disabled") setSupportsRecurrence(false);
+    } catch {
+      // Capability caching is only a convenience; network/schema checks remain authoritative.
+    }
+  }, [recurrenceCapabilityKey]);
+  const result = useOfflineData<any>(
     "events",
     async () => {
       if (!schoolId) return [];
-      const { data, error } = await supabase
-        .from("events")
-        .select("id, title, description, event_type, audience, start_date, end_date")
-        .eq("school_id", schoolId)
-        .order("start_date");
+      const readEvents = (includeRecurrence: boolean) => {
+        let query = supabase
+          .from("events")
+          .select(
+            includeRecurrence
+              ? "id, title, description, event_type, audience, class_id, all_day, start_time, end_time, time_zone, location, start_date, end_date, recurrence_frequency, recurrence_until, created_by"
+              : "id, title, description, event_type, audience, class_id, all_day, start_time, end_time, time_zone, location, start_date, end_date, created_by",
+          )
+          .eq("school_id", schoolId)
+          .order("start_date");
+        query = userId ? query.or(`audience.neq.personal,created_by.eq.${userId}`) : query.neq("audience", "personal");
+        return query;
+      };
+      let { data, error } = await readEvents(true);
+      if (error && /recurrence_(frequency|until)|column .* does not exist/i.test(error.message)) {
+        setSupportsRecurrence(false);
+        try {
+          if (recurrenceCapabilityKey) localStorage.setItem(recurrenceCapabilityKey, "disabled");
+        } catch {
+          // Storage may be unavailable in private browsing or under quota pressure.
+        }
+        const legacy = await readEvents(false);
+        data = legacy.data;
+        error = legacy.error;
+      } else if (!error) {
+        setSupportsRecurrence(true);
+        try {
+          if (recurrenceCapabilityKey) localStorage.setItem(recurrenceCapabilityKey, "enabled");
+        } catch {
+          // The server query succeeded; the capability remains available this session.
+        }
+      }
       if (error) throw error;
       return (data as unknown[]) || [];
     },
@@ -604,4 +646,21 @@ export function useOfflineEvents(schoolId?: string, options?: OfflineHookOptions
     schoolId ? { school_id: schoolId } : undefined,
     options,
   );
+  const visibleEvents = useMemo(
+    () =>
+      result.data.filter((event: any) => event.audience !== "personal" || (!!userId && event.created_by === userId)),
+    [result.data, userId],
+  );
+  useEffect(() => {
+    if (result.data.some((event: any) => typeof event.recurrence_frequency === "string")) {
+      setSupportsRecurrence(true);
+    }
+  }, [result.data]);
+  // The same school cache is shared between staff on a device. Always apply
+  // ownership filtering after both cached and network reads as a second guard.
+  return {
+    ...result,
+    supportsRecurrence,
+    data: visibleEvents,
+  };
 }

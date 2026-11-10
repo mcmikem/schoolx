@@ -11,9 +11,14 @@ const mockUpsertCalls: Array<{ table: string; row: Record<string, unknown>; opti
 const mockUpdateCalls: Array<{ table: string; row: Record<string, unknown>; id: string }> = [];
 const mockDeleteCalls: Array<{ table: string; id: string }> = [];
 const mockInsertCalls: Array<{ table: string; row: Record<string, unknown> }> = [];
+const mockRpcCalls: Array<{ name: string; args: Record<string, unknown> }> = [];
 
 jest.mock("@/lib/supabase", () => ({
   supabase: {
+    rpc: async (name: string, args: Record<string, unknown>) => {
+      mockRpcCalls.push({ name, args });
+      return { error: null };
+    },
     from: (table: string) => ({
       select: () => ({
         eq: () => ({
@@ -55,6 +60,7 @@ function reset() {
   mockUpdateCalls.length = 0;
   mockDeleteCalls.length = 0;
   mockInsertCalls.length = 0;
+  mockRpcCalls.length = 0;
 }
 
 beforeEach(reset);
@@ -233,6 +239,42 @@ describe("fee payments", () => {
     expect(mockUpsertCalls[0].options).toEqual({ onConflict: "id" });
     expect(mockUpsertCalls[0].row).toMatchObject({ id: "pay-1", payment_reference: "RCT-001" });
     expect(mockUpsertCalls[0].row).not.toHaveProperty("updated_at");
+  });
+});
+
+describe("offline canteen wallet sales", () => {
+  it("records sale and wallet debit through one idempotent transaction", async () => {
+    const result = await sync.syncSingleItem({
+      table: "canteen_sales",
+      action: "create",
+      data: {
+        id: "sale-uuid",
+        school_id: "school-1",
+        student_id: "student-1",
+        total_amount: 1500,
+        payment_method: "wallet",
+        items: [{ id: "item-1", quantity: 2 }],
+        recorded_by: "staff-1",
+        created_at: "2026-11-09T08:00:00.000Z",
+        pending_wallet_deduction: { student_id: "student-1", amount: 1500 },
+      },
+    });
+
+    expect(result.status).toBe("synced");
+    expect(mockRpcCalls).toEqual([
+      {
+        name: "record_canteen_wallet_sale",
+        args: {
+          p_sale_id: "sale-uuid",
+          p_school_id: "school-1",
+          p_student_id: "student-1",
+          p_amount: 1500,
+          p_items: [{ id: "item-1", quantity: 2 }],
+          p_created_at: "2026-11-09T08:00:00.000Z",
+        },
+      },
+    ]);
+    expect(mockInsertCalls).toHaveLength(0);
   });
 });
 

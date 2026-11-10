@@ -21,6 +21,7 @@ import {
 import { classicReportSubject } from "@/lib/report-summary";
 import type { UgandaGradeRow } from "@/lib/uganda-report";
 import { logger } from "@/lib/logger";
+import { loadSchoolStudentIds, loadScopedTermStudentGrades, lockScopedTermStudentGrades } from "@/lib/term-end-scope";
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,6 +32,7 @@ export async function POST(request: NextRequest) {
     const supabase = createServiceRoleClientOrThrow();
     const school = await requireExistingSchoolOrDeny({ supabase, schoolId });
     if (!school.ok) return school.response;
+    const schoolStudentIds = await loadSchoolStudentIds(supabase, school.schoolId);
 
     const term = currentTerm || 3;
     const year = academicYear || new Date().getFullYear().toString();
@@ -54,37 +56,12 @@ export async function POST(request: NextRequest) {
     // STEP 1: Lock all grades for the term
     // ==========================================
     try {
-      const { data: grades, error: gradesError } = await supabase
-        .from("student_grades")
-        .select("id, student_id, subject_id, status")
-        .eq("academic_year", year)
-        .eq("term", term);
-
-      if (gradesError) {
-        throw new Error("Failed to fetch grades");
-      }
-
-      const gradeIds = (grades || []).map((g: any) => g.id);
-
-      if (gradeIds.length > 0) {
-        const { error: updateError } = await supabase
-          .from("student_grades")
-          .update({
-            status: "published",
-            locked: true,
-            locked_at: new Date().toISOString(),
-          })
-          .in("id", gradeIds);
-
-        if (updateError) {
-          throw new Error("Failed to lock grades");
-        }
-      }
+      const gradesLocked = await lockScopedTermStudentGrades(supabase, schoolStudentIds, year, term);
 
       steps[0] = {
         step: "lock_grades",
         status: "completed",
-        details: { gradesLocked: gradeIds.length },
+        details: { gradesLocked },
       };
     } catch (err) {
       steps[0] = {
@@ -542,11 +519,7 @@ export async function POST(request: NextRequest) {
         .select("id, first_name, last_name, class_id, status")
         .eq("school_id", school.schoolId);
 
-      const { data: grades } = await supabase
-        .from("student_grades")
-        .select("id, student_id, subject_id, ca1, ca2, ca3, ca4, project, exam_score, final_score")
-        .eq("academic_year", year)
-        .eq("term", term);
+      const grades = await loadScopedTermStudentGrades(supabase, schoolStudentIds, year, term);
 
       // Create term archive record
       const { data: archive, error: archiveError } = await supabase
@@ -557,13 +530,13 @@ export async function POST(request: NextRequest) {
           term,
           classes_count: classes?.length || 0,
           students_count: students?.length || 0,
-          grades_count: grades?.length || 0,
+          grades_count: grades.length,
           archived_at: new Date().toISOString(),
           archived_by: "system",
           data: {
             classes: classes || [],
             students: students || [],
-            gradesCount: grades?.length || 0,
+            gradesCount: grades.length,
           },
         })
         .select("id")
@@ -580,7 +553,7 @@ export async function POST(request: NextRequest) {
           archiveId: archive.id,
           classesArchived: classes?.length || 0,
           studentsArchived: students?.length || 0,
-          gradesArchived: grades?.length || 0,
+          gradesArchived: grades.length,
         },
       };
     } catch (err) {

@@ -8,6 +8,8 @@ import {
 } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 
+const LEAD_STATUSES = new Set(["new", "contacted", "interested", "not_interested", "converted", "lost"]);
+
 export async function GET(request: NextRequest) {
   try {
     const auth = await requireAuthenticatedUser(request);
@@ -26,7 +28,15 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
-    const search = searchParams.get("search");
+    const rawSearch = searchParams.get("search") || "";
+    // PostgREST's .or() accepts a filter expression, so strip grammar
+    // separators/operators before interpolating user text into that syntax.
+    const search = rawSearch
+      .replace(/[(),.%*_\\"]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 100);
+    if (status && !LEAD_STATUSES.has(status)) return apiError("Invalid lead status filter", 400);
 
     let query = supabase.from("marketer_leads").select("*").order("created_at", { ascending: false });
 
@@ -70,11 +80,39 @@ export async function POST(request: NextRequest) {
       return apiError("Forbidden", 403);
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== "object" || Array.isArray(body)) return apiError("Invalid request body", 400);
     const { school_name, contact_name, contact_phone, contact_email, district, notes, school_id } = body;
 
-    if (!school_name?.trim()) {
-      return apiError("School name is required", 400);
+    if (typeof school_name !== "string" || !school_name.trim() || school_name.trim().length > 200) {
+      return apiError("School name is required and must be 200 characters or fewer", 400);
+    }
+    if (school_id !== undefined && school_id !== null && typeof school_id !== "string") {
+      return apiError("Invalid school reference", 400);
+    }
+    if (school_id) {
+      const { data: ownedSchool } = await supabase
+        .from("schools")
+        .select("id")
+        .eq("id", school_id)
+        .eq("onboarded_by", profile.id)
+        .maybeSingle();
+      if (!ownedSchool) return apiError("School not found", 404);
+    }
+    const optionalText = [contact_name, contact_phone, contact_email, district, notes];
+    if (optionalText.some((value) => value != null && typeof value !== "string")) {
+      return apiError("Lead contact fields must be text", 400);
+    }
+    if (
+      String(contact_name || "").length > 160 ||
+      String(contact_phone || "").length > 40 ||
+      String(contact_email || "").length > 254 ||
+      String(district || "").length > 120 ||
+      String(notes || "").length > 2000
+    )
+      return apiError("One or more lead fields exceed the allowed length", 400);
+    if (contact_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact_email.trim())) {
+      return apiError("Enter a valid contact email", 400);
     }
 
     const { data: lead, error } = await supabase

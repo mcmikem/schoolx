@@ -59,16 +59,26 @@ export async function POST(request: NextRequest) {
     if (!profile || profile.role !== "super_admin") return apiError("Forbidden", 403);
 
     const body = await request.json();
-    if (!body.marketer_id || !body.amount) {
+    const amount = Number(body?.amount);
+    if (
+      typeof body?.marketer_id !== "string" ||
+      !body.marketer_id ||
+      !Number.isFinite(amount) ||
+      amount <= 0 ||
+      amount > 9_999_999_999.99
+    ) {
       return apiError("Missing required fields: marketer_id, amount", 400);
     }
+
+    const { data: marketer } = await supabase.from("users").select("id, role").eq("id", body.marketer_id).maybeSingle();
+    if (!marketer || marketer.role !== "marketer") return apiError("Marketer not found", 404);
 
     const { data, error } = await supabase
       .from("marketer_payouts")
       .insert({
-        marketer_id: body.marketer_id,
-        amount: body.amount,
-        notes: body.notes || null,
+        marketer_id: marketer.id,
+        amount,
+        notes: typeof body.notes === "string" ? body.notes.trim().slice(0, 1000) || null : null,
         status: "pending",
       })
       .select()

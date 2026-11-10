@@ -163,28 +163,37 @@ export default function MoneyPage() {
         items={[
           {
             label: "Money in",
-            value: formatCurrency(position.moneyIn),
+            value: loading ? "Loading…" : formatCurrency(position.moneyIn),
             tone: "positive",
-            hint: `Fees ${formatCurrency(position.feesCollected)}`,
+            hint: loading ? "Loading balances" : `Fees ${formatCurrency(position.feesCollected)}`,
           },
           {
             label: "Money out",
-            value: formatCurrency(position.moneyOut),
+            value: loading ? "Loading…" : formatCurrency(position.moneyOut),
             tone: "negative",
-            hint: `${formatCurrency(position.pendingOut)} pending`,
+            hint: loading ? "Loading expenses" : `${formatCurrency(position.pendingOut)} pending`,
           },
           {
             label: "Balance",
-            value: formatCurrency(position.balance),
+            value: loading ? "Loading…" : formatCurrency(position.balance),
             tone: position.balance >= 0 ? "positive" : "negative",
           },
           {
             label: "Available",
-            value: formatCurrency(position.available),
+            value: loading ? "Loading…" : formatCurrency(position.available),
             tone: position.available >= 0 ? "positive" : "negative",
-            hint: position.unebHeld > 0 ? `UNEB held ${formatCurrency(position.unebHeld)}` : "Excludes UNEB money held",
+            hint: loading
+              ? "Loading position"
+              : position.unebHeld > 0
+                ? `UNEB held ${formatCurrency(position.unebHeld)}`
+                : "Excludes UNEB money held",
           },
-          { label: "Other income", value: formatCurrency(position.otherIncome), tone: "info", hint: "Not school fees" },
+          {
+            label: "Other income",
+            value: loading ? "Loading…" : formatCurrency(position.otherIncome),
+            tone: "info",
+            hint: "Not school fees",
+          },
         ]}
       />
 
@@ -214,7 +223,11 @@ export default function MoneyPage() {
           <section className="border-t border-[var(--border)] pt-4">
             <h2 className="text-sm font-bold text-[var(--t1)]">Where the money went</h2>
             <p className="mt-1 text-xs text-[var(--t3)]">Approved and paid spending this period.</p>
-            {byCategory.length === 0 ? (
+            {loading ? (
+              <p role="status" className="mt-4 text-sm text-[var(--t3)]">
+                Loading spending…
+              </p>
+            ) : byCategory.length === 0 ? (
               <p className="mt-4 text-sm text-[var(--t3)]">No spending recorded yet.</p>
             ) : (
               <ul className="mt-4 space-y-3">
@@ -258,7 +271,11 @@ export default function MoneyPage() {
 
       {tab === "expenses" && (
         <div className="divide-y divide-[var(--border)] border-t border-[var(--border)]">
-          {expenses.length === 0 ? (
+          {loading ? (
+            <p role="status" className="py-6 text-center text-sm text-[var(--t3)]">
+              Loading expenses…
+            </p>
+          ) : expenses.length === 0 ? (
             <p className="py-6 text-center text-sm text-[var(--t3)]">
               Nothing spent yet. Record the first expense with the Expense button above.
             </p>
@@ -314,7 +331,11 @@ export default function MoneyPage() {
 
       {tab === "income" && (
         <div className="divide-y divide-[var(--border)] border-t border-[var(--border)]">
-          {otherIncome.length === 0 ? (
+          {loading ? (
+            <p role="status" className="py-6 text-center text-sm text-[var(--t3)]">
+              Loading income…
+            </p>
+          ) : otherIncome.length === 0 ? (
             <p className="py-6 text-center text-sm text-[var(--t3)]">
               Nothing yet. Capitation, grants, donations and farm income belong here.
             </p>

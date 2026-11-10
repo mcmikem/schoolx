@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { User } from "@/types";
 import { logger } from "@/lib/logger";
+import { isDemoReadOnlyMethod, parseDemoSessionCookie } from "@/lib/server/demo-session";
 import { canAccess, type RolePermissions, type UserRole } from "@/lib/roles";
 
 export interface ApiResponse<T = unknown> {
@@ -11,6 +12,7 @@ export interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
   message?: string;
+  request_id?: string;
 }
 
 export function apiSuccess<T>(data: T, message?: string, status: number = 200): NextResponse<ApiResponse<T>> {
@@ -24,39 +26,65 @@ export function apiSuccess<T>(data: T, message?: string, status: number = 200): 
   );
 }
 
-export function apiError(error: string, status: number = 400): NextResponse<ApiResponse> {
-  return NextResponse.json(
+export function apiError(error: string, status: number = 400, requestId?: string): NextResponse<ApiResponse> {
+  const generatedRequestId = !requestId && status >= 500 ? newRequestId() : undefined;
+  const correlationId = requestId || generatedRequestId;
+  if (generatedRequestId) logger.error("[API Error]", { request_id: generatedRequestId, status });
+  const safeError =
+    status >= 500
+      ? "We couldn't complete that request. Please try again. If it continues, contact support with this reference."
+      : error;
+  const response = NextResponse.json(
     {
       success: false,
-      error,
+      error: safeError,
+      ...(correlationId ? { request_id: correlationId } : {}),
     },
     { status },
   );
+  if (correlationId) response.headers.set("x-request-id", correlationId);
+  return response;
 }
 
-function extractErrorMessage(error: unknown): string {
-  if (typeof error === "string") return error;
-  if (error instanceof Error) return error.message;
-  if (error && typeof error === "object") {
-    if ("message" in error && typeof (error as any).message === "string") return (error as any).message;
-    if ("error" in error && typeof (error as any).error === "string") return (error as any).error;
-    if ("msg" in error && typeof (error as any).msg === "string") return (error as any).msg;
-    if ("error_description" in error && typeof (error as any).error_description === "string")
-      return (error as any).error_description;
+function newRequestId(): string {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  } catch {
+    // Use the fallback below in runtimes without a usable Web Crypto API.
   }
-  return "An unexpected error occurred. Please try again later.";
+  return `req-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
 export function handleApiError(error: unknown): NextResponse<ApiResponse> {
-  Sentry.captureException(error);
+  const requestId = newRequestId();
+  const errorType =
+    error instanceof TypeError
+      ? "TypeError"
+      : error instanceof RangeError
+        ? "RangeError"
+        : error instanceof SyntaxError
+          ? "SyntaxError"
+          : error instanceof Error
+            ? "Error"
+            : "UnknownError";
 
-  const message = extractErrorMessage(error);
+  // Keep unexpected exception text out of client responses, logs, and Sentry:
+  // database/provider errors can contain learner or account data. The request
+  // reference and bounded type are enough to correlate operational evidence.
+  Sentry.captureMessage("Unhandled API error", {
+    level: "error",
+    tags: { request_id: requestId, error_type: errorType },
+  });
   logger.error("[Server Error]", {
-    message,
-    stack: error instanceof Error ? error.stack : undefined,
+    request_id: requestId,
+    error_type: errorType,
     timestamp: new Date().toISOString(),
   });
-  return apiError(message, 500);
+  return apiError(
+    "We couldn't complete that request. Please try again. If it continues, contact support with this reference.",
+    500,
+    requestId,
+  );
 }
 
 export function validateRequiredFields(body: Record<string, unknown>, fields: string[]): string | null {
@@ -344,51 +372,9 @@ export function withSecurity(
  * NODE_ENV === "development" and the dev routes flag.
  */
 const DEMO_KEY = "skoolmate_demo_v1";
-const DEMO_ALLOWED_ROLES = new Set([
-  "headmaster",
-  "dean_of_studies",
-  "bursar",
-  "teacher",
-  "secretary",
-  "dorm_master",
-  "parent",
-  "super_admin",
-]);
-
-interface DemoIdentity {
-  userId: string;
-  role: string;
-  name: string;
-  schoolId: string;
-  schoolName: string;
-}
-
-function readDemoIdentity(request: NextRequest): DemoIdentity | null {
-  if (process.env.NODE_ENV !== "development") return null;
-  if (process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES !== "true") return null;
-
-  const raw = request.cookies.get(DEMO_KEY)?.value;
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(Buffer.from(raw, "base64").toString("utf8")) as {
-      demoUser?: { name?: unknown; role?: unknown };
-      demoSchool?: { id?: unknown; name?: unknown };
-    };
-    if (!parsed.demoSchool?.id || !parsed.demoSchool?.name) return null;
-    if (typeof parsed.demoUser?.name !== "string") return null;
-    if (typeof parsed.demoUser?.role !== "string") return null;
-    if (!DEMO_ALLOWED_ROLES.has(parsed.demoUser.role)) return null;
-    return {
-      // The client uses this id for its demo user, so the API and the UI agree.
-      userId: "demo-user",
-      role: parsed.demoUser.role,
-      name: parsed.demoUser.name,
-      schoolId: String(parsed.demoSchool.id),
-      schoolName: String(parsed.demoSchool.name),
-    };
-  } catch {
-    return null;
-  }
+function readDemoIdentity(request: NextRequest) {
+  const enabled = process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
+  return parseDemoSessionCookie(request.cookies.get(DEMO_KEY)?.value, enabled);
 }
 
 export interface AuthenticatedUserContext {
@@ -401,19 +387,16 @@ export async function requireAuthenticatedUser(
   const csrfCheck = requireSameOriginWriteOrDeny(request);
   if (!csrfCheck.ok) return csrfCheck;
 
-  // Use x-user-id header set by middleware if available — avoids a second
-  // getUser() call that may fail if the middleware refreshed cookies that
-  // haven't propagated to the API route yet.
-  const middlewareUserId = request.headers.get("x-user-id");
-  if (middlewareUserId) {
-    return { ok: true, context: { authUserId: middlewareUserId } };
-  }
-
   // A demo session is not a Supabase session, so getUser() cannot resolve it.
-  // Checked before the round trip so a demo user does not wait on a US-hosted
-  // auth server on every call.
+  // It is read-only and pinned to the fixed demo tenant by parseDemoSessionCookie.
   const demo = readDemoIdentity(request);
   if (demo) {
+    if (!isDemoReadOnlyMethod(request.method)) {
+      return {
+        ok: false,
+        response: NextResponse.json({ success: false, error: "Demo mode is read-only" }, { status: 403 }),
+      };
+    }
     return { ok: true, context: { authUserId: demo.userId } };
   }
 
@@ -467,6 +450,7 @@ export async function requireAuthenticatedUser(
 export interface UserWithSchoolContext extends AuthenticatedUserContext {
   user: User;
   schoolId: string | null;
+  isDemo?: boolean;
 }
 
 type ServiceRoleClient = ReturnType<typeof createClient>;
@@ -496,6 +480,7 @@ export async function requireUserWithSchool(
           is_active: true,
         } as User,
         schoolId: demoIdentity.schoolId,
+        isDemo: true,
       },
     };
   }

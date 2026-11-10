@@ -9,6 +9,7 @@ import {
 } from "@/lib/server/user-provisioning";
 import type { SchoolSetupType } from "@/lib/school-setup";
 import { logger } from "@/lib/logger";
+import { PASSWORD_POLICY_MESSAGE } from "@/lib/password-policy";
 
 interface CreateSchoolRequest {
   name: string;
@@ -29,10 +30,11 @@ export async function GET(request: NextRequest) {
     if (!auth.ok) return auth.response;
 
     const { searchParams } = request.nextUrl;
-    let limit = parseInt(searchParams.get("limit") || "50");
-    limit = Math.min(limit, 100);
-    const offset = parseInt(searchParams.get("offset") || "0");
-    const district = searchParams.get("district");
+    const requestedLimit = Number.parseInt(searchParams.get("limit") || "", 10);
+    const requestedOffset = Number.parseInt(searchParams.get("offset") || "", 10);
+    const limit = Number.isFinite(requestedLimit) ? Math.min(100, Math.max(1, requestedLimit)) : 50;
+    const offset = Number.isFinite(requestedOffset) ? Math.min(100_000, Math.max(0, requestedOffset)) : 0;
+    const district = searchParams.get("district")?.trim().slice(0, 80);
 
     if (auth.context.user.role !== "super_admin") {
       return apiError("Forbidden", 403);
@@ -156,8 +158,8 @@ export async function POST(request: NextRequest) {
       if (error.message === "This phone number already exists") {
         return apiError("This phone number already exists", 400);
       }
-      if (error.message === "Password must be at least 6 characters") {
-        return apiError("Password must be at least 6 characters", 400);
+      if (error.message === PASSWORD_POLICY_MESSAGE) {
+        return apiError(PASSWORD_POLICY_MESSAGE, 400);
       }
       if (error.message === "Invalid phone number") {
         return apiError("Invalid phone number", 400);

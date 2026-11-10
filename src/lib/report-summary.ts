@@ -6,6 +6,16 @@ import {
   type UgandaSubjectResult,
 } from "@/lib/uganda-report";
 
+export function formatReportScore(score: number | null): string {
+  return score === null ? "—" : String(score);
+}
+
+export function reportScoreForPrint(isMissing: boolean, value: unknown): number | null {
+  if (isMissing || value === null || value === undefined || (typeof value === "string" && !value.trim())) return null;
+  const score = Number(value);
+  return Number.isFinite(score) ? score : null;
+}
+
 export function classicReportSubject(rows: UgandaGradeRow[], basis?: TermGradeBasis | null) {
   const uganda = bucketUgandaSubject(rows, basis);
   return { score: uganda.avg ?? 0, grade: uganda.grade, isMissing: uganda.avg === null, uganda };

@@ -5,6 +5,8 @@ import { runBackgroundWork } from "@/lib/background-work";
 import { useEffect, useState } from "react";
 import { logger } from "@/lib/logger";
 import { payloadMatchesServerRow, stripLocalOnlySyncKeys } from "@/lib/sync-payload";
+import { FEE_PAYMENT_SYNCED_EVENT } from "@/lib/fee-payment-status";
+import { isOutsideOfflineClassSelection } from "@/lib/offline-cache-scope";
 
 const DB_NAME = "omuto.org-db";
 // 10 -> 11: adds the academic_terms, homework and homework_submissions stores.
@@ -12,7 +14,7 @@ const DB_NAME = "omuto.org-db";
 // transfers can be queued offline.
 // Existing browsers only run onupgradeneeded when the version rises, so a
 // version bump is what actually creates them.
-const DB_VERSION = 12;
+const DB_VERSION = 13;
 
 /**
  * IndexedDB key configuration for each object store, exported so unit tests can
@@ -91,13 +93,47 @@ function announceQueueChange() {
 
 interface OfflineRecord {
   id?: string | number;
+  owner_user_id?: string | null;
+  owner_school_id?: string | null;
   table: string;
   data: Record<string, unknown>;
   action: "create" | "update" | "delete";
   timestamp: number;
   synced: boolean;
   attempts: number;
+  status?: "pending" | "syncing" | "failed" | "conflict" | "synced";
+  last_attempt_at?: number;
+  synced_at?: number;
   reason?: string;
+}
+
+export type OfflineQueueState = "pending" | "syncing" | "failed" | "conflict" | "synced";
+
+export function getOfflineQueueState(item: {
+  synced?: boolean;
+  status?: OfflineQueueState;
+  attempts?: number;
+  reason?: string;
+}): OfflineQueueState {
+  if (item.synced || item.status === "synced") return "synced";
+  if (item.status === "conflict" || item.reason?.includes("server newer")) return "conflict";
+  if (item.status === "syncing") return "syncing";
+  if (item.status === "failed" || (item.attempts ?? 0) >= MAX_RETRY_ATTEMPTS) return "failed";
+  return "pending";
+}
+
+function getOfflineIdentity(): { userId: string | null; schoolId: string | null } {
+  if (typeof localStorage === "undefined") return { userId: null, schoolId: null };
+  try {
+    const user = JSON.parse(localStorage.getItem("skoolmate_offline_user_v1") || "null") as { id?: unknown } | null;
+    const school = JSON.parse(localStorage.getItem("skoolmate_offline_school_v1") || "null") as { id?: unknown } | null;
+    return {
+      userId: typeof user?.id === "string" ? user.id : null,
+      schoolId: typeof school?.id === "string" ? school.id : null,
+    };
+  } catch {
+    return { userId: null, schoolId: null };
+  }
 }
 
 /** Merge a partial offline edit over the existing local copy. */
@@ -111,9 +147,21 @@ export function mergeOfflineRecord(
 }
 
 /** Find an unsent write for this same row so repeated edits coalesce. */
-export function findPendingWrite(queue: OfflineRecord[], table: string, recordId: string): OfflineRecord | undefined {
+export function findPendingWrite(
+  queue: OfflineRecord[],
+  table: string,
+  recordId: string,
+  ownerUserId?: string | null,
+  ownerSchoolId?: string | null,
+): OfflineRecord | undefined {
   return queue.find(
-    (item) => item.table === table && item.data?.id === recordId && !item.synced && item.action !== "delete",
+    (item) =>
+      item.table === table &&
+      item.data?.id === recordId &&
+      !item.synced &&
+      item.action !== "delete" &&
+      (ownerUserId === undefined || item.owner_user_id === ownerUserId) &&
+      (ownerSchoolId === undefined || item.owner_school_id === ownerSchoolId),
   );
 }
 
@@ -282,6 +330,7 @@ class OfflineDB {
           "messages",
           "events",
           "timetable",
+          "teacher_timetable",
           "users",
           "staff",
           "staff_attendance",
@@ -380,6 +429,7 @@ class OfflineDB {
   // Save data locally and queue for sync
   async save(table: string, data: Record<string, unknown>): Promise<Record<string, unknown>> {
     const db = await this.ensureDb();
+    const identity = getOfflineIdentity();
     const id = String(data.id || newOfflineId());
     const updatedAt = new Date().toISOString();
 
@@ -401,14 +451,24 @@ class OfflineDB {
 
         const queueRequest = syncStore.getAll();
         queueRequest.onsuccess = () => {
-          const pending = findPendingWrite(queueRequest.result as OfflineRecord[], table, id);
+          const pending = findPendingWrite(
+            queueRequest.result as OfflineRecord[],
+            table,
+            id,
+            identity.userId,
+            identity.schoolId,
+          );
           if (pending) {
             const updatedPending: OfflineRecord = {
               ...pending,
               data: savedRecord!,
               attempts: 0,
+              status: "pending",
+              owner_user_id: identity.userId,
+              owner_school_id: identity.schoolId,
             };
             delete updatedPending.reason;
+            delete updatedPending.last_attempt_at;
             syncStore.put(updatedPending);
             return;
           }
@@ -417,11 +477,14 @@ class OfflineDB {
           // connection returns. Preserve `create` when the row itself is new.
           syncStore.add({
             table,
+            owner_user_id: identity.userId,
+            owner_school_id: identity.schoolId,
             data: savedRecord!,
             action: data.id ? "update" : "create",
             timestamp: Date.now(),
             synced: false,
             attempts: 0,
+            status: "pending",
           });
         };
       };
@@ -482,6 +545,7 @@ class OfflineDB {
   // Delete data locally and queue for sync
   async delete(table: string, id: string): Promise<void> {
     const db = await this.ensureDb();
+    const identity = getOfflineIdentity();
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([table, "sync_queue"], "readwrite");
@@ -507,7 +571,12 @@ class OfflineDB {
         const queueRequest = syncStore.getAll();
         queueRequest.onsuccess = () => {
           const pending = (queueRequest.result as OfflineRecord[]).filter(
-            (entry) => entry.table === table && entry.data?.id === id && !entry.synced,
+            (entry) =>
+              entry.table === table &&
+              entry.data?.id === id &&
+              !entry.synced &&
+              entry.owner_user_id === identity.userId &&
+              entry.owner_school_id === identity.schoolId,
           );
 
           let queuedDelete: OfflineRecord | undefined;
@@ -524,17 +593,24 @@ class OfflineDB {
             queuedDelete.data = { id, ...(localUpdatedAt ? { updated_at: localUpdatedAt } : {}) };
             queuedDelete.timestamp = Date.now();
             queuedDelete.attempts = 0;
+            queuedDelete.status = "pending";
+            delete queuedDelete.last_attempt_at;
+            queuedDelete.owner_user_id = identity.userId;
+            queuedDelete.owner_school_id = identity.schoolId;
             delete queuedDelete.reason;
             syncStore.put(queuedDelete);
           } else {
             try {
               syncStore.add({
                 table,
+                owner_user_id: identity.userId,
+                owner_school_id: identity.schoolId,
                 data: { id, ...(localUpdatedAt ? { updated_at: localUpdatedAt } : {}) },
                 action: "delete",
                 timestamp: Date.now(),
                 synced: false,
                 attempts: 0,
+                status: "pending",
               });
             } catch (queueErr) {
               logger.warn("Failed to enqueue offline delete for sync", { table, queueErr });
@@ -580,7 +656,10 @@ class OfflineDB {
       const db = await this.ensureDb();
 
       await new Promise<void>((resolve, reject) => {
-        const transaction = db.transaction([table, "sync_metadata"], "readwrite");
+        const transaction = db.transaction(
+          table === "teacher_timetable" ? [table, "sync_metadata", "sync_queue"] : [table, "sync_metadata"],
+          "readwrite",
+        );
         const store = transaction.objectStore(table);
         const metaStore = transaction.objectStore("sync_metadata");
 
@@ -589,6 +668,35 @@ class OfflineDB {
             store.put(item);
           }
         });
+
+        if (table === "teacher_timetable") {
+          const queueStore = transaction.objectStore("sync_queue");
+          const queueRequest = queueStore.getAll();
+          queueRequest.onsuccess = () => {
+            const queuedRows = (queueRequest.result as OfflineRecord[]).filter(
+              (pending) => pending.table === table && !pending.synced && pending.data?.id,
+            );
+            const queuedIds = new Set(queuedRows.map((pending) => String(pending.data.id)));
+            const getRequest = store.getAll();
+            getRequest.onsuccess = () => {
+              const incomingIds = new Set(data.map((row) => String(row.id || "")));
+              for (const cachedRow of getRequest.result as Record<string, unknown>[]) {
+                if (
+                  cachedRow.school_id &&
+                  data.some((row) => row.school_id === cachedRow.school_id) &&
+                  !incomingIds.has(String(cachedRow.id)) &&
+                  !queuedIds.has(String(cachedRow.id))
+                ) {
+                  store.delete(String(cachedRow.id));
+                }
+              }
+              for (const pending of queuedRows) {
+                if (pending.action === "delete") store.delete(String(pending.data.id));
+                else store.put(pending.data);
+              }
+            };
+          };
+        }
 
         metaStore.put({
           table,
@@ -602,6 +710,69 @@ class OfflineDB {
     } catch (error) {
       logger.warn(`Could not cache server data for ${table}; server data remains available`, error);
     }
+  }
+
+  /**
+   * Remove stale, unqueued rows outside the teacher's newly downloaded class
+   * set. Keep pending writes so a selection change never discards user work.
+   */
+  async pruneCachedTableToClassSelection(
+    table: string,
+    schoolId: string,
+    classIds: string[],
+    studentIds: string[],
+  ): Promise<void> {
+    const db = await this.ensureDb();
+    if (!db.objectStoreNames.contains(table)) return;
+    const identity = getOfflineIdentity();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([table, "sync_queue"], "readwrite");
+      const store = transaction.objectStore(table);
+      const queueStore = transaction.objectStore("sync_queue");
+      const rowsRequest = store.getAll();
+      const queueRequest = queueStore.getAll();
+      let rowsReady = false;
+      let queueReady = false;
+      let rows: Record<string, unknown>[] = [];
+      let queue: OfflineRecord[] = [];
+      const prune = () => {
+        if (!rowsReady || !queueReady) return;
+        const queuedIds = new Set(
+          queue
+            .filter(
+              (item) =>
+                item.table === table &&
+                !item.synced &&
+                item.owner_user_id === identity.userId &&
+                item.owner_school_id === identity.schoolId,
+            )
+            .map((item) => String(item.data?.id ?? "")),
+        );
+        for (const row of rows) {
+          const rowId = typeof row.id === "string" ? row.id : "";
+          if (
+            rowId &&
+            !queuedIds.has(rowId) &&
+            isOutsideOfflineClassSelection(table, row, schoolId, classIds, studentIds)
+          ) {
+            store.delete(rowId);
+          }
+        }
+      };
+      rowsRequest.onsuccess = () => {
+        rows = rowsRequest.result as Record<string, unknown>[];
+        rowsReady = true;
+        prune();
+      };
+      queueRequest.onsuccess = () => {
+        queue = queueRequest.result as OfflineRecord[];
+        queueReady = true;
+        prune();
+      };
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
   }
 
   // Get all cached data from a table (alias for getAll, for clarity)
@@ -724,14 +895,36 @@ class OfflineDB {
   // Get pending sync items
   async getPendingSync(): Promise<OfflineRecord[]> {
     const db = await this.ensureDb();
+    const identity = getOfflineIdentity();
+    if (!identity.userId || !identity.schoolId) return [];
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(["sync_queue"], "readonly");
+      const transaction = db.transaction(["sync_queue"], "readwrite");
       const store = transaction.objectStore("sync_queue");
       const request = store.getAll();
 
       request.onsuccess = () => {
-        const items = (request.result || []).filter((item) => !item.synced && item.attempts < MAX_RETRY_ATTEMPTS);
+        const all = (request.result || []) as OfflineRecord[];
+        const now = Date.now();
+        for (const item of all) {
+          if (
+            !item.synced &&
+            item.status === "syncing" &&
+            item.owner_user_id === identity.userId &&
+            item.owner_school_id === identity.schoolId &&
+            now - (item.last_attempt_at ?? item.timestamp) > 120_000
+          ) {
+            item.status = "pending";
+            store.put(item);
+          }
+        }
+        const items = all.filter(
+          (item) =>
+            !item.synced &&
+            item.attempts < MAX_RETRY_ATTEMPTS &&
+            item.owner_user_id === identity.userId &&
+            item.owner_school_id === identity.schoolId,
+        );
         resolve(items);
       };
       request.onerror = () => reject(request.error);
@@ -740,6 +933,8 @@ class OfflineDB {
 
   async getFailedSync(): Promise<OfflineRecord[]> {
     const db = await this.ensureDb();
+    const identity = getOfflineIdentity();
+    if (!identity.userId || !identity.schoolId) return [];
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(["sync_queue"], "readonly");
@@ -747,8 +942,65 @@ class OfflineDB {
       const request = store.getAll();
 
       request.onsuccess = () => {
-        const items = (request.result || []).filter((item) => !item.synced && item.attempts >= MAX_RETRY_ATTEMPTS);
+        const items = (request.result || []).filter(
+          (item) =>
+            !item.synced &&
+            item.attempts >= MAX_RETRY_ATTEMPTS &&
+            item.owner_user_id === identity.userId &&
+            item.owner_school_id === identity.schoolId,
+        );
         resolve(items);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  /** Return a short, account-scoped history of writes the server accepted. */
+  async getRecentSynced(limit = 30): Promise<OfflineRecord[]> {
+    const db = await this.ensureDb();
+    const identity = getOfflineIdentity();
+    if (!identity.userId || !identity.schoolId) return [];
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(["sync_queue"], "readonly");
+      const request = transaction.objectStore("sync_queue").getAll();
+      request.onsuccess = () => {
+        const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+        const items = ((request.result || []) as OfflineRecord[])
+          .filter(
+            (item) =>
+              item.synced &&
+              typeof item.synced_at === "number" &&
+              item.synced_at >= cutoff &&
+              item.owner_user_id === identity.userId &&
+              item.owner_school_id === identity.schoolId,
+          )
+          .sort((a, b) => (b.synced_at ?? 0) - (a.synced_at ?? 0))
+          .slice(0, Math.max(0, Math.min(100, limit)));
+        resolve(items);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  /** Count pending work owned by another account without exposing its rows. */
+  async getQuarantinedSyncCount(): Promise<number> {
+    const db = await this.ensureDb();
+    const identity = getOfflineIdentity();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(["sync_queue"], "readonly");
+      const request = transaction.objectStore("sync_queue").getAll();
+      request.onsuccess = () => {
+        resolve(
+          (request.result || []).filter(
+            (item) =>
+              !item.synced &&
+              (!identity.userId ||
+                !identity.schoolId ||
+                item.owner_user_id !== identity.userId ||
+                item.owner_school_id !== identity.schoolId),
+          ).length,
+        );
       };
       request.onerror = () => reject(request.error);
     });
@@ -767,6 +1019,8 @@ class OfflineDB {
         const item = request.result;
         if (item) {
           item.synced = true;
+          item.status = "synced";
+          item.synced_at = Date.now();
           store.put(item);
         }
         announceQueueChange();
@@ -776,8 +1030,29 @@ class OfflineDB {
     });
   }
 
+  /** Clear the local-only pending label after the server confirms a payment. */
+  async clearPaymentPendingLabel(paymentId: string): Promise<void> {
+    const db = await this.ensureDb();
+    if (!db.objectStoreNames.contains("fee_payments")) return;
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(["fee_payments"], "readwrite");
+      const store = transaction.objectStore("fee_payments");
+      const request = store.get(paymentId);
+      request.onsuccess = () => {
+        const payment = request.result as Record<string, unknown> | undefined;
+        if (payment?.offline_sync_status === "pending") {
+          delete payment.offline_sync_status;
+          store.put(payment);
+        }
+      };
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+  }
+
   // Increment retry attempts for a sync item
-  async incrementAttempts(id: number): Promise<void> {
+  async incrementAttempts(id: number, reason?: string): Promise<void> {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
@@ -789,11 +1064,38 @@ class OfflineDB {
         const item = request.result;
         if (item) {
           item.attempts = (item.attempts || 0) + 1;
+          item.last_attempt_at = Date.now();
+          item.status = item.attempts >= MAX_RETRY_ATTEMPTS ? "failed" : "pending";
+          if (reason) item.reason = reason.slice(0, 500);
           store.put(item);
         }
+        announceQueueChange();
         resolve();
       };
       request.onerror = () => reject(request.error);
+    });
+  }
+
+  async markSyncing(id: number): Promise<void> {
+    const db = await this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(["sync_queue"], "readwrite");
+      const store = transaction.objectStore("sync_queue");
+      const request = store.get(id);
+      request.onsuccess = () => {
+        const item = request.result as OfflineRecord | undefined;
+        if (item && !item.synced) {
+          item.status = "syncing";
+          item.last_attempt_at = Date.now();
+          delete item.reason;
+          store.put(item);
+        }
+      };
+      transaction.oncomplete = () => {
+        announceQueueChange();
+        resolve();
+      };
+      transaction.onerror = () => reject(transaction.error);
     });
   }
 
@@ -813,9 +1115,12 @@ class OfflineDB {
         if (item) {
           item.synced = false;
           item.attempts = MAX_RETRY_ATTEMPTS;
+          item.status = "conflict";
+          item.last_attempt_at = Date.now();
           item.reason = reason;
           store.put(item);
         }
+        announceQueueChange();
         resolve();
       };
       request.onerror = () => reject(request.error);
@@ -838,10 +1143,12 @@ class OfflineDB {
         if (item) {
           item.synced = false;
           item.attempts = 0;
+          item.status = "pending";
           delete item.reason;
           item.data = { ...item.data, updated_at: new Date().toISOString() };
           store.put(item);
         }
+        announceQueueChange();
         resolve();
       };
       request.onerror = () => reject(request.error);
@@ -995,6 +1302,24 @@ class OfflineDB {
         delete data.updated_at;
         delete data.pending_wallet_deduction;
         const rowId = data.id as string | undefined;
+        const pendingWallet = (item.data as Record<string, unknown>).pending_wallet_deduction as
+          | { student_id?: string; amount?: number }
+          | undefined;
+
+        // Wallet sale creation and deduction share one server transaction. The
+        // stable sale id makes a replay safe if the response is lost.
+        if (pendingWallet?.student_id && pendingWallet.amount != null && rowId) {
+          const { error } = await supabase.rpc("record_canteen_wallet_sale", {
+            p_sale_id: rowId,
+            p_school_id: data.school_id,
+            p_student_id: pendingWallet.student_id,
+            p_amount: pendingWallet.amount,
+            p_items: data.items ?? [],
+            p_created_at: data.created_at,
+          });
+          if (error) throw error;
+          return { status: "synced" };
+        }
 
         // Sale ids are client-generated; guard against double-insert when a
         // previous attempt inserted the row but failed on the wallet step.
@@ -1009,18 +1334,6 @@ class OfflineDB {
           if (error) throw error;
         }
 
-        const pendingWallet = (item.data as Record<string, unknown>).pending_wallet_deduction as
-          | { student_id?: string; amount?: number }
-          | undefined;
-        if (pendingWallet?.student_id && pendingWallet.amount != null) {
-          const { error } = await supabase.rpc("deduct_student_wallet", {
-            p_student_id: pendingWallet.student_id,
-            p_amount: pendingWallet.amount,
-            p_description: "Purchase at Canteen (synced from offline)",
-            p_ref: rowId || null,
-          });
-          if (error) throw error;
-        }
         return { status: "synced" };
       } else if (item.action === "update") {
         const { id, ...updateData } = payload as Record<string, unknown> & { id: string };
@@ -1062,10 +1375,21 @@ class OfflineDB {
 
     for (const item of pending) {
       const itemId = item.id as unknown as number;
+      await this.markSyncing(itemId);
       const result = await this.syncSingleItem(item);
 
       if (result.status === "synced") {
         await this.markSynced(itemId);
+        if (item.table === "fee_payments" && typeof item.data?.id === "string") {
+          try {
+            await this.clearPaymentPendingLabel(item.data.id);
+            if (typeof window !== "undefined") window.dispatchEvent(new Event(FEE_PAYMENT_SYNCED_EVENT));
+          } catch (error) {
+            // The server accepted the payment; keep the UI conservative if the
+            // local cache could not be refreshed and let a later pull repair it.
+            logger.warn("Could not refresh local fee payment status after sync", error);
+          }
+        }
         success++;
       } else if (result.status === "conflict") {
         await this.markConflicted(itemId, result.reason || "server copy is newer");
@@ -1077,7 +1401,7 @@ class OfflineDB {
               : `Your offline change was kept locally and NOT overwritten — review it in Sync Center before deciding.`),
         );
       } else {
-        await this.incrementAttempts(itemId);
+        await this.incrementAttempts(itemId, result.reason);
         const newAttempts = (item.attempts || 0) + 1;
         if (newAttempts >= MAX_RETRY_ATTEMPTS) {
           errors.push(`Failed to sync ${item.table} (id: ${item.data?.id}) after ${MAX_RETRY_ATTEMPTS} attempts`);
@@ -1145,6 +1469,7 @@ class OfflineDB {
       pageSize?: number;
       maxRows?: number;
       schoolId?: string;
+      classIds?: string[];
       academicYear?: string;
       term?: number;
       today?: string;
@@ -1161,10 +1486,63 @@ class OfflineDB {
 
     try {
       const { supabase } = await import("@/lib/supabase");
-      for (const table of tables) {
+      // teacher_timetable is related to a school through classes.class_id; it
+      // has no school_id column of its own. Resolve the class scope once.
+      let timetableClassIds: string[] | null = null;
+      if (options.schoolId && tables.includes("teacher_timetable")) {
+        const result = await supabase.from("classes").select("id").eq("school_id", options.schoolId);
+        if (result.error) {
+          errors.push(`teacher_timetable: ${result.error.message ?? "could not resolve school classes"}`);
+          timetableClassIds = [];
+        } else {
+          timetableClassIds = (result.data ?? []).map((row) => String(row.id));
+        }
+      }
+      const selectedClassIds = [...new Set((options.classIds ?? []).filter(Boolean))];
+      const selectedStudentIds: string[] | null = selectedClassIds.length > 0 ? [] : null;
+      const studentScopedTables = new Set([
+        "attendance",
+        "period_attendance",
+        "grades",
+        "fee_payments",
+        "report_cards",
+        "behavior_logs",
+        "homework_submissions",
+        "transport_students",
+        "dorm_students",
+        "dorm_attendance",
+        "student_transfers",
+        "student_promotions",
+        "promotion_history",
+      ]);
+      const classScopedTables = new Set(["teacher_timetable", "timetable", "homework", "teacher_substitutions"]);
+      const tablesToWarm = selectedClassIds.length > 0 ? [...new Set(["students", ...tables])] : tables;
+      for (const table of tablesToWarm) {
         if (missingTables.has(table)) continue;
+        if (table !== "students" && selectedStudentIds?.length === 0 && studentScopedTables.has(table)) {
+          await this.pruneCachedTableToClassSelection(
+            table,
+            options.schoolId ?? "",
+            selectedClassIds,
+            selectedStudentIds,
+          );
+          warmedTables += 1;
+          options.onProgress?.(table, 0, 0, true);
+          continue;
+        }
+        if (
+          table === "teacher_timetable" &&
+          options.schoolId &&
+          timetableClassIds !== null &&
+          !timetableClassIds.length
+        ) {
+          warmedTables += 1;
+          options.onProgress?.(table, 0, 0, true);
+          continue;
+        }
         let offset = 0;
         let tableRows = 0;
+        let lastBatchLength = 0;
         let cursor: string | number | null = null;
         let tableFailed = false;
 
@@ -1181,7 +1559,15 @@ class OfflineDB {
               const timeout = setTimeout(cancel, 20_000);
               try {
                 let query = supabase.from(table).select("*", { count: "exact" });
-                if (options.schoolId) query = query.eq("school_id", options.schoolId);
+                if (selectedClassIds.length > 0 && table === "students") query = query.in("class_id", selectedClassIds);
+                else if (selectedClassIds.length > 0 && table === "classes") query = query.in("id", selectedClassIds);
+                else if (selectedClassIds.length > 0 && classScopedTables.has(table))
+                  query = query.in("class_id", selectedClassIds);
+                else if (selectedStudentIds && studentScopedTables.has(table))
+                  query = query.in("student_id", selectedStudentIds);
+                else if (options.schoolId && table === "teacher_timetable")
+                  query = query.in("class_id", timetableClassIds ?? []);
+                if (options.schoolId && table !== "teacher_timetable") query = query.eq("school_id", options.schoolId);
                 if ((table === "attendance" || table === "period_attendance") && options.today)
                   query = query.eq("date", options.today);
                 if (table === "grades" && options.academicYear) {
@@ -1210,7 +1596,17 @@ class OfflineDB {
             }
 
             const batch = (result.data as Record<string, unknown>[] | null) ?? [];
-            if (batch.length > 0) await this.cacheFromServer(table, batch);
+            lastBatchLength = batch.length;
+            if (batch.length > 0) {
+              if (table === "students" && selectedStudentIds) {
+                selectedStudentIds.push(...batch.map((row) => String(row.id)).filter(Boolean));
+              }
+              const cacheRows =
+                table === "teacher_timetable" && options.schoolId
+                  ? batch.map((row) => ({ ...row, school_id: options.schoolId }))
+                  : batch;
+              await this.cacheFromServer(table, cacheRows);
+            }
             tableRows += batch.length;
             rows += batch.length;
             const complete = total !== null && tableRows >= total;
@@ -1225,7 +1621,30 @@ class OfflineDB {
           }
         }
 
+        // Reaching a safety cap is not a successful preparation. Previously
+        // this left a partial table in cache but no error, so the warmer marked
+        // the whole device ready and skipped another attempt for 24 hours.
+        // If the server cannot provide an exact count, conservatively call a
+        // full final page incomplete rather than claiming unverified coverage.
+        const reachedCapWithoutCompleteCoverage =
+          tableRows >= tableCap && (total === null ? lastBatchLength > 0 : tableRows < total);
+        if (reachedCapWithoutCompleteCoverage) {
+          tableFailed = true;
+          errors.push(
+            `${table}: downloaded ${tableRows} of ${total ?? "an unknown number of"} records; narrow the class selection and download again`,
+          );
+          options.onProgress?.(table, tableRows, total, false);
+        }
+
         if (!tableFailed) {
+          if (selectedClassIds.length > 0 && options.schoolId) {
+            await this.pruneCachedTableToClassSelection(
+              table,
+              options.schoolId,
+              selectedClassIds,
+              selectedStudentIds ?? [],
+            );
+          }
           warmedTables += 1;
           options.onProgress?.(table, tableRows, total, total !== null && tableRows >= total);
         }

@@ -3,6 +3,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
+import { passwordMeetsPolicy, PASSWORD_POLICY_MESSAGE } from "@/lib/password-policy";
 
 // Blocks the whole app until the signed-in user picks a new password.
 // Two writers set the requirement and neither was ever read before this gate:
@@ -10,7 +11,7 @@ import { supabase } from "@/lib/supabase";
 //      schools table, and the admin reset-password API.
 //   2. auth user_metadata.must_change_password — parent-portal provisioning,
 //      which ships a generated password over WhatsApp.
-const PASSWORD_RULES = "At least 8 characters, with one uppercase letter and one number.";
+const PASSWORD_RULES = PASSWORD_POLICY_MESSAGE;
 const SESSION_EXPIRED_MESSAGE =
   "Your sign-in has expired, so the new password cannot be saved. Sign in again and you will be asked to set it.";
 
@@ -93,7 +94,7 @@ export default function ForcePasswordChangeGate() {
     event.preventDefault();
     setError(null);
 
-    if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+    if (!passwordMeetsPolicy(password)) {
       setError(PASSWORD_RULES);
       return;
     }

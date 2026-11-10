@@ -81,6 +81,10 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
       if (event === "SIGNED_OUT") {
         setOfflineCacheUser(null);
         void clearOfflineQueryCache();
+        // The service worker keeps rendered pages and RSC payloads for offline
+        // launches. Remove school-specific documents/images on shared devices
+        // when the account ends; preserve only public auth/launch shells.
+        navigator.serviceWorker?.controller?.postMessage({ type: "CLEAR_PRIVATE_CACHE" });
         // Cached rows are not scoped by user, and a shared staff phone changes
         // hands. Pending writes stay queued for the account that made them.
         void offlineDB.clearCachedData().catch((error) => logger.warn("[offline] could not clear cached rows", error));

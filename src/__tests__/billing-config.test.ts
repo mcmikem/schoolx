@@ -143,6 +143,17 @@ describe("quoteAddOnPurchase", () => {
     expect(quote.lines).toHaveLength(2);
   });
 
+  test("does not charge twice when a module key is repeated", () => {
+    const quote = quoteAddOnPurchase({
+      moduleKeys: ["library", "library"],
+      sizeBand: "small",
+      billingMode: "modular",
+    });
+
+    expect(quote.totalDue).toBe(50000);
+    expect(quote.lines).toHaveLength(1);
+  });
+
   test("plan-included modules are not charged", () => {
     const quote = quoteAddOnPurchase({
       moduleKeys: ["marks", "finance"],

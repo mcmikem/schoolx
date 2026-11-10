@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/server/user-provisioning";
-import { requireUserWithSchool } from "@/lib/api-utils";
+import { apiError, handleApiError, requireUserWithSchool } from "@/lib/api-utils";
 import { normalizeAuthPhone } from "@/lib/validation";
 import { getTemplateSubjects } from "@/lib/curriculum-templates";
 import { buildDefaultClasses, type SchoolSetupType } from "@/lib/school-setup";
 import { buildUgandaAcademicTerms, buildUgandaCalendarEvents } from "@/lib/uganda-school-calendar";
 import { normalizePlanType } from "@/lib/payments/subscription-client";
-import { logger } from "@/lib/logger";
 
 // ─── Guard ────────────────────────────────────────────────────────────────────
 
@@ -104,8 +103,7 @@ export async function POST(request: NextRequest) {
 
       const { error } = await admin.from("schools").update(safe).eq("id", id);
       if (error) {
-        logger.error("[actions] update_school error:", error);
-        return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
+        return apiError("Unable to update the school. Retry or contact support with this reference.", 500);
       }
       return NextResponse.json({ success: true });
     }
@@ -300,8 +298,8 @@ export async function POST(request: NextRequest) {
               status: "pending",
               notes: "Digitization fee (super admin registration)",
             });
-          } catch (e) {
-            logger.warn("[actions] digitization fee insert failed, non-fatal:", e);
+          } catch {
+            // The optional digitization fee does not block school setup.
           }
         }
 
@@ -315,15 +313,11 @@ export async function POST(request: NextRequest) {
         for (let i = rollbacks.length - 1; i >= 0; i--) {
           try {
             await rollbacks[i]();
-          } catch (e) {
-            logger.error("[actions] rollback error:", e);
+          } catch {
+            // Continue the remaining rollback steps if one cleanup fails.
           }
         }
-        logger.error("[actions] create_school error:", error);
-        return NextResponse.json(
-          { success: false, error: error instanceof Error ? error.message : "Internal server error" },
-          { status: 500 },
-        );
+        return handleApiError(error);
       }
     }
 
@@ -350,8 +344,7 @@ export async function POST(request: NextRequest) {
 
       const { error } = await admin.from("users").update(safe).eq("id", id);
       if (error) {
-        logger.error("[actions] update_user error:", error);
-        return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
+        return apiError("Unable to update the account. Retry or contact support with this reference.", 500);
       }
       return NextResponse.json({ success: true });
     }
@@ -383,15 +376,13 @@ export async function POST(request: NextRequest) {
       if (userRow.auth_id) {
         const { error: authErr } = await admin.auth.admin.deleteUser(userRow.auth_id);
         if (authErr) {
-          logger.error("[actions] delete auth user error:", authErr);
-          return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
+          return apiError("Unable to remove the sign-in account. Retry or contact support with this reference.", 500);
         }
       } else {
         // No auth entry, delete profile row directly
         const { error: deleteErr } = await admin.from("users").delete().eq("id", id);
         if (deleteErr) {
-          logger.error("[actions] delete user profile error:", deleteErr);
-          return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
+          return apiError("Unable to remove the account. Retry or contact support with this reference.", 500);
         }
       }
 
@@ -418,8 +409,7 @@ export async function POST(request: NextRequest) {
         password: new_password,
       });
       if (error) {
-        logger.error("[actions] reset password error:", error);
-        return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
+        return apiError("Unable to reset the password. Retry or contact support with this reference.", 500);
       }
       return NextResponse.json({ success: true });
     }
@@ -445,18 +435,13 @@ export async function POST(request: NextRequest) {
       // Delete school — cascades to all related data
       const { error } = await admin.from("schools").delete().eq("id", id);
       if (error) {
-        logger.error("[actions] delete_school error:", error);
-        return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
+        return apiError("Unable to remove the school. Retry or contact support with this reference.", 500);
       }
       return NextResponse.json({ success: true });
     }
 
     return NextResponse.json({ success: false, error: `Unknown action: ${action}` }, { status: 400 });
   } catch (error) {
-    logger.error("[actions] unhandled error:", error);
-    return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

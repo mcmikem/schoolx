@@ -27,6 +27,8 @@ export type OwlyRequest =
       title: string;
       detail?: string;
       severity: "info" | "success" | "warning" | "error";
+      actionLabel?: string;
+      onAction?: () => void;
     };
 
 type Listener = (request: OwlyRequest) => void;

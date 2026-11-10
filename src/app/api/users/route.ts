@@ -6,10 +6,12 @@ import {
   validateRequiredFields,
   requireUserWithSchool,
   assertSchoolScopeOrDeny,
+  assertUserRoleOrDeny,
   createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
 import { createManagedUserAccount, createSupabaseAdminClient } from "@/lib/server/user-provisioning";
 import { logger } from "@/lib/logger";
+import { PASSWORD_POLICY_MESSAGE } from "@/lib/password-policy";
 
 const VALID_ROLES = [
   "school_admin",
@@ -22,6 +24,10 @@ const VALID_ROLES = [
   "dorm_master",
   "parent",
 ];
+const USER_ADMIN_ROLES = ["super_admin", "school_admin", "admin", "headmaster"];
+const USER_CREATE_ROLES = ["school_admin", "super_admin", "headmaster"];
+const PLATFORM_ONLY_TARGET_ROLES = ["super_admin"];
+const HEADMASTER_RESTRICTED_TARGET_ROLES = ["school_admin", "headmaster", "admin"];
 
 interface AddUserRequest {
   schoolId: string;
@@ -39,11 +45,17 @@ export async function GET(request: NextRequest) {
     const auth = await requireUserWithSchool(request);
     if (!auth.ok) return auth.response;
 
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: USER_ADMIN_ROLES,
+    });
+    if (!roleCheck.ok) return roleCheck.response;
+
     const { searchParams } = request.nextUrl;
     const schoolId = searchParams.get("schoolId") || auth.context.schoolId;
     const role = searchParams.get("role");
-    let limit = parseInt(searchParams.get("limit") || "50");
-    limit = Math.min(limit, 100);
+    const requestedLimit = Number.parseInt(searchParams.get("limit") || "", 10);
+    const limit = Number.isFinite(requestedLimit) ? Math.min(100, Math.max(1, requestedLimit)) : 50;
 
     if (auth.context.user.role !== "super_admin") {
       const scope = assertSchoolScopeOrDeny({
@@ -101,11 +113,9 @@ export async function POST(request: NextRequest) {
     const body: AddUserRequest = await request.json();
     const { schoolId, fullName, phone, password, role, email } = body;
 
-if (
-    !["school_admin", "super_admin", "headmaster"].includes(auth.context.user.role)
-  ) {
-    return apiError("Forbidden", 403);
-  }
+    if (!USER_CREATE_ROLES.includes(auth.context.user.role)) {
+      return apiError("Forbidden", 403);
+    }
 
     const scope =
       auth.context.user.role === "super_admin"
@@ -133,8 +143,12 @@ if (
       return apiError(validationError, 400);
     }
 
-    if (!VALID_ROLES.includes(role)) {
-      return apiError("Invalid role", 400);
+    if (auth.context.user.role !== "super_admin" && PLATFORM_ONLY_TARGET_ROLES.includes(role)) {
+      return apiError("You cannot assign that role", 403);
+    }
+    if (!VALID_ROLES.includes(role)) return apiError("Invalid role", 400);
+    if (auth.context.user.role === "headmaster" && HEADMASTER_RESTRICTED_TARGET_ROLES.includes(role)) {
+      return apiError("You cannot assign that role", 403);
     }
 
     const supabaseAdmin = createSupabaseAdminClient();
@@ -154,8 +168,8 @@ if (
       if (error.message === "This phone number already exists") {
         return apiError("This phone number already exists", 400);
       }
-      if (error.message === "Password must be at least 6 characters") {
-        return apiError("Password must be at least 6 characters", 400);
+      if (error.message === PASSWORD_POLICY_MESSAGE) {
+        return apiError(PASSWORD_POLICY_MESSAGE, 400);
       }
       if (error.message === "Invalid phone number") {
         return apiError("Invalid phone number", 400);

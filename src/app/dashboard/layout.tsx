@@ -5,11 +5,11 @@ import ExpiredNotice from "@/components/dashboard/ExpiredNotice";
 import MobileBottomNav from "@/components/dashboard/MobileBottomNav";
 import SidebarShell from "@/components/dashboard/SidebarShell";
 import TopBar from "@/components/dashboard/TopBar";
-import { OfflineModeBanner } from "@/components/OfflineModeBanner";
-import { StorageWarning } from "@/components/StorageWarning";
 import TrialBanner from "@/components/dashboard/TrialBanner";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { OfflineModeBanner } from "@/components/OfflineModeBanner";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { StorageWarning } from "@/components/StorageWarning";
 import { useToast } from "@/components/Toast";
 import { AcademicProvider } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
@@ -29,6 +29,7 @@ const PWAInstallPrompt = dynamic(() => import("@/components/PWAInstallPrompt").t
   loading: () => null,
 });
 
+import { motion } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactQueryProvider } from "@/app/providers/ReactQueryProvider";
 import { getPageTitle, useAccessControl } from "@/components/dashboard/AccessControlGuard";
@@ -36,10 +37,9 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { MinimalLoadingScreen, StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
-import { readDemoStorage } from "@/lib/auth-demo";
 import { OFFLINE_USER_KEY } from "@/lib/auth-context-types";
+import { readDemoStorage } from "@/lib/auth-demo";
 import { useSchoolColors } from "@/lib/useSchoolColors";
-import { motion } from "framer-motion";
 import { useSessionTimeout } from "@/lib/useSessionTimeout";
 
 const OwlAssistant = dynamic(() => import("@/components/OwlAssistant"), { ssr: false });
@@ -305,9 +305,22 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const breadcrumbItems = buildBreadcrumbs(pathname || "/dashboard", pageTitle);
   const currentPath = pathname || (typeof window !== "undefined" ? window.location.pathname : "");
 
+  // The installed PWA opens at /start/. Remember the last dashboard page in a
+  // same-site cookie so the server can send the launch straight there without
+  // showing the marketing page or waiting for client-side auth restoration.
+  useEffect(() => {
+    if ((!user && !isDemo) || !currentPath.startsWith("/dashboard")) return;
+    if (!/^\/dashboard(?:\/[a-zA-Z0-9._~-]+)*\/?$/.test(currentPath)) return;
+    document.cookie = `skoolmate_last_dashboard_path=${encodeURIComponent(currentPath)}; Path=/; Max-Age=2592000; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
+  }, [currentPath, user, isDemo]);
+
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showPostSetup, setShowPostSetup] = useState(false);
   const [showGoLive, setShowGoLive] = useState(false);
+  const [setupDiscovery, setSetupDiscovery] = useState<{
+    schoolId: string;
+    status: "existing" | "new" | "unknown";
+  } | null>(null);
   const [showDeferredChrome, setShowDeferredChrome] = useState(false);
   const [rememberSession, setRememberSession] = useState(true);
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
@@ -341,12 +354,47 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   const schoolData = (school as unknown as Record<string, unknown>) || null;
   const hasOperationalStudentData = Number(schoolData?.student_count || 0) > 0;
-  const onboardingCompleted = Boolean(
+  const hasOnboardingMarker = Boolean(
     schoolData?.onboarding_completed ||
       schoolData?.onboarding_complete ||
       hasCompletedSetupProgress(schoolData?.setup_progress) ||
       hasOperationalStudentData,
   );
+  const needsSetupDiscovery = Boolean(school?.id && user?.role === "school_admin" && !hasOnboardingMarker);
+  const currentSetupDiscovery = setupDiscovery?.schoolId === school?.id ? setupDiscovery : null;
+  const onboardingCompleted = hasOnboardingMarker || currentSetupDiscovery?.status === "existing";
+  const canDecideSetup = !needsSetupDiscovery || currentSetupDiscovery !== null;
+  const canShowInitialSetup = canDecideSetup && (!needsSetupDiscovery || currentSetupDiscovery?.status === "new");
+
+  useEffect(() => {
+    if (!needsSetupDiscovery || !school?.id) return;
+    const schoolId = school.id;
+    let cancelled = false;
+    setSetupDiscovery((current) => (current?.schoolId === schoolId ? current : null));
+
+    fetch("/api/setup-progress/", { cache: "no-store" })
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok || !payload?.success) throw new Error("Setup status unavailable");
+        return payload.data;
+      })
+      .then((data) => {
+        if (cancelled) return;
+        setSetupDiscovery({
+          schoolId,
+          status: data?.has_existing_data === true ? "existing" : "new",
+        });
+      })
+      .catch(() => {
+        // If status cannot be verified, keep the returning user in the
+        // dashboard instead of interrupting them with a possibly false setup.
+        if (!cancelled) setSetupDiscovery({ schoolId, status: "unknown" });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [needsSetupDiscovery, school?.id]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -377,7 +425,21 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     const onboardingSessionKey =
       typeof window !== "undefined" && school?.id && user?.id ? `onboarding_shown_${school.id}|${user.id}` : null;
 
-    if (school && !onboardingCompleted && user?.role === "school_admin" && !isBillingPath && isDashboardHome) {
+    if (needsSetupDiscovery && !canDecideSetup) {
+      setShowOnboarding(false);
+      setShowPostSetup(false);
+      setShowGoLive(false);
+      return;
+    }
+
+    if (
+      school &&
+      canShowInitialSetup &&
+      !onboardingCompleted &&
+      user?.role === "school_admin" &&
+      !isBillingPath &&
+      isDashboardHome
+    ) {
       // Avoid reopening onboarding on every refresh/navigation in a session.
       const alreadyShown =
         typeof window !== "undefined" && onboardingSessionKey ? sessionStorage.getItem(onboardingSessionKey) : null;
@@ -394,37 +456,27 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       if (typeof window !== "undefined" && onboardingSessionKey) {
         sessionStorage.removeItem(onboardingSessionKey);
       }
-
-      // Only auto-open the post-setup panel once per browser session.
-      const sessionKey = user?.id ? `post_setup_shown_${school.id}|${user.id}` : null;
-      if (typeof window !== "undefined" && sessionKey && !sessionStorage.getItem(sessionKey)) {
-        sessionStorage.setItem(sessionKey, "1");
-        setShowPostSetup(true);
-      }
+      // Returning admins should not get the optional setup panel again on
+      // every fresh browser session. It opens immediately after a new school
+      // completes the full onboarding flow below.
+      setShowGoLive(false);
     } else {
       setShowOnboarding(false);
       setShowPostSetup(false);
+      setShowGoLive(false);
     }
-
-    // Show go-live gate once per session for school_admins who completed onboarding
-    if (school && onboardingCompleted && user?.role === "school_admin" && isDashboardHome) {
-      const goLiveKey = user?.id ? `golive_shown_${school.id}|${user.id}` : null;
-      if (
-        typeof window !== "undefined" &&
-        goLiveKey &&
-        !sessionStorage.getItem(goLiveKey) &&
-        !sessionStorage.getItem(`post_setup_shown_${school.id}|${user.id}`)
-      ) {
-        const checkGoLive = () => {
-          if (goLiveKey && !sessionStorage.getItem(goLiveKey)) {
-            setShowGoLive(true);
-          }
-        };
-        const timer = setTimeout(checkGoLive, 2000);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [currentPath, isDashboardHome, onboardingCompleted, user?.role, user?.id, school, isBillingPath]);
+  }, [
+    currentPath,
+    isDashboardHome,
+    onboardingCompleted,
+    canDecideSetup,
+    canShowInitialSetup,
+    needsSetupDiscovery,
+    user?.role,
+    user?.id,
+    school?.id,
+    isBillingPath,
+  ]);
 
   // Marketers bypass the school-oriented dashboard layout entirely.
   // They see their own dashboard without the school sidebar, TopBar,
@@ -482,7 +534,14 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      {showPostSetup && !showOnboarding && <PostOnboardingSetup onComplete={() => setShowPostSetup(false)} />}
+      {showPostSetup && !showOnboarding && (
+        <PostOnboardingSetup
+          onComplete={() => {
+            setShowPostSetup(false);
+            setShowGoLive(true);
+          }}
+        />
+      )}
 
       {showGoLive && !showOnboarding && !showPostSetup && (
         <GoLiveGate
@@ -499,7 +558,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         <SidebarShell onNavigate={handleNavigate} />
         <SidebarOverlay />
 
-        <main id="main-content" className="main-content mobile-container flex-1 flex flex-col min-h-screen">
+        <main
+          id="main-content"
+          data-tour="dashboard-main"
+          className="main-content mobile-container flex-1 flex flex-col min-h-screen"
+        >
           <TopBar pageTitle={pageTitle} onSignOut={handleSignOut} />
           <OfflineModeBanner />
           <StorageWarning />

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import FeeCashbook from "@/components/fees/FeeCashbook";
 
-const summary = { total: 65000, cash: 15000, momo: 50000, bank: 0, count: 2 };
+const summary = { total: 65000, cash: 15000, momo: 50000, bank: 0, count: 2, pendingCount: 0, pendingTotal: 0 };
 const payments = [
   {
     id: "pay-1",
@@ -49,5 +49,16 @@ describe("FeeCashbook", () => {
   it("shows the empty state", () => {
     renderBook({ filteredCashbookPayments: [], cashbookSummary: { ...summary, count: 0 } });
     expect(screen.getByText("No transactions found")).toBeInTheDocument();
+  });
+
+  it("labels pending offline payments and explains they are excluded from totals", () => {
+    renderBook({
+      cashbookSummary: { ...summary, pendingCount: 1, pendingTotal: 7000 },
+      filteredCashbookPayments: [
+        { ...payments[0], id: "offline-1", amount_paid: 7000, offline_sync_status: "pending" },
+      ],
+    });
+    expect(screen.getByText("Pending sync")).toBeInTheDocument();
+    expect(screen.getByText(/Excluded from collected totals and learner balances until confirmed/)).toBeInTheDocument();
   });
 });

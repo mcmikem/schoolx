@@ -11,6 +11,7 @@ interface CashbookPayment {
   amount_paid: number | string;
   payment_method: string;
   payment_reference?: string;
+  offline_sync_status?: "pending" | "synced";
   students?: {
     first_name?: string;
     last_name?: string;
@@ -24,6 +25,8 @@ interface FeeCashbookProps {
     momo: number;
     bank: number;
     count: number;
+    pendingCount: number;
+    pendingTotal: number;
   };
   formatCurrency: (amount: number) => string;
   cashbookDateFilter: string;
@@ -87,6 +90,19 @@ export default function FeeCashbook({
       ),
     },
     {
+      key: "status",
+      header: "Status",
+      sortValue: (payment) => (payment.offline_sync_status === "pending" ? "Pending sync" : "Confirmed"),
+      render: (payment) =>
+        payment.offline_sync_status === "pending" ? (
+          <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-900">
+            Pending sync
+          </span>
+        ) : (
+          <span className="text-xs text-[var(--t3)]">Confirmed</span>
+        ),
+    },
+    {
       key: "reference",
       header: "Reference",
       hideOnMobile: true,
@@ -106,6 +122,17 @@ export default function FeeCashbook({
           { label: "Bank", value: formatCurrency(cashbookSummary.bank), tone: "info" },
         ]}
       />
+
+      {cashbookSummary.pendingCount > 0 && (
+        <div
+          className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+          role="status"
+        >
+          {cashbookSummary.pendingCount} payment{cashbookSummary.pendingCount === 1 ? " is" : "s are"} waiting to sync (
+          {formatCurrency(cashbookSummary.pendingTotal)}). Excluded from collected totals and learner balances until
+          confirmed.
+        </div>
+      )}
 
       <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>

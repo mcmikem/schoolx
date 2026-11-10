@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import OwlMascot from "@/components/brand/OwlMascot";
 import { useAuth } from "@/lib/auth-context";
@@ -13,70 +13,103 @@ import { readUserScoped, writeUserScoped } from "@/lib/user-scoped-storage";
  * must not hide it from the deputy.
  */
 const DISMISSED_KEY = "skoolmate_walkthrough_dismissed";
+const WELCOME_DURATION_MS = 9000;
 
 export default function RoleBasedWalkthrough() {
-  const { user, school, isDemo } = useAuth();
+  const { user, school } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
-  const [dismissed, setDismissed] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [visible, setVisible] = useState(false);
 
   const userId = user?.id ?? null;
 
   // Read after mount rather than during render: this touches localStorage, and
   // reading it during the first render would desync the server and client HTML.
   useEffect(() => {
-    setDismissed(readUserScoped<boolean>(DISMISSED_KEY, userId) === true);
+    setReady(false);
+    if (!userId) {
+      setVisible(false);
+      setReady(true);
+      return;
+    }
+    setVisible(readUserScoped<boolean>(DISMISSED_KEY, userId) !== true);
+    setReady(true);
   }, [userId]);
 
-  if (!user || !school || pathname?.replace(/\/$/, "") !== "/dashboard") return null;
-  if (dismissed) return null;
+  const dismiss = useCallback(() => {
+    if (userId) writeUserScoped(DISMISSED_KEY, userId, true);
+    setVisible(false);
+  }, [userId]);
 
-  const dismiss = () => {
-    writeUserScoped(DISMISSED_KEY, userId, true);
-    setDismissed(true);
+  useEffect(() => {
+    if (!visible) return;
+    const timer = window.setTimeout(dismiss, WELCOME_DURATION_MS);
+    return () => window.clearTimeout(timer);
+  }, [visible, dismiss]);
+
+  if (!ready || !user || !school || pathname?.replace(/\/$/, "") !== "/dashboard" || !visible) return null;
+
+  const askOwlyAnything = () => {
+    dismiss();
+    const delivered = askOwly({ kind: "ask", question: "" });
+    if (!delivered) {
+      const launcher = document.querySelector<HTMLButtonElement>("[data-owl-assistant]");
+      if (launcher) {
+        launcher.click();
+        return;
+      }
+      router.push("/dashboard/learn/");
+      return;
+    }
+    // The assistant mounts lazily. If its listener has registered but the
+    // request was missed during the first paint, open the real launcher.
+    window.setTimeout(() => {
+      const launcher = document.querySelector<HTMLButtonElement>("[data-owl-assistant]");
+      if (launcher?.getAttribute("aria-expanded") !== "true") launcher?.click();
+    }, 120);
   };
 
   return (
-    <section
-      aria-label="Learn to use SkoolMate"
-      className="mx-4 mt-3 flex min-w-0 flex-wrap items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2.5 sm:mt-4 sm:mx-6 sm:flex-row sm:items-center sm:justify-between sm:p-4"
+    <aside
+      aria-label="Owly welcome"
+      aria-live="polite"
+      data-owl-walkthrough=""
+      className="fixed inset-x-3 top-[calc(env(safe-area-inset-top)+5.25rem)] z-[70] mx-auto w-auto max-w-md sm:inset-x-auto sm:right-6 sm:top-20 sm:mx-0 sm:w-[min(26rem,calc(100vw-3rem))]"
     >
-      <div className="flex min-w-[150px] flex-1 items-center gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 sm:h-11 sm:w-11">
-          <OwlMascot size={28} animated />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-bold text-[var(--t1)] sm:text-base">New to SkoolMate?</h2>
-          <p className="mt-1 hidden text-sm leading-relaxed text-[var(--t2)] sm:block">
-            {isDemo
-              ? "Owly can show you around with pretend records. Nothing you try changes real school work."
-              : "Owly can walk you through the tasks your role does most. Nothing changes until you try it."}
-          </p>
+      <div className="relative flex items-start gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 pr-12 shadow-[0_18px_55px_rgba(11,28,57,0.2)] ring-1 ring-black/5">
+        <div className="shrink-0 rounded-xl bg-[var(--primary-50)] p-1.5">
+          <OwlMascot size={42} animated />
         </div>
-      </div>
-      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-        <button
-          type="button"
-          onClick={() => {
-            if (!askOwly({ kind: "tour" })) {
-              router.push("/dashboard/learn/");
-            }
-          }}
-          className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-[var(--bot-navy)] px-3 text-sm font-bold text-white sm:min-h-12 sm:gap-2 sm:px-4 sm:text-base"
-        >
-          <span className="sm:hidden">Show me</span>
-          <span className="hidden sm:inline">Show me around</span>
-          <MaterialIcon icon="arrow_forward" />
-        </button>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-extrabold text-[var(--t1)]">Hi, I’m Owly!</p>
+          <p className="mt-1 text-sm leading-relaxed text-[var(--t2)]">
+            I can help with SkoolMate. Ask me anything about using your school tools.
+          </p>
+          <button
+            type="button"
+            onClick={askOwlyAnything}
+            className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-xl bg-[var(--bot-navy)] px-3.5 text-sm font-bold text-white transition hover:opacity-90"
+          >
+            Ask me anything
+            <MaterialIcon icon="arrow_forward" size={17} />
+          </button>
+          <div
+            className="mt-2 h-0.5 w-full overflow-hidden rounded-full bg-[var(--surface-container)]"
+            aria-hidden="true"
+          >
+            <div className="owly-welcome-progress h-full origin-left rounded-full bg-[var(--primary)]" />
+          </div>
+        </div>
         <button
           type="button"
           onClick={dismiss}
-          aria-label="Dismiss the getting-started banner"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-[var(--t3)] hover:bg-[var(--surface-container)] hover:text-[var(--t1)] sm:h-12 sm:w-12"
+          aria-label="Dismiss Owly’s welcome"
+          className="absolute right-2 top-2 inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--t3)] transition hover:bg-[var(--surface-container)] hover:text-[var(--t1)]"
         >
           <MaterialIcon icon="close" />
         </button>
       </div>
-    </section>
+    </aside>
   );
 }

@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import ContactActions from "@/components/students/ContactActions";
 import StudentDetailPanel from "@/components/students/StudentDetailPanel";
+import { StudentPrivacyEvidencePanel } from "@/components/students/StudentPrivacyEvidencePanel";
 import { normalizeStudentInput } from "@/lib/validation";
 
 type AttendanceRecord = {
@@ -489,6 +490,7 @@ export default function StudentProfilePage() {
   // roles that handle money (headmaster, admin, school_admin, super_admin,
   // bursar). A teacher should not learn what a family owes.
   const canSeeFeePosition = user?.role ? canAccess(user.role as UserRole, "fees") : false;
+  const canManagePrivacyEvidence = ["school_admin", "admin", "headmaster"].includes(user?.role || "");
   const [isConstrainedNetwork, setIsConstrainedNetwork] = useState(false);
   const [showDataSaver, setShowDataSaver] = useState(false);
 
@@ -758,6 +760,7 @@ export default function StudentProfilePage() {
     { id: "academics", label: "Academics", count: subjectScores.length > 0 ? subjectScores.length : undefined },
     ...(canSeeFeePosition ? [{ id: "fees", label: "Fees" }] : []),
     { id: "guardians", label: "Guardians", count: guardians.length > 0 ? guardians.length : undefined },
+    ...(canManagePrivacyEvidence ? [{ id: "privacy", label: "Privacy & consent" }] : []),
     { id: "health", label: "Health" },
     { id: "messages", label: "Messages", count: smsHistory.length > 0 ? smsHistory.length : undefined },
   ];
@@ -1220,6 +1223,14 @@ export default function StudentProfilePage() {
             </InfoCard>
           </div>
         </TabPanel>
+
+        {canManagePrivacyEvidence && (
+          <TabPanel activeTab={activeTab} tabId="privacy" lazy>
+            <InfoCard title="Learner privacy evidence" icon="privacy_tip">
+              <StudentPrivacyEvidencePanel studentId={student.id} />
+            </InfoCard>
+          </TabPanel>
+        )}
 
         <TabPanel activeTab={activeTab} tabId="messages" lazy>
           <InfoCard

@@ -16,6 +16,12 @@ interface SchoolEvent {
   event_type: string;
   start_date: string;
   end_date: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  time_zone?: string | null;
+  all_day?: boolean;
+  location?: string | null;
+  class_id?: string | null;
 }
 
 const TYPE_STYLES: Record<string, string> = {
@@ -109,8 +115,11 @@ export default function ParentEventsPage() {
       const { data } = await withTimeout(
         supabase
           .from("events")
-          .select("id, title, description, event_type, start_date, end_date")
+          .select(
+            "id, title, description, event_type, start_date, end_date, start_time, end_time, time_zone, all_day, location, class_id",
+          )
           .eq("school_id", child.school_id)
+          .in("audience", ["school", "parents", "class"])
           .order("start_date", { ascending: true }),
         12000,
         timeoutFallback(),
@@ -211,6 +220,12 @@ export default function ParentEventsPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-[var(--t1)] truncate">{ev.title}</p>
                         <p className="text-xs text-[var(--t3)] font-medium mt-0.5">{label}</p>
+                        <p className="mt-1 text-xs font-semibold text-[var(--primary)]">
+                          {ev.all_day === false && ev.start_time && ev.end_time
+                            ? `${ev.start_time.slice(0, 5)}–${ev.end_time.slice(0, 5)} ${ev.time_zone || "Africa/Kampala"}`
+                            : "All day"}
+                          {ev.location ? ` · ${ev.location}` : ""}
+                        </p>
                       </div>
                       <span
                         className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-black uppercase tracking-wider capitalize ${TYPE_STYLES[ev.event_type] || "bg-[var(--surface-container)] text-[var(--t2)] border-[var(--border)]"}`}
@@ -287,6 +302,16 @@ export default function ParentEventsPage() {
                 {selectedEvent.end_date &&
                   ` – ${new Date(selectedEvent.end_date + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })}`}
               </p>
+              <p className="flex items-center gap-2 text-sm font-semibold text-[var(--primary)]">
+                <MaterialIcon icon="schedule" size={18} />
+                {selectedEvent.all_day === false && selectedEvent.start_time && selectedEvent.end_time
+                  ? `${selectedEvent.start_time.slice(0, 5)}–${selectedEvent.end_time.slice(0, 5)} ${selectedEvent.time_zone || "Africa/Kampala"}`
+                  : "All day"}
+              </p>
+              {selectedEvent.location && <p className="text-sm text-[var(--t2)]">Location: {selectedEvent.location}</p>}
+              {selectedEvent.class_id && (
+                <p className="text-xs text-[var(--t3)]">For {selectedChild?.class_name || "your child's class"}</p>
+              )}
               {selectedEvent.description && (
                 <p className="text-sm text-[var(--t2)] leading-relaxed">{selectedEvent.description}</p>
               )}

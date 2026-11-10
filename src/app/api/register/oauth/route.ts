@@ -17,14 +17,12 @@ import { normalizePlanType } from "@/lib/payments/subscription-client";
 import { normalizeAuthPhone } from "@/lib/validation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/server/user-provisioning";
-import {
-  reserveUniqueSchoolCode,
-  seedSchoolDefaults,
-} from "@/lib/server/school-provisioning";
+import { reserveUniqueSchoolCode, seedSchoolDefaults } from "@/lib/server/school-provisioning";
 import { logger } from "@/lib/logger";
 import { type ModuleKey } from "@/lib/modules/catalog";
 import { generateWhatsAppShareLink } from "@/lib/whatsapp";
 import { PLATFORM_SUPPORT_PHONE } from "@/lib/support-contact";
+import { PRIVACY_NOTICE_VERSION, SCHOOL_TERMS_VERSION } from "@/lib/legal-versions";
 
 interface OAuthRegisterRequest {
   schoolName: string;
@@ -41,6 +39,9 @@ interface OAuthRegisterRequest {
   email?: string;
   adminName: string;
   adminPhone: string;
+  acceptedSchoolAgreement?: boolean;
+  termsVersion?: string;
+  privacyNoticeVersion?: string;
 }
 
 const REGISTRATION_MODULE_KEYS: ModuleKey[] = [
@@ -123,33 +124,36 @@ export async function POST(request: NextRequest) {
       email,
       adminName,
       adminPhone,
+      acceptedSchoolAgreement,
+      termsVersion,
+      privacyNoticeVersion,
     } = body;
 
     if (
-      !schoolName?.trim() ||
-      !district?.trim() ||
-      !subcounty?.trim() ||
-      !adminName?.trim() ||
-      !adminPhone?.trim()
+      acceptedSchoolAgreement !== true ||
+      termsVersion !== SCHOOL_TERMS_VERSION ||
+      privacyNoticeVersion !== PRIVACY_NOTICE_VERSION
     ) {
+      return apiError("Please review and accept the current School Agreement and Privacy Notice.", 400);
+    }
+
+    if (!schoolName?.trim() || !district?.trim() || !subcounty?.trim() || !adminName?.trim() || !adminPhone?.trim()) {
       return apiError("All required fields must be filled", 400);
     }
 
     const normalizedPhone = normalizeAuthPhone(adminPhone);
     if (normalizedPhone.length < 10 || normalizedPhone.length > 12) {
-      return apiError(
-        "Invalid phone number format. Please use Uganda format (e.g., 0700000000)",
-        400,
-      );
+      return apiError("Invalid phone number format. Please use Uganda format (e.g., 0700000000)", 400);
     }
 
     const subscriptionPlan = normalizePlanType(selectedPackage || "basic");
-    const normalizedBillingMode =
-      billingMode === "modular" ? "modular" : "full_suite";
+    const normalizedBillingMode = billingMode === "modular" ? "modular" : "full_suite";
     const normalizedModules = normalizeSelectedModules(selectedModules);
     const modulesToSeed: ModuleKey[] =
       normalizedBillingMode === "modular"
-        ? (normalizedModules.length > 0 ? normalizedModules : (["reports", "attendance"] as ModuleKey[]))
+        ? normalizedModules.length > 0
+          ? normalizedModules
+          : (["reports", "attendance"] as ModuleKey[])
         : [];
     const normalizedEmail = (email || authUser.email || "").trim().toLowerCase();
 
@@ -175,11 +179,7 @@ export async function POST(request: NextRequest) {
       return apiError("This phone number is already in use.", 400);
     }
 
-    const schoolCode = await reserveUniqueSchoolCode(
-      supabaseAdmin,
-      schoolName,
-      district,
-    );
+    const schoolCode = await reserveUniqueSchoolCode(supabaseAdmin, schoolName, district);
 
     const { data: schoolData, error: schoolError } = await supabaseAdmin
       .from("schools")
@@ -197,9 +197,7 @@ export async function POST(request: NextRequest) {
         subscription_plan: subscriptionPlan,
         billing_mode: normalizedBillingMode,
         subscription_status: "trial",
-        trial_ends_at: new Date(
-          Date.now() + 30 * 24 * 60 * 60 * 1000,
-        ).toISOString(),
+        trial_ends_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         primary_color: "#1e3a5f",
       })
       .select()
@@ -226,6 +224,18 @@ export async function POST(request: NextRequest) {
     if (userInsertError) {
       await supabaseAdmin.from("schools").delete().eq("id", schoolData.id);
       throw userInsertError;
+    }
+
+    const { error: agreementError } = await supabaseAdmin.from("school_agreement_acceptances").insert({
+      school_id: schoolData.id,
+      accepted_by_user_id: createdUser.id,
+      terms_version: SCHOOL_TERMS_VERSION,
+      privacy_notice_version: PRIVACY_NOTICE_VERSION,
+    });
+    if (agreementError) {
+      await supabaseAdmin.from("users").delete().eq("id", createdUser.id);
+      await supabaseAdmin.from("schools").delete().eq("id", schoolData.id);
+      throw agreementError;
     }
 
     let moduleRequestLink: string | null = null;

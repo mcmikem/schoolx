@@ -104,14 +104,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { data: classRow } = await supabaseAdmin.from("classes").select("school_id").eq("id", class_id).maybeSingle();
+    const { data: classRow } = await supabaseAdmin
+      .from("classes")
+      .select("school_id, class_teacher_id")
+      .eq("id", class_id)
+      .maybeSingle();
 
     if (!classRow || (userData.role !== "super_admin" && classRow.school_id !== userData.school_id)) {
       return NextResponse.json({ error: "Class does not belong to your school" }, { status: 403 });
     }
 
+    const { data: subjectRow } = await supabaseAdmin
+      .from("subjects")
+      .select("school_id")
+      .eq("id", subject_id)
+      .maybeSingle();
+    if (!subjectRow || (subjectRow.school_id != null && subjectRow.school_id !== classRow.school_id)) {
+      return NextResponse.json({ error: "Subject does not belong to this school" }, { status: 403 });
+    }
+
     if (!(await canAccessClass(supabaseAdmin, userData.role, userData.id, class_id))) {
       return NextResponse.json({ error: "You can only manage grades for classes you teach" }, { status: 403 });
+    }
+
+    // Teachers can submit workflow changes only for their assigned
+    // class/subject pair. A formally assigned class teacher may manage all
+    // subjects for that class; other roles retain their school-scoped access.
+    if (userData.role === "teacher" && classRow.class_teacher_id !== userData.id) {
+      const { data: assignment } = await supabaseAdmin
+        .from("teacher_subjects")
+        .select("id")
+        .eq("teacher_id", userData.id)
+        .eq("class_id", class_id)
+        .eq("subject_id", subject_id)
+        .maybeSingle();
+      if (!assignment) {
+        return NextResponse.json({ error: "You are not assigned to this subject in this class" }, { status: 403 });
+      }
     }
 
     // 1. Fetch current status of grades for this set

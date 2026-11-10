@@ -32,13 +32,17 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const limit = Math.min(Number(searchParams.get("limit")) || 100, 500);
-    const offset = Number(searchParams.get("offset")) || 0;
-    const module = searchParams.get("module");
+    const requestedLimit = Number.parseInt(searchParams.get("limit") || "", 10);
+    const requestedOffset = Number.parseInt(searchParams.get("offset") || "", 10);
+    const limit = Number.isFinite(requestedLimit) ? Math.min(500, Math.max(1, requestedLimit)) : 100;
+    const offset = Number.isFinite(requestedOffset) ? Math.min(100_000, Math.max(0, requestedOffset)) : 0;
+    const module = searchParams.get("module")?.trim().slice(0, 80) || null;
 
     let query = supabaseAdmin
       .from("audit_log")
-      .select("*, schools(name), users(full_name)")
+      .select("id, school_id, user_id, action, module, description, created_at, schools(name), users(full_name)", {
+        count: "exact",
+      })
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 

@@ -302,8 +302,22 @@ const BASIS_OPTIONS: Array<{ id: TermGradeBasis["types"][number]; label: string;
 
 const DEFAULT_BASIS: TermGradeBasis = { types: ["bot", "mid_term", "eot"], weights: {} };
 
+function readDemoGradingSetting(key: string): unknown {
+  try {
+    return JSON.parse(sessionStorage.getItem("demo-grading-settings") || "{}")[key];
+  } catch {
+    return undefined;
+  }
+}
+
+function saveDemoGradingSetting(key: string, value: unknown): void {
+  const settings = JSON.parse(sessionStorage.getItem("demo-grading-settings") || "{}");
+  settings[key] = value;
+  sessionStorage.setItem("demo-grading-settings", JSON.stringify(settings));
+}
+
 export function TermGradeBasisCard() {
-  const { school } = useAuth();
+  const { school, isDemo } = useAuth();
   const toast = useToast();
   const [basis, setBasis] = useState<TermGradeBasis>(DEFAULT_BASIS);
   const [loaded, setLoaded] = useState(false);
@@ -312,6 +326,13 @@ export function TermGradeBasisCard() {
   useEffect(() => {
     if (!school?.id) return;
     let cancelled = false;
+    if (isDemo) {
+      setBasis(parseTermGradeBasis(readDemoGradingSetting(TERM_GRADE_BASIS_KEY)) ?? DEFAULT_BASIS);
+      setLoaded(true);
+      return () => {
+        cancelled = true;
+      };
+    }
     loadSchoolSetting<TermGradeBasis | null>(school.id, TERM_GRADE_BASIS_KEY, null)
       .then((saved) => {
         if (cancelled) return;
@@ -322,7 +343,7 @@ export function TermGradeBasisCard() {
     return () => {
       cancelled = true;
     };
-  }, [school?.id]);
+  }, [school?.id, isDemo]);
 
   const toggleType = (id: TermGradeBasis["types"][number], on: boolean) => {
     setBasis((prev) => {
@@ -353,7 +374,8 @@ export function TermGradeBasisCard() {
     }
     try {
       setSaving(true);
-      await saveSchoolSetting(school.id, TERM_GRADE_BASIS_KEY, basis);
+      if (isDemo) saveDemoGradingSetting(TERM_GRADE_BASIS_KEY, basis);
+      else await saveSchoolSetting(school.id, TERM_GRADE_BASIS_KEY, basis);
       toast.success("Term grade basis saved — new report cards will use it");
     } catch (error) {
       toast.error(getErrorMessage(error, "Failed to save term grade basis"));
@@ -419,7 +441,7 @@ export function TermGradeBasisCard() {
 }
 
 export function AssessmentMaximumsCard() {
-  const { school } = useAuth();
+  const { school, isDemo } = useAuth();
   const toast = useToast();
   const defaults = Object.fromEntries(Object.entries(ASSESSMENT_MAX).map(([type, max]) => [type, String(max)]));
   const [maxima, setMaxima] = useState<Record<string, string>>(defaults);
@@ -429,6 +451,14 @@ export function AssessmentMaximumsCard() {
   useEffect(() => {
     if (!school?.id) return;
     let cancelled = false;
+    if (isDemo) {
+      const parsed = parseAssessmentMaxScores(readDemoGradingSetting(ASSESSMENT_MAX_SCORES_KEY));
+      setMaxima(Object.fromEntries(Object.entries(parsed).map(([type, max]) => [type, String(max)])));
+      setLoaded(true);
+      return () => {
+        cancelled = true;
+      };
+    }
     loadSchoolSetting<Record<string, number> | null>(school.id, ASSESSMENT_MAX_SCORES_KEY, null)
       .then((saved) => {
         if (cancelled) return;
@@ -440,7 +470,7 @@ export function AssessmentMaximumsCard() {
     return () => {
       cancelled = true;
     };
-  }, [school?.id]);
+  }, [school?.id, isDemo]);
 
   const save = async () => {
     if (!school?.id) return;
@@ -455,7 +485,8 @@ export function AssessmentMaximumsCard() {
     }
     try {
       setSaving(true);
-      await saveSchoolSetting(school.id, ASSESSMENT_MAX_SCORES_KEY, parsed);
+      if (isDemo) saveDemoGradingSetting(ASSESSMENT_MAX_SCORES_KEY, parsed);
+      else await saveSchoolSetting(school.id, ASSESSMENT_MAX_SCORES_KEY, parsed);
       toast.success("Assessment maximum marks saved");
     } catch (error) {
       toast.error(getErrorMessage(error, "Failed to save assessment maximum marks"));
@@ -516,7 +547,7 @@ interface RowDraft {
 const DEFAULT_LEVEL_KEY = "__default__";
 
 export function ReportRowsCard() {
-  const { school } = useAuth();
+  const { school, isDemo } = useAuth();
   const toast = useToast();
   const { classes } = useClasses(school?.id);
   const { subjects } = useSubjects(school?.id);
@@ -530,6 +561,16 @@ export function ReportRowsCard() {
   useEffect(() => {
     if (!school?.id) return;
     let cancelled = false;
+    if (isDemo) {
+      const parsed = parseReportRows(readDemoGradingSetting(REPORT_ROWS_KEY));
+      const next: Record<string, RowDraft[]> = { [DEFAULT_LEVEL_KEY]: parsed?.default ?? [] };
+      for (const [level, rows] of Object.entries(parsed?.levels ?? {})) next[level] = rows;
+      setRowsByLevel(next);
+      setLoaded(true);
+      return () => {
+        cancelled = true;
+      };
+    }
     loadSchoolSetting<ReportRowConfig[] | null>(school.id, REPORT_ROWS_KEY, null)
       .then((saved) => {
         if (cancelled) return;
@@ -545,7 +586,7 @@ export function ReportRowsCard() {
     return () => {
       cancelled = true;
     };
-  }, [school?.id]);
+  }, [school?.id, isDemo]);
 
   const rows = rowsByLevel[levelKey] ?? [];
 
@@ -598,7 +639,8 @@ export function ReportRowsCard() {
         if (key !== DEFAULT_LEVEL_KEY && list.length > 0) levelOverrides[key] = list;
       }
       if (Object.keys(levelOverrides).length > 0) config.levels = levelOverrides;
-      await saveSchoolSetting(school.id, REPORT_ROWS_KEY, config);
+      if (isDemo) saveDemoGradingSetting(REPORT_ROWS_KEY, config);
+      else await saveSchoolSetting(school.id, REPORT_ROWS_KEY, config);
       toast.success("Report card lines saved");
     } catch (error) {
       toast.error(getErrorMessage(error, "Failed to save report card lines"));

@@ -13,7 +13,7 @@ import { normalizePlanType } from "@/lib/payments/subscription-client";
 import { buildUgandaAcademicTerms, buildUgandaCalendarEvents } from "@/lib/uganda-school-calendar";
 import { normalizeAuthPhone } from "@/lib/validation";
 import { buildDefaultClasses, type SchoolSetupType } from "@/lib/school-setup";
-import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { isTimeoutResult, withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { generateSchoolCode, calculateCommission } from "@/lib/server/marketer-logic";
 import { logger } from "@/lib/logger";
 
@@ -105,13 +105,20 @@ export const POST = withRateLimit(
       const subscriptionPlan = normalizePlanType(selectedPackage || "basic");
 
       // Check existing user
-      const { data: existingUser } = await withTimeout(
+      const existingUserResult = await withTimeout(
         supabaseAdmin.from("users").select("id").eq("phone", normalizedPhone).maybeSingle(),
         10000,
         timeoutFallback(),
       );
+      if (isTimeoutResult(existingUserResult) || existingUserResult.error) {
+        logger.error("[Marketer Register] Existing admin phone lookup failed", {
+          code: existingUserResult.error?.code,
+          timedOut: isTimeoutResult(existingUserResult),
+        });
+        return apiError("Unable to verify the registration phone number. Please try again.", 503);
+      }
 
-      if (existingUser) {
+      if (existingUserResult.data) {
         return apiError("This phone number is already registered. Ask the admin to sign in.", 400);
       }
 
@@ -120,12 +127,19 @@ export const POST = withRateLimit(
       schoolCode = schoolCode + Date.now().toString(36).slice(-2).toUpperCase();
       let codeAttempts = 0;
       while (codeAttempts < 10) {
-        const { data: existingSchool } = await withTimeout(
+        const existingSchoolResult = await withTimeout(
           supabaseAdmin.from("schools").select("id").eq("school_code", schoolCode).maybeSingle(),
           5000,
           timeoutFallback(),
         );
-        if (!existingSchool) break;
+        if (isTimeoutResult(existingSchoolResult) || existingSchoolResult.error) {
+          logger.error("[Marketer Register] School-code collision lookup failed", {
+            code: existingSchoolResult.error?.code,
+            timedOut: isTimeoutResult(existingSchoolResult),
+          });
+          return apiError("Unable to reserve a school code right now. Please try again.", 503);
+        }
+        if (!existingSchoolResult.data) break;
         schoolCode = generateSchoolCode(schoolName, district);
         codeAttempts++;
       }

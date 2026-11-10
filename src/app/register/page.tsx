@@ -31,6 +31,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { useFormValidation, ValidationRules, ValidatedInput } from "@/lib/useFormValidation";
 import { type ModuleKey } from "@/lib/modules/catalog";
 import { PLATFORM_SUPPORT_PHONE_DISPLAY, PLATFORM_SUPPORT_WHATSAPP_URL } from "@/lib/support-contact";
+import { PRIVACY_NOTICE_VERSION, SCHOOL_TERMS_VERSION } from "@/lib/legal-versions";
 
 const SCHOOL_TYPE_OPTIONS = [
   { value: "primary", label: "Primary School  ★ Recommended" },
@@ -80,6 +81,7 @@ function RegisterPageContent() {
   const [showAdvancedSchoolDetails, setShowAdvancedSchoolDetails] = useState(false);
   const [showOptionalContacts, setShowOptionalContacts] = useState(false);
   const [selectedModules, setSelectedModules] = useState<ModuleKey[]>(["reports", "attendance"]);
+  const [acceptedSchoolAgreement, setAcceptedSchoolAgreement] = useState(false);
 
   const googleRegisterMode = searchParams?.get("oauth") === "1";
 
@@ -248,6 +250,11 @@ function RegisterPageContent() {
       return;
     }
 
+    if (!acceptedSchoolAgreement) {
+      setApiError("Please review and accept the School Agreement and Privacy Notice to continue.");
+      return;
+    }
+
     formValidation.clearErrors();
 
     if (!googleRegisterMode && form.password !== form.confirmPassword) {
@@ -288,6 +295,9 @@ function RegisterPageContent() {
           adminName: form.adminName,
           adminPhone: form.adminPhone,
           password: googleRegisterMode ? undefined : form.password,
+          acceptedSchoolAgreement: true,
+          termsVersion: SCHOOL_TERMS_VERSION,
+          privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
         }),
         signal: controller.signal,
       });
@@ -951,6 +961,32 @@ function RegisterPageContent() {
                       />
                     </>
                   )}
+
+                  <label className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4 text-sm leading-6 text-[var(--t2)]">
+                    <input
+                      type="checkbox"
+                      checked={acceptedSchoolAgreement}
+                      onChange={(event) => setAcceptedSchoolAgreement(event.target.checked)}
+                      required
+                      className="mt-1 h-4 w-4 shrink-0 accent-[var(--primary)]"
+                    />
+                    <span>
+                      I confirm that I am authorised to register this school and agree, on its behalf, to the{" "}
+                      <Link
+                        href="/terms#school-data-processing"
+                        target="_blank"
+                        className="font-semibold text-[var(--primary)] underline"
+                      >
+                        School Agreement
+                      </Link>{" "}
+                      and acknowledge the{" "}
+                      <Link href="/privacy" target="_blank" className="font-semibold text-[var(--primary)] underline">
+                        Privacy Notice
+                      </Link>
+                      . I will ensure the school gives required notices, identifies a lawful basis, and obtains any
+                      required parent or guardian permissions before entering learner or sensitive personal data.
+                    </span>
+                  </label>
 
                   <div className="flex gap-3">
                     <Button

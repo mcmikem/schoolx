@@ -351,8 +351,8 @@ export default function BrochurePage() {
               automatically when connected.
             </li>
             <li>
-              <strong>Data ownership:</strong> Schools own their data. Full export available anytime. Data deleted
-              within 30 days of cancellation.
+              <strong>Data ownership:</strong> Schools retain ownership of their records and can request an export or
+              deletion review subject to applicable retention duties and the school agreement.
             </li>
           </ul>
         </div>

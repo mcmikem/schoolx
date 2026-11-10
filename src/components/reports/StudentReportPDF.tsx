@@ -1,6 +1,7 @@
 "use client";
 
 import { Document, Page, Text, View, StyleSheet, pdf } from "@react-pdf/renderer";
+import { formatReportScore } from "@/lib/report-summary";
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontSize: 11, fontFamily: "Helvetica" },
@@ -27,7 +28,7 @@ export interface ReportPDFData {
   className: string;
   term: number;
   academicYear: string;
-  subjects: { name: string; score: number; grade: string }[];
+  subjects: { name: string; score: number | null; grade: string }[];
   classTeacherRemark?: string;
   headTeacherRemark?: string;
   feeBalance?: number | null;
@@ -68,7 +69,7 @@ export function StudentReportDocument({ data }: { data: ReportPDFData }) {
           {data.subjects.map((s, i) => (
             <View key={i} style={styles.tableRow}>
               <Text style={styles.col1}>{s.name}</Text>
-              <Text style={styles.col2}>{s.score}</Text>
+              <Text style={styles.col2}>{formatReportScore(s.score)}</Text>
               <Text style={styles.col3}>{s.grade}</Text>
             </View>
           ))}

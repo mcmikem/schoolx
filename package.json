@@ -11,7 +11,7 @@
     "audit:uiux:strict": "node scripts/audit-uiux.mjs --strict",
     "build": "next build",
     "build:cloudflare": "npx opennextjs-cloudflare build",
-    "deploy:cloudflare": "npx opennextjs-cloudflare build && npx wrangler deploy",
+    "deploy:cloudflare": "npx opennextjs-cloudflare build && npx opennextjs-cloudflare deploy",
     "prebuild": "node scripts/stamp-sw-version.mjs && node scripts/generate-offline-routes.mjs",
     "build:android": "MOBILE_BUILD=1 npm run build && npx cap sync android",
     "build:ios": "MOBILE_BUILD=1 npm run build && npx cap sync ios",
@@ -26,7 +26,8 @@
     "check:ci:watch": "node scripts/check-ci.mjs --watch",
     "check:env": "node scripts/check-env-readiness.mjs",
     "check:production-leakage": "node scripts/check-production-leakage.mjs",
-    "check:release": "npm run lint && npm run typecheck && npm run test:regression && npm run build && npm run check:production-leakage",
+    "check:release": "npm run lint && npm run typecheck && npm run test:regression && npm run test:e2e:auth-session && npm run build && npm run check:production-leakage",
+    "check:public-auth-build-env": "node scripts/check-public-auth-build-env.mjs",
     "check:routes": "node scripts/route-health.mjs",
     "dev": "next dev",
     "dev:android": "npx cap run android --livereload --external",
@@ -61,7 +62,8 @@
     "test:regression": "jest --runInBand --testPathPatterns=regression",
     "test:auth": "jest --runInBand --forceExit src/__tests__/lockdown.test.ts src/__tests__/auth-flows.test.ts src/__tests__/slow-network-auth.test.ts src/__tests__/auth-failure.test.ts src/__tests__/pwa-update.test.ts src/__tests__/regression.test.ts",
     "typecheck": "tsc --noEmit",
-    "test:e2e:offline": "playwright test --config=playwright.offline.config.ts"
+    "test:e2e:offline": "playwright test --config=playwright.offline.config.ts",
+    "test:e2e:auth-session": "playwright test tests/e2e/auth-session-handoff.spec.ts --workers=1"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.0",

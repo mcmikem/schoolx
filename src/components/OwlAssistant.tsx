@@ -207,8 +207,15 @@ export default function OwlAssistant() {
   const lastScrollY = useRef(0);
   // Status communications that arrived while the chat is closed sit here as a
   // badge on the owl and are delivered as messages when it opens.
-  type CommBadge = { title: string; detail?: string; severity: "info" | "success" | "warning" | "error" };
+  type CommBadge = {
+    title: string;
+    detail?: string;
+    severity: "info" | "success" | "warning" | "error";
+    actionLabel?: string;
+    onAction?: () => void;
+  };
   const [commBadge, setCommBadge] = useState<CommBadge | null>(null);
+  const [announcement, setAnnouncement] = useState<CommBadge | null>(null);
   const openRef = useRef(false);
   openRef.current = open;
   const owly = useOwlySignals({
@@ -242,6 +249,12 @@ export default function OwlAssistant() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!announcement) return;
+    const timer = window.setTimeout(() => setAnnouncement(null), 8000);
+    return () => window.clearTimeout(timer);
+  }, [announcement]);
+
   // Persist the conversation so Owly remembers it across reloads — per user,
   // so a shared tablet never carries one person's transcript to the next.
   useEffect(() => {
@@ -264,6 +277,15 @@ export default function OwlAssistant() {
       messagesEndRef.current.scrollIntoView?.({ behavior: "smooth" });
     }
   }, [messages, open]);
+
+  useEffect(() => {
+    if (!announcement) return;
+    const timer = window.setTimeout(() => {
+      setAnnouncement(null);
+      setCommBadge(null);
+    }, 8000);
+    return () => window.clearTimeout(timer);
+  }, [announcement]);
 
   useEffect(() => {
     if (open && inputRef.current) {
@@ -383,7 +405,13 @@ ${detail}`
         return;
       }
       if (request.kind === "notify") {
-        const badge = { title: request.title, detail: request.detail, severity: request.severity };
+        const badge = {
+          title: request.title,
+          detail: request.detail,
+          severity: request.severity,
+          actionLabel: request.actionLabel,
+          onAction: request.onAction,
+        };
         if (openRef.current) {
           // The user is already in the chat: speak now, no badge manoeuvre.
           setMessages((prev) => [
@@ -401,6 +429,7 @@ ${request.detail}`
           return;
         }
         setCommBadge(badge);
+        setAnnouncement(badge);
         return;
       }
       if (request.kind === "error") {
@@ -528,6 +557,12 @@ ${request.detail}`
     writeUserScoped(FAB_HINT_FLAG, userId, true);
   }, [userId, fabHint, open, attention]);
 
+  useEffect(() => {
+    if (!fabHint || !fabVisible || open || attention) return;
+    const timer = window.setTimeout(() => setFabHint(false), 8000);
+    return () => window.clearTimeout(timer);
+  }, [fabHint, fabVisible, open, attention]);
+
   const dismissSuggestion = (id: string) => {
     setDismissedSuggestions((prev) => {
       const next = new Set(prev);
@@ -628,33 +663,87 @@ ${request.detail}`
         </div>
       )}
 
-      {/* ── One-time name label ──
-          An unlabelled owl icon is just another floating button. This says what
-          it is the first time a user could see it, then stays out of the way. */}
+      {/* ── One-time welcome bubble ── */}
       {fabHint && !open && !attention && fabVisible && (
-        <button
-          type="button"
-          onClick={() => {
-            setFabHint(false);
-            setOpen(true);
-          }}
+        <div
+          role="status"
+          aria-label="Owly welcome"
           data-owl-float=""
-          className="fixed z-[9990] flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold text-white shadow-xl transition-transform hover:scale-105 active:scale-95 bottom-[calc(var(--mobile-nav-clearance)+74px)] right-4 sm:bottom-[92px] sm:right-6"
-          style={{ background: "#0b1c39" }}
+          className="fixed z-[9990] w-[min(320px,calc(100vw-32px))] rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-xl bottom-[calc(var(--mobile-nav-clearance)+74px)] right-4 sm:bottom-[92px] sm:right-6"
         >
-          <Image
-            src="/SkoolMate logos/SchoolMate icon.svg"
-            alt=""
-            width={16}
-            height={16}
-            loading="eager"
-            className="rounded"
-          />
-          Ask Owly
-        </button>
+          <div className="flex items-start gap-2">
+            <Image
+              src="/SkoolMate logos/SchoolMate icon.svg"
+              alt=""
+              width={28}
+              height={28}
+              loading="eager"
+              className="shrink-0 rounded-lg"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold leading-snug text-[var(--t1)]">Hi, I’m Owly.</p>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--t2)]">
+                I can help with SkoolMate. Ask me anything.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFabHint(false)}
+              className="tap-44 -m-1 shrink-0 rounded-full p-1 text-[var(--t3)]"
+              aria-label="Dismiss Owly welcome"
+            >
+              <MaterialIcon icon="close" size={16} />
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setFabHint(false);
+              setOpen(true);
+            }}
+            className="mt-3 min-h-10 w-full rounded-xl bg-[var(--primary)] px-3 text-sm font-semibold text-white"
+          >
+            Ask Owly
+          </button>
+        </div>
       )}
 
       {/* ── Floating Owly button ── */}
+      {announcement && !open && fabVisible && (
+        <div
+          className="fixed z-[9991] bottom-[calc(var(--mobile-nav-clearance)+76px)] right-4 w-[min(320px,calc(100vw-32px))] rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-xl sm:bottom-24 sm:right-6"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-[var(--t1)]">{announcement.title}</p>
+              {announcement.detail && <p className="mt-1 text-xs text-[var(--t2)]">{announcement.detail}</p>}
+              {announcement.actionLabel && announcement.onAction && (
+                <button
+                  type="button"
+                  className="mt-2 min-h-9 rounded-full bg-[var(--primary)] px-3 text-xs font-semibold text-white"
+                  onClick={() => {
+                    announcement.onAction?.();
+                    setAnnouncement(null);
+                    setCommBadge(null);
+                  }}
+                >
+                  {announcement.actionLabel}
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              className="min-h-8 min-w-8 rounded-full text-[var(--t3)]"
+              aria-label="Dismiss Owly message"
+              onClick={() => setAnnouncement(null)}
+            >
+              <MaterialIcon icon="close" size={16} />
+            </button>
+          </div>
+        </div>
+      )}
       <button
         onClick={handleFabClick}
         data-owl-assistant=""

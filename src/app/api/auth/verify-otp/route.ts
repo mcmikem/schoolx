@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
-import { supabaseClientOptions } from "@/lib/api-utils";
+import { rateLimitAsync, supabaseClientOptions } from "@/lib/api-utils";
 import { normalizeAuthPhone } from "@/lib/validation";
 import { buildPhoneLookupCandidates } from "@/lib/auth-phone";
 
@@ -23,8 +23,18 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 export async function POST(request: NextRequest) {
   try {
-    const { phone, otp } = await request.json();
-    if (!phone || !otp) {
+    const rateCheck = await rateLimitAsync(request, 5, 5 * 60 * 1000);
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        { error: "Too many attempts. Request a new code and try again later." },
+        { status: 429 },
+      );
+    }
+
+    const body = await request.json();
+    const phone = typeof body?.phone === "string" ? body.phone : "";
+    const otp = typeof body?.otp === "string" ? body.otp : "";
+    if (!phone || phone.length > 32 || !/^\d{6}$/.test(otp)) {
       return NextResponse.json({ error: "Phone and OTP required" }, { status: 400 });
     }
 
@@ -41,6 +51,9 @@ export async function POST(request: NextRequest) {
     // valid codes never match. The stored-format fallback below then mirrors
     // the send route, so a verified code can still find its user. (2026-11-09)
     const normalizedPhone = normalizeAuthPhone(String(phone));
+    if (normalizedPhone.length < 9 || normalizedPhone.length > 16) {
+      return NextResponse.json({ error: "Invalid or expired OTP" }, { status: 401 });
+    }
 
     // Look up OTP — keyed on the same canonical value the send route saved
     const { data: otpRecord, error: otpError } = await supabaseAdmin
@@ -71,30 +84,31 @@ export async function POST(request: NextRequest) {
     // send route: exact stored-format variants first, then a suffix fallback
     // on the trailing 9-digit local part for irregular rows.
     const phoneCandidates = buildPhoneLookupCandidates(String(phone));
-    let { data: parentUser, error: userError } = await supabaseAdmin
+    let { data: parentMatches, error: userError } = await supabaseAdmin
       .from("users")
       .select("auth_id, id, phone, email, full_name, role, school_id")
       .in("phone", phoneCandidates.length ? phoneCandidates : [String(phone)])
+      .eq("role", "parent")
       .eq("is_active", true)
-      .limit(1)
-      .maybeSingle();
+      .limit(2);
 
-    if (!userError && !parentUser) {
+    if (!userError && parentMatches?.length === 0) {
       const lastNine = normalizedPhone.replace(/\D/g, "").slice(-9);
       if (lastNine.length === 9) {
-        ({ data: parentUser, error: userError } = await supabaseAdmin
+        ({ data: parentMatches, error: userError } = await supabaseAdmin
           .from("users")
           .select("auth_id, id, phone, email, full_name, role, school_id")
           .like("phone", `%${lastNine}`)
+          .eq("role", "parent")
           .eq("is_active", true)
-          .limit(1)
-          .maybeSingle());
+          .limit(2));
       }
     }
 
-    if (userError || !parentUser?.auth_id) {
+    if (userError || !parentMatches || parentMatches.length !== 1 || !parentMatches[0]?.auth_id) {
       return NextResponse.json({ error: "Parent account not found" }, { status: 404 });
     }
+    const parentUser = parentMatches[0];
 
     // Generate a magic link so the client can establish a session without
     // knowing the user's password. The magic link token is single-use and
@@ -126,9 +140,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Mark OTP as used only after a successful session link was created, so a
-    // failed verification does not burn the code.
-    await supabaseAdmin.from("otps").update({ used: true }).eq("id", otpRecord.id);
+    // Atomically claim this still-valid code. Concurrent submissions may both
+    // pass the read checks above, but only one can change used=false to true.
+    const { data: claimedOtp, error: claimError } = await supabaseAdmin
+      .from("otps")
+      .update({ used: true })
+      .eq("id", otpRecord.id)
+      .eq("used", false)
+      .gt("expires_at", new Date().toISOString())
+      .select("id")
+      .maybeSingle();
+
+    if (claimError || !claimedOtp) {
+      return NextResponse.json({ error: "Invalid or expired OTP" }, { status: 401 });
+    }
 
     return NextResponse.json({
       success: true,

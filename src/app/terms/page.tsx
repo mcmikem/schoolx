@@ -61,7 +61,7 @@ export default function TermsPage() {
             <h1 className="mt-6 font-['Sora'] text-4xl font-semibold tracking-[-0.05em] text-[var(--t3)] sm:text-5xl">
               Terms of Service
             </h1>
-            <p className="mt-4 text-sm text-[var(--t3)]">Last updated: July 2026</p>
+            <p className="mt-4 text-sm text-[var(--t3)]">Last updated: 9 November 2026</p>
           </FadeIn>
 
           <div className="mt-12 space-y-8 text-sm leading-7 text-[var(--t2)]">
@@ -104,18 +104,90 @@ export default function TermsPage() {
             <FadeIn delay={200}>
               <h2 className="font-['Sora'] text-xl font-semibold text-[var(--t1)]">5. Data Ownership and Privacy</h2>
               <p className="mt-3">
-                Your school&apos;s data belongs to you. Omuto Foundation does not claim ownership over any data you
-                upload. We do not use school data for training, advertising, or any purpose other than operating the
-                Platform. Our data handling practices are described in our Privacy Policy.
+                The school retains its rights in records it provides or creates using the Platform. For learner and
+                school records, the school generally determines the purposes and means of processing, and Omuto
+                Foundation processes those records to provide the Platform and follow the school&apos;s documented
+                instructions. Omuto may act independently for account, billing, security, and support operations. We do
+                not use school records for advertising or AI model training. Our Privacy Notice explains the data
+                categories and service-provider roles.
               </p>
+            </FadeIn>
+
+            <FadeIn delay={225}>
+              <section
+                id="school-data-processing"
+                className="scroll-mt-8 rounded-2xl border border-[var(--border)] bg-white p-6"
+              >
+                <h2 className="font-['Sora'] text-xl font-semibold text-[var(--t1)]">
+                  School Agreement: Data Processing
+                </h2>
+                <p className="mt-3">
+                  By registering a school, the person completing registration confirms they are authorised to accept
+                  these terms for the school. This section applies when the school uses SkoolMate to store or otherwise
+                  process personal data for which the school is responsible.
+                </p>
+                <ul className="mt-3 list-disc space-y-2 pl-5">
+                  <li>
+                    <strong>Subject and duration:</strong> Omuto processes personal data in order to host and provide
+                    SkoolMate features for the duration of the school&apos;s subscription and any agreed transition or
+                    retention period.
+                  </li>
+                  <li>
+                    <strong>Nature and purposes:</strong> Processing may include collecting, organising, storing,
+                    displaying, updating, exporting, backing up, and transmitting records to provide school
+                    administration, teaching, communication, reporting, and support features selected by the school.
+                  </li>
+                  <li>
+                    <strong>Data and people:</strong> Depending on the features used, records may concern learners,
+                    parents or guardians, school staff, and school representatives, and may include identity, education,
+                    attendance, contact, payment, health, or other information the school chooses to enter.
+                  </li>
+                  <li>
+                    <strong>School responsibilities:</strong> The school must use the Platform lawfully, determine and
+                    document its lawful basis, provide required notices, obtain any required permissions, limit data to
+                    what is necessary, keep it accurate, and configure staff access appropriately. The school must not
+                    enter information it has no authority to process.
+                  </li>
+                  <li>
+                    <strong>Omuto responsibilities:</strong> Omuto will process school records only to provide and
+                    secure the service, follow documented school instructions, restrict access to people who need it and
+                    are subject to confidentiality duties, and maintain appropriate technical and organisational
+                    safeguards. Omuto will notify the school of a confirmed personal-data breach affecting its records
+                    without undue delay after becoming aware, and reasonably assist with data-subject requests and the
+                    school&apos;s compliance duties.
+                  </li>
+                  <li>
+                    <strong>Service providers and transfers:</strong> The school authorises use of service providers
+                    needed to host, secure, communicate through, and support the Platform, subject to appropriate
+                    written obligations. Before enabling a new provider or processing location for school records, Omuto
+                    will make the applicable provider and location information available to the school and address any
+                    required transfer safeguards.
+                  </li>
+                  <li>
+                    <strong>Requests and end of service:</strong> Omuto will direct requests concerning school records
+                    to the school where the school is the controller, and will reasonably assist the school. At the end
+                    of service, the school may request return or deletion, subject to applicable legal retention duties,
+                    agreed timelines, and backup cycles.
+                  </li>
+                </ul>
+                <p className="mt-3">
+                  The school remains responsible for decisions about learner records and for responding to requests from
+                  learners, parents, guardians, and staff. Contact{" "}
+                  <a href="mailto:os@omuto.org" className="text-[var(--primary)] hover:underline">
+                    os@omuto.org
+                  </a>{" "}
+                  to request the current service-provider schedule or discuss a written school-specific addendum.
+                </p>
+              </section>
             </FadeIn>
 
             <FadeIn delay={250}>
               <h2 className="font-['Sora'] text-xl font-semibold text-[var(--t1)]">6. Data Export and Deletion</h2>
               <p className="mt-3">
-                You may export your data at any time. Upon cancellation, you retain access until the end of your current
-                term. After that, we delete your data within 30 days unless you request otherwise. We provide one free
-                data export upon request after cancellation.
+                Authorized school users may request an export. Upon cancellation, access continues until the end of the
+                current term. The school may then request return or deletion of its data, handled under the school
+                agreement, applicable retention duties, and the documented return or deletion process. Timing depends on
+                the data and any required retention or backup cycle; contact us to arrange a request.
               </p>
             </FadeIn>
 

@@ -17,6 +17,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const auth = await requireUserWithSchool(request);
     if (!auth.ok) return auth.response;
 
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: STUDENT_MGMT_ROLES,
+    });
+    if (!roleCheck.ok) return roleCheck.response;
+
     const { id } = await params;
     const { searchParams } = request.nextUrl;
     const schoolId = searchParams.get("school_id") || auth.context.schoolId;
@@ -126,6 +132,16 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       if (key in updates) {
         sanitized[key] = updates[key];
       }
+    }
+
+    if (sanitized.class_id) {
+      const { data: classRow } = await supabase
+        .from("classes")
+        .select("id")
+        .eq("id", sanitized.class_id)
+        .eq("school_id", schoolId)
+        .maybeSingle();
+      if (!classRow) return apiError("Selected class is not available in this school", 400);
     }
 
     const { data, error } = await supabase

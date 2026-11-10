@@ -104,7 +104,7 @@ export default function MobileBottomNav() {
   const isHome = normalizedPath === "/dashboard";
 
   return (
-    <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
+    <nav className="mobile-bottom-nav" aria-label="Mobile navigation" data-tour="mobile-nav">
       {/* Home. */}
       <NavItem href="/dashboard" icon="home" label="Home" active={isHome} />
       {/* Attend */}

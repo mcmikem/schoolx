@@ -28,28 +28,33 @@ function ChipAvatar({ child }: { child: ParentPortalChild }) {
 export function ChildSelector({ label = "Learner" }: { label?: string }) {
   const { children, selectedChild, setSelectedChild } = useParentPortal();
 
-  if (children.length <= 1) return null;
+  if (children.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex gap-3 overflow-x-auto pb-1">
+    <div className="min-w-0">
+      <div role="group" aria-label={`Select ${label.toLowerCase()}`} className="flex gap-3 overflow-x-auto pb-1">
         {children.map((child) => (
           <button
             key={child.id}
             type="button"
             onClick={() => setSelectedChild(child)}
-            className={`shrink-0 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap transition-all border ${
+            aria-pressed={selectedChild?.id === child.id}
+            aria-label={`Select ${child.first_name} ${child.last_name}`}
+            className={`flex min-h-12 shrink-0 items-center gap-3 rounded-2xl border px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors ${
               selectedChild?.id === child.id
-                ? "bg-[var(--primary)] text-[var(--on-primary)] border-transparent shadow-[0_12px_24px_rgba(0,92,230,0.18)]"
-                : "bg-[var(--surface)] text-[var(--on-surface-variant)] border-[var(--border)] hover:bg-[var(--surface-container-low)]"
+                ? "border-transparent bg-[var(--primary)] text-[var(--on-primary)] shadow-[var(--sh1)]"
+                : "border-[var(--border)] bg-[var(--surface)] text-[var(--t2)] hover:bg-[var(--surface-container-low)]"
             }`}
           >
-            <ChipAvatar child={child} />
-            {child.first_name} {child.last_name}
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--surface-container)] text-xs font-bold text-[var(--t2)]">
+              <ChipAvatar child={child} />
+            </span>
+            <span className="max-w-[12rem] truncate">
+              {child.first_name} {child.last_name}
+            </span>
           </button>
         ))}
       </div>
-      <p className="text-xs text-[var(--t3)]">{label} data updates when you switch.</p>
     </div>
   );
 }

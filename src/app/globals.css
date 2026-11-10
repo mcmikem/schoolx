@@ -1923,6 +1923,19 @@ table tr {
 }
 
 /* -- CUSTOM ANIMATIONS -------------------------------------- */
+@keyframes owly-welcome-progress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.owly-welcome-progress {
+  animation: owly-welcome-progress 9s linear forwards;
+}
+
 @keyframes pulse-soft {
   0%,
   100% {

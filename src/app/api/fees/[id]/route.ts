@@ -60,6 +60,16 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
+    if (sanitized.class_id) {
+      const { data: classRow } = await supabase
+        .from("classes")
+        .select("id")
+        .eq("id", sanitized.class_id)
+        .eq("school_id", schoolId)
+        .maybeSingle();
+      if (!classRow) return apiError("Selected class is not available in this school", 400);
+    }
+
     const { data, error } = await supabase
       .from("fee_structure")
       .update(sanitized)

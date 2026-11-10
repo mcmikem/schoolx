@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import { useOfflineEvents } from "@/lib/offline-hooks";
@@ -52,8 +52,10 @@ function iso(year: number, month: number, day: number): string {
 
 function getUgandaPublicHolidays(year: number) {
   const easter = easterSunday(year);
-  const goodFriday = new Date(easter); goodFriday.setDate(easter.getDate() - 2);
-  const easterMonday = new Date(easter); easterMonday.setDate(easter.getDate() + 1);
+  const goodFriday = new Date(easter);
+  goodFriday.setDate(easter.getDate() - 2);
+  const easterMonday = new Date(easter);
+  easterMonday.setDate(easter.getDate() + 1);
   const fmt = (d: Date) => iso(d.getFullYear(), d.getMonth() + 1, d.getDate());
   return [
     { date: iso(year, 1, 1), name: "New Year's Day" },
@@ -101,8 +103,6 @@ const EVENT_COLORS: Record<string, string> = {
 
 function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }) {
   const toast = useToast();
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [saving, setSaving] = useState(false);
@@ -116,17 +116,7 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
   });
 
   // Offline-aware events
-  const {
-    data: offlineEvents = [],
-    loading: eventsLoading,
-    error: eventsError,
-    refetch: refetchEvents,
-  } = useOfflineEvents(schoolId);
-
-  useEffect(() => {
-    setEvents(offlineEvents);
-    setLoading(eventsLoading);
-  }, [offlineEvents, eventsLoading]);
+  const { data: events, loading, refetch: refetchEvents } = useOfflineEvents(schoolId, { userId });
 
   const openAdd = () => {
     setEditingEvent(null);
@@ -164,13 +154,19 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
         created_by: userId,
       };
       if (editingEvent) {
-        const result = await withTimeout(supabase.from("events").update(payload).eq("id", editingEvent.id), 15000, timeoutFallback());
-        if (isTimeoutResult(result)) throw new Error("Updating the event timed out. Check your connection and try again.");
+        const result = await withTimeout(
+          supabase.from("events").update(payload).eq("id", editingEvent.id),
+          15000,
+          timeoutFallback(),
+        );
+        if (isTimeoutResult(result))
+          throw new Error("Updating the event timed out. Check your connection and try again.");
         if (result?.error) throw new Error(result.error.message || "Failed to update event");
         toast.success("Event updated");
       } else {
         const result = await withTimeout(supabase.from("events").insert(payload), 15000, timeoutFallback());
-        if (isTimeoutResult(result)) throw new Error("Adding the event timed out. Check your connection and try again.");
+        if (isTimeoutResult(result))
+          throw new Error("Adding the event timed out. Check your connection and try again.");
         if (result?.error) throw new Error(result.error.message || "Failed to add event");
         toast.success("Event added");
       }
@@ -197,7 +193,7 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
       toast.error("Failed to delete");
       return;
     }
-    setEvents((prev) => prev.filter((e) => e.id !== id));
+    refetchEvents();
     toast.success("Event deleted");
   };
 
@@ -246,8 +242,6 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
     const [y, m] = key.split("-");
     return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString("en-UG", { month: "long", year: "numeric" });
   };
-
-
 
   return (
     <>
@@ -353,74 +347,84 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
           size="md"
         >
           <form onSubmit={handleSave} className="space-y-4">
-                <div>
-                  <label htmlFor="event-title" className="text-xs font-medium text-[var(--t2)] mb-1 block">Event Title *</label>
-                  <input
-                    id="event-title"
-                    value={form.title}
-                    onChange={(e) => setForm({ ...form, title: e.target.value })}
-                    className="input w-full"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor="event-type" className="text-xs font-medium text-[var(--t2)] mb-1 block">Type</label>
-                    <select
-                      id="event-type"
-                      value={form.event_type}
-                      onChange={(e) => setForm({ ...form, event_type: e.target.value })}
-                      className="input w-full"
-                    >
-                      <option value="academic">Academic</option>
-                      <option value="holiday">Holiday</option>
-                      <option value="exam">Exam</option>
-                      <option value="meeting">Meeting</option>
-                      <option value="event">Event</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="event-start" className="text-xs font-medium text-[var(--t2)] mb-1 block">Start Date *</label>
-                    <input
-                      id="event-start"
-                      type="date"
-                      value={form.start_date}
-                      onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-                      className="input w-full"
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="event-end" className="text-xs font-medium text-[var(--t2)] mb-1 block">End Date (optional)</label>
-                  <input
-                    type="date"
-                    id="event-end"
-                    value={form.end_date}
-                    onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-                    className="input w-full"
-                    min={form.start_date}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="event-desc" className="text-xs font-medium text-[var(--t2)] mb-1 block">Description</label>
-                  <textarea
-                    id="event-desc"
-                    value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    className="input w-full"
-                    rows={2}
-                  />
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <Button type="button" variant="secondary" onClick={() => setShowModal(false)} className="flex-1">
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={saving} className="flex-1">
-                    {saving ? "Saving…" : editingEvent ? "Update" : "Add Event"}
-                  </Button>
-                </div>
-              </form>
+            <div>
+              <label htmlFor="event-title" className="text-xs font-medium text-[var(--t2)] mb-1 block">
+                Event Title *
+              </label>
+              <input
+                id="event-title"
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                className="input w-full"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="event-type" className="text-xs font-medium text-[var(--t2)] mb-1 block">
+                  Type
+                </label>
+                <select
+                  id="event-type"
+                  value={form.event_type}
+                  onChange={(e) => setForm({ ...form, event_type: e.target.value })}
+                  className="input w-full"
+                >
+                  <option value="academic">Academic</option>
+                  <option value="holiday">Holiday</option>
+                  <option value="exam">Exam</option>
+                  <option value="meeting">Meeting</option>
+                  <option value="event">Event</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="event-start" className="text-xs font-medium text-[var(--t2)] mb-1 block">
+                  Start Date *
+                </label>
+                <input
+                  id="event-start"
+                  type="date"
+                  value={form.start_date}
+                  onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+                  className="input w-full"
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="event-end" className="text-xs font-medium text-[var(--t2)] mb-1 block">
+                End Date (optional)
+              </label>
+              <input
+                type="date"
+                id="event-end"
+                value={form.end_date}
+                onChange={(e) => setForm({ ...form, end_date: e.target.value })}
+                className="input w-full"
+                min={form.start_date}
+              />
+            </div>
+            <div>
+              <label htmlFor="event-desc" className="text-xs font-medium text-[var(--t2)] mb-1 block">
+                Description
+              </label>
+              <textarea
+                id="event-desc"
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                className="input w-full"
+                rows={2}
+              />
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button type="button" variant="secondary" onClick={() => setShowModal(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button type="submit" disabled={saving} className="flex-1">
+                {saving ? "Saving…" : editingEvent ? "Update" : "Add Event"}
+              </Button>
+            </div>
+          </form>
         </Modal>
       </div>
 

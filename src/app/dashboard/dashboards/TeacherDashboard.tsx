@@ -11,20 +11,23 @@ import { EmptyState } from "@/components/EmptyState";
 import TaskManager from "@/components/dashboard/TaskManager";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaterialIcon from "@/components/MaterialIcon";
-import { useToast } from "@/components/Toast";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import { isModuleInFeatureStage, getRequiredModuleForPath, type FeatureStage } from "@/lib/modules/catalog";
 import { StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
 import { useAcademic } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
+import { offlineDB, useOnlineStatus } from "@/lib/offline";
+import { askOwly } from "@/lib/owly-bus";
 import { useAllStudents, useClasses, useDashboardStats, useSubjects } from "@/lib/hooks";
 import { getLocalDateString, withTimeout } from "@/lib/hooks/utils";
 import { isClassScopedRole } from "@/lib/roles";
 import { supabase } from "@/lib/supabase";
+import { getNextLessonReminder } from "@/lib/timetable/lesson-reminders";
 import { greetingFor, todayLabelFor } from "@/lib/utils";
 
 interface TodaySlot {
   id: string;
+  day_of_week: number;
   period_number: number | null;
   start_time: string | null;
   end_time: string | null;
@@ -33,10 +36,20 @@ interface TodaySlot {
   subjects?: { name?: string | null } | null;
 }
 
+interface StoredLessonReminder {
+  lessonId: string;
+  startTime: string;
+  label: string;
+  room: string | null;
+  dueAt: number;
+  startsAt: number;
+  fired: boolean;
+}
+
 export function TeacherDashboardContent() {
   const router = useRouter();
-  const toast = useToast();
   const { school, user, isDemo } = useAuth();
+  const isOnline = useOnlineStatus();
   const { academicYear, currentTerm } = useAcademic();
   // The whole roster, not `useStudents`' first 100 rows: per-class counts off a
   // capped page stop rising at 100 and start reporting healthy classes as empty.
@@ -50,11 +63,16 @@ export function TeacherDashboardContent() {
   // rows to this teacher's classes. null = still checking (or check failed).
   const [markedClassIds, setMarkedClassIds] = useState<Set<string> | null>(null);
   const [todaySlots, setTodaySlots] = useState<TodaySlot[] | null>(null);
+  const [reminderClock, setReminderClock] = useState(() => new Date());
+  const [lessonReminder, setLessonReminder] = useState<StoredLessonReminder | null>(null);
   const [classSearch, setClassSearch] = useState("");
   // Only the essentials block the first paint: classes and subjects. The
   // roster and dashboard stats stream in afterwards so a slow phone shows
   // something useful instead of a spinner for the whole load.
-  const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+  const isOffline = !isOnline;
+  const lessonReminderKey = user?.id
+    ? `skoolmate:next-lesson:${school?.id || "school"}:${user.id}:${getLocalDateString(reminderClock)}`
+    : null;
   // Offline: never block on loading — serve cached (or empty) data immediately
   // so the user is not stuck on a spinner that can never resolve.
   const dataLoading = isOffline ? false : classesLoading || subjectsLoading;
@@ -103,12 +121,22 @@ export function TeacherDashboardContent() {
     let cancelled = false;
     (async () => {
       try {
+        const weekday = new Date().getDay();
+        // teacher_timetable stores Monday=1 through Sunday=7.
+        const dayOfWeek = weekday === 0 ? 7 : weekday;
+        if (!isOnline) {
+          const cached = await offlineDB.getAllFromCache("teacher_timetable", {
+            teacher_id: user.id,
+            day_of_week: dayOfWeek,
+          });
+          if (!cancelled) setTodaySlots(cached as unknown as TodaySlot[]);
+          return;
+        }
         const slots = await withTimeout(
           supabase
             .from("teacher_timetable")
-            .select("id, period_number, start_time, end_time, room, classes(name), subjects(name)")
+            .select("id, day_of_week, period_number, start_time, end_time, room, classes(name), subjects(name)")
             .eq("teacher_id", user.id)
-            .eq("day_of_week", new Date().getDay())
             .order("period_number")
             .then((r) => {
               if (r.error) throw r.error;
@@ -117,15 +145,134 @@ export function TeacherDashboardContent() {
           15000,
           null,
         );
-        if (!cancelled && slots != null) setTodaySlots(slots);
+        if (!cancelled && slots != null) {
+          setTodaySlots(slots.filter((slot) => slot.day_of_week === dayOfWeek));
+          await offlineDB.cacheFromServer(
+            "teacher_timetable",
+            slots.map((slot) => ({ ...slot, teacher_id: user.id, school_id: school?.id })) as unknown as Record<
+              string,
+              unknown
+            >[],
+          );
+        }
       } catch {
-        if (!cancelled) setTodaySlots([]);
+        const weekday = new Date().getDay();
+        const dayOfWeek = weekday === 0 ? 7 : weekday;
+        const cached = await offlineDB.getAllFromCache("teacher_timetable", {
+          teacher_id: user.id,
+          day_of_week: dayOfWeek,
+        });
+        if (!cancelled) setTodaySlots(cached as unknown as TodaySlot[]);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [dataLoading, user?.id]);
+  }, [dataLoading, user?.id, school?.id, isOnline]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setReminderClock(new Date()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    setLessonReminder(null);
+    if (!lessonReminderKey) return;
+    try {
+      const saved = localStorage.getItem(lessonReminderKey);
+      setLessonReminder(saved ? (JSON.parse(saved) as StoredLessonReminder) : null);
+    } catch {
+      setLessonReminder(null);
+    }
+  }, [lessonReminderKey]);
+
+  const nextLessonReminder = useMemo(
+    () => getNextLessonReminder(todaySlots || [], reminderClock),
+    [todaySlots, reminderClock],
+  );
+
+  useEffect(() => {
+    if (!lessonReminder || lessonReminder.fired || !lessonReminderKey) return;
+    const checkReminder = () => {
+      if (lessonReminder.dueAt > Date.now()) return;
+      if (lessonReminder.startsAt <= Date.now()) {
+        localStorage.removeItem(lessonReminderKey);
+        setLessonReminder(null);
+        askOwly({
+          kind: "notify",
+          title: "Lesson reminder missed",
+          detail: "SkoolMate was not active before the lesson began. Open the timetable to check your next class.",
+          severity: "info",
+          actionLabel: "Open timetable",
+          onAction: () => router.push("/dashboard/timetable"),
+        });
+        return;
+      }
+      const currentLesson = todaySlots?.find((slot) => slot.id === lessonReminder.lessonId);
+      if (!currentLesson || currentLesson.start_time !== lessonReminder.startTime) {
+        localStorage.removeItem(lessonReminderKey);
+        setLessonReminder(null);
+        askOwly({
+          kind: "notify",
+          title: "Your timetable changed",
+          detail: "The lesson reminder was cleared because that class or start time changed on today's schedule.",
+          severity: "info",
+          actionLabel: "Open timetable",
+          onAction: () => router.push("/dashboard/timetable"),
+        });
+        return;
+      }
+      const delivered = askOwly({
+        kind: "notify",
+        title: "Your next lesson starts now",
+        detail: `${lessonReminder.label}${lessonReminder.room ? ` · Room ${lessonReminder.room}` : ""}. Open your timetable for the full schedule.`,
+        severity: "info",
+        actionLabel: "Open timetable",
+        onAction: () => router.push("/dashboard/timetable"),
+      });
+      if (!delivered) return;
+      const firedReminder = { ...lessonReminder, fired: true };
+      localStorage.setItem(lessonReminderKey, JSON.stringify(firedReminder));
+      setLessonReminder(firedReminder);
+    };
+    checkReminder();
+    const timer = window.setInterval(checkReminder, 15_000);
+    return () => window.clearInterval(timer);
+  }, [lessonReminder, lessonReminderKey, router, todaySlots]);
+
+  const armNextLessonReminder = () => {
+    if (!lessonReminderKey || !nextLessonReminder || !todaySlots) {
+      askOwly({
+        kind: "notify",
+        title: "No upcoming timed lesson",
+        detail: "There is no future lesson with a start time on today's schedule.",
+        severity: "info",
+        actionLabel: "Open timetable",
+        onAction: () => router.push("/dashboard/timetable"),
+      });
+      return;
+    }
+    const lesson = nextLessonReminder.lesson;
+    const saved: StoredLessonReminder = {
+      lessonId: lesson.id,
+      startTime: lesson.start_time || "",
+      label: `${lesson.subjects?.name || "Lesson"} · ${lesson.classes?.name || "Class"} at ${lesson.start_time?.slice(0, 5) || "scheduled time"}`,
+      room: lesson.room,
+      dueAt: nextLessonReminder.dueAt.getTime(),
+      startsAt: nextLessonReminder.startsAt.getTime(),
+      fired: false,
+    };
+    localStorage.setItem(lessonReminderKey, JSON.stringify(saved));
+    setLessonReminder(saved);
+    askOwly({
+      kind: "notify",
+      title: "Lesson reminder set",
+      detail: `Owly will alert you before ${saved.label}. Keep SkoolMate open for the reminder.`,
+      severity: "success",
+      actionLabel: "Open timetable",
+      onAction: () => router.push("/dashboard/timetable"),
+    });
+  };
 
   const currentDate = new Date();
   const greeting = greetingFor(currentDate);
@@ -485,6 +632,40 @@ export function TeacherDashboardContent() {
                 Open timetable
               </Link>
             </div>
+            {todaySlots?.length ? (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={armNextLessonReminder}
+                  disabled={!nextLessonReminder || Boolean(lessonReminder && !lessonReminder.fired)}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[var(--border)] px-3 text-xs font-semibold text-[var(--t2)] hover:bg-[var(--surface-container-low)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <MaterialIcon
+                    icon={lessonReminder && !lessonReminder.fired ? "notifications_active" : "notifications"}
+                    className="text-sm"
+                  />
+                  {lessonReminder && !lessonReminder.fired
+                    ? `Reminder set · ${lessonReminder.startTime.slice(0, 5)}`
+                    : lessonReminder?.fired
+                      ? "Reminder sent · set another"
+                      : "Remind me before next lesson"}
+                </button>
+                {lessonReminder && !lessonReminder.fired && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (lessonReminderKey) localStorage.removeItem(lessonReminderKey);
+                      setLessonReminder(null);
+                      askOwly({ kind: "notify", title: "Lesson reminder cancelled", severity: "info" });
+                    }}
+                    className="min-h-10 rounded-full px-3 text-xs font-medium text-[var(--t3)] hover:bg-[var(--surface-container-low)]"
+                  >
+                    Cancel
+                  </button>
+                )}
+                <span className="text-xs text-[var(--t3)]">Keep SkoolMate open to receive the reminder.</span>
+              </div>
+            ) : null}
             <div className="mt-3 space-y-2">
               {todaySlots === null ? (
                 <div className="h-10 w-full animate-pulse rounded-xl bg-[var(--surface-container-low)]" />

@@ -54,6 +54,11 @@ export async function GET(request: NextRequest) {
       return apiError("School context required", 403);
     }
 
+    // Avoid the lazy default-row upsert below during a demo GET.
+    if (auth.context.isDemo) {
+      return apiSuccess({ rules: defaultRules(auth.context.schoolId) });
+    }
+
     const supabase = await createSupabaseServerClient();
 
     let { data, error } = await supabase

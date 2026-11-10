@@ -62,6 +62,7 @@ export type Tab =
   | "modules"
   | "marketers"
   | "settings"
+  | "privacy_requests"
   | "audit"
   | "activity";
 

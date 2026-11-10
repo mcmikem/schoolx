@@ -33,6 +33,19 @@ const STORAGE_BUCKETS = {
   },
 } as const;
 
+const FILE_UPLOAD_ROLES = [
+  "super_admin",
+  "school_admin",
+  "admin",
+  "headmaster",
+  "dean_of_studies",
+  "bursar",
+  "teacher",
+  "secretary",
+  "dorm_master",
+];
+const STORAGE_ADMIN_ROLES = ["super_admin", "school_admin", "admin", "headmaster"];
+
 function sanitizeFileName(name: string): string {
   return name
     .replace(/[^a-zA-Z0-9._-]/g, "_")
@@ -131,6 +144,10 @@ export async function POST(request: NextRequest) {
     const auth = await requireUserWithSchool(request);
     if (!auth.ok) return auth.response;
 
+    if (!FILE_UPLOAD_ROLES.includes(auth.context.user.role)) {
+      return apiError("Only school staff can upload school files", 403);
+    }
+
     if (!supabaseServiceKey) {
       return apiError("Server configuration error", 500);
     }
@@ -138,6 +155,13 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const path = (formData.get("path") as string) || "";
+
+    if (!file && !STORAGE_ADMIN_ROLES.includes(auth.context.user.role)) {
+      return apiError("Only school administrators can manage storage buckets", 403);
+    }
+    if (file && getBucketName(path) === "school-logos" && !STORAGE_ADMIN_ROLES.includes(auth.context.user.role)) {
+      return apiError("Only school administrators can upload the public school logo", 403);
+    }
 
     const supabaseAdmin = createClient(
       supabaseUrl,
@@ -220,6 +244,10 @@ export async function GET(request: NextRequest) {
   try {
     const auth = await requireUserWithSchool(request);
     if (!auth.ok) return auth.response;
+
+    if (!STORAGE_ADMIN_ROLES.includes(auth.context.user.role)) {
+      return apiError("Only school administrators can inspect storage buckets", 403);
+    }
 
     if (!supabaseServiceKey) {
       return apiError("Server configuration error", 500);

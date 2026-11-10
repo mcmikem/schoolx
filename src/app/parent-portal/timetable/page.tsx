@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { supabase } from "@/lib/supabase";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -81,6 +82,7 @@ function formatTime(raw: string): string {
 
 export default function ParentTimetablePage() {
   const { isDemo } = useAuth();
+  const isOnline = useOnlineStatus();
   const { selectedChild } = useParentPortal();
   const [slots, setSlots] = useState<TimetableSlot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,16 +99,53 @@ export default function ParentTimetablePage() {
         return;
       }
 
-      const { data } = await withTimeout(
-        supabase
-          .from("teacher_timetable")
-          .select("id, day_of_week, period_number, start_time, end_time, room, subjects(name)")
-          .eq("class_id", child.class_id)
-          .order("day_of_week", { ascending: true })
-          .order("period_number", { ascending: true }),
-        12000,
-        timeoutFallback(),
-      );
+      if (!isOnline) {
+        const cached = await offlineDB.getAllFromCache("teacher_timetable", { class_id: child.class_id });
+        setSlots(
+          cached.map((row: any) => ({
+            id: String(row.id),
+            day_of_week: Number(row.day_of_week),
+            period_number: Number(row.period_number),
+            start_time: String(row.start_time || ""),
+            end_time: String(row.end_time || ""),
+            room: typeof row.room === "string" ? row.room : null,
+            subject_name: row.subjects?.name || `Period ${row.period_number}`,
+          })) as TimetableSlot[],
+        );
+        setLoading(false);
+        return;
+      }
+
+      let data: Record<string, any>[] | null = null;
+      try {
+        const result = await withTimeout(
+          supabase
+            .from("teacher_timetable")
+            .select("id, day_of_week, period_number, start_time, end_time, room, subjects(name)")
+            .eq("class_id", child.class_id)
+            .order("day_of_week", { ascending: true })
+            .order("period_number", { ascending: true }),
+          12000,
+          timeoutFallback(),
+        );
+        data = result.data as Record<string, any>[] | null;
+        if (result.error) throw result.error;
+      } catch {
+        const cached = await offlineDB.getAllFromCache("teacher_timetable", { class_id: child.class_id });
+        setSlots(
+          cached.map((row: any) => ({
+            id: String(row.id),
+            day_of_week: Number(row.day_of_week),
+            period_number: Number(row.period_number),
+            start_time: String(row.start_time || ""),
+            end_time: String(row.end_time || ""),
+            room: typeof row.room === "string" ? row.room : null,
+            subject_name: row.subjects?.name || `Period ${row.period_number}`,
+          })) as TimetableSlot[],
+        );
+        setLoading(false);
+        return;
+      }
 
       const mapped: TimetableSlot[] = (data || []).map((row: any) => ({
         id: row.id,
@@ -118,9 +157,16 @@ export default function ParentTimetablePage() {
         subject_name: row.subjects?.name || `Period ${row.period_number}`,
       }));
       setSlots(mapped);
+      await offlineDB.cacheFromServer(
+        "teacher_timetable",
+        (data || []).map((row: any) => ({ ...row, class_id: child.class_id, school_id: child.school_id })) as Record<
+          string,
+          unknown
+        >[],
+      );
       setLoading(false);
     },
-    [isDemo],
+    [isDemo, isOnline],
   );
 
   useEffect(() => {

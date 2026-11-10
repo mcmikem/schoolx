@@ -50,18 +50,19 @@ export async function POST(request: NextRequest) {
       const status = await verifyMobileMoneyPayment(reference, provider as "mtn" | "airtel");
 
       if (status.status === "completed") {
-        await updatePendingMobilePayment(reference, "completed");
-
-        await updatePaymentStatus(reference, "completed", {
-          paid_at: new Date().toISOString(),
-        });
-
+        // Apply the server-verified settlement before closing either local
+        // payment record. If activation fails, the caller/provider can retry.
         await activateSchoolSubscription(
           pendingPayment.school_id,
           pendingPayment.plan as "starter" | "growth" | "enterprise" | "lifetime",
           provider,
           reference,
         );
+
+        await updatePendingMobilePayment(reference, "completed");
+        await updatePaymentStatus(reference, "completed", {
+          paid_at: new Date().toISOString(),
+        });
 
         await sendPaymentReceipt(pendingPayment.school_id, {
           amount: pendingPayment.amount,

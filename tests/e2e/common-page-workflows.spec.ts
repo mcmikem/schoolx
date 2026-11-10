@@ -49,6 +49,33 @@ test("headmaster can search generated report cards, clear empty results, and edi
     await results.scrollIntoViewIfNeeded();
     await page.screenshot({ path: join(output, `report-cards-${width}.png`), animations: "disabled" });
   }
+
+  // The print window must be opened synchronously from the click, before the
+  // report data/build awaits, or Chrome may treat it as a blocked popup.
+  const printPopupPromise = page.waitForEvent("popup");
+  await page.getByRole("button", { name: /Print visible/i }).click();
+  const printPopup = await printPopupPromise;
+  await expect(printPopup.locator("body")).toContainText(/Progress Report|Report Card/i, { timeout: 60_000 });
+});
+
+test("staff password reset enforces the shared password rule and clears the field on dismiss", async ({ page }) => {
+  await seedDemoSession(page, "headmaster");
+  await page.goto("/dashboard/staff/");
+  await page.getByRole("button", { name: /^Actions for / }).first().click();
+  await page.getByRole("button", { name: "Reset password", exact: true }).click();
+
+  const temporaryPassword = page.getByLabel("Temporary password", { exact: true });
+  await expect(temporaryPassword).toBeVisible();
+  const submit = page.getByRole("button", { name: "Reset password", exact: true }).last();
+  await temporaryPassword.fill("short7a");
+  await expect(submit).toBeDisabled();
+  await temporaryPassword.fill("StrongPass1");
+  await expect(submit).toBeEnabled();
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+
+  await page.getByRole("button", { name: /^Actions for / }).first().click();
+  await page.getByRole("button", { name: "Reset password", exact: true }).click();
+  await expect(page.getByLabel("Temporary password", { exact: true })).toHaveValue("");
 });
 
 test("student search and advanced filters stay usable on narrow phones", async ({ page }) => {

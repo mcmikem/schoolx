@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseAuthCookieName } from "@/lib/supabase-cookie";
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,12 +45,15 @@ export async function POST(request: NextRequest) {
       ).toString("base64url");
 
     const response = NextResponse.redirect(new URL("/dashboard/", request.url), 303);
-    response.cookies.set("sb-gucxpmgwvnbqykevucbi-auth-token", cookieValue, {
-      path: "/",
-      maxAge: session.expires_in || 3600,
-      sameSite: "lax",
-      httpOnly: false,
-    });
+    const cookieName = getSupabaseAuthCookieName(process.env.NEXT_PUBLIC_SUPABASE_URL);
+    if (cookieName) {
+      response.cookies.set(cookieName, cookieValue, {
+        path: "/",
+        maxAge: session.expires_in || 3600,
+        sameSite: "lax",
+        httpOnly: false,
+      });
+    }
     return response;
   } catch (error) {
     return NextResponse.redirect(new URL("/login/?error=server", request.url), 303);

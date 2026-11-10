@@ -166,7 +166,7 @@ test.describe("Authenticated dashboard flows", () => {
     await expect(
       page.getByRole("button", { name: /sync now/i }),
     ).toBeVisible();
-    await expect(page.getByText(/pending changes/i)).toBeVisible();
+    await expect(page.getByText(/Offline changes, conflicts and last-sync status/i)).toBeVisible();
   });
 
   test("headmaster can search a student and open SMS modal", async ({

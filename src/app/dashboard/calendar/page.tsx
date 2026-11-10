@@ -1,6 +1,6 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useOfflineEvents } from "@/lib/offline-hooks";
@@ -14,6 +14,9 @@ import { getErrorMessage } from "@/lib/validation";
 import { logger } from "@/lib/logger";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
+import { useClasses, useStaff } from "@/lib/hooks";
+import { hasAnyRole } from "@/lib/roles";
+import { expandRecurringEvents, isWithinRecurrenceLimit, type EventRecurrence } from "@/lib/calendar-event-recurrence";
 
 interface SchoolEvent {
   id: string;
@@ -22,7 +25,18 @@ interface SchoolEvent {
   event_type: "exam" | "meeting" | "holiday" | "event" | "academic";
   start_date: string;
   end_date: string | null;
-  audience: "personal" | "school" | "parents";
+  start_time?: string | null;
+  end_time?: string | null;
+  time_zone?: string | null;
+  all_day?: boolean;
+  location?: string | null;
+  audience: "personal" | "staff" | "school" | "parents" | "class";
+  class_id?: string | null;
+  responsible_user_id?: string | null;
+  created_by?: string | null;
+  recurrence_frequency?: EventRecurrence;
+  recurrence_until?: string | null;
+  occurrence_key?: string;
 }
 
 type PlannerMode = "day" | "week" | "month" | "timeline";
@@ -99,81 +113,103 @@ function parseDecimalToClock(value: number) {
 }
 
 function deriveEventSlot(event: SchoolEvent) {
-  const source = `${event.title} ${event.description || ""}`;
-  const explicit = source.match(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
-  if (explicit) {
-    const start = parseClockToDecimal(explicit[1]);
-    const end = parseClockToDecimal(explicit[2]);
+  if (!event.all_day && event.start_time && event.end_time) {
+    const start = parseClockToDecimal(event.start_time.slice(0, 5));
+    const end = parseClockToDecimal(event.end_time.slice(0, 5));
     if (start !== null && end !== null && end > start) {
       const boundedStart = Math.max(8, Math.min(18, start));
       const boundedEnd = Math.max(boundedStart + 0.5, Math.min(18, end));
       return {
         start: boundedStart,
         end: boundedEnd,
-        label: `${parseDecimalToClock(boundedStart)} - ${parseDecimalToClock(boundedEnd)}`,
+        label: `${parseDecimalToClock(start)} - ${parseDecimalToClock(end)}`,
       };
     }
   }
-
-  const hash = event.id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const quarter = [0, 0.25, 0.5][hash % 3];
-  const baseHour = 8 + (hash % 8);
-  const durationByType: Record<SchoolEvent["event_type"], number> = {
-    meeting: 1,
-    event: 1.25,
-    exam: 1.5,
-    academic: 1,
-    holiday: 3,
-  };
-
-  const start = Math.max(8, Math.min(17, baseHour + quarter));
-  const end = Math.min(18, start + durationByType[event.event_type]);
-
-  return {
-    start,
-    end,
-    label: `${parseDecimalToClock(start)} - ${parseDecimalToClock(end)}`,
-  };
+  return { start: 8, end: 9, label: "All day" };
 }
 
-function EventCard({ evt, onDelete }: { evt: SchoolEvent; onDelete: () => void }) {
+function EventCard({
+  evt,
+  onEdit,
+  onDelete,
+  canManage,
+  responsibleName,
+}: {
+  evt: SchoolEvent;
+  onEdit: () => void;
+  onDelete: () => void;
+  canManage: boolean;
+  responsibleName?: string;
+}) {
   const slot = deriveEventSlot(evt);
   const colors = typeColors[evt.event_type];
-  const avatarCount = 2 + (evt.id.charCodeAt(0) % 3);
-
-  return (
-    <button
-      type="button"
-      onClick={onDelete}
-      className={`w-full rounded-xl border px-2.5 py-2 text-left text-xs shadow-sm transition hover:scale-[1.01] ${colors.bg} ${colors.text} ${colors.border}`}
-      title="Click to delete"
-    >
+  const content = (
+    <>
       <p className="truncate font-semibold">{evt.title}</p>
       <p className="mt-1 text-xs opacity-80">{slot.label}</p>
-      <div className="mt-1.5 flex -space-x-1">
-        {Array.from({ length: avatarCount }, (_, i) => (
-          <span key={`${evt.id}-${i}`} className="h-4 w-4 rounded-full border border-white/90 bg-[var(--surface)]/80" />
-        ))}
-      </div>
-    </button>
+      {evt.location && <p className="mt-1 truncate text-xs opacity-80">{evt.location}</p>}
+      {responsibleName && <p className="mt-1 truncate text-xs opacity-80">Responsible: {responsibleName}</p>}
+    </>
+  );
+
+  return (
+    <div
+      className={`flex h-full w-full items-start gap-1 rounded-xl border px-2.5 py-2 text-xs shadow-sm ${colors.bg} ${colors.text} ${colors.border}`}
+    >
+      {canManage ? (
+        <button
+          type="button"
+          onClick={onEdit}
+          className="min-w-0 flex-1 text-left"
+          aria-label={`Edit event ${evt.title}`}
+        >
+          {content}
+        </button>
+      ) : (
+        <div className="min-w-0 flex-1 text-left">{content}</div>
+      )}
+      {canManage && (
+        <button
+          type="button"
+          onClick={onDelete}
+          className="min-h-8 min-w-8 rounded-md"
+          aria-label={`Delete event ${evt.title}`}
+        >
+          <MaterialIcon icon="delete" className="text-sm" />
+        </button>
+      )}
+    </div>
   );
 }
 
 export default function CalendarPage() {
-  const { school } = useAuth();
+  const { school, user } = useAuth();
   const isOnline = useOnlineStatus();
   const toast = useToast();
+  const { classes = [] } = useClasses(school?.id);
+  const { staff = [] } = useStaff(school?.id);
+  const isSchoolAdmin = hasAnyRole(
+    [user?.role, ...(user?.roles || [])],
+    ["school_admin", "headmaster", "admin", "super_admin"],
+  );
 
   const today = new Date();
   const timezoneLabel = Intl.DateTimeFormat().resolvedOptions().timeZone || "Local";
   const todayKey = toDateKey(today);
 
-  const { data: events = [] as SchoolEvent[], loading, refetch: refetchEvents } = useOfflineEvents(school?.id);
+  const {
+    data: events = [] as SchoolEvent[],
+    loading,
+    refetch: refetchEvents,
+    supportsRecurrence,
+  } = useOfflineEvents(school?.id, { userId: user?.id });
 
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [mode, setMode] = useState<PlannerMode>("week");
   const [selectedDate, setSelectedDate] = useState(todayKey);
   const [searchQuery, setSearchQuery] = useState("");
@@ -194,10 +230,12 @@ export default function CalendarPage() {
     personal: false,
   });
 
-  const [audienceFilters, setAudienceFilters] = useState<Record<"personal" | "school" | "parents", boolean>>({
-    personal: false,
+  const [audienceFilters, setAudienceFilters] = useState<Record<SchoolEvent["audience"], boolean>>({
+    personal: true,
+    staff: true,
     school: true,
     parents: true,
+    class: true,
   });
 
   const [newEvent, setNewEvent] = useState({
@@ -206,8 +244,62 @@ export default function CalendarPage() {
     event_type: "event" as SchoolEvent["event_type"],
     start_date: "",
     end_date: "",
-    audience: "school" as "personal" | "school" | "parents",
+    audience: "personal" as SchoolEvent["audience"],
+    class_id: "",
+    responsible_user_id: "",
+    recurrence_frequency: "none" as EventRecurrence,
+    recurrence_until: "",
+    all_day: true,
+    start_time: "",
+    end_time: "",
+    location: "",
   });
+
+  const canManageEvent = (evt: SchoolEvent) =>
+    Boolean(user?.id && (isSchoolAdmin || evt.created_by === user.id || evt.responsible_user_id === user.id));
+  const responsibleName = (userId?: string | null) =>
+    userId ? staff.find((member) => member.id === userId)?.full_name : undefined;
+  const resetEventForm = () => {
+    setEditingEventId(null);
+    setNewEvent({
+      title: "",
+      description: "",
+      event_type: "event",
+      start_date: "",
+      end_date: "",
+      audience: "personal",
+      class_id: "",
+      responsible_user_id: "",
+      recurrence_frequency: "none",
+      recurrence_until: "",
+      all_day: true,
+      start_time: "",
+      end_time: "",
+      location: "",
+    });
+  };
+  const openEventEditor = (evt: SchoolEvent) => {
+    if (!canManageEvent(evt)) return;
+    const sourceEvent = events.find((candidate) => candidate.id === evt.id) ?? evt;
+    setEditingEventId(sourceEvent.id);
+    setNewEvent({
+      title: sourceEvent.title,
+      description: sourceEvent.description || "",
+      event_type: sourceEvent.event_type,
+      start_date: sourceEvent.start_date,
+      end_date: sourceEvent.end_date || "",
+      audience: sourceEvent.audience,
+      class_id: sourceEvent.class_id || "",
+      responsible_user_id: sourceEvent.responsible_user_id || "",
+      recurrence_frequency: sourceEvent.recurrence_frequency || "none",
+      recurrence_until: sourceEvent.recurrence_until || "",
+      all_day: sourceEvent.all_day !== false,
+      start_time: sourceEvent.start_time?.slice(0, 5) || "",
+      end_time: sourceEvent.end_time?.slice(0, 5) || "",
+      location: sourceEvent.location || "",
+    });
+    setShowModal(true);
+  };
 
   const eventValidationError = !newEvent.title.trim()
     ? "Add an event title to continue."
@@ -215,10 +307,25 @@ export default function CalendarPage() {
       ? "Choose a start date for the event."
       : newEvent.end_date && newEvent.end_date < newEvent.start_date
         ? "End date cannot be earlier than the start date."
-        : "";
+        : !newEvent.all_day && (!newEvent.start_time || !newEvent.end_time)
+          ? "Add both a start and end time, or mark the event as all day."
+          : !newEvent.all_day && newEvent.end_time <= newEvent.start_time
+            ? "End time must be after start time."
+            : newEvent.audience === "class" && !newEvent.class_id
+              ? "Choose the class this event is for."
+              : newEvent.recurrence_frequency !== "none" && !newEvent.recurrence_until
+                ? "Choose the last date for this repeating event."
+                : newEvent.recurrence_frequency !== "none" && newEvent.recurrence_until <= newEvent.start_date
+                  ? "The last date must be after the first occurrence."
+                  : newEvent.recurrence_frequency !== "none" &&
+                      !isWithinRecurrenceLimit(newEvent.start_date, newEvent.recurrence_until)
+                    ? "Repeating events can run for up to five years."
+                    : "";
 
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+  const calendarEvents = useMemo(() => expandRecurringEvents(events), [events]);
+  const pendingDeleteEvent = events.find((evt) => evt.id === pendingDeleteId);
 
   const matchesFilter = (evt: SchoolEvent) => {
     const q = searchQuery.trim().toLowerCase();
@@ -235,7 +342,7 @@ export default function CalendarPage() {
   };
 
   const getEventsForDate = (dateStr: string): SchoolEvent[] => {
-    return events
+    return calendarEvents
       .filter((evt) => {
         if (evt.start_date <= dateStr && evt.end_date && evt.end_date >= dateStr) return true;
         return evt.start_date === dateStr;
@@ -245,7 +352,7 @@ export default function CalendarPage() {
   };
 
   const monthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
-  const monthEvents = events
+  const monthEvents = calendarEvents
     .filter((evt) => {
       const startMonth = evt.start_date.substring(0, 7);
       const endMonth = evt.end_date?.substring(0, 7);
@@ -255,7 +362,7 @@ export default function CalendarPage() {
     .sort((a, b) => a.start_date.localeCompare(b.start_date));
 
   const featuredEvent = monthEvents[0];
-  const upcomingEvent = events
+  const upcomingEvent = calendarEvents
     .filter((evt) => evt.start_date >= todayKey)
     .filter(matchesFilter)
     .sort((a, b) => a.start_date.localeCompare(b.start_date))[0];
@@ -386,42 +493,53 @@ export default function CalendarPage() {
       description: newEvent.description.trim() || null,
       event_type: newEvent.event_type,
       audience: newEvent.audience,
+      class_id: newEvent.audience === "class" ? newEvent.class_id : null,
+      responsible_user_id: newEvent.responsible_user_id || null,
+      all_day: newEvent.all_day,
+      start_time: newEvent.all_day ? null : newEvent.start_time,
+      end_time: newEvent.all_day ? null : newEvent.end_time,
+      time_zone: timezoneLabel,
+      location: newEvent.location.trim() || null,
       start_date: newEvent.start_date,
       end_date: newEvent.end_date || null,
+      ...(supportsRecurrence === true
+        ? {
+            recurrence_frequency: newEvent.recurrence_frequency,
+            recurrence_until: newEvent.recurrence_frequency === "none" ? null : newEvent.recurrence_until,
+          }
+        : {}),
     };
 
     try {
       if (!isOnline) {
-        await offlineDB.save("events", payload);
-        setShowModal(false);
-        setNewEvent({
-          title: "",
-          description: "",
-          event_type: "event",
-          audience: "school" as "personal" | "school" | "parents",
-          start_date: "",
-          end_date: "",
+        const original = editingEventId ? events.find((evt) => evt.id === editingEventId) : null;
+        await offlineDB.save("events", {
+          ...payload,
+          ...(editingEventId ? { id: editingEventId } : { created_by: user?.id || null }),
+          ...(original?.created_by ? { created_by: original.created_by } : {}),
         });
-        toast.success("Event saved on this device. It will sync when you are back online.");
+        setShowModal(false);
+        const wasEditing = Boolean(editingEventId);
+        resetEventForm();
+        toast.success(
+          `${wasEditing ? "Event change" : "Event"} saved on this device. It will sync when you are back online.`,
+        );
         refetchEvents();
         return;
       }
-      const res = await withTimeout(supabase.from("events").insert(payload), 15000, timeoutFallback());
+      const request = editingEventId
+        ? supabase.from("events").update(payload).eq("id", editingEventId)
+        : supabase.from("events").insert({ ...payload, created_by: user?.id || null });
+      const res = await withTimeout(request, 15000, timeoutFallback());
       if (res?.error) throw res.error;
       setShowModal(false);
-      setNewEvent({
-        title: "",
-        description: "",
-        event_type: "event",
-        audience: "school" as "personal" | "school" | "parents",
-        start_date: "",
-        end_date: "",
-      });
-      toast.success("Event added");
+      const wasEditing = Boolean(editingEventId);
+      resetEventForm();
+      toast.success(wasEditing ? "Event updated" : "Event added");
       refetchEvents();
     } catch (err) {
       logger.error("Error:", err);
-      toast.error(getErrorMessage(err, "Failed to add event"));
+      toast.error(getErrorMessage(err, editingEventId ? "Failed to update event" : "Failed to add event"));
     }
   };
 
@@ -503,7 +621,12 @@ export default function CalendarPage() {
                 </>
               )}
 
-              <Button onClick={() => setShowModal(true)}>
+              <Button
+                onClick={() => {
+                  resetEventForm();
+                  setShowModal(true);
+                }}
+              >
                 <MaterialIcon icon="add" />
                 Create Event
               </Button>
@@ -512,7 +635,7 @@ export default function CalendarPage() {
 
           {mode === "timeline" ? (
             <Card className="relative z-10 mt-5 min-h-[500px] p-4">
-              <TermTimeline events={events.filter(matchesFilter)} />
+              <TermTimeline events={calendarEvents.filter(matchesFilter)} />
             </Card>
           ) : (
             <div className="relative z-10 mt-5 grid grid-cols-1 gap-4 xl:grid-cols-[300px,1fr]">
@@ -638,6 +761,7 @@ export default function CalendarPage() {
                     {(
                       [
                         ["personal", "Personal"],
+                        ["staff", "Staff"],
                         ["school", "School-wide"],
                         ["parents", "Parents"],
                       ] as const
@@ -648,18 +772,16 @@ export default function CalendarPage() {
                         onClick={() =>
                           setAudienceFilters((prev) => ({
                             ...prev,
-                            [key as "personal" | "school" | "parents"]: !prev[key as "personal" | "school" | "parents"],
+                            [key]: !prev[key],
                           }))
                         }
                         className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left transition hover:bg-[var(--surface-container-low)]"
                       >
                         <span className="text-[var(--t3)]">{label}</span>
                         <span
-                          className={`h-4 w-4 rounded border ${audienceFilters[key as "personal" | "school" | "parents"] ? "border-[var(--primary-700)] bg-[var(--primary-700)]" : "border-[var(--border)] bg-[var(--surface)]"}`}
+                          className={`h-4 w-4 rounded border ${audienceFilters[key] ? "border-[var(--primary-700)] bg-[var(--primary-700)]" : "border-[var(--border)] bg-[var(--surface)]"}`}
                         >
-                          {audienceFilters[key as "personal" | "school" | "parents"] && (
-                            <MaterialIcon icon="check" className="text-[12px] text-white" />
-                          )}
+                          {audienceFilters[key] && <MaterialIcon icon="check" className="text-[12px] text-white" />}
                         </span>
                       </button>
                     ))}
@@ -791,11 +913,17 @@ export default function CalendarPage() {
                             const height = Math.max(52, (slot.end - slot.start) * 64 - 8);
                             return (
                               <div
-                                key={evt.id}
+                                key={`${evt.id}-${evt.occurrence_key ?? evt.start_date}`}
                                 className="absolute left-1 right-1"
                                 style={{ top: `${top}px`, height: `${height}px` }}
                               >
-                                <EventCard evt={evt} onDelete={() => setPendingDeleteId(evt.id)} />
+                                <EventCard
+                                  evt={evt}
+                                  canManage={canManageEvent(evt)}
+                                  responsibleName={responsibleName(evt.responsible_user_id)}
+                                  onEdit={() => openEventEditor(evt)}
+                                  onDelete={() => setPendingDeleteId(evt.id)}
+                                />
                               </div>
                             );
                           })}
@@ -849,7 +977,7 @@ export default function CalendarPage() {
                             <div className="mt-2 space-y-1">
                               {eventsForDay.slice(0, 2).map((evt) => (
                                 <div
-                                  key={`pill-${evt.id}`}
+                                  key={`pill-${evt.id}-${evt.occurrence_key ?? evt.start_date}`}
                                   className={`truncate rounded px-1.5 py-0.5 text-xs ${typeColors[evt.event_type].bg} ${typeColors[evt.event_type].text}`}
                                 >
                                   {evt.title}
@@ -878,18 +1006,36 @@ export default function CalendarPage() {
                     ) : (
                       selectedDateEvents.map((evt) => (
                         <div
-                          key={`selected-${evt.id}`}
+                          key={`selected-${evt.id}-${evt.occurrence_key ?? evt.start_date}`}
                           className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
                         >
-                          <div className="min-w-0">
+                          <button
+                            type="button"
+                            className="min-w-0 text-left"
+                            onClick={() => openEventEditor(evt)}
+                            disabled={!canManageEvent(evt)}
+                            aria-label={`${canManageEvent(evt) ? "Edit" : "Event"} ${evt.title}`}
+                          >
                             <p className="truncate text-sm font-semibold text-[var(--t3)]">{evt.title}</p>
                             <p className="text-xs capitalize text-[var(--t1)]">
                               {evt.event_type} • {deriveEventSlot(evt).label}
                             </p>
-                          </div>
-                          <Button variant="ghost" size="sm" onClick={() => setPendingDeleteId(evt.id)}>
-                            <MaterialIcon icon="close" style={{ fontSize: 16 }} />
-                          </Button>
+                            {responsibleName(evt.responsible_user_id) && (
+                              <p className="text-xs text-[var(--t2)]">
+                                Responsible: {responsibleName(evt.responsible_user_id)}
+                              </p>
+                            )}
+                          </button>
+                          {canManageEvent(evt) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setPendingDeleteId(evt.id)}
+                              aria-label={`Delete event ${evt.title}`}
+                            >
+                              <MaterialIcon icon="delete" style={{ fontSize: 16 }} />
+                            </Button>
+                          )}
                         </div>
                       ))
                     )}
@@ -913,7 +1059,13 @@ export default function CalendarPage() {
             >
               <div className="border-b border-[var(--surface-container-high)] p-6">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-[var(--t1)]">Add Event</h2>
+                  <h2 className="text-lg font-semibold text-[var(--t1)]">
+                    {editingEventId
+                      ? newEvent.recurrence_frequency === "none"
+                        ? "Edit Event"
+                        : "Edit Event Series"
+                      : "Add Event"}
+                  </h2>
                   <Button variant="ghost" size="sm" onClick={() => setShowModal(false)}>
                     <MaterialIcon icon="close" />
                   </Button>
@@ -948,15 +1100,60 @@ export default function CalendarPage() {
                   <label className="mb-2 block text-sm font-medium text-[var(--t1)]">Audience</label>
                   <select
                     value={newEvent.audience}
-                    onChange={(e) =>
-                      setNewEvent({ ...newEvent, audience: e.target.value as "personal" | "school" | "parents" })
-                    }
+                    onChange={(e) => setNewEvent({ ...newEvent, audience: e.target.value as SchoolEvent["audience"] })}
                     className="input"
                   >
-                    <option value="school">School-wide</option>
-                    <option value="personal">Personal reminder</option>
-                    <option value="parents">Communicate to parents</option>
+                    <option value="personal">Personal reminder (only me)</option>
+                    <option value="staff">All staff</option>
+                    <option value="school">Whole school</option>
+                    <option value="parents">Communicate to all parents</option>
+                    <option value="class">Selected class</option>
                   </select>
+                </div>
+                {newEvent.audience === "class" && (
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-[var(--t1)]">Class</label>
+                    <select
+                      value={newEvent.class_id}
+                      onChange={(e) => setNewEvent({ ...newEvent, class_id: e.target.value })}
+                      className="input"
+                      required
+                    >
+                      <option value="">Choose a class</option>
+                      {classes.map((classItem) => (
+                        <option key={classItem.id} value={classItem.id}>
+                          {classItem.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <div>
+                  <label htmlFor="event-responsible" className="mb-2 block text-sm font-medium text-[var(--t1)]">
+                    Responsible staff member (optional)
+                  </label>
+                  <select
+                    id="event-responsible"
+                    value={newEvent.responsible_user_id}
+                    onChange={(e) => setNewEvent({ ...newEvent, responsible_user_id: e.target.value })}
+                    className="input"
+                  >
+                    <option value="">Unassigned</option>
+                    {staff
+                      .filter(
+                        (member) =>
+                          isSchoolAdmin || member.id === user?.id || member.id === newEvent.responsible_user_id,
+                      )
+                      .map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.full_name}
+                        </option>
+                      ))}
+                  </select>
+                  <p className="mt-1 text-xs text-[var(--t2)]">
+                    The assigned person can update or cancel this event. Only school administrators can assign another
+                    staff member.
+                  </p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -979,13 +1176,105 @@ export default function CalendarPage() {
                     />
                   </div>
                 </div>
+                {supportsRecurrence === true ? (
+                  <div>
+                    <label htmlFor="event-repeat" className="mb-2 block text-sm font-medium text-[var(--t1)]">
+                      Repeat
+                    </label>
+                    <select
+                      id="event-repeat"
+                      value={newEvent.recurrence_frequency}
+                      onChange={(e) =>
+                        setNewEvent({ ...newEvent, recurrence_frequency: e.target.value as EventRecurrence })
+                      }
+                      className="input"
+                    >
+                      <option value="none">Does not repeat</option>
+                      <option value="weekly">Every week</option>
+                      <option value="monthly">Every month</option>
+                    </select>
+                    {newEvent.recurrence_frequency !== "none" && (
+                      <div className="mt-3">
+                        <label htmlFor="event-repeat-until" className="mb-2 block text-sm font-medium text-[var(--t1)]">
+                          Repeat until (inclusive)
+                        </label>
+                        <input
+                          id="event-repeat-until"
+                          type="date"
+                          min={newEvent.start_date || undefined}
+                          value={newEvent.recurrence_until}
+                          onChange={(e) => setNewEvent({ ...newEvent, recurrence_until: e.target.value })}
+                          className="input"
+                          required
+                        />
+                        <p className="mt-1 text-xs text-[var(--t2)]">
+                          {newEvent.recurrence_frequency === "weekly"
+                            ? "Repeats on the same weekday. Editing or deleting changes the whole series."
+                            : "Repeats on the same date each month (or that month’s last day). Editing or deleting changes the whole series."}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : supportsRecurrence === false ? (
+                  <p className="rounded-xl border border-[var(--border)] bg-[var(--surface-bright)] p-3 text-xs text-[var(--t2)]">
+                    Repeating events will be available after the school calendar update is applied.
+                  </p>
+                ) : null}
+                <label className="flex min-h-11 items-center gap-3 text-sm font-medium text-[var(--t1)]">
+                  <input
+                    type="checkbox"
+                    checked={newEvent.all_day}
+                    onChange={(e) => setNewEvent({ ...newEvent, all_day: e.target.checked })}
+                    className="h-4 w-4 accent-[var(--primary)]"
+                  />
+                  All-day event
+                </label>
+                {!newEvent.all_day && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[var(--t1)]">
+                        Start time ({timezoneLabel})
+                      </label>
+                      <input
+                        type="time"
+                        value={newEvent.start_time}
+                        onChange={(e) => setNewEvent({ ...newEvent, start_time: e.target.value })}
+                        className="input"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[var(--t1)]">
+                        End time ({timezoneLabel})
+                      </label>
+                      <input
+                        type="time"
+                        value={newEvent.end_time}
+                        onChange={(e) => setNewEvent({ ...newEvent, end_time: e.target.value })}
+                        className="input"
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-[var(--t1)]">Location (Optional)</label>
+                  <input
+                    type="text"
+                    value={newEvent.location}
+                    onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
+                    className="input"
+                    maxLength={160}
+                    placeholder="e.g. Staff room or Main hall"
+                  />
+                </div>
                 <div>
                   <label className="mb-2 block text-sm font-medium text-[var(--t1)]">Description (Optional)</label>
                   <textarea
                     value={newEvent.description}
                     onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
                     className="input min-h-[80px]"
-                    placeholder="Optional: include time like 09:00-10:30"
+                    placeholder="Add any extra details for the selected audience"
                   />
                 </div>
                 <div className="flex gap-3 pt-4">
@@ -993,7 +1282,7 @@ export default function CalendarPage() {
                     Cancel
                   </Button>
                   <Button variant="primary" className="flex-1" type="submit" disabled={Boolean(eventValidationError)}>
-                    Add Event
+                    {editingEventId ? "Save changes" : "Add Event"}
                   </Button>
                 </div>
                 {eventValidationError && <p className="text-sm text-[var(--t3)]">{eventValidationError}</p>}
@@ -1006,8 +1295,16 @@ export default function CalendarPage() {
         isOpen={!!pendingDeleteId}
         onClose={() => setPendingDeleteId(null)}
         onConfirm={deleteEvent}
-        title="Delete Event"
-        message="Delete this event? This action cannot be undone."
+        title={
+          pendingDeleteEvent?.recurrence_frequency && pendingDeleteEvent.recurrence_frequency !== "none"
+            ? "Delete Event Series"
+            : "Delete Event"
+        }
+        message={
+          pendingDeleteEvent?.recurrence_frequency && pendingDeleteEvent.recurrence_frequency !== "none"
+            ? "Delete every occurrence in this event series? This action cannot be undone."
+            : "Delete this event? This action cannot be undone."
+        }
         confirmLabel="Delete"
         variant="danger"
       />

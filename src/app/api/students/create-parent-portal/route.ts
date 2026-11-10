@@ -174,13 +174,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // A legacy parent profile may exist without an auth account. In that state
+    // there is no credential target, so do not link the student or claim that
+    // we refreshed a usable login.
+    if (!existingUser.auth_id) {
+      logger.warn("[create-parent-portal] refusing parent profile without auth_id", {
+        parentUserId: existingUser.id,
+        schoolId,
+        studentId,
+      });
+      return NextResponse.json(
+        {
+          error:
+            "This parent profile has no sign-in account yet. Ask an administrator to repair the account before creating portal access.",
+          conflict: "parent_auth_account_missing",
+        },
+        { status: 409 },
+      );
+    }
+
     // Parent exists — ensure link to this student
-    const { data: existingLink } = await supabaseAdmin
+    const { data: existingLink, error: existingLinkError } = await supabaseAdmin
       .from("parent_students")
       .select("id")
       .eq("parent_id", existingUser.id)
       .eq("student_id", student.id)
       .maybeSingle();
+
+    if (existingLinkError) {
+      logger.error("[create-parent-portal] parent_students link lookup failed:", existingLinkError);
+      return NextResponse.json({ error: "Failed to check the student-parent link" }, { status: 500 });
+    }
 
     const linkRelation = relationship || "parent";
     if (!existingLink) {
@@ -195,21 +219,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (existingUser.auth_id) {
-      const { error: rotatePasswordError } = await supabaseAdmin.auth.admin.updateUserById(existingUser.auth_id, {
-        password: generatedPassword,
-        user_metadata: {
-          full_name: parentName,
-          phone: phoneNormalized,
-          role: "parent",
-          must_change_password: true,
-        },
-      });
+    const { error: rotatePasswordError } = await supabaseAdmin.auth.admin.updateUserById(existingUser.auth_id, {
+      password: generatedPassword,
+      user_metadata: {
+        full_name: parentName,
+        phone: phoneNormalized,
+        role: "parent",
+        must_change_password: true,
+      },
+    });
 
-      if (rotatePasswordError) {
-        logger.error("[create-parent-portal] Failed to rotate password for existing parent:", rotatePasswordError);
-        return NextResponse.json({ error: "Failed to refresh parent credentials" }, { status: 500 });
-      }
+    if (rotatePasswordError) {
+      logger.error("[create-parent-portal] Failed to rotate password for existing parent:", rotatePasswordError);
+      return NextResponse.json({ error: "Failed to refresh parent credentials" }, { status: 500 });
     }
 
     const shouldDeliver = sendCredentials !== false;
@@ -310,15 +332,20 @@ export async function POST(request: NextRequest) {
   });
 
   if (linkError) {
-    logger.warn("[create-parent-portal] parent_students link failed:", linkError);
-    return NextResponse.json({ created: false, error: "Failed to create student-parent link" });
+    logger.error("[create-parent-portal] parent_students link failed; rolling back new account:", linkError);
+    const { error: profileRollbackError } = await supabaseAdmin.from("users").delete().eq("id", parentUserId);
+    const { error: authRollbackError } = await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+    if (profileRollbackError || authRollbackError) {
+      logger.error("[create-parent-portal] account rollback was incomplete", {
+        profileRollbackError,
+        authRollbackError,
+      });
+    }
+    return NextResponse.json(
+      { error: "Failed to create student-parent link. No portal account was created; please retry." },
+      { status: 500 },
+    );
   }
-
-  // Fetch linked children to return to frontend
-  const { data: linkedChildren } = await supabaseAdmin
-    .from("parent_students")
-    .select("student:students(*, class:classes(name))")
-    .eq("parent_id", parentUserId);
 
   const shouldDeliver = sendCredentials !== false;
   let credentialsDelivered = false;
@@ -355,6 +382,5 @@ export async function POST(request: NextRequest) {
     credentialsExposed: !shouldDeliver || !credentialsDelivered ? true : false,
     whatsappSent,
     ...(shouldDeliver && credentialsDelivered ? {} : { generatedPassword }),
-    linkedChildren: linkedChildren || [],
   });
 }

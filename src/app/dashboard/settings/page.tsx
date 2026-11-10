@@ -5,7 +5,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { isWebPushSupported, subscribeWebPush } from "@/lib/web-push-client";
-import { writeUserScoped } from "@/lib/user-scoped-storage";
 import { useToast } from "@/components/Toast";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
@@ -33,6 +32,8 @@ import { type ModuleKey } from "@/lib/modules/catalog";
 import { tabsForRole } from "@/lib/role-tab-access";
 import { OwlyHelpLink } from "@/components/owly/OwlyHelpLink";
 import SubscriptionBillingPanel from "@/components/billing/SubscriptionBillingPanel";
+import LegalAcceptanceSettings from "@/components/settings/LegalAcceptanceSettings";
+import LegalAcceptanceReport from "@/components/settings/LegalAcceptanceReport";
 
 interface SchoolSettings {
   sms_notifications: boolean;
@@ -95,6 +96,7 @@ const ALL_SETTINGS_TABS = [
   { id: "checklist", label: "Setup Checklist", badge: "Important" },
   { id: "backup", label: "Backup & Export" },
   { id: "subscription", label: "Billing & Plans", badge: "Active" },
+  { id: "legal", label: "Legal & Privacy" },
 ];
 
 const ANDROID_APP_URL = process.env.NEXT_PUBLIC_ANDROID_APP_URL || "";
@@ -1001,6 +1003,10 @@ export default function SettingsPage() {
           </div>
         </TabPanel>
 
+        <TabPanel activeTab={activeTab} tabId="legal">
+          {user?.role === "super_admin" ? <LegalAcceptanceReport /> : <LegalAcceptanceSettings />}
+        </TabPanel>
+
         <TabPanel activeTab={activeTab} tabId="general">
           <div className="space-y-6">
             <GeneralSettings
@@ -1057,8 +1063,7 @@ export default function SettingsPage() {
                   variant="secondary"
                   size="sm"
                   onClick={() => {
-                    if (user?.id) writeUserScoped("skoolmate_guided_tour_dismissed", user.id, false);
-                    window.location.reload();
+                    window.location.assign("/dashboard#guided-tour");
                   }}
                 >
                   Replay tour

@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { assertApiAccessOrDeny, apiError, apiSuccess, handleApiError, requireUserWithSchool } from "@/lib/api-utils";
+import { canAccessClass, isClassScopedRole } from "@/lib/server/class-scope";
 import { parseStudentScanValue } from "@/lib/scan-parsers";
+import { getKampalaDate } from "@/lib/kampala-date";
 
 const ALLOWED_ROLES = new Set([
   "school_admin",
@@ -52,7 +54,16 @@ export async function POST(request: NextRequest) {
     if (!student) return apiError("Student not found", 404);
     if (student.status && student.status !== "active") return apiError("Student is not active", 400);
 
-    const today = new Date().toISOString().slice(0, 10);
+    // Keep the scan path aligned with manual and bulk attendance: a teacher
+    // may only mark learners in a class assigned to them.
+    if (
+      isClassScopedRole(auth.context.user.role) &&
+      !(await canAccessClass(supabase, auth.context.user.role, auth.context.user.id, student.class_id))
+    ) {
+      return apiError("You can only mark attendance for classes you teach", 403);
+    }
+
+    const today = getKampalaDate();
     const { error: upsertError } = await supabase.from("attendance").upsert(
       {
         student_id: student.id,

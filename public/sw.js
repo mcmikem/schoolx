@@ -1,7 +1,7 @@
 // Bumped by hand only as an emergency: prebuild stamps this with the build id
 // on every real deploy. Raised here so installs already holding a stale runtime
 // chunk purge their caches the moment this worker activates.
-const CACHE_VERSION = 'skoolmate-v17';
+const CACHE_VERSION = 'skoolmate-202611100545';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -65,6 +65,7 @@ async function warmRoute(route) {
 
 const PAGES_TO_CACHE = [
   '/login/',
+  '/start/',
   '/register/',
   '/forgot-password/',
   '/manifest.json',
@@ -168,6 +169,27 @@ async function warmAppShell() {
       const res = await fetch(url, { credentials: 'same-origin' });
       if (res.ok && !res.redirected) await pageCache.put(url, res);
     } catch { /* The client verifies missing routes and retries on reconnect. */ }
+  }
+}
+
+/**
+ * Offline documents and RSC payloads may contain school-specific rendered
+ * content. A shared device must not keep them after its user signs out. Keep
+ * only the public launch/auth shells so offline sign-in can still explain the
+ * connection state; the next signed-in session will warm its own app pages.
+ */
+async function clearPrivateAppCaches() {
+  const pageCache = await caches.open(PAGE_CACHE);
+  const publicRoutes = ['/login/', '/start/'];
+  const publicPages = [];
+  for (const route of publicRoutes) {
+    const response = await pageCache.match(route);
+    if (response) publicPages.push([route, response.clone()]);
+  }
+  await Promise.all([caches.delete(PAGE_CACHE), caches.delete(RSC_CACHE), caches.delete(IMAGE_CACHE)]);
+  if (publicPages.length) {
+    const cleanPageCache = await caches.open(PAGE_CACHE);
+    await Promise.all(publicPages.map(([route, response]) => cleanPageCache.put(route, response)));
   }
 }
 
@@ -338,6 +360,22 @@ self.addEventListener('fetch', (event) => {
       (async () => {
         const pageCache = await caches.open(PAGE_CACHE);
         const cachedPage = await pageCache.match(request);
+
+        // A warm service worker can be installed while the user is logged
+        // out. Cache the real launch route when first opened online so a later
+        // offline PWA launch can restore the locally remembered session.
+        if ((url.pathname === '/start/' || url.pathname === '/start') && !cachedPage) {
+          try {
+            const startResponse = await fetch(request);
+            if (startResponse.ok && !startResponse.redirected) {
+              pageCache.put(request, startResponse.clone()).catch(() => {});
+              return startResponse;
+            }
+            return startResponse;
+          } catch {
+            // Continue through the app-shell fallbacks below.
+          }
+        }
 
         // Offline: no point waiting for a network that is not there.
         if (self.navigator && self.navigator.onLine === false && cachedPage) return cachedPage;
@@ -542,6 +580,10 @@ self.addEventListener('message', (event) => {
 
   if (event.data && event.data.type === 'WARM_SHELL') {
     event.waitUntil(warmAppShell());
+  }
+
+  if (event.data && event.data.type === 'CLEAR_PRIVATE_CACHE') {
+    event.waitUntil(clearPrivateAppCaches());
   }
 
   if (event.data && event.data.type === 'WARM_ROUTE') {

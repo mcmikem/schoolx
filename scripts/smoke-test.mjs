@@ -186,7 +186,7 @@ async function main() {
           headers: { Authorization: `Bearer ${token}` },
         });
         const body = parseJson(text);
-        if (res.ok && body?.user?.id) pass("profile", `user=${body.user.id.slice(0, 8)}`, ms);
+        if (res.ok && body?.user?.id) pass("profile", "verified", ms);
         else fail("profile", `HTTP ${res.status}`, ms);
       } catch (error) {
         fail("profile", error instanceof Error ? error.message : String(error), 0);

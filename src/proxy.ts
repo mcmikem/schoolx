@@ -23,6 +23,7 @@ import {
 } from "@/lib/modules/catalog";
 import { createMiddlewareClient } from "@/utils/supabase/middleware";
 import { type NextRequest, NextResponse } from "next/server";
+import { parseDemoSessionCookie } from "@/lib/server/demo-session";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -46,37 +47,9 @@ const isValidAnonKey = (key: string) => {
 const hasUsableSupabaseConfig = isValidHttpUrl(supabaseUrl) && isValidAnonKey(supabaseAnonKey);
 const DEMO_KEY = "skoolmate_demo_v1";
 const DEMO_MODE_ENABLED = process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
-const DEMO_ALLOWED_ROLES = new Set([
-  "headmaster",
-  "dean_of_studies",
-  "bursar",
-  "teacher",
-  "secretary",
-  "dorm_master",
-  "parent",
-  "marketer",
-]);
 
 function hasValidDemoSession(request: NextRequest) {
-  if (!DEMO_MODE_ENABLED) return false;
-  const cookieValue = request.cookies.get(DEMO_KEY)?.value;
-  if (!cookieValue) return false;
-  try {
-    const decoded = Buffer.from(cookieValue, "base64").toString("utf8");
-    const parsed = JSON.parse(decoded) as {
-      demoUser?: { role?: unknown; name?: unknown };
-      demoSchool?: { id?: unknown; name?: unknown };
-    };
-    return Boolean(
-      parsed.demoSchool?.id &&
-        parsed.demoSchool?.name &&
-        typeof parsed.demoUser?.name === "string" &&
-        typeof parsed.demoUser?.role === "string" &&
-        DEMO_ALLOWED_ROLES.has(parsed.demoUser.role),
-    );
-  } catch {
-    return false;
-  }
+  return Boolean(parseDemoSessionCookie(request.cookies.get(DEMO_KEY)?.value, DEMO_MODE_ENABLED));
 }
 
 const alwaysPublicPaths = [
@@ -263,17 +236,27 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
-  // The PWA's start_url. Cold-opening the installed app used to land on
-  // /login/ every single time and then "log itself in" — the login page
-  // flashed while the client restored the session, and each resume looked
-  // like a fresh sign-in. /start/ resolves the destination once, server-side
-  // and cookie-first (no auth round-trip), so a signed-in phone goes straight
-  // to the dashboard document and a signed-out one goes to /login.
+  // The PWA's start_url. A live server cookie can resolve straight to the
+  // remembered dashboard page. If that cookie expired while the Supabase
+  // browser session remains valid in local storage, serve the small /start
+  // bootstrap page so it can restore auth without flashing the login form.
   // Offline the service worker maps /start/ to the cached dashboard shell.
   if (normalizedPath === "/start") {
     const signedIn = hasAuthSessionCookie(request) || hasValidDemoSession(request);
-    const response = NextResponse.redirect(new URL(signedIn ? "/dashboard/" : "/login/", request.url));
+    const lastPath = request.cookies.get("skoolmate_last_dashboard_path")?.value;
+    // Only accept a path inside the authenticated dashboard. The cookie is a
+    // convenience for the PWA launch target, never a general redirect URL.
+    const safeLastPath =
+      lastPath && /^\/dashboard(?:\/[a-zA-Z0-9._~-]+)*\/?$/.test(lastPath) ? lastPath : "/dashboard/";
+    // A Supabase browser session can still be valid in local storage after its
+    // initial server cookie expires. In that case let the lightweight /start
+    // page restore the session before deciding whether login is needed; send a
+    // login redirect here and the signed-in user sees the login form flash.
+    const response = signedIn
+      ? NextResponse.redirect(new URL(safeLastPath, request.url))
+      : NextResponse.next({ request });
     applySecurityHeaders(response);
+    ensureCSRFToken(request, response);
     return response;
   }
 
@@ -473,8 +456,6 @@ export async function proxy(request: NextRequest) {
   // entitlement module gate here so every API call doesn't pay for 1-2 extra
   // DB round-trips in middleware; pages still get the full gate below.
   if (pathname.startsWith("/api/")) {
-    supabaseResponse.headers.set("x-user-id", verifiedUser.id);
-    supabaseResponse.headers.set("x-user-role", user?.role || "");
     return supabaseResponse;
   }
 
@@ -538,9 +519,6 @@ export async function proxy(request: NextRequest) {
       // Ignore transient errors in module checks to avoid blocking valid sessions.
     }
   }
-
-  supabaseResponse.headers.set("x-user-id", verifiedUser.id);
-  supabaseResponse.headers.set("x-user-role", user?.role || "");
 
   return supabaseResponse;
 }

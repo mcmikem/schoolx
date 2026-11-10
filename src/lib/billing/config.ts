@@ -406,7 +406,9 @@ export function quoteAddOnPurchase(params: {
   const credits: QuoteCredit[] = [];
   let subtotal = 0;
 
-  for (const key of moduleKeys) {
+  // A repeated key must not create duplicate charge lines if a caller bypasses
+  // route-level validation or retries with an unchanged selection.
+  for (const key of new Set(moduleKeys)) {
     const def = getModuleDefinition(key);
     if (!def) continue;
 

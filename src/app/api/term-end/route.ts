@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
-import { supabaseClientOptions } from "@/lib/api-utils";
+import { rateLimit, supabaseClientOptions } from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   try {
+    const { success: withinLimit } = rateLimit(request, 5, 60_000);
+    if (!withinLimit) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+
     const authHeader = request.headers.get("authorization") || "";
     const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
     if (!token) {
@@ -36,9 +39,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    if (
+      !body ||
+      typeof body !== "object" ||
+      Array.isArray(body) ||
+      typeof body.schoolId !== "string" ||
+      !body.schoolId
+    ) {
+      return NextResponse.json({ error: "A target school is required" }, { status: 400 });
+    }
 
-    // Enforce school-scope: non-super_admins can only trigger term-end for their own school
-    if (profile.role !== "super_admin" && profile.school_id && body.schoolId !== profile.school_id) {
+    // A missing profile school is not a reason to skip tenant enforcement.
+    if (profile.role !== "super_admin" && (!profile.school_id || body.schoolId !== profile.school_id)) {
       return NextResponse.json({ error: "Forbidden: school scope mismatch" }, { status: 403 });
     }
 

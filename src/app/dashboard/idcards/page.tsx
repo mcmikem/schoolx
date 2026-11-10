@@ -46,7 +46,7 @@ export default function IDCardsPage() {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
-        .replace(/'/g, "&var(--primary, #039);");
+        .replace(/'/g, "&#39;");
     const firstName = student.first_name || "";
     const lastName = student.last_name || "";
 

@@ -10,6 +10,7 @@ describe("sync payload shaping", () => {
         isDemo: false,
         schoolId: "school-1",
         pending_wallet_deduction: { student_id: "st-1", amount: 500 },
+        offline_sync_status: "pending",
         amount_paid: 1000,
       }),
     ).toEqual({

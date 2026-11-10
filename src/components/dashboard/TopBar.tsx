@@ -5,17 +5,17 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import GlobalSearch from "@/components/GlobalSearch";
 import MaterialIcon from "@/components/MaterialIcon";
+import { useToast } from "@/components/Toast";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { useAcademic } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
+import { logger } from "@/lib/logger";
 import { useNotifications } from "@/lib/notifications";
+import { usePerformanceMode } from "@/lib/performance-mode";
 import { canOpenSettingsPage } from "@/lib/role-tab-access";
 import { canAccess, type UserRole } from "@/lib/roles";
-import { usePerformanceMode } from "@/lib/performance-mode";
 import { useTheme } from "@/lib/theme-context";
-import { logger } from "@/lib/logger";
 import { useSyncStatus } from "@/lib/useSyncStatus";
-import { useToast } from "@/components/Toast";
 
 /** The dashboard each role lands on, and what to call it in a list. */
 const DASHBOARD_FOR_ROLE: Record<string, string> = {
@@ -527,6 +527,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
       </div>
       <button
         onClick={() => window.dispatchEvent(new Event("open-global-search"))}
+        data-tour="search-mobile"
         className="lg:hidden bg-transparent border-none cursor-pointer p-1.5 h-11 w-11 flex items-center justify-center rounded-lg text-[var(--t2)] hover:bg-[var(--surface-container-low)] transition-colors shrink-0"
         aria-label="Search"
       >

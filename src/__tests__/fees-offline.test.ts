@@ -35,7 +35,9 @@ describe("payments can be recorded, on any connection", () => {
   });
 
   it("queues the payment rather than dropping it", () => {
-    expect(code).toMatch(/if \(!isOnline\) \{\s*const offlineSaved = await offlineDB\.save\("fee_payments"/);
+    expect(code).toMatch(
+      /if \(!isOnline\) \{\s*const pendingPayload = \{ \.\.\.payload, offline_sync_status: "pending" \};\s*const offlineSaved = await offlineDB\.save\("fee_payments", pendingPayload/,
+    );
     expect(code).toContain('"Queued offline fee payment"');
   });
 });

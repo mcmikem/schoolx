@@ -6,6 +6,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import SavedIndicator from "@/components/ui/SavedIndicator";
 import { pickDefaultFee } from "@/lib/fee-default";
+import { confirmedFeePayments } from "@/lib/fee-payment-status";
 import { isMealFee } from "@/lib/meal-fee";
 import { isNewAdmissionFee } from "@/lib/new-admission-fee";
 import { allocateAcrossFees } from "@/lib/fee-allocation";
@@ -186,6 +187,7 @@ export default function FinanceHubPage() {
   const { classes, loading: classesLoading } = useClasses(school?.id);
   const {
     feeStructure,
+    loading: feeStructureLoading,
     createFeeStructure,
     updateFeeStructure,
     deleteFeeStructure,
@@ -205,13 +207,21 @@ export default function FinanceHubPage() {
     const tuition = mobileFeeOptions.find((fee) => /tuition|school fees/i.test(fee.name));
     return (tuition || mobileFeeOptions[0])?.id || "";
   }, [mobileFeeOptions]);
-  const { adjustments, createAdjustment, deleteAdjustment } = useFeeAdjustments(school?.id);
+  const {
+    adjustments,
+    loading: adjustmentsLoading,
+    createAdjustment,
+    deleteAdjustment,
+  } = useFeeAdjustments(school?.id);
   const { createPayment, updatePayment, deletePayment } = useFeePayments(school?.id, 1, 50);
   const {
     payments: completePayments,
+    loading: completePaymentsLoading,
     truncated: ledgerTruncated,
     refetch: refetchCompletePayments,
   } = useCompleteFeePayments(school?.id);
+  const feeBalancesLoading =
+    studentsInitialLoading || studentsLoading || feeStructureLoading || adjustmentsLoading || completePaymentsLoading;
   // Every transaction carries a recorded_by id. An id is not something a bursar
   // can read, so the ledger resolves them to names once.
   const recordedByName = useTransactionRecorders(school?.id);
@@ -744,7 +754,7 @@ export default function FinanceHubPage() {
    */
   const paymentsByStudent = useMemo(() => {
     const map = new Map<string, typeof completePayments>();
-    completePayments.forEach((p) => {
+    confirmedFeePayments(completePayments).forEach((p) => {
       if (!map.has(p.student_id)) map.set(p.student_id, []);
       map.get(p.student_id)!.push(p);
     });
@@ -980,12 +990,13 @@ export default function FinanceHubPage() {
   const partition = useMemo(() => partitionFeeRoster(studentBalances), [studentBalances]);
 
   const stats = useMemo(() => {
-    const momoPayments = payments.filter((p) => p.payment_method === "mobile_money");
+    const confirmedPayments = confirmedFeePayments(payments);
+    const momoPayments = confirmedPayments.filter((p) => p.payment_method === "mobile_money");
     const momoTotal = momoPayments.reduce((sum, p) => sum + Number(p.amount_paid), 0);
-    const cashTotal = payments
+    const cashTotal = confirmedPayments
       .filter((p) => p.payment_method === "cash")
       .reduce((sum, p) => sum + Number(p.amount_paid), 0);
-    const bankTotal = payments
+    const bankTotal = confirmedPayments
       .filter((p) => p.payment_method === "bank")
       .reduce((sum, p) => sum + Number(p.amount_paid), 0);
     return {
@@ -1061,15 +1072,19 @@ export default function FinanceHubPage() {
   }, [payments, cashbookDateFilter]);
 
   const cashbookSummary = useMemo(() => {
-    const cash = filteredCashbookPayments.filter((p) => p.payment_method === "cash");
-    const momo = filteredCashbookPayments.filter((p) => p.payment_method === "mobile_money");
-    const bank = filteredCashbookPayments.filter((p) => p.payment_method === "bank");
+    const confirmed = confirmedFeePayments(filteredCashbookPayments);
+    const pending = filteredCashbookPayments.filter((p) => p.offline_sync_status === "pending");
+    const cash = confirmed.filter((p) => p.payment_method === "cash");
+    const momo = confirmed.filter((p) => p.payment_method === "mobile_money");
+    const bank = confirmed.filter((p) => p.payment_method === "bank");
     return {
-      total: filteredCashbookPayments.reduce((sum, p) => sum + Number(p.amount_paid), 0),
+      total: confirmed.reduce((sum, p) => sum + Number(p.amount_paid), 0),
       cash: cash.reduce((sum, p) => sum + Number(p.amount_paid), 0),
       momo: momo.reduce((sum, p) => sum + Number(p.amount_paid), 0),
       bank: bank.reduce((sum, p) => sum + Number(p.amount_paid), 0),
-      count: filteredCashbookPayments.length,
+      count: confirmed.length,
+      pendingCount: pending.length,
+      pendingTotal: pending.reduce((sum, p) => sum + Number(p.amount_paid), 0),
     };
   }, [filteredCashbookPayments]);
 
@@ -1458,7 +1473,7 @@ export default function FinanceHubPage() {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
-        .replace(/'/g, "&var(--primary, #039);");
+        .replace(/'/g, "&#39;");
 
     const html = `
         <html><head><title>Invoice</title><style>
@@ -1529,7 +1544,7 @@ export default function FinanceHubPage() {
           .replace(/</g, "&lt;")
           .replace(/>/g, "&gt;")
           .replace(/"/g, "&quot;")
-          .replace(/'/g, "&var(--primary, #039);");
+          .replace(/'/g, "&#39;");
 
       const html = `
           <html><head><title>Fee Receipt</title><style>
@@ -1838,7 +1853,7 @@ export default function FinanceHubPage() {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
-        .replace(/'/g, "&var(--primary, #039);");
+        .replace(/'/g, "&#39;");
     const html = `
       <html>
         <head>
@@ -1949,13 +1964,14 @@ export default function FinanceHubPage() {
   };
 
   const exportCashbookCSV = () => {
-    const headers = ["Date", "Student", "Amount", "Method", "Reference"];
+    const headers = ["Date", "Student", "Amount", "Method", "Reference", "Status"];
     const rows = filteredCashbookPayments.map((p) => [
       p.payment_date,
       `${(p as { students?: { first_name?: string; last_name?: string } }).students?.first_name || ""} ${(p as { students?: { first_name?: string; last_name?: string } }).students?.last_name || ""}`,
       String(p.amount_paid),
       p.payment_method,
       p.payment_reference || "",
+      p.offline_sync_status === "pending" ? "Pending sync" : "Confirmed",
     ]);
     const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -1999,7 +2015,7 @@ export default function FinanceHubPage() {
       <div className="space-y-6 pb-24 md:pb-6">
         <PageHeader
           title="Fees Tracker"
-          subtitle={`Term ${currentTerm}, ${academicYear}`}
+          subtitle="All fee periods · includes unpaid arrears"
           variant="premium"
           actions={
             <div className="flex items-center gap-2 justify-start lg:justify-end">
@@ -2078,7 +2094,11 @@ export default function FinanceHubPage() {
           sticky list bar), each with its own rounding, so the same number
           appeared in several places and none of them agreed.
         */}
-        <section aria-label="Term position" className="border-y border-[var(--border)]">
+        <section
+          aria-label="All fee periods position"
+          aria-busy={feeBalancesLoading}
+          className="border-y border-[var(--border)]"
+        >
           <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)]">
             {[
               { label: "Expected", value: partition.totalExpected, tone: "text-[var(--t1)]" },
@@ -2088,7 +2108,7 @@ export default function FinanceHubPage() {
               <div key={cell.label} className="px-4 sm:px-5 py-4">
                 <div className="text-xs font-black uppercase tracking-[0.2em] text-[var(--t3)]">{cell.label}</div>
                 <div className={`mt-1.5 text-xl sm:text-2xl font-extrabold tabular-nums leading-none ${cell.tone}`}>
-                  {formatCurrency(cell.value)}
+                  {feeBalancesLoading ? "Loading…" : formatCurrency(cell.value)}
                 </div>
                 {i === 0 && partition.billed < partition.roster && (
                   <div className="mt-1.5 text-xs text-[var(--t3)] tabular-nums">
@@ -2098,29 +2118,35 @@ export default function FinanceHubPage() {
               </div>
             ))}
           </div>
-          <div className="border-t border-[var(--border)] px-4 py-3 sm:px-5">
-            <div className="flex items-center justify-between gap-3 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-[var(--t2)]">
-                {partition.realizationRate}% collected
-              </span>
-              <span className="text-xs text-[var(--t3)] tabular-nums">
-                {partition.cleared} cleared · {partition.partial + partition.owing} still owing
-              </span>
+          {feeBalancesLoading ? (
+            <div role="status" className="border-t border-[var(--border)] px-4 py-3 text-sm text-[var(--t3)]">
+              Loading fee balances…
             </div>
-            <div
-              className="h-2 w-full rounded-full bg-[var(--surface-container)] overflow-hidden"
-              role="progressbar"
-              aria-valuenow={partition.realizationRate}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label="Fees collected"
-            >
+          ) : (
+            <div className="border-t border-[var(--border)] px-4 py-3 sm:px-5">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-[var(--t2)]">
+                  {partition.realizationRate}% collected
+                </span>
+                <span className="text-xs text-[var(--t3)] tabular-nums">
+                  {partition.cleared} cleared · {partition.partial + partition.owing} still owing
+                </span>
+              </div>
               <div
-                className="h-full rounded-full bg-[var(--green)] transition-all duration-700"
-                style={{ width: `${Math.min(100, Math.max(0, partition.realizationRate))}%` }}
-              />
+                className="h-2 w-full rounded-full bg-[var(--surface-container)] overflow-hidden"
+                role="progressbar"
+                aria-valuenow={partition.realizationRate}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Fees collected"
+              >
+                <div
+                  className="h-full rounded-full bg-[var(--green)] transition-all duration-700"
+                  style={{ width: `${Math.min(100, Math.max(0, partition.realizationRate))}%` }}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </section>
 
         <div className="mb-3">
@@ -2174,6 +2200,7 @@ export default function FinanceHubPage() {
             <FeeStats
               stats={partition}
               paymentsCount={completePayments.length}
+              loading={feeBalancesLoading}
               onFilter={(status) =>
                 setStatusFilter(
                   status === "unpaid" || status === "paid" || status === "partial" || status === "unbilled"
@@ -2663,45 +2690,55 @@ export default function FinanceHubPage() {
           onPrintInvoice={handlePrintInvoice}
         />
 
-        {feeDraft.showRestoreDialog && (
-          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-            <div aria-hidden="true" className="absolute inset-0 bg-black/50 backdrop-blur-none" />
-            {/* relative is load-bearing: without it this static panel paints
+        {feeDraft.showRestoreDialog &&
+          typeof document !== "undefined" &&
+          createPortal(
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="restore-fee-draft-title"
+              className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4"
+            >
+              <div aria-hidden="true" className="absolute inset-0 bg-black/50 backdrop-blur-none" />
+              {/* relative is load-bearing: without it this static panel paints
                 UNDER the absolute backdrop above, dimming the dialog and
                 swallowing every click (dead Discard/Restore buttons). */}
-            <div className="relative bg-surface-container-lowest rounded-2xl w-full max-w-sm p-6 max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto shadow-xl my-auto">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <MaterialIcon icon="restore" className="text-primary" />
+              <div className="relative bg-surface-container-lowest rounded-2xl w-full max-w-sm p-6 max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto shadow-xl my-auto">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <MaterialIcon icon="restore" className="text-primary" />
+                  </div>
+                  <div>
+                    <h3 id="restore-fee-draft-title" className="font-bold text-on-surface">
+                      Restore Draft?
+                    </h3>
+                    <p className="text-sm text-on-surface-variant">You have an unsaved fee form</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-on-surface">Restore Draft?</h3>
-                  <p className="text-sm text-on-surface-variant">You have an unsaved fee form</p>
+                <p className="text-sm text-on-surface-variant mb-6">
+                  Would you like to restore your previous draft from {feeDraft.lastSaved?.toLocaleTimeString()}?
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={feeDraft.discardDraft}
+                    className="flex-1 py-3 bg-surface-container font-semibold rounded-xl text-on-surface-variant"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    onClick={() => {
+                      setNewFee(feeDraft.savedDraft as typeof newFee);
+                      feeDraft.restoreDraft();
+                    }}
+                    className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl"
+                  >
+                    Restore
+                  </button>
                 </div>
               </div>
-              <p className="text-sm text-on-surface-variant mb-6">
-                Would you like to restore your previous draft from {feeDraft.lastSaved?.toLocaleTimeString()}?
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={feeDraft.discardDraft}
-                  className="flex-1 py-3 bg-surface-container font-semibold rounded-xl text-on-surface-variant"
-                >
-                  Discard
-                </button>
-                <button
-                  onClick={() => {
-                    setNewFee(feeDraft.savedDraft as typeof newFee);
-                    feeDraft.restoreDraft();
-                  }}
-                  className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl"
-                >
-                  Restore
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+            </div>,
+            document.body,
+          )}
 
         <ConfirmDialog
           isOpen={confirmDelete?.type === "payment"}

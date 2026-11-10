@@ -152,8 +152,8 @@ export function isRouteAllowed(role: UserRole | undefined, path: string): boolea
 const PAGE_TITLE_OVERRIDES: Record<string, string> = deepFreeze({
   "/dashboard/learn": "Learn step by step",
   "/dashboard": "Dashboard Overview",
-  "/dashboard/moes": "MoES Module",
-  "/dashboard/moes-reports": "MoES Reports",
+  "/dashboard/moes": "School Headcount Summary",
+  "/dashboard/moes-reports": "School Data Preparation",
   "/dashboard/uneb": "UNEB Analysis",
   "/dashboard/uneb-registration": "UNEB Registration",
   "/dashboard/idcards": "ID Cards",

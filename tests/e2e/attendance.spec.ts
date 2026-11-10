@@ -4,6 +4,20 @@ import { seedDemoSession } from "./helpers/demo";
 test.describe("Attendance flow", () => {
   test.beforeEach(async ({ page }) => {
     await seedDemoSession(page, "headmaster");
+    await page.route("**/api/attendance/report/**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          success: true,
+          data: {
+            summary: { total: 0, present: 0, absent: 0, late: 0, excused: 0, rate: 0 },
+            students: [],
+            class_aggregate: null,
+          },
+        }),
+      });
+    });
     await page.goto("/dashboard/attendance");
     await expect(page.locator("#class-select, select").first()).toBeVisible({ timeout: 15_000 });
   });
@@ -53,6 +67,6 @@ test.describe("Attendance flow", () => {
     await page.goto("/dashboard/attendance/history");
 
     // Verify the page loaded
-    await expect(page.getByRole("heading", { name: /attendance history/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("heading", { name: "Attendance History", exact: true })).toBeVisible({ timeout: 10000 });
   });
 });

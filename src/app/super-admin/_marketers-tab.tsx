@@ -2,8 +2,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { logger } from "@/lib/logger";
 
-export const DEFAULT_MARKETER_PASSWORD = "Omutofoundation";
-
 export interface MarketerRow {
   id: string;
   full_name: string;
@@ -31,6 +29,7 @@ export function MarketersTab() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [temporaryPassword, setTemporaryPassword] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [earningsMap, setEarningsMap] = useState<Record<string, { data: any[]; summary: EarningsSummary }>>({});
   const [earningForm, setEarningForm] = useState({
@@ -88,6 +87,7 @@ export function MarketersTab() {
     e.preventDefault();
     setError("");
     setSuccess("");
+    setTemporaryPassword("");
     const payload: Record<string, string | undefined> = { full_name: fullName.trim() || undefined };
     if (contactMethod === "email") {
       if (!email.trim()) {
@@ -112,6 +112,7 @@ export function MarketersTab() {
       const body = await res.json();
       if (body.success) {
         toast.success(body.message || "Marketer created");
+        setTemporaryPassword(body.data?.temporaryPassword || "");
         setEmail("");
         setPhone("");
         setFullName("");
@@ -314,9 +315,33 @@ export function MarketersTab() {
             <p className="text-[13px] text-green-700 font-medium">{success}</p>
           </div>
         )}
+        {temporaryPassword && (
+          <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3">
+            <p className="text-xs font-semibold text-amber-900">One-time temporary password</p>
+            <div className="mt-2 flex items-center gap-2">
+              <code className="min-w-0 flex-1 break-all rounded-lg bg-white px-3 py-2 text-sm font-bold text-[var(--t1)]">
+                {temporaryPassword}
+              </code>
+              <button
+                type="button"
+                onClick={() =>
+                  void navigator.clipboard
+                    .writeText(temporaryPassword)
+                    .then(() => toast.success("Temporary password copied"))
+                }
+                className="min-h-10 rounded-lg border border-amber-300 bg-white px-3 text-xs font-semibold text-amber-900 hover:bg-amber-100"
+              >
+                Copy
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-amber-800">
+              Share it through a secure channel and ask the marketer to change it after signing in.
+            </p>
+          </div>
+        )}
         {contactMethod === "phone" && (
           <p className="mt-2 text-xs text-[var(--t4)]">
-            Default password: <code className="font-bold text-[var(--t2)]">{DEFAULT_MARKETER_PASSWORD}</code>
+            A unique temporary password will be shown once after the marketer account is created.
           </p>
         )}
         {contactMethod === "email" && emailConfigured && (

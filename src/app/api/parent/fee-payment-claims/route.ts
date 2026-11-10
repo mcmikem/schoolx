@@ -45,6 +45,12 @@ async function handlePost(request: NextRequest) {
     const schoolId = auth.context.schoolId;
 
     if (action === "submit") {
+      const roleCheck = assertUserRoleOrDeny({
+        userRole: auth.context.user.role,
+        allowedRoles: ["parent"],
+      });
+      if (!roleCheck.ok) return roleCheck.response;
+
       const studentId = typeof body.studentId === "string" ? body.studentId : "";
       const amount = Number(body.amount);
 
@@ -135,6 +141,12 @@ async function handlePost(request: NextRequest) {
     }
 
     if (action === "list") {
+      const roleCheck = assertUserRoleOrDeny({
+        userRole: auth.context.user.role,
+        allowedRoles: REVIEW_ROLES,
+      });
+      if (!roleCheck.ok) return roleCheck.response;
+
       const supabase = createServiceRoleClientOrThrow();
       const status = typeof body.status === "string" ? body.status : "pending";
 

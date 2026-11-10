@@ -683,6 +683,7 @@ function RegisterTab({
     commission?: number;
     adminPhone?: string;
     adminEmail?: string;
+    schoolId?: string;
     schoolName?: string;
   } | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -746,6 +747,7 @@ function RegisterTab({
           commission,
           adminPhone: body.data?.adminPhone,
           adminEmail: body.data?.adminEmail,
+          schoolId: body.data?.schoolId,
           schoolName: form.schoolName,
         });
         setForm({
@@ -793,9 +795,7 @@ function RegisterTab({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: result.adminEmail,
-          name: form.adminName || "School Admin",
-          schoolName: result.schoolName || "",
+          schoolId: result.schoolId,
         }),
       });
       const body = await res.json();

@@ -6,7 +6,13 @@
  * cannot drift from the other.
  */
 
-export const LOCAL_ONLY_SYNC_KEYS = ["updated_at", "isDemo", "schoolId", "pending_wallet_deduction"] as const;
+export const LOCAL_ONLY_SYNC_KEYS = [
+  "updated_at",
+  "isDemo",
+  "schoolId",
+  "pending_wallet_deduction",
+  "offline_sync_status",
+] as const;
 
 /** Fields that must never be changed through the generic service-role replay path. */
 export const PROTECTED_SYNC_UPDATE_KEYS = [

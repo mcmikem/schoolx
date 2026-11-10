@@ -9,6 +9,7 @@ export const ROLE_TAB_ACCESS: Record<string, string[]> = {
     "checklist",
     "backup",
     "subscription",
+    "legal",
   ],
   admin: ["profile", "general", "config", "users", "notifications", "messaging", "checklist", "backup", "subscription"],
   headmaster: [
@@ -21,6 +22,7 @@ export const ROLE_TAB_ACCESS: Record<string, string[]> = {
     "checklist",
     "backup",
     "subscription",
+    "legal",
   ],
   super_admin: [
     "profile",
@@ -32,6 +34,7 @@ export const ROLE_TAB_ACCESS: Record<string, string[]> = {
     "checklist",
     "backup",
     "subscription",
+    "legal",
   ],
   bursar: ["profile", "notifications", "messaging", "subscription"],
   dean_of_studies: ["profile", "config", "notifications"],

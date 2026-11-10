@@ -68,34 +68,40 @@ export async function POST(request: NextRequest) {
       return apiError("You cannot delete your own account", 400);
     }
 
+    const schoolScope =
+      auth.context.user.role === "super_admin"
+        ? null
+        : assertSchoolScopeOrDeny({
+            userSchoolId: auth.context.schoolId,
+            requestedSchoolId: auth.context.schoolId,
+          });
+    if (schoolScope && !schoolScope.ok) return schoolScope.response;
+
     const supabase = createServiceRoleClientOrThrow();
 
-    const { data: target, error: targetError } = await supabase
-      .from("users")
-      .select("id, auth_id, full_name, role, school_id")
-      .eq("id", userId)
-      .maybeSingle();
+    let targetQuery = supabase.from("users").select("id, auth_id, full_name, role, school_id").eq("id", userId);
+    if (auth.context.user.role !== "super_admin") {
+      targetQuery = targetQuery.eq("school_id", schoolScope?.schoolId);
+    }
+    const { data: target, error: targetError } = await targetQuery.maybeSingle();
 
     if (targetError) {
-      logger.error("[delete-staff] lookup failed", targetError);
-      return apiError(targetError.message, 500);
+      return handleApiError(targetError);
     }
     if (!target) return apiError("Staff member not found", 404);
 
     if (auth.context.user.role !== "super_admin") {
-      const scope = assertSchoolScopeOrDeny({
-        userSchoolId: auth.context.schoolId,
-        requestedSchoolId: target.school_id,
-      });
-      if (!scope.ok) return scope.response;
-
       if (target.role === "super_admin") {
         return apiError("Only a super admin can delete a super admin", 403);
       }
     }
 
     // Fast path first: most accounts have nothing pointing at them.
-    let { error: deleteError } = await supabase.from("users").delete().eq("id", userId);
+    let deleteQuery = supabase.from("users").delete().eq("id", userId);
+    if (auth.context.user.role !== "super_admin") {
+      deleteQuery = deleteQuery.eq("school_id", schoolScope?.schoolId);
+    }
+    let { error: deleteError } = await deleteQuery;
 
     if (deleteError?.code === "23503") {
       // A foreign key still points at this account (attendance.recorded_by for
@@ -120,7 +126,11 @@ export async function POST(request: NextRequest) {
       await supabase.from("teacher_subjects").delete().eq("teacher_id", userId);
       await supabase.from("parent_students").delete().eq("parent_id", userId);
 
-      const retry = await supabase.from("users").delete().eq("id", userId);
+      let retryQuery = supabase.from("users").delete().eq("id", userId);
+      if (auth.context.user.role !== "super_admin") {
+        retryQuery = retryQuery.eq("school_id", schoolScope?.schoolId);
+      }
+      const retry = await retryQuery;
       deleteError = retry.error;
 
       if (!deleteError) {
@@ -134,14 +144,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (deleteError) {
-      logger.error("[delete-staff] users delete failed", deleteError);
       if (deleteError.code === "23503") {
         return apiError(
           "This account is still referenced by other records, so it cannot be deleted. Deactivate it instead.",
           409,
         );
       }
-      return apiError(deleteError.message, 500);
+      return handleApiError(deleteError);
     }
 
     // The profile row is gone; without this the person could still sign in
@@ -151,7 +160,7 @@ export async function POST(request: NextRequest) {
       const { error: authError } = await supabase.auth.admin.deleteUser(target.auth_id);
       if (authError) {
         authDeleted = false;
-        logger.error("[delete-staff] auth user delete failed", authError);
+        logger.error("[delete-staff] auth user deletion failed");
       }
     }
 

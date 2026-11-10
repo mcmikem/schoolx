@@ -20,6 +20,12 @@ export async function GET(request: NextRequest) {
     const auth = await requireUserWithSchool(request);
     if (!auth.ok) return auth.response;
 
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: FEE_MGMT_ROLES,
+    });
+    if (!roleCheck.ok) return roleCheck.response;
+
     const { searchParams } = request.nextUrl;
     const schoolId = searchParams.get("school_id") || auth.context.schoolId;
     const classId = searchParams.get("class_id");
@@ -117,6 +123,16 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createServiceRoleClientOrThrow();
+
+    if (feeData.class_id) {
+      const { data: classRow } = await supabase
+        .from("classes")
+        .select("id")
+        .eq("id", feeData.class_id)
+        .eq("school_id", scope.schoolId)
+        .maybeSingle();
+      if (!classRow) return apiError("Selected class is not available in this school", 400);
+    }
 
     const moduleCheck = await requireModuleEntitlement({
       supabase,

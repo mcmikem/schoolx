@@ -37,7 +37,10 @@ import {
   useSubjects,
 } from "@/lib/hooks";
 import { isTimeoutResult, timeoutFallback, withTimeout } from "@/lib/hooks/utils";
+import { reportScoreForPrint } from "@/lib/report-summary";
+import { buildReportConfigSnapshot } from "@/lib/report-config-snapshot";
 import { logger } from "@/lib/logger";
+import { supabase } from "@/lib/supabase";
 import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print-window";
 import { downloadReportPDF } from "@/components/reports/StudentReportPDF";
 import { writeAnalysisRemark } from "@/lib/report-analysis";
@@ -61,6 +64,7 @@ import {
   type TermGradeBasis,
 } from "@/lib/report-rows";
 import { loadSchoolSettings } from "@/lib/school-settings";
+import { AssessmentMaximumsCard, ReportRowsCard, TermGradeBasisCard } from "@/components/settings/AcademicSettings";
 import { canSendSms } from "@/lib/sms-permissions";
 import {
   bucketUgandaSubject,
@@ -141,7 +145,7 @@ function buildSecondaryProgressMarkup(
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/\"/g, "&quot;")
-      .replace(/'/g, "&var(--primary, #039);");
+      .replace(/'/g, "&#39;");
   const remarkFacts = {
     pupilName: report.name,
     className: report.className,
@@ -389,6 +393,8 @@ export default function ReportCardsPage() {
     null,
   );
   const [sendingSms, setSendingSms] = useState(false);
+  const [printingAll, setPrintingAll] = useState(false);
+  const [printProgress, setPrintProgress] = useState<{ current: number; total: number } | null>(null);
   const [hasMissingMarks, setHasMissingMarks] = useState(false);
   const [generatingAll, setGeneratingAll] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -1003,6 +1009,7 @@ export default function ReportCardsPage() {
     if (isDemo) return { savedCount: 0, failedNames: [], queued: false };
     const persistableReports = reportList.filter((report) => report.isComplete !== false);
     const incompleteNames = reportList.filter((report) => report.isComplete === false).map((report) => report.name);
+    const configurationCapturedAt = new Date().toISOString();
     const cardPayloads = persistableReports.map((rpt) => {
       const subjectsJson = rpt.subjects.map((s) => ({
         name: s.name,
@@ -1043,6 +1050,15 @@ export default function ReportCardsPage() {
         academic_year: academicYear,
         term: currentTerm,
         report_format: reportFormat === "cbc" ? "cbc" : reportFormat === "competency" ? "competency" : "numerical",
+        grading_scheme: buildReportConfigSnapshot({
+          format: reportFormat,
+          layout: reportLayout,
+          useBeginningOfTerm: showBot,
+          gradeBasis,
+          reportRows,
+          assessmentModel: rpt.assessmentModel,
+          capturedAt: configurationCapturedAt,
+        }),
         subjects: subjectsJson,
         aggregate: rpt.recordedSubjects !== undefined ? (rpt.aggregate ?? null) : rptBest4.reduce((a, b) => a + b, 0),
         division: rpt.division,
@@ -1876,9 +1892,9 @@ export default function ReportCardsPage() {
     });
   };
 
-  const openUgandaPrintWindow = async (title: string, bodyHtml: string) => {
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
+  const openUgandaPrintWindow = async (title: string, bodyHtml: string, existingWindow?: Window) => {
+    const printWindow = existingWindow || window.open("", "_blank");
+    if (!printWindow) return false;
     printWindow.document.open();
     printWindow.document.title = title;
     printWindow.document.write(ugandaDocumentShell(title, bodyHtml));
@@ -1896,6 +1912,7 @@ export default function ReportCardsPage() {
     );
     printWindow.focus();
     printWindow.print();
+    return true;
   };
 
   const handlePrintUganda = async (report: StudentReport) => {
@@ -1955,11 +1972,14 @@ export default function ReportCardsPage() {
   const handleDownloadPDF = async (report: StudentReport) => {
     try {
       const schoolName = school?.name || "School";
-      const subjects = (report.subjects || []).map((s: any) => ({
-        name: s.name || s.subject || "Subject",
-        score: Number(s.finalScore ?? s.total ?? s.score ?? 0),
-        grade: s.grade || "",
-      }));
+      const subjects = (report.subjects || []).map((s: any) => {
+        const scoreValue = s.finalScore ?? s.total ?? s.score;
+        return {
+          name: s.name || s.subject || "Subject",
+          score: reportScoreForPrint(Boolean(s.isMissing), scoreValue),
+          grade: s.grade || "",
+        };
+      });
       await downloadReportPDF(
         {
           schoolName,
@@ -2048,7 +2068,7 @@ export default function ReportCardsPage() {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
-        .replace(/'/g, "&var(--primary, #039);");
+        .replace(/'/g, "&#39;");
 
     const subjectRows = report.subjects
       .map((s) => {
@@ -2311,7 +2331,7 @@ export default function ReportCardsPage() {
     setTimeout(() => printWindow.print(), 500);
   };
 
-  const handlePrintAll = async () => {
+  const prepareBulkPrint = async (printWindow: Window) => {
     if (displayedReports.length === 0) return;
 
     if (reportFormat === "cbc") {
@@ -2323,11 +2343,6 @@ export default function ReportCardsPage() {
       reportFormat !== "competency" &&
       displayedReports.every((report) => report.assessmentModel === "secondary_progressive")
     ) {
-      const printWindow = openPrintWindow();
-      if (!printWindow) {
-        toast.error("Your browser blocked the print window. Allow pop-ups for this site and try again.");
-        return;
-      }
       const pages = displayedReports
         .map((report) => {
           const remarks = comments[report.studentId] || { classTeacher: "", hm: "" };
@@ -2340,6 +2355,7 @@ export default function ReportCardsPage() {
       writePrintDocument(printWindow, `Progress Reports - ${selectedClassName} (${displayedReports.length})`, pages, {
         styles: SECONDARY_PROGRESS_STYLES(school?.primary_color || "var(--secondary, #002045)"),
       });
+      setPrintProgress({ current: displayedReports.length, total: displayedReports.length });
       void printWhenReady(printWindow);
       return;
     }
@@ -2347,11 +2363,63 @@ export default function ReportCardsPage() {
     // Uganda progress reports for the whole list, one attendance batch.
     const ctx = await fetchUgandaBatch(selectedClass);
     const pages: string[] = [];
+    let failedReports = 0;
     for (const [index, report] of displayedReports.entries()) {
-      const body = await buildUgandaBody(report, ctx);
-      pages.push(`<div class="${index > 0 ? "page-break" : ""}">${body}</div>`);
+      setPrintProgress({ current: index, total: displayedReports.length });
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      try {
+        const body = await buildUgandaBody(report, ctx);
+        pages.push(`<div class="${pages.length > 0 ? "page-break" : ""}">${body}</div>`);
+      } catch (error) {
+        failedReports++;
+        logger.error("Failed to prepare one report in the print batch", { studentId: report.studentId });
+        pages.push(
+          `<div class="${pages.length > 0 ? "page-break" : ""}"><h1>Report not ready</h1><p>Report ${index + 1} of ${displayedReports.length} could not be prepared. Retry this pupil individually.</p></div>`,
+        );
+      }
+      setPrintProgress({ current: index + 1, total: displayedReports.length });
     }
-    openUgandaPrintWindow(`Progress Reports - ${selectedClassName} (${displayedReports.length})`, pages.join(""));
+    await openUgandaPrintWindow(
+      `Progress Reports - ${selectedClassName} (${displayedReports.length})`,
+      pages.join(""),
+      printWindow,
+    );
+    if (failedReports)
+      toast.warning(
+        `${failedReports} report${failedReports === 1 ? " was" : "s were"} not ready. Review the marked page and retry individually.`,
+      );
+  };
+
+  const handlePrintAll = async () => {
+    if (displayedReports.length === 0 || printingAll) return;
+    if (reportFormat === "cbc") {
+      toast.info("Print individual reports using the print button per student");
+      return;
+    }
+    // Open synchronously from the click so browsers do not treat the window as
+    // a popup after the data and report-building awaits below.
+    const printWindow = openPrintWindow();
+    if (!printWindow) {
+      toast.error("Your browser blocked the print window. Allow pop-ups for this site and try again.");
+      return;
+    }
+    setPrintingAll(true);
+    setPrintProgress({ current: 0, total: displayedReports.length });
+    writePrintDocument(
+      printWindow,
+      "Preparing report batch",
+      "<main><h1>Preparing report batch…</h1><p>Keep this window open while the reports are assembled.</p></main>",
+    );
+    try {
+      await prepareBulkPrint(printWindow);
+    } catch (error) {
+      logger.error("Bulk report preparation failed", error);
+      printWindow.close();
+      toast.error("The report batch could not be prepared. Try fewer pupils or print them individually.");
+    } finally {
+      setPrintingAll(false);
+      setPrintProgress(null);
+    }
   };
 
   /* Bulk print uses the Uganda layout in handlePrintAll above; the old builder was removed. */
@@ -2438,11 +2506,26 @@ export default function ReportCardsPage() {
         <Button
           variant="ghost"
           onClick={handlePrintAll}
+          disabled={printingAll}
           className="border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100"
+          title="Print the visible report cards or choose Save as PDF in your browser's print dialog"
         >
           <MaterialIcon icon="print_connect" style={{ fontSize: "18px" }} />
-          Print visible ({displayedReports.length})
+          {printingAll && printProgress
+            ? `Preparing ${printProgress.current}/${printProgress.total}…`
+            : `Print visible / Save PDF (${displayedReports.length})`}
         </Button>
+      )}
+      {generated && reports.length > 0 && !printingAll && (
+        <span className="self-center text-xs text-[var(--t3)]">
+          To keep a copy, choose “Save as PDF” in the print dialog.
+        </span>
+      )}
+      {printingAll && printProgress && (
+        <span role="status" aria-live="polite" className="self-center text-xs text-[var(--t3)]">
+          Preparing report {Math.min(printProgress.current + 1, printProgress.total)} of {printProgress.total}. Keep
+          this page open.
+        </span>
       )}
       {classes.length > 0 && (
         <Button
@@ -2482,6 +2565,65 @@ export default function ReportCardsPage() {
       />
       <div className="p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8">
         <PageHeader title="Report Cards" subtitle="Generate and manage student report cards" actions={actions} />
+
+        <details className="mb-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+          <summary className="flex cursor-pointer list-none items-center gap-3 font-semibold text-[var(--t1)]">
+            <MaterialIcon icon="tune" className="text-primary" />
+            Report setup
+            <span className="ml-auto text-xs font-normal text-[var(--t3)]">
+              Assessment recipe, marks and report lines
+            </span>
+          </summary>
+          <div className="mt-5 grid gap-4 xl:grid-cols-2">
+            <TermGradeBasisCard />
+            <AssessmentMaximumsCard />
+            <div className="xl:col-span-2">
+              <ReportRowsCard />
+            </div>
+            <div className="xl:col-span-2 flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4">
+              <MaterialIcon icon="print" className="text-primary" />
+              <div className="min-w-48 flex-1">
+                <p className="text-sm font-semibold text-[var(--t1)]">Printed report layout</p>
+                <p className="text-xs text-[var(--t3)]">
+                  Choose the standard Uganda report or the competency based CBC layout.
+                </p>
+              </div>
+              <select
+                value={reportLayout}
+                onChange={async (event) => {
+                  const next = event.target.value === "ncdc_cbc" ? "ncdc_cbc" : "uganda_classic";
+                  setReportLayout(next);
+                  setReportFormat(next === "ncdc_cbc" ? "cbc" : "numerical");
+                  try {
+                    if (isDemo)
+                      sessionStorage.setItem(
+                        "demo-grading-settings",
+                        JSON.stringify({
+                          ...JSON.parse(sessionStorage.getItem("demo-grading-settings") || "{}"),
+                          [SETTING_KEYS.reportLayout]: next,
+                        }),
+                      );
+                    else if (school?.id)
+                      await supabase
+                        .from("school_settings")
+                        .upsert(
+                          { school_id: school.id, key: SETTING_KEYS.reportLayout, value: next },
+                          { onConflict: "school_id,key" },
+                        );
+                    toast.success("Report layout saved");
+                  } catch {
+                    toast.error("Could not save report layout");
+                  }
+                }}
+                className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--t1)]"
+                aria-label="Printed report layout"
+              >
+                <option value="uganda_classic">Standard Uganda report</option>
+                <option value="ncdc_cbc">CBC / NCDC report</option>
+              </select>
+            </div>
+          </div>
+        </details>
 
         {offlinePreview && generated && (
           <div

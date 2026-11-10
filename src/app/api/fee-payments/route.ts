@@ -21,6 +21,12 @@ export async function GET(request: NextRequest) {
     const auth = await requireUserWithSchool(request);
     if (!auth.ok) return auth.response;
 
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: FEE_MGMT_ROLES,
+    });
+    if (!roleCheck.ok) return roleCheck.response;
+
     const { searchParams } = request.nextUrl;
     const schoolId = searchParams.get("school_id") || auth.context.schoolId;
     const studentId = searchParams.get("student_id");

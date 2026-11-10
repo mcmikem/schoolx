@@ -5,6 +5,7 @@ import { logAuditEventWithOfflineSupport } from "@/lib/audit";
 import { useAuth } from "@/lib/auth-context";
 import { DEMO_BUDGETS, DEMO_EXPENSES, DEMO_FEE_PAYMENTS, DEMO_FEE_STRUCTURE, DemoExpense } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
+import { FEE_PAYMENT_SYNCED_EVENT } from "@/lib/fee-payment-status";
 import { logger } from "@/lib/logger";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { validateAdjustment } from "@/lib/server/fee-logic";
@@ -253,6 +254,13 @@ export function useCompleteFeePayments(schoolId?: string) {
 
   useEffect(() => {
     void fetchAll();
+  }, [fetchAll]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const refreshAfterSync = () => void fetchAll();
+    window.addEventListener(FEE_PAYMENT_SYNCED_EVENT, refreshAfterSync);
+    return () => window.removeEventListener(FEE_PAYMENT_SYNCED_EVENT, refreshAfterSync);
   }, [fetchAll]);
 
   return { payments, loading, truncated, refetch: fetchAll };
@@ -566,9 +574,10 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit?: numb
       payload.notes = [payload.notes, "[overpayment accepted]"].filter(Boolean).join(" ");
     }
     if (!isOnline) {
-      const offlineSaved = await offlineDB.save("fee_payments", payload as unknown as Record<string, unknown>);
+      const pendingPayload = { ...payload, offline_sync_status: "pending" };
+      const offlineSaved = await offlineDB.save("fee_payments", pendingPayload as unknown as Record<string, unknown>);
       const offlinePayment = {
-        ...payload,
+        ...pendingPayload,
         id: String(offlineSaved.id || `offline-payment-${Date.now()}`),
         created_at: new Date().toISOString(),
       };
@@ -713,6 +722,17 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit?: numb
   useEffect(() => {
     fetchPayments();
   }, [fetchPayments]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const refreshAfterSync = () => {
+      invalidateCache(cacheKey);
+      invalidateCache(`${cacheKey}:count`);
+      void fetchPayments();
+    };
+    window.addEventListener(FEE_PAYMENT_SYNCED_EVENT, refreshAfterSync);
+    return () => window.removeEventListener(FEE_PAYMENT_SYNCED_EVENT, refreshAfterSync);
+  }, [cacheKey, fetchPayments]);
   return {
     payments,
     loading,

@@ -2,9 +2,9 @@ import { NextRequest } from "next/server";
 import {
   apiError,
   apiSuccess,
+  createServiceRoleClientOrThrow,
   requireUserWithSchool,
   withSecurity,
-  createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
 
 // Ordered setup steps shown to admins after onboarding. The order here IS the
@@ -33,6 +33,29 @@ async function handleGet(request: NextRequest) {
   const schoolId = auth.context.schoolId;
   if (!schoolId) {
     return apiError("School context required", 403);
+  }
+
+  // This GET normally repairs and updates checklist rows. Keep demo sessions
+  // isolated even though the route is read-shaped: never run those service-role
+  // writes against a shared database while previewing the demo.
+  if (auth.context.isDemo) {
+    const items = DEFAULT_ITEMS.map((item) => ({
+      ...item,
+      school_id: schoolId,
+      is_completed: false,
+      completed_at: null,
+    }));
+    return apiSuccess({
+      items,
+      progress: 0,
+      completed: 0,
+      total: items.length,
+      counts: { classes: 0, subjects: 0, staff: 0, students: 0, fee_payments: 0, attendance: 0 },
+      has_existing_data: false,
+      has_term: false,
+      school_complete: false,
+      school: { has_name: true, has_email: false, has_phone: false, has_logo: true },
+    });
   }
 
   const supabase = createServiceRoleClientOrThrow();
@@ -96,6 +119,18 @@ async function handleGet(request: NextRequest) {
     counts[rule.key] = count ?? 0;
   }
 
+  // The Staff screen is backed by active school user accounts, not only the
+  // payroll `staff` table. Match its inclusion rule so valid roles such as
+  // class_teacher, school_admin, deputy_headteacher, and subject_teacher do
+  // not leave the setup checklist claiming that staff are missing.
+  const { count: accountStaffCount } = await supabase
+    .from("users")
+    .select("id", { count: "exact", head: true })
+    .eq("school_id", schoolId)
+    .eq("is_active", true)
+    .not("role", "in", '("parent","student")');
+  counts.staff = Math.max(counts.staff ?? 0, accountStaffCount ?? 0);
+
   // attendance has no school_id column — count via students of this school.
   const { data: studentIds } = await supabase.from("students").select("id").eq("school_id", schoolId);
   const ids = (studentIds ?? []).map((s: { id: string }) => s.id);
@@ -124,6 +159,11 @@ async function handleGet(request: NextRequest) {
     first_payment: counts.fee_payments > 0,
   };
 
+  // Existing records are a better signal than a legacy/missing onboarding
+  // flag. This lets the dashboard distinguish an established school from a
+  // newly registered school before deciding to show the full setup wizard.
+  const has_existing_data = counts.staff > 0 || counts.students > 0 || counts.attendance > 0 || counts.fee_payments > 0;
+
   // Persist auto-completions so manual state reflects reality.
   for (const [key, done] of Object.entries(detected)) {
     if (done) {
@@ -151,6 +191,7 @@ async function handleGet(request: NextRequest) {
     completed,
     total: list.length,
     counts,
+    has_existing_data,
     has_term: hasTerm,
     school_complete: schoolComplete,
     school: {

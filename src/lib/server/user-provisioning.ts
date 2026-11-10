@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { normalizeAuthPhone, sanitizeString } from "@/lib/validation";
 import { supabaseClientOptions } from "@/lib/api-utils";
+import { passwordMeetsPolicy, PASSWORD_POLICY_MESSAGE } from "@/lib/password-policy";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -64,8 +65,8 @@ export async function createManagedUserAccount({
   email = null,
   isActive = true,
 }: CreateManagedUserAccountInput) {
-  if (password.length < 6) {
-    throw new Error("Password must be at least 6 characters");
+  if (!passwordMeetsPolicy(password)) {
+    throw new Error(PASSWORD_POLICY_MESSAGE);
   }
 
   const sanitizedName = sanitizeProvisioningName(fullName);

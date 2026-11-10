@@ -118,6 +118,26 @@ describe("a stalled sign-in POST cannot freeze the login button", () => {
   });
 });
 
+describe("a server-verified login survives a browser session handoff failure", () => {
+  it("recovers the user profile through SkoolMate's same-origin API", () => {
+    expect(authContext).toContain('fetch("/api/auth/me/"');
+    expect(authContext).toContain("userData?.auth_id === verifiedAuthUser.id");
+    expect(authContext).toContain("return { error: null, role: userData.role }");
+    // Offline fallback is allowed only from a profile previously verified for
+    // this exact auth identity; editable auth user_metadata cannot grant roles.
+    expect(authContext).toContain("cachedUser.auth_id === verifiedAuthUser.id");
+    expect(authContext).toContain("cachedUser.id === verifiedAuthUser.id");
+  });
+
+  it("returns the verified auth user in the scoped server session cookie", () => {
+    const route = path.join(ROOT, "src/app/api/auth/signin/route.ts");
+    const src = fs.readFileSync(route, "utf8");
+    expect(src).toContain("user: session.user");
+    expect(src).toContain("user: hit.session.user");
+    expect(src).toContain("user: viaProfile.session.user");
+  });
+});
+
 describe("the server sign-in route cannot be held open by one slow lookup", () => {
   it("bounds outbound Supabase calls", () => {
     const route = path.join(ROOT, "src/app/api/auth/signin/route.ts");

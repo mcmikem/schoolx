@@ -427,8 +427,22 @@ CREATE TABLE IF NOT EXISTS events (
     start_date DATE NOT NULL,
     end_date DATE,
     created_by UUID REFERENCES users(id),
-    audience TEXT NOT NULL DEFAULT 'school' CHECK (audience IN ('personal', 'school', 'parents')),
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    audience TEXT NOT NULL DEFAULT 'school' CHECK (audience IN ('personal', 'staff', 'school', 'parents', 'class')),
+    all_day BOOLEAN NOT NULL DEFAULT TRUE,
+    start_time TIME,
+    end_time TIME,
+    time_zone TEXT NOT NULL DEFAULT 'Africa/Kampala',
+    location TEXT,
+    class_id UUID REFERENCES classes(id),
+    responsible_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT events_class_audience_class_id_check CHECK (audience <> 'class' OR class_id IS NOT NULL),
+    CONSTRAINT events_time_range_check CHECK (
+      all_day OR (
+        start_time IS NOT NULL AND end_time IS NOT NULL
+        AND (end_date > start_date OR end_time > start_time)
+      )
+    )
 );
 
 -- RLS for events
@@ -439,22 +453,96 @@ FOR SELECT
 TO authenticated
 USING (
   school_id = my_school_id()
+  AND (
+    is_school_admin(my_school_id())
+    OR responsible_user_id = my_user_id()
+    OR audience IN ('school', 'parents')
+    OR (audience = 'staff' AND is_school_staff(my_school_id()))
+    OR (audience = 'personal' AND created_by = my_user_id())
+    OR (
+      audience = 'class'
+      AND (
+        is_school_admin(my_school_id())
+        OR (is_school_staff(my_school_id()) AND class_id IN (SELECT public.my_assigned_class_ids()))
+        OR EXISTS (
+          SELECT 1 FROM public.parent_students ps
+          JOIN public.students st ON st.id = ps.student_id
+          WHERE ps.parent_id = my_user_id()
+            AND st.school_id = events.school_id
+            AND st.class_id = events.class_id
+        )
+        OR EXISTS (
+          SELECT 1 FROM public.students st
+          WHERE st.user_id = my_user_id()
+            AND st.school_id = events.school_id
+            AND st.class_id = events.class_id
+        )
+      )
+    )
+  )
 );
 
 DROP POLICY IF EXISTS "School users events write" ON "events";
-CREATE POLICY "School users events write"
-ON "events"
-FOR ALL
-TO authenticated
+CREATE POLICY "events_insert_scoped"
+ON "events" FOR INSERT TO authenticated
+WITH CHECK (
+  school_id = my_school_id()
+  AND is_school_staff(my_school_id())
+  AND (audience <> 'personal' OR created_by = my_user_id())
+  AND (
+    responsible_user_id IS NULL OR responsible_user_id = my_user_id()
+    OR (
+      is_school_admin(my_school_id()) AND EXISTS (
+        SELECT 1 FROM public.users u
+        WHERE u.id = events.responsible_user_id
+          AND u.school_id = events.school_id
+          AND u.is_active = TRUE
+          AND u.role NOT IN ('parent', 'student')
+      )
+    )
+  )
+  AND (audience <> 'class' OR EXISTS (
+    SELECT 1 FROM public.classes c WHERE c.id = events.class_id AND c.school_id = events.school_id
+  ))
+);
+CREATE POLICY "events_update_scoped"
+ON "events" FOR UPDATE TO authenticated
 USING (
   school_id = my_school_id()
+  AND (is_school_admin(my_school_id()) OR created_by = my_user_id() OR responsible_user_id = my_user_id())
 )
 WITH CHECK (
   school_id = my_school_id()
+  AND (is_school_admin(my_school_id()) OR created_by = my_user_id() OR responsible_user_id = my_user_id())
+  AND (
+    responsible_user_id IS NULL OR responsible_user_id = my_user_id()
+    OR (
+      is_school_admin(my_school_id()) AND EXISTS (
+        SELECT 1 FROM public.users u
+        WHERE u.id = events.responsible_user_id
+          AND u.school_id = events.school_id
+          AND u.is_active = TRUE
+          AND u.role NOT IN ('parent', 'student')
+      )
+    )
+  )
+  AND (audience <> 'class' OR EXISTS (
+    SELECT 1 FROM public.classes c WHERE c.id = events.class_id AND c.school_id = events.school_id
+  ))
+);
+CREATE POLICY "events_delete_scoped"
+ON "events" FOR DELETE TO authenticated
+USING (
+  school_id = my_school_id()
+  AND (is_school_admin(my_school_id()) OR created_by = my_user_id() OR responsible_user_id = my_user_id())
 );
 
 CREATE INDEX IF NOT EXISTS idx_events_school_start_date
   ON public.events (school_id, start_date DESC);
+CREATE INDEX IF NOT EXISTS idx_events_class_date
+  ON public.events (class_id, start_date) WHERE audience = 'class';
+CREATE INDEX IF NOT EXISTS idx_events_responsible_date
+  ON public.events (responsible_user_id, start_date) WHERE responsible_user_id IS NOT NULL;
 
 -- School settings (RLS with my_school_id() helper — SECURITY DEFINER bypasses recursion)
 DROP POLICY IF EXISTS "School users can access school_settings" ON school_settings;
@@ -4477,10 +4565,10 @@ CREATE POLICY timetable_constraints_school ON timetable_constraints FOR ALL TO a
 -- ============================================
 -- Sums a school's fee figures in one round trip so the Bursar dashboard is not
 -- built from a paginated slice of the roster. Mirrors
--- supabase/migrations/202611010015_fee_summary_term_scope.sql — keep the two
--- in step. SECURITY INVOKER: RLS still decides which rows are visible.
+-- supabase/migrations/20261208000000_fee_summary_applicability.sql — keep the
+-- two in step. SECURITY INVOKER: RLS still decides which rows are visible.
 
-DROP FUNCTION IF EXISTS public.fee_summary(UUID);
+DROP FUNCTION IF EXISTS public.fee_summary(UUID, INTEGER, TEXT);
 
 CREATE OR REPLACE FUNCTION public.fee_summary(
   p_school_id UUID,
@@ -4494,14 +4582,22 @@ RETURNS TABLE (
   overdue_count BIGINT,
   high_risk_count BIGINT,
   this_month_total NUMERIC,
-  last_month_total NUMERIC
+  last_month_total NUMERIC,
+  overdue_balance NUMERIC,
+  defaulters JSONB
 )
 LANGUAGE SQL
 STABLE
 SET search_path = public
 AS $$
   WITH school_students AS (
-    SELECT s.id, s.class_id
+    SELECT
+      s.id,
+      s.class_id,
+      s.boarding_status,
+      s.takes_meals,
+      s.is_new_admission,
+      COALESCE(s.opening_balance, 0)::NUMERIC AS opening_balance
     FROM public.students s
     WHERE s.school_id = p_school_id
   ),
@@ -4536,7 +4632,7 @@ AS $$
     FROM scope
   ),
   fee_rows AS (
-    SELECT f.id, f.class_id, f.amount, f.deleted_at
+    SELECT f.id, f.class_id, f.amount, f.deleted_at, f.name, f.category, f.boarding_status
     FROM public.fee_structure f
     WHERE f.school_id = p_school_id
       AND (
@@ -4549,17 +4645,32 @@ AS $$
       )
   ),
   expected_fees AS (
-    SELECT fr.id, fr.class_id, fr.amount
+    SELECT fr.id, fr.class_id, fr.amount, fr.name, fr.category, fr.boarding_status
     FROM fee_rows fr
     WHERE fr.deleted_at IS NULL
   ),
   expected_per_student AS (
     SELECT
       ss.id,
-      COALESCE(SUM(ef.amount), 0)::NUMERIC AS expected
+      COALESCE(SUM(ef.amount), 0)::NUMERIC AS struct_total
     FROM school_students ss
     LEFT JOIN expected_fees ef
       ON (ef.class_id IS NULL OR ef.class_id = ss.class_id)
+      AND (
+        ef.boarding_status IS NULL
+        OR ef.boarding_status = 'both'
+        OR ef.boarding_status = COALESCE(ss.boarding_status, 'day')
+      )
+      AND (
+        NOT (COALESCE(ef.category, '') || ' ' || COALESCE(ef.name, '')
+             ~* '\m(meal|meals|lunch|breakfast|supper|canteen|food)\M')
+        OR ss.takes_meals IS TRUE
+      )
+      AND (
+        NOT (COALESCE(ef.category, '') || ' ' || COALESCE(ef.name, '')
+             ~* '\m(registr\w*|admission|admit|enrol\w*|intake|joining|entry|uniform\w*)\M')
+        OR ss.is_new_admission IS TRUE
+      )
     GROUP BY ss.id
   ),
   scoped_payments AS (
@@ -4580,10 +4691,59 @@ AS $$
     FROM scoped_payments sp
     GROUP BY sp.student_id
   ),
+  -- Credit adjustments reduce what is owed (bursary/discount/scholarship and
+  -- manual_credit, which is also the stored form of write_off/amnesty). Must
+  -- match CREDIT_ADJUSTMENTS in src/lib/operations.ts exactly.
+  credits_per_student AS (
+    SELECT
+      fa.student_id,
+      COALESCE(SUM(fa.amount), 0)::NUMERIC AS credits
+    FROM public.fee_adjustments fa
+    INNER JOIN school_students ss ON ss.id = fa.student_id
+    WHERE fa.deleted_at IS NULL
+      AND fa.adjustment_type IN ('discount', 'scholarship', 'manual_credit', 'write_off', 'bursary', 'amnesty')
+    GROUP BY fa.student_id
+  ),
+  penalties_per_student AS (
+    SELECT
+      fa.student_id,
+      COALESCE(SUM(fa.amount), 0)::NUMERIC AS penalties
+    FROM public.fee_adjustments fa
+    INNER JOIN school_students ss ON ss.id = fa.student_id
+    WHERE fa.deleted_at IS NULL
+      AND fa.adjustment_type = 'penalty'
+    GROUP BY fa.student_id
+  ),
   per_student AS (
-    SELECT ep.expected, COALESCE(pp.paid, 0) AS paid
+    SELECT
+      ep.id AS student_id,
+      GREATEST(
+        0,
+        ep.struct_total
+          + ss.opening_balance
+          + COALESCE(pen.penalties, 0)
+          - COALESCE(cr.credits, 0)
+      ) AS expected,
+      COALESCE(pp.paid, 0) AS paid
     FROM expected_per_student ep
+    INNER JOIN school_students ss ON ss.id = ep.id
     LEFT JOIN paid_per_student pp ON pp.student_id = ep.id
+    LEFT JOIN credits_per_student cr ON cr.student_id = ep.id
+    LEFT JOIN penalties_per_student pen ON pen.student_id = ep.id
+  ),
+  debtors AS (
+    SELECT
+      ps.student_id,
+      (ps.expected - ps.paid) AS balance,
+      s.first_name,
+      s.last_name,
+      s.parent_name,
+      s.parent_phone,
+      c.name AS class_name
+    FROM per_student ps
+    INNER JOIN public.students s ON s.id = ps.student_id
+    LEFT JOIN public.classes c ON c.id = s.class_id
+    WHERE ps.expected > 0 AND ps.paid < ps.expected
   ),
   monthly AS (
     SELECT
@@ -4610,7 +4770,23 @@ AS $$
     (SELECT COUNT(*) FROM per_student WHERE expected > 0 AND paid < expected)::BIGINT,
     (SELECT COUNT(*) FROM per_student WHERE GREATEST(0, expected - paid) >= 300000)::BIGINT,
     (SELECT this_month FROM monthly),
-    (SELECT last_month FROM monthly);
+    (SELECT last_month FROM monthly),
+    (SELECT COALESCE(SUM(balance), 0) FROM debtors),
+    -- Head of the ranked list; overdue_count/overdue_balance cover the rest.
+    -- The dashboard renders five rows, so 20 leaves room to widen the panel
+    -- without another migration.
+    COALESCE(
+      (
+        SELECT jsonb_agg(to_jsonb(d) ORDER BY d.balance DESC)
+        FROM (
+          SELECT student_id, first_name, last_name, parent_name, parent_phone, class_name, balance
+          FROM debtors
+          ORDER BY balance DESC
+          LIMIT 20
+        ) d
+      ),
+      '[]'::jsonb
+    );
 $$;
 
 GRANT EXECUTE ON FUNCTION public.fee_summary(UUID, INTEGER, TEXT) TO authenticated;

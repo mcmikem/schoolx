@@ -11,6 +11,7 @@ interface Event {
   end_date: string | null;
   event_type: string;
   description?: string | null;
+  occurrence_key?: string;
 }
 
 export default function TermTimeline({ events }: { events: Event[] }) {
@@ -72,7 +73,11 @@ export default function TermTimeline({ events }: { events: Event[] }) {
                 : "bg-primary-500";
 
           return (
-            <div key={event.id} className="absolute" style={{ left: `${pos}%` }}>
+            <div
+              key={`${event.id}-${event.occurrence_key ?? event.start_date}`}
+              className="absolute"
+              style={{ left: `${pos}%` }}
+            >
               {/* Connector */}
               <div
                 className={`w-0.5 h-12 bg-[var(--surface-container-high)] absolute left-1/2 -translate-x-1/2 ${isTop ? "-top-12" : "top-0"}`}

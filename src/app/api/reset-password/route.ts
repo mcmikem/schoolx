@@ -73,6 +73,27 @@ export async function POST(request: NextRequest) {
       return apiError("Token expired", 400);
     }
 
+    // Claim a valid token atomically before changing the password. Two requests
+    // can pass the read above at the same time; the conditional update ensures
+    // only one can transition used_at from NULL while the token is unexpired.
+    const claimedAt = new Date().toISOString();
+    const { data: claimedToken, error: claimError } = await supabase
+      .from("password_reset_tokens")
+      .update({ used_at: claimedAt })
+      .eq("id", tokenId)
+      .is("used_at", null)
+      .gt("expires_at", claimedAt)
+      .select("id")
+      .maybeSingle();
+
+    if (claimError) {
+      logger.error("Password reset token claim failed:", claimError);
+      return apiError("Could not reset password. Request a new reset link.", 500);
+    }
+    if (!claimedToken) {
+      return apiError("Invalid, expired, or already used token", 400);
+    }
+
     const { data: userData } = await supabase.from("users").select("auth_id").eq("id", userId).maybeSingle();
 
     if (!userData?.auth_id) {
@@ -87,8 +108,6 @@ export async function POST(request: NextRequest) {
       logger.error("Password update error:", updateError);
       return apiError(updateError.message, 500);
     }
-
-    await supabase.from("password_reset_tokens").update({ used_at: new Date().toISOString() }).eq("id", tokenId);
 
     return apiSuccess({ success: true }, "Password reset successful");
   } catch (error) {

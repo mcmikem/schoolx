@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { logger } from "@/lib/logger";
-import { supabaseClientOptions } from "@/lib/api-utils";
+import { handleApiError, supabaseClientOptions } from "@/lib/api-utils";
 import { loadFeeClearanceMap } from "@/lib/server/fee-clearance";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -98,8 +97,7 @@ export async function GET(req: NextRequest) {
       .map((id: string) => ({ student_id: id, balance: clearance.get(id)?.balance ?? 0 }));
 
     return NextResponse.json({ success: true, data: visible, withheld });
-  } catch (err: any) {
-    logger.error("parent reports error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err) {
+    return handleApiError(err);
   }
 }

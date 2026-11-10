@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { rateLimit } from "@/lib/api-utils";
-import { logger } from "@/lib/logger";
+import { handleApiError, rateLimit } from "@/lib/api-utils";
 
 export async function GET(request: NextRequest) {
   try {
@@ -47,13 +46,12 @@ export async function GET(request: NextRequest) {
       if (error.code === "42P01") {
         return NextResponse.json({ success: true, notifications: [] });
       }
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return handleApiError(error);
     }
 
     return NextResponse.json({ success: true, notifications });
   } catch (error) {
-    logger.error("[Parent Notifications GET] Error:", error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Server error" }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -112,7 +110,6 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   } catch (error) {
-    logger.error("[Parent Notifications PATCH] Error:", error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Server error" }, { status: 500 });
+    return handleApiError(error);
   }
 }

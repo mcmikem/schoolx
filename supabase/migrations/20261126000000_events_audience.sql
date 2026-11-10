@@ -1,7 +1,7 @@
 -- ============================================================================
 -- events.audience
 -- ============================================================================
--- The calendar screen filters events by who they are for: personal, school, or
+-- The calendar screen filters events by who they are for: personal, staff, school, or
 -- parents. It has always selected that column, and the column has never
 -- existed -- so every calendar load failed with
 --
@@ -26,9 +26,9 @@ BEGIN
   ) THEN
     ALTER TABLE public.events
       ADD CONSTRAINT events_audience_check
-      CHECK (audience IN ('personal', 'school', 'parents'));
+      CHECK (audience IN ('personal', 'staff', 'school', 'parents'));
   END IF;
 END $$;
 
 COMMENT ON COLUMN public.events.audience IS
-  'Who an event is for: personal, school or parents.';
+  'Who an event is for: personal, staff, school or parents.';

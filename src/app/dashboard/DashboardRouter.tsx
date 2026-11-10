@@ -28,37 +28,15 @@ function getFirstName(fullName?: string | null) {
 }
 
 function HeadmasterDashboardLoading() {
-  const { user, school } = useAuth();
-
   return (
-    <main className="content !gap-4 overflow-x-hidden" aria-busy="true">
-      <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-        <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">School dashboard</p>
-        <h1 className="mt-1 text-2xl font-bold text-[var(--t1)]">
-          {greetingFor()}, {getFirstName(user?.full_name)}
-        </h1>
-        <p className="mt-1 text-sm text-[var(--t3)]">{school?.name || "Your school"}</p>
-      </section>
-      <nav aria-label="Quick actions" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {[
-          ["/dashboard/students", "group", "Students"],
-          ["/dashboard/attendance", "how_to_reg", "Attendance"],
-          ["/dashboard/fees", "payments", "Fees"],
-          ["/dashboard/grades", "school", "Grades"],
-        ].map(([href, icon, label]) => (
-          <Link
-            key={href}
-            href={href}
-            className="flex min-h-24 flex-col justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 font-semibold text-[var(--t1)]"
-          >
-            <span className="material-symbols-outlined text-[var(--primary)]" aria-hidden="true">
-              {icon}
-            </span>
-            <span className="text-sm">{label}</span>
-          </Link>
-        ))}
-      </nav>
-      <p className="text-center text-xs text-[var(--t3)]">Loading your school summary…</p>
+    <main className="content !gap-4 overflow-x-hidden" aria-busy="true" aria-label="Opening dashboard">
+      <div className="mx-auto flex min-h-[42vh] w-full max-w-xl flex-col items-center justify-center gap-3 text-center">
+        <span
+          className="h-8 w-8 animate-spin rounded-full border-[3px] border-[var(--border)] border-t-[var(--primary)]"
+          aria-hidden="true"
+        />
+        <p className="text-sm font-medium text-[var(--t2)]">Opening your dashboard…</p>
+      </div>
     </main>
   );
 }
@@ -206,9 +184,11 @@ export default function DashboardRouter() {
   const requiresSetup =
     !!user &&
     !profileDegraded &&
-    user.role !== "super_admin" &&
-    user.role !== "marketer" &&
-    (!school || !school.name || school.name === "My School");
+    (user.role === "school_admin" || user.role === "admin") &&
+    // A missing school object with a real school_id is a profile-loading
+    // problem, not permission to send existing accounts through school setup.
+    ((!user.school_id && !school) ||
+      Boolean(school && (!school.name || school.name.trim().toLowerCase() === "my school")));
 
   useEffect(() => {
     if (!authInitialized || !requiresSetup) return;

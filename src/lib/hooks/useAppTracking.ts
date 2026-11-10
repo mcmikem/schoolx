@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
+import { usePathname } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 type EventType = "page_view" | "feature_use" | "error" | "api_call";
 
@@ -9,22 +9,30 @@ interface TrackEvent {
   event_type: EventType;
   event_name: string;
   metadata?: Record<string, unknown>;
-  school_id?: string | null;
   url?: string;
 }
 
 let pendingBatch: TrackEvent[] = [];
 let batchTimer: ReturnType<typeof setTimeout> | null = null;
 
-function sendBatch() {
+async function sendBatch() {
   const batch = pendingBatch.splice(0, pendingBatch.length);
   if (batch.length === 0) return;
-  fetch("/api/track/event/", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ events: batch }),
-    keepalive: true,
-  }).catch(() => {});
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (session?.access_token) headers.authorization = `Bearer ${session.access_token}`;
+    await fetch("/api/track/event/", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ events: batch }),
+      keepalive: true,
+    });
+  } catch {
+    // Telemetry must never interfere with the user's active task.
+  }
 }
 
 function queueEvent(event: TrackEvent) {
@@ -47,40 +55,30 @@ function flushNow() {
 
 export function useAppTracking() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const { user } = useAuth();
   const lastPath = useRef<string>("");
 
   useEffect(() => {
-    const fullPath = pathname + (searchParams?.toString() ? "?" + searchParams.toString() : "");
+    const fullPath = pathname || "/";
     if (fullPath === lastPath.current) return;
     lastPath.current = fullPath;
 
     queueEvent({
       event_type: "page_view",
-      event_name: pathname || "/",
-      metadata: {
-        search: searchParams?.toString() || null,
-        referrer: document.referrer || null,
-      },
-      school_id: user?.school_id,
+      event_name: fullPath,
       url: fullPath,
     });
-  }, [pathname, searchParams, user?.school_id]);
+  }, [pathname]);
 
   useEffect(() => {
     function handleError(event: ErrorEvent) {
       queueEvent({
         event_type: "error",
-        event_name: event.message?.slice(0, 200) || "Unknown client error",
+        event_name: "window_error",
         metadata: {
-          filename: event.filename,
           lineno: event.lineno,
           colno: event.colno,
-          stack: event.error?.stack?.slice(0, 500),
         },
-        school_id: user?.school_id,
-        url: window.location.href,
+        url: window.location.pathname,
       });
     }
 
@@ -88,12 +86,8 @@ export function useAppTracking() {
       const msg = event.reason?.message || event.reason?.toString() || "Unhandled rejection";
       queueEvent({
         event_type: "error",
-        event_name: msg.slice(0, 200),
-        metadata: {
-          stack: event.reason?.stack?.slice(0, 500),
-        },
-        school_id: user?.school_id,
-        url: window.location.href,
+        event_name: "unhandled_rejection",
+        url: window.location.pathname,
       });
     }
 
@@ -104,7 +98,7 @@ export function useAppTracking() {
       window.removeEventListener("error", handleError);
       window.removeEventListener("unhandledrejection", handleRejection);
     };
-  }, [user?.school_id]);
+  }, []);
 
   useEffect(() => {
     window.addEventListener("beforeunload", flushNow);
@@ -116,13 +110,12 @@ export function trackEvent(
   event_type: EventType,
   event_name: string,
   metadata?: Record<string, unknown>,
-  school_id?: string | null,
+  _school_id?: string | null,
 ) {
   queueEvent({
     event_type,
     event_name,
     metadata,
-    school_id,
-    url: window.location.href,
+    url: window.location.pathname,
   });
 }

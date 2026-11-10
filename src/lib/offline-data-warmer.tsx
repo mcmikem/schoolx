@@ -35,6 +35,7 @@ const OFFLINE_DATA_TABLES = [
   "messages",
   "events",
   "timetable",
+  "teacher_timetable",
   "homework",
   "homework_submissions",
   "staff",
@@ -66,6 +67,7 @@ const ESSENTIAL_OFFLINE_DATA_TABLES = [
   "students",
   "classes",
   "subjects",
+  "teacher_timetable",
   "academic_terms",
   "attendance",
   "grades",
@@ -77,27 +79,32 @@ interface WarmedRecord {
   userId: string;
   at: number;
   profile: "essential" | "full";
+  classScope: string;
 }
 
 function connectionProfile(): "essential" | "full" {
   return isLiteMode() ? "essential" : "full";
 }
 
-function alreadyWarmed(userId: string, profile: WarmedRecord["profile"]): boolean {
+function alreadyWarmed(userId: string, profile: WarmedRecord["profile"], classScope: string): boolean {
   try {
     const raw = safeLocalStorage.getItem(WARMED_KEY);
     if (!raw) return false;
     const parsed = JSON.parse(raw) as WarmedRecord;
-    const recent = parsed.userId === userId && Date.now() - parsed.at < REFRESH_AFTER_MS;
+    const recent =
+      parsed.userId === userId && parsed.classScope === classScope && Date.now() - parsed.at < REFRESH_AFTER_MS;
     return recent && (profile === "essential" || parsed.profile === "full");
   } catch {
     return false;
   }
 }
 
-function markWarmed(userId: string, profile: WarmedRecord["profile"]) {
+function markWarmed(userId: string, profile: WarmedRecord["profile"], classScope: string) {
   try {
-    safeLocalStorage.setItem(WARMED_KEY, JSON.stringify({ userId, at: Date.now(), profile } satisfies WarmedRecord));
+    safeLocalStorage.setItem(
+      WARMED_KEY,
+      JSON.stringify({ userId, at: Date.now(), profile, classScope } satisfies WarmedRecord),
+    );
   } catch {
     // Storage unavailable: retrying next load is harmless.
   }
@@ -122,6 +129,21 @@ export function OfflineDataWarmer() {
     const profile = connectionProfile();
     const scope = `${user.id}:${school.id}`;
     const key = preparationKey(user.id, school.id);
+    const selectionKey = `skoolmate_offline_classes_v1:${user.id}:${school.id}`;
+    const readClassScope = () => {
+      try {
+        const saved = JSON.parse(safeLocalStorage.getItem(selectionKey) || "[]") as unknown;
+        return Array.isArray(saved)
+          ? saved
+              .filter((id): id is string => typeof id === "string" && id.length > 0)
+              .sort()
+              .join(",") || "all"
+          : "all";
+      } catch {
+        return "all";
+      }
+    };
+    const classScope = readClassScope();
     const controller = new AbortController();
 
     let cancelled = false;
@@ -129,13 +151,26 @@ export function OfflineDataWarmer() {
     let idleHandle: number | undefined;
 
     let running = false;
-    const run = async (requestedProfile = profile) => {
+    const run = async (requestedProfile = profile, requestedClassIds?: string[]) => {
       if (running) return;
       if (cancelled || !navigator.onLine) return;
       running = true;
       const progress: Preparation = { at: Date.now(), running: true, tables: {}, errors: [] };
       savePreparation(key, progress);
       try {
+        let classIds = requestedClassIds;
+        if (classIds === undefined) {
+          try {
+            const savedClassIds = JSON.parse(
+              safeLocalStorage.getItem(`skoolmate_offline_classes_v1:${user.id}:${school.id}`) || "[]",
+            ) as unknown;
+            classIds = Array.isArray(savedClassIds)
+              ? savedClassIds.filter((id): id is string => typeof id === "string" && id.length > 0)
+              : [];
+          } catch {
+            classIds = [];
+          }
+        }
         const tables = requestedProfile === "essential" ? ESSENTIAL_OFFLINE_DATA_TABLES : OFFLINE_DATA_TABLES;
         const now = new Date();
         const recent = new Date(now);
@@ -144,6 +179,7 @@ export function OfflineDataWarmer() {
         const result = await offlineDB.warmTables(tables, {
           ...(requestedProfile === "essential" ? { pageSize: 100, maxRows: 100 } : { pageSize: 250, maxRows: 1000 }),
           schoolId: school.id,
+          ...(classIds.length > 0 ? { classIds } : {}),
           academicYear: safeLocalStorage.getItem("academic_year") || String(now.getFullYear()),
           term: [1, 2, 3].includes(storedTerm) ? storedTerm : undefined,
           today: getLocalDateString(now),
@@ -157,7 +193,10 @@ export function OfflineDataWarmer() {
         });
         if (cancelled) return;
         // Failed preparation remains retryable; never mark it as ready.
-        if (result.errors.length === 0) markWarmed(scope, requestedProfile);
+        if (result.errors.length === 0) {
+          const warmedClassScope = classIds.length > 0 ? [...classIds].sort().join(",") : "all";
+          markWarmed(scope, requestedProfile, warmedClassScope);
+        }
         progress.errors = result.errors;
         if (result.errors.length > 0) logger.debug("[offline] some tables were not warmed", result.errors);
         window.dispatchEvent(
@@ -174,11 +213,15 @@ export function OfflineDataWarmer() {
       }
     };
 
-    const prepareNow = () => {
-      void run("full");
+    const prepareNow = (event: Event) => {
+      const detail = (event as CustomEvent<{ classIds?: unknown }>).detail;
+      const classIds = Array.isArray(detail?.classIds)
+        ? detail.classIds.filter((id): id is string => typeof id === "string" && id.length > 0)
+        : [];
+      void run("full", classIds);
     };
     const schedule = () => {
-      if (alreadyWarmed(scope, connectionProfile()) || cancelled) return;
+      if (alreadyWarmed(scope, connectionProfile(), classScope) || cancelled) return;
       timer = setTimeout(() => {
         if (typeof window.requestIdleCallback === "function") {
           idleHandle = window.requestIdleCallback(() => void run(connectionProfile()), { timeout: 30_000 });

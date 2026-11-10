@@ -220,6 +220,15 @@ describe("settings route exception", () => {
     expect(tabsForRole("teacher")).toEqual(["profile", "notifications"]);
   });
 
+  it("exposes school acceptance and platform audit to authorised roles", () => {
+    expect(tabsForRole("school_admin")).toContain("legal");
+    expect(tabsForRole("headmaster")).toContain("legal");
+    expect(tabsForRole("super_admin")).toContain("legal");
+    for (const role of ["teacher", "parent", "bursar", "admin"]) {
+      expect(tabsForRole(role)).not.toContain("legal");
+    }
+  });
+
   it("leaves ungated teacher routes open", () => {
     for (const path of ["/dashboard/timetable", "/dashboard/grades", "/dashboard/classes", "/dashboard/students"]) {
       expect({ path, allowed: isRouteAllowed("teacher", path) }).toEqual({ path, allowed: true });

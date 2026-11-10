@@ -46,14 +46,14 @@ export async function subscribeWebPush(userId: string): Promise<PushSubscription
 }
 
 export async function sendWebPush(
-  subscription: any,
+  recipientUserId: string,
   payload: { title: string; body: string; url?: string; tag?: string },
 ) {
   return fetch("/api/push/send/", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      subscription,
+      recipientUserId,
       title: payload.title,
       message: payload.body,
       url: payload.url,

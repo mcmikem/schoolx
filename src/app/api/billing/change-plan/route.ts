@@ -44,6 +44,9 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (!profile?.school_id) return apiError("No school associated with this account", 403);
+    if (!["school_admin", "admin", "headmaster", "super_admin"].includes(profile.role)) {
+      return apiError("Forbidden", 403);
+    }
 
     const body = await request.json();
     const parsed = changePlanBodySchema.safeParse(body);

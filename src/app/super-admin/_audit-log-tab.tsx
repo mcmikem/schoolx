@@ -114,8 +114,8 @@ export function AuditLogTab() {
                     </td>
                     <td className="px-4 py-2.5 text-[var(--t2)]">{log.module || "—"}</td>
                     <td className="px-4 py-2.5 text-[var(--t2)]">{log.schools?.name || "—"}</td>
-                    <td className="px-4 py-2.5 text-[var(--t3)] max-w-[200px] truncate" title={log.details || ""}>
-                      {log.details || "—"}
+                    <td className="px-4 py-2.5 text-[var(--t3)] max-w-[200px] truncate" title={log.description || ""}>
+                      {log.description || "—"}
                     </td>
                   </tr>
                 ))}

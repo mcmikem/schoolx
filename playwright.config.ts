@@ -3,7 +3,11 @@ import { defineConfig, devices } from "@playwright/test";
 const shouldUseManagedWebServer =
   process.env.PLAYWRIGHT_USE_EXISTING_SERVER !== "true";
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
+// Run against a dedicated port so the suite cannot silently reuse a developer's
+// unrelated Next.js server on :3000 (which may not have the test flags or this
+// checkout's code). Point PLAYWRIGHT_BASE_URL at an existing server explicitly
+// when PLAYWRIGHT_USE_EXISTING_SERVER=true.
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3173";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -30,13 +34,14 @@ export default defineConfig({
   // Otherwise Playwright starts a dev server on port 3000 with demo mode enabled.
   webServer: shouldUseManagedWebServer
     ? {
-        command: "npm run dev",
-        url: "http://localhost:3000",
-        reuseExistingServer: true,
+      command: "npm run dev -- --port 3173",
+      url: "http://localhost:3173",
+      reuseExistingServer: false,
         timeout: 120 * 1000,
         env: {
           NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES: "true",
           NEXT_PUBLIC_DEMO_ENABLED: "true",
+          ENABLE_DEV_TEST_ROUTES: "true",
           DEMO_ADMIN_PASSWORD: "skoolmate_demo_2024",
         },
       }

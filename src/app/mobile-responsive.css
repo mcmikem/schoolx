@@ -130,6 +130,16 @@ body {
   }
 }
 
+/* Android standalone PWAs can report a zero CSS safe-area inset while the
+   operating-system status bar still overlays the web content. Reserve its
+   usual 24px height so the school title and action icons stay tappable. */
+@media (display-mode: standalone) and (max-width: 767px) {
+  .topbar {
+    padding-top: max(env(safe-area-inset-top, 0px), 24px);
+    min-height: calc(var(--topbar-height) + max(env(safe-area-inset-top, 0px), 24px));
+  }
+}
+
 /* Reserve space above the floating bottom nav so content is never hidden behind it */
 @media (max-width: 640px) {
   main {

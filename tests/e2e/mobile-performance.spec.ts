@@ -43,6 +43,16 @@ test.describe("small-phone daily work", () => {
     await page.goto("/dashboard/sync-center/");
     await expect(page.getByRole("heading", { name: "Prepare for offline work", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Download offline data and pages", exact: true })).toBeDisabled();
+    await expect(page.getByRole("radio", { name: "All classes available to my account" })).toBeChecked();
+    await page.getByRole("radio", { name: "Only selected classes" }).check();
+    await expect(page.getByText(/Records from earlier downloads remain saved/)).toBeVisible();
     await expect(page.getByText("Offline coverage has not been verified yet.", { exact: true })).toBeVisible();
+    await page.getByText("What can I do offline?", { exact: true }).evaluate((summary) => {
+      const details = summary.closest("details");
+      if (details) details.open = true;
+    });
+    await expect(page.getByRole("table")).toContainText("QR scanning is online-only");
+    await expect(page.getByRole("table")).toContainText("An offline payment is pending until sync succeeds");
+    await expect(page.locator("details")).toContainText("A first visit without internet is not a supported setup");
   });
 });

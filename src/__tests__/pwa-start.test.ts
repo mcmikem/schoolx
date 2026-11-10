@@ -15,11 +15,15 @@ describe("PWA cold open remembers the session", () => {
     expect(manifest).not.toContain('"/login/"');
   });
 
-  it("resolves /start/ server-side, cookie-first", () => {
+  it("uses the remembered route for cookie sessions and bootstraps local-only sessions", () => {
     const proxy = read("src/proxy.ts");
     expect(proxy).toContain('normalizedPath === "/start"');
     expect(proxy).toContain("hasValidDemoSession(request)");
-    expect(proxy).toContain('"/dashboard/" : "/login/"');
+    expect(proxy).toContain("skoolmate_last_dashboard_path");
+    expect(proxy).toContain("NextResponse.next({ request })");
+    const launchPage = read("src/app/start/page.tsx");
+    expect(launchPage).toContain('router.replace("/login/")');
+    expect(launchPage).toContain("getSavedDashboardPath()");
   });
 
   it("serves maskable icons so the phone splash centres the logo", () => {

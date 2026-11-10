@@ -1,6 +1,8 @@
 import { DownloadTarget } from "./types";
 
-export const ANDROID_APP_URL = process.env.NEXT_PUBLIC_ANDROID_APP_URL || "";
+export const ANDROID_APP_URL =
+  process.env.NEXT_PUBLIC_ANDROID_APP_URL ||
+  "https://github.com/mcmikem/schoolx/releases/download/skoolmate-android-v1.0.0/app-release.apk";
 export const IOS_APP_URL = process.env.NEXT_PUBLIC_IOS_APP_URL || "";
 export const WINDOWS_APP_URL = process.env.NEXT_PUBLIC_WINDOWS_APP_URL || "";
 export const MAC_APP_URL = process.env.NEXT_PUBLIC_MAC_APP_URL || "";
@@ -142,12 +144,12 @@ export const securityDetails = [
   {
     icon: "admin_panel_settings",
     title: "Data ownership",
-    desc: "Your school data belongs to you — not to us. You can export everything at any time. If you leave, we delete your data within 30 days. We never use school data for training, advertising, or any purpose other than running your system.",
+    desc: "Schools retain ownership of their records. Authorized school users can request exports, and schools can arrange return or deletion reviews when service ends, subject to legal retention duties and the school agreement.",
   },
   {
     icon: "security",
     title: "Infrastructure security",
-    desc: "Hosted on Supabase (PostgreSQL) with row-level security policies. All connections use TLS 1.3. Database backups run continuously. Your data is encrypted at rest with AES-256.",
+    desc: "SkoolMate uses managed cloud services and account access controls. Ask us for current hosting, backup, security, and processing-location details.",
   },
   {
     icon: "gavel",
@@ -197,7 +199,7 @@ export const faqItems = [
   },
   {
     q: "What happens if I cancel my subscription?",
-    a: "You keep access until the end of your current term. After that, you can export all your data. We delete your school's data within 30 days of cancellation unless you request otherwise.",
+    a: "When service ends, the school can request an export or deletion review. We handle school data according to the agreement, applicable retention duties, and the documented return or deletion process. Contact us to confirm timing.",
   },
   {
     q: "Will it work on my phone?",

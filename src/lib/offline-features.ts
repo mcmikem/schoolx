@@ -78,13 +78,13 @@ export const ONLINE_ONLY_FEATURES: readonly OnlineOnlyFeature[] = [
   },
   {
     prefix: "/dashboard/moes",
-    label: "MoES reporting",
-    reason: "Reports are submitted to the Ministry server.",
+    label: "School headcount summary",
+    reason: "Prepare a local school headcount summary for review.",
   },
   {
     prefix: "/dashboard/moes-reports",
-    label: "MoES reports",
-    reason: "Reports are submitted to the Ministry server.",
+    label: "School data preparation",
+    reason: "Review school records and prepare a local working summary.",
   },
   {
     prefix: "/dashboard/uneb",

@@ -132,6 +132,7 @@ async function fillAndSubmitRegisterForm(page: Page) {
   // Password must have uppercase + number to pass validateStep3
   await page.locator('input[type="password"]').first().fill("SecretPass1");
   await page.locator('input[type="password"]').nth(1).fill("SecretPass1");
+  await page.getByRole("checkbox").check();
 
   await page.getByRole("button", { name: /finish.*start/i }).click();
 }
@@ -446,6 +447,7 @@ test.describe("Auth – register validation (no backend)", () => {
     // Must have uppercase + number to pass strength check and reach mismatch validation
     await page.locator('input[type="password"]').first().fill("SecretPass1");
     await page.locator('input[type="password"]').nth(1).fill("DifferentPass1");
+    await page.getByRole("checkbox").check();
     await page.getByRole("button", { name: /finish.*start/i }).click();
 
     await expect(page.getByText(/passwords do not match/i)).toBeVisible();

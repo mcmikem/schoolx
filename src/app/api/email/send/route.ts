@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUserWithSchool } from "@/lib/api-utils";
+import { apiError, handleApiError, requireUserWithSchool } from "@/lib/api-utils";
 import { rateLimit } from "@/lib/api-utils";
 import { sendWelcomeEmail, sendPasswordResetEmail, sendReceiptEmail } from "@/lib/email/service";
-import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,10 +53,9 @@ export async function POST(request: NextRequest) {
     if (result.success) {
       return NextResponse.json({ success: true, messageId: result.messageId });
     } else {
-      return NextResponse.json({ error: result.error }, { status: 500 });
+      return apiError("Email could not be sent. Please retry or contact support with this reference.", 500);
     }
   } catch (error) {
-    logger.error("[Email Send] Error:", error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Server error" }, { status: 500 });
+    return handleApiError(error);
   }
 }

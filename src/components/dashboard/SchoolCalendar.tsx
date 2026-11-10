@@ -3,10 +3,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isHeadOffice } from "@/lib/head-office";
 import MaterialIcon from "@/components/MaterialIcon";
 import { timeoutFallback, withTimeout } from "@/lib/hooks/utils";
-import { offlineDB } from "@/lib/offline";
+import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { isDemoSchool } from "@/lib/demo-utils";
+import { useClasses } from "@/lib/hooks";
 
 const DAYS_HEADER = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -20,12 +21,26 @@ function localISODate(date: Date): string {
 
 export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string; userId?: string }) {
   const { isDemo, user } = useAuth();
-  // The school calendar is shared: a term start, an exam week, a visiting
-  // inspector. It belongs to the head office, so a teacher sees the events
-  // but does not add to them.
-  const canAddEvent = isHeadOffice(user?.role);
+  const isOnline = useOnlineStatus();
+  const roles = user?.roles?.length ? user.roles : user?.role ? [user.role] : [];
+  const canAddEvent = roles.some((role) => !["parent", "student", "marketer"].includes(role));
+  const canPublishForGroups = roles.some((role) => isHeadOffice(role));
+  const { classes = [] } = useClasses(schoolId);
   const [calendarEvents, setCalendarEvents] = useState<
-    Array<{ id: string; title: string; start_date: string; event_type: string }>
+    Array<{
+      id: string;
+      title: string;
+      start_date: string;
+      event_type: string;
+      audience?: "personal" | "staff" | "school" | "parents" | "class";
+      class_id?: string | null;
+      created_by?: string | null;
+      all_day?: boolean;
+      start_time?: string | null;
+      end_time?: string | null;
+      time_zone?: string | null;
+      location?: string | null;
+    }>
   >([]);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [viewDate, setViewDate] = useState(() => new Date());
@@ -33,6 +48,14 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [newEventTitle, setNewEventTitle] = useState("");
   const [newEventDate, setNewEventDate] = useState("");
+  const [newEventAudience, setNewEventAudience] = useState<"personal" | "staff" | "school" | "parents" | "class">(
+    "personal",
+  );
+  const [newEventClassId, setNewEventClassId] = useState("");
+  const [newEventAllDay, setNewEventAllDay] = useState(true);
+  const [newEventStartTime, setNewEventStartTime] = useState("");
+  const [newEventEndTime, setNewEventEndTime] = useState("");
+  const [newEventLocation, setNewEventLocation] = useState("");
   const dayInputRef = useRef<HTMLInputElement>(null);
   const seedCalendarAttemptedRef = useRef(false);
   const fetchedForSchoolRef = useRef<string | null>(null);
@@ -40,15 +63,17 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
 
   const refreshEvents = useCallback(async () => {
     if (!schoolId) return;
-    const { data, error } = await withTimeout(
-      supabase
-        .from("events")
-        .select("id, school_id, title, start_date, event_type")
-        .eq("school_id", schoolId)
-        .order("start_date"),
-      15000,
-      timeoutFallback(),
-    );
+    const query = supabase
+      .from("events")
+      .select(
+        "id, school_id, title, start_date, event_type, audience, class_id, all_day, start_time, end_time, time_zone, location, created_by",
+      )
+      .eq("school_id", schoolId)
+      .order("start_date");
+    const scoped = userId
+      ? query.or(`audience.neq.personal,created_by.eq.${userId}`)
+      : query.neq("audience", "personal");
+    const { data, error } = await withTimeout(scoped, 15000, timeoutFallback());
     if (!error && data) {
       readSucceededRef.current = true;
       setCalendarEvents(data as any);
@@ -56,7 +81,7 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
     } else {
       readSucceededRef.current = false;
     }
-  }, [schoolId]);
+  }, [schoolId, userId]);
 
   // Seed instantly from the persistent IndexedDB cache so revisits render the
   // calendar without waiting on the network; the fetch effect below revalidates
@@ -66,25 +91,28 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
     let cancelled = false;
     offlineDB.getAllFromCache("events", { school_id: schoolId }).then((cached) => {
       if (cancelled || cached.length === 0) return;
-      setCalendarEvents(cached as any);
+      setCalendarEvents(
+        cached.filter((event) => event.audience !== "personal" || (!!userId && event.created_by === userId)) as any,
+      );
       setEventsLoading(false);
     });
     return () => {
       cancelled = true;
     };
-  }, [schoolId]);
+  }, [schoolId, userId]);
 
   useEffect(() => {
     if (!schoolId) return;
-    if (fetchedForSchoolRef.current === schoolId) return;
-    fetchedForSchoolRef.current = schoolId;
+    const fetchKey = `${schoolId}:${userId || ""}`;
+    if (fetchedForSchoolRef.current === fetchKey) return;
+    fetchedForSchoolRef.current = fetchKey;
     const fetchEvents = async () => {
       setEventsLoading(true);
       await refreshEvents();
       setEventsLoading(false);
     };
     fetchEvents();
-  }, [schoolId, refreshEvents]);
+  }, [schoolId, userId, refreshEvents]);
 
   useEffect(() => {
     if (!schoolId || eventsLoading) return;
@@ -109,27 +137,49 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
 
   const addCalendarEvent = async () => {
     if (!schoolId || !newEventTitle.trim() || !newEventDate) return;
-    const { error } = await withTimeout(
-      supabase.from("events").insert({
-        school_id: schoolId,
-        title: newEventTitle.trim(),
-        start_date: newEventDate,
-        end_date: newEventDate,
-        event_type: "event",
-        created_by: userId,
-      }),
-      15000,
-      {
+    if (newEventAudience === "personal" && !userId) return;
+    if (newEventAudience === "class" && !newEventClassId) return;
+    if (!newEventAllDay && (!newEventStartTime || !newEventEndTime || newEventEndTime <= newEventStartTime)) return;
+    const event = {
+      school_id: schoolId,
+      title: newEventTitle.trim(),
+      start_date: newEventDate,
+      end_date: newEventDate,
+      event_type: "event",
+      audience: newEventAudience,
+      class_id: newEventAudience === "class" ? newEventClassId : null,
+      all_day: newEventAllDay,
+      start_time: newEventAllDay ? null : newEventStartTime,
+      end_time: newEventAllDay ? null : newEventEndTime,
+      time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Africa/Kampala",
+      location: newEventLocation.trim() || null,
+      created_by: userId || null,
+    };
+    if (!isOnline) {
+      const saved = await offlineDB.save("events", event);
+      setCalendarEvents((current) => [...current, saved as any]);
+    } else {
+      const { error } = await withTimeout(supabase.from("events").insert(event), 15000, {
         data: null,
         error: { message: "Event creation timed out", name: "TimeoutError", details: "", hint: "", code: "" },
-      } as any,
-    );
-    if (!error) {
+      } as any);
+      if (error) {
+        // A connection can disappear after the browser reports online. Keep
+        // the event locally and let the shared queue retry it on reconnect.
+        const saved = await offlineDB.save("events", event);
+        setCalendarEvents((current) => [...current, saved as any]);
+      }
       await refreshEvents();
-      setNewEventTitle("");
-      setNewEventDate("");
-      setShowAddEvent(false);
     }
+    setNewEventTitle("");
+    setNewEventDate("");
+    setNewEventAudience("personal");
+    setNewEventClassId("");
+    setNewEventAllDay(true);
+    setNewEventStartTime("");
+    setNewEventEndTime("");
+    setNewEventLocation("");
+    setShowAddEvent(false);
   };
 
   const todayIso = localISODate(new Date());
@@ -154,6 +204,11 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
         title: e.title,
         date: e.start_date,
         kind: e.event_type || "event",
+        allDay: e.all_day !== false,
+        startTime: e.start_time,
+        endTime: e.end_time,
+        timeZone: e.time_zone,
+        location: e.location,
       }));
   }, [calendarEvents, visibleRange]);
 
@@ -289,7 +344,15 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
               key={event.id}
               className="flex items-center justify-between rounded-[var(--r)] bg-[var(--surface)] px-3 py-2 shadow-[var(--sh1)]"
             >
-              <p className="truncate text-sm font-semibold text-[var(--t1)]">{event.title}</p>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-[var(--t1)]">{event.title}</p>
+                <p className="mt-0.5 truncate text-xs text-[var(--t3)]">
+                  {!event.allDay && event.startTime && event.endTime
+                    ? `${event.startTime.slice(0, 5)}–${event.endTime.slice(0, 5)} ${event.timeZone || "Africa/Kampala"}`
+                    : "All day"}
+                  {event.location ? ` · ${event.location}` : ""}
+                </p>
+              </div>
               <span className="shrink-0 rounded-full bg-[var(--primary-50)] px-2 py-0.5 text-xs font-semibold uppercase text-[var(--primary)]">
                 {event.kind}
               </span>
@@ -306,6 +369,12 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
               setShowAddEvent(!showAddEvent);
               if (!showAddEvent) {
                 setNewEventDate(selectedDate || todayIso);
+                setNewEventAudience("personal");
+                setNewEventClassId("");
+                setNewEventAllDay(true);
+                setNewEventStartTime("");
+                setNewEventEndTime("");
+                setNewEventLocation("");
               }
             }}
             className="flex items-center gap-1.5 rounded-full bg-[var(--primary)] px-4 py-2 text-xs font-semibold text-white hover:bg-[var(--primary-700)]"
@@ -339,10 +408,78 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
               onChange={(e) => setNewEventDate(e.target.value)}
               className="rounded-[var(--r)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 min-h-[44px] text-base text-[var(--t1)] outline-none focus:border-[var(--primary)]"
             />
+            <select
+              value={newEventAudience}
+              onChange={(e) => setNewEventAudience(e.target.value as typeof newEventAudience)}
+              className="min-w-[150px] rounded-[var(--r)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 min-h-[44px] text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+              aria-label="Who can see this event"
+            >
+              <option value="personal">Only me</option>
+              <option value="staff">All staff</option>
+              {canPublishForGroups && <option value="school">Whole school</option>}
+              {canPublishForGroups && <option value="parents">Parents</option>}
+              {canPublishForGroups && <option value="class">Selected class</option>}
+            </select>
+            {newEventAudience === "class" && (
+              <select
+                value={newEventClassId}
+                onChange={(event) => setNewEventClassId(event.target.value)}
+                className="min-w-[150px] rounded-[var(--r)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 min-h-[44px] text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+                aria-label="Choose event class"
+              >
+                <option value="">Choose class</option>
+                {classes.map((classItem) => (
+                  <option key={classItem.id} value={classItem.id}>
+                    {classItem.name}
+                  </option>
+                ))}
+              </select>
+            )}
+            <label className="flex min-h-11 items-center gap-2 text-xs font-medium text-[var(--t2)]">
+              <input
+                type="checkbox"
+                checked={newEventAllDay}
+                onChange={(event) => setNewEventAllDay(event.target.checked)}
+                className="h-4 w-4 accent-[var(--primary)]"
+              />
+              All day
+            </label>
+            {!newEventAllDay && (
+              <>
+                <input
+                  type="time"
+                  aria-label="Event start time"
+                  value={newEventStartTime}
+                  onChange={(event) => setNewEventStartTime(event.target.value)}
+                  className="min-h-11 rounded-[var(--r)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--t1)]"
+                />
+                <input
+                  type="time"
+                  aria-label="Event end time"
+                  value={newEventEndTime}
+                  onChange={(event) => setNewEventEndTime(event.target.value)}
+                  className="min-h-11 rounded-[var(--r)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--t1)]"
+                />
+              </>
+            )}
+            <input
+              type="text"
+              aria-label="Event location"
+              value={newEventLocation}
+              onChange={(event) => setNewEventLocation(event.target.value)}
+              maxLength={160}
+              placeholder="Location (optional)"
+              className="min-h-11 min-w-32 rounded-[var(--r)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--t1)]"
+            />
             <button
               type="button"
               onClick={addCalendarEvent}
-              disabled={!newEventTitle.trim() || !newEventDate}
+              disabled={
+                !newEventTitle.trim() ||
+                !newEventDate ||
+                (newEventAudience === "class" && !newEventClassId) ||
+                (!newEventAllDay && (!newEventStartTime || !newEventEndTime || newEventEndTime <= newEventStartTime))
+              }
               className="rounded-full bg-[var(--primary)] px-4 py-2 min-h-[44px] text-sm font-semibold text-white hover:bg-[var(--primary-700)] disabled:opacity-50"
             >
               Save

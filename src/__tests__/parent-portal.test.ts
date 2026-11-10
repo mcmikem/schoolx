@@ -410,6 +410,18 @@ describe("realtime is gone from the bundle path", () => {
   });
 });
 
+describe("parent wallet top-up accessibility", () => {
+  const page = readFileSync(join(__dirname, "..", "..", "src/app/parent-portal/page.tsx"), "utf8");
+
+  it("uses the shared keyboard-managed dialog and labels the amount field", () => {
+    expect(page).toContain("<Modal");
+    expect(page).toContain('title="Add Pocket Money"');
+    expect(page).toContain('id="parent-wallet-topup-amount"');
+    expect(page).toContain('htmlFor="parent-wallet-topup-amount"');
+    expect(page).toContain("Number.isFinite(amount)");
+  });
+});
+
 describe("groupFeesByTerm", () => {
   const fee = (id: string, term: string | null, amount: number) => ({
     id,

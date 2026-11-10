@@ -12,8 +12,7 @@
 // To modify: Run full test suite (lint + typecheck + regression + e2e)
 // ============================================================================
 import { NextRequest, NextResponse } from "next/server";
-import { requireDevelopmentRouteOrDeny, rateLimit } from "@/lib/api-utils";
-import { logger } from "@/lib/logger";
+import { handleApiError, requireDevelopmentRouteOrDeny, rateLimit } from "@/lib/api-utils";
 
 // Demo credentials - ONLY accessible server-side
 const DEMO_CREDS = {
@@ -92,7 +91,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   } catch (error) {
-    logger.error("[Demo Login] Error:", error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Server error" }, { status: 500 });
+    return handleApiError(error);
   }
 }

@@ -2,22 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { createPayPalOrder } from "@/lib/payments/paypal";
 import { createMobileMoneyPaymentLink } from "@/lib/payments/mobile-money";
 import { getExchangeRate } from "@/lib/payments/exchange-rate";
-import { requireUserWithSchool, assertUserRoleOrDeny, rateLimit } from "@/lib/api-utils";
+import { apiError, handleApiError, requireUserWithSchool, assertUserRoleOrDeny, rateLimit } from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { logger } from "@/lib/logger";
 import {
   BillingError,
   buildQuote,
   generateTransactionRef,
   createPendingSubscriptionPayment,
 } from "@/lib/billing/service";
+import { moduleCheckoutBodySchema } from "@/lib/billing/schemas";
 
 const BILLING_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "bursar"];
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  let planInfo: { schoolName?: string } = {};
   try {
     const { success: rlOk } = rateLimit(request, 10, 600_000);
     if (!rlOk) {
@@ -33,26 +32,27 @@ export async function POST(request: NextRequest) {
     });
     if (!roleCheck.ok) return roleCheck.response;
 
-    const body = await request.json();
-    const provider = body.provider as "mtn" | "airtel" | "paypal" | "manual";
-    const moduleKeys = Array.isArray(body.moduleKeys) ? (body.moduleKeys as string[]) : [];
-    const promoCode = body.promoCode || null;
-    const phoneNumber = body.phoneNumber as string | undefined;
+    const parsedBody = moduleCheckoutBodySchema.safeParse(await request.json().catch(() => null));
+    if (!parsedBody.success) return NextResponse.json({ error: "Invalid payment details" }, { status: 400 });
+    const body = parsedBody.data;
+    const { provider, moduleKeys, promoCode, phoneNumber } = body;
 
-    if (!provider || moduleKeys.length === 0) {
-      return NextResponse.json({ error: "Missing provider or moduleKeys" }, { status: 400 });
-    }
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceKey) return apiError("Payment service is temporarily unavailable.", 503);
 
     const supabase = await createSupabaseServerClient();
-    const { data: school } = await supabase.from("schools").select("*").eq("id", auth.context.schoolId).maybeSingle();
+    const { data: school } = await supabase
+      .from("schools")
+      .select("id, name, email")
+      .eq("id", auth.context.schoolId)
+      .maybeSingle();
     if (!school) {
       return NextResponse.json({ error: "School not found" }, { status: 404 });
     }
-    planInfo.schoolName = school.name;
 
     // Quote-first
     const { createClient } = await import("@supabase/supabase-js");
-    const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
@@ -65,8 +65,8 @@ export async function POST(request: NextRequest) {
         promoCode,
       });
     } catch (err) {
-      if (err instanceof BillingError) {
-        return NextResponse.json({ error: err.message }, { status: err.status });
+      if (err instanceof BillingError && err.status < 500) {
+        return apiError(err.message, err.status);
       }
       throw err;
     }
@@ -80,8 +80,8 @@ export async function POST(request: NextRequest) {
 
     // ── Manual (cash/bank) ───────────────────────────────────────────────
     if (provider === "manual") {
-      const reference = String(body.reference || "").trim();
-      if (reference.length < 3) {
+      const reference = body.reference?.trim() ?? "";
+      if (reference.length < 3 || reference.length > 100) {
         return NextResponse.json({ error: "Enter the payment reference" }, { status: 400 });
       }
       const method = body.method === "bank" ? "bank" : "cash";
@@ -193,8 +193,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: "Unsupported provider" }, { status: 400 });
   } catch (error) {
-    logger.error("Module checkout error:", error);
-    const message = error instanceof Error ? error.message : "Module checkout failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    if (error instanceof BillingError && error.status < 500) {
+      return apiError(error.message, error.status);
+    }
+    return handleApiError(error);
   }
 }

@@ -4,7 +4,7 @@ import { APP_NAME } from "@/lib/app-name";
 
 export const metadata: Metadata = {
   title: `Privacy & Data Protection | ${APP_NAME}`,
-  description: "Privacy notice and data protection rights under Uganda's Data Protection and Privacy Act 2019.",
+  description: "SkoolMate privacy notice, school data processing roles, and information about personal data requests.",
 };
 
 export default function Page() {

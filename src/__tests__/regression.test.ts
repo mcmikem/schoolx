@@ -29,9 +29,17 @@ describe("Production Hardening Regression Tests", () => {
       expect(authContext).not.toContain('scope: "global"');
     });
 
-    it("should have parent role in DEMO_ALLOWED_ROLES", () => {
-      const proxy = require("fs").readFileSync(require("path").join(process.cwd(), "src/proxy.ts"), "utf8");
-      expect(proxy).toContain('"parent"');
+    it("should accept a parent demo session only for the fixed demo school", async () => {
+      const { DEMO_SCHOOL_ID, parseDemoSessionCookie } = await import("@/lib/server/demo-session");
+      const payload = (schoolId: string) =>
+        btoa(
+          JSON.stringify({
+            demoUser: { name: "Demo Parent", role: "parent" },
+            demoSchool: { id: schoolId, name: "Demo School" },
+          }),
+        );
+      expect(parseDemoSessionCookie(payload(DEMO_SCHOOL_ID), true)?.role).toBe("parent");
+      expect(parseDemoSessionCookie(payload("another-school"), true)).toBeNull();
     });
 
     it("should have CSRF token as non-httpOnly", () => {
@@ -416,24 +424,15 @@ describe("Production Hardening Regression Tests", () => {
   });
 
   describe("Subscription Upgrade", () => {
-    it("should validate plan ordering in upgrade route", () => {
+    it("retires legacy direct plan changes so upgrades require billing settlement", () => {
       const upgradeRoute = require("fs").readFileSync(
         require("path").join(process.cwd(), "src/app/api/subscription/upgrade/route.ts"),
         "utf8",
       );
-      expect(upgradeRoute).toContain("free_trial");
-      expect(upgradeRoute).toContain("starter");
-      expect(upgradeRoute).toContain("growth");
-      expect(upgradeRoute).toContain("enterprise");
-      expect(upgradeRoute).toContain("newIdx <= currentIdx");
-    });
-
-    it("should allow super_admin to bypass upgrade-only constraint", () => {
-      const upgradeRoute = require("fs").readFileSync(
-        require("path").join(process.cwd(), "src/app/api/subscription/upgrade/route.ts"),
-        "utf8",
-      );
-      expect(upgradeRoute).toContain('super_admin"');
+      expect(upgradeRoute).toContain("status: 410");
+      expect(upgradeRoute).toContain("/api/payment/checkout");
+      expect(upgradeRoute).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
+      expect(upgradeRoute).not.toContain(".update({\n        subscription_plan");
     });
   });
 
@@ -675,6 +674,35 @@ describe("Production Hardening Regression Tests", () => {
       expect(mig).toContain("users_school_id_phone_key");
       expect(mig).toContain("CREATE UNIQUE INDEX");
       expect(mig).toContain("WHERE phone IS NOT NULL");
+    });
+
+    it("rejects legacy parent profiles without a sign-in account before linking or rotating credentials", () => {
+      const src = readRoute();
+      const guard = src.indexOf("if (!existingUser.auth_id)");
+      const linkLookup = src.indexOf('.from("parent_students")', guard);
+      const rotate = src.indexOf("updateUserById(existingUser.auth_id", guard);
+      expect(guard).toBeGreaterThan(-1);
+      expect(src).toContain('conflict: "parent_auth_account_missing"');
+      expect(linkLookup).toBeGreaterThan(guard);
+      expect(rotate).toBeGreaterThan(linkLookup);
+    });
+
+    it("rolls back a newly created auth/profile account if the student link fails", () => {
+      const src = readRoute();
+      const linkFailure = src.indexOf("if (linkError) {", src.indexOf("// Link parent to student"));
+      const profileRollback = src.indexOf('.from("users").delete()', linkFailure);
+      const authRollback = src.indexOf("auth.admin.deleteUser(authData.user.id)", linkFailure);
+      const failureResponse = src.indexOf("status: 500", linkFailure);
+      expect(linkFailure).toBeGreaterThan(-1);
+      expect(profileRollback).toBeGreaterThan(linkFailure);
+      expect(authRollback).toBeGreaterThan(profileRollback);
+      expect(failureResponse).toBeGreaterThan(authRollback);
+    });
+
+    it("does not return linked learner records from the service-role endpoint", () => {
+      const src = readRoute();
+      expect(src).not.toContain("linkedChildren");
+      expect(src).not.toContain("student:students(*");
     });
   });
 

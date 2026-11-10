@@ -13,6 +13,7 @@ import { logger } from "@/lib/logger";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { requireModuleEntitlement } from "@/lib/subscription-guard";
 import { generateStudentNumber } from "@/lib/student-number";
+import { isClassScopedRole, getAssignedClassIds } from "@/lib/server/class-scope";
 
 const STUDENT_MGMT_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "secretary"];
 
@@ -20,6 +21,12 @@ export async function GET(request: NextRequest) {
   try {
     const auth = await requireUserWithSchool(request);
     if (!auth.ok) return auth.response;
+
+    const roleCheck = assertUserRoleOrDeny({
+      userRole: auth.context.user.role,
+      allowedRoles: [...STUDENT_MGMT_ROLES, "teacher", "class_teacher"],
+    });
+    if (!roleCheck.ok) return roleCheck.response;
 
     const { searchParams } = request.nextUrl;
     const schoolId = searchParams.get("school_id") || auth.context.schoolId;
@@ -51,6 +58,12 @@ export async function GET(request: NextRequest) {
       .select("*, classes(id, name, level, stream)", { count: "exact" })
       .eq("school_id", schoolId)
       .order("first_name", { ascending: true });
+
+    if (isClassScopedRole(auth.context.user.role)) {
+      const assignedClassIds = await getAssignedClassIds(supabase, auth.context.user.id);
+      if (assignedClassIds.size === 0) return apiSuccess({ students: [], total: 0 });
+      query = query.in("class_id", [...assignedClassIds]);
+    }
 
     if (classId && classId !== "all") {
       query = query.eq("class_id", classId);
@@ -123,6 +136,16 @@ export async function POST(request: NextRequest) {
           : 0;
 
     const supabase = createServiceRoleClientOrThrow();
+
+    if (studentData.class_id) {
+      const { data: classRow } = await supabase
+        .from("classes")
+        .select("id")
+        .eq("id", studentData.class_id)
+        .eq("school_id", scope.schoolId)
+        .maybeSingle();
+      if (!classRow) return apiError("Selected class is not available in this school", 400);
+    }
 
     const moduleCheck = await requireModuleEntitlement({
       supabase,

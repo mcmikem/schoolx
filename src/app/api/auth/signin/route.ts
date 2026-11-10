@@ -26,15 +26,18 @@
 //
 // To modify: Run full test suite (lint + typecheck + regression + e2e)
 // ============================================================================
-import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { NextRequest } from "next/server";
 import { apiError, apiSuccess, rateLimit, supabaseClientOptions } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
+import { getSupabaseAuthCookieName } from "@/lib/supabase-cookie";
 import { normalizeAuthPhone } from "@/lib/validation";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Match the other server Supabase clients: newer projects may expose only a
+// publishable key, while existing projects still use the legacy anon key.
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 const isUsableServiceKey = (key?: string): key is string => Boolean(key && key.length > 20 && !key.startsWith("your-"));
 
@@ -121,11 +124,20 @@ async function signInWithEmail(email: string, password: string) {
       access_token?: string;
       refresh_token?: string;
       expires_in?: number;
-      user?: { user_metadata?: { role?: string } };
+      user?: {
+        id?: string;
+        email?: string | null;
+        phone?: string | null;
+        aud?: string;
+        role?: string;
+        created_at?: string;
+        app_metadata?: Record<string, unknown>;
+        user_metadata?: Record<string, unknown>;
+      };
       msg?: string;
       error_description?: string;
     };
-    if (!res.ok || !body.access_token) {
+    if (!res.ok || !body.access_token || !body.refresh_token || !body.user?.id) {
       return {
         session: null,
         error: { message: body.msg || body.error_description || "Sign-in failed" },
@@ -136,7 +148,17 @@ async function signInWithEmail(email: string, password: string) {
         access_token: body.access_token,
         refresh_token: body.refresh_token ?? "",
         expires_in: body.expires_in ?? 3600,
-        role: body.user?.user_metadata?.role ?? "admin",
+        role: typeof body.user?.user_metadata?.role === "string" ? body.user.user_metadata.role : "admin",
+        user: {
+          id: body.user.id,
+          email: body.user.email ?? null,
+          phone: body.user.phone ?? null,
+          aud: body.user.aud ?? "authenticated",
+          role: body.user.role ?? "authenticated",
+          created_at: body.user.created_at,
+          app_metadata: body.user.app_metadata ?? {},
+          user_metadata: body.user.user_metadata ?? {},
+        },
       },
       error: null,
     };
@@ -202,12 +224,28 @@ async function lookupProfileEmail(identifier: string): Promise<string | null> {
   }
 }
 
-function sessionResponse(session: { access_token: string; refresh_token: string; expires_in: number; role: string }) {
+function sessionResponse(session: {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  role: string;
+  user: {
+    id: string;
+    email: string | null;
+    phone: string | null;
+    aud: string;
+    role: string;
+    created_at?: string;
+    app_metadata: Record<string, unknown>;
+    user_metadata: Record<string, unknown>;
+  };
+}) {
   return apiSuccess({
     access_token: session.access_token,
     refresh_token: session.refresh_token,
     expires_in: session.expires_in,
     role: session.role,
+    user: session.user,
   });
 }
 
@@ -260,15 +298,18 @@ export async function POST(request: NextRequest) {
       expires_in: hit.session.expires_in,
       expires_at: Math.floor(Date.now() / 1000) + (hit.session.expires_in || 3600),
       token_type: "bearer",
-      user: null,
+      user: hit.session.user,
     });
     const cookieValue = "base64-" + Buffer.from(sessionJson).toString("base64url");
-    res.cookies.set("sb-gucxpmgwvnbqykevucbi-auth-token", cookieValue, {
-      path: "/",
-      maxAge: hit.session.expires_in || 3600,
-      sameSite: "lax",
-      httpOnly: false,
-    });
+    const cookieName = getSupabaseAuthCookieName(supabaseUrl);
+    if (cookieName) {
+      res.cookies.set(cookieName, cookieValue, {
+        path: "/",
+        maxAge: hit.session.expires_in || 3600,
+        sameSite: "lax",
+        httpOnly: false,
+      });
+    }
     return res;
   }
 
@@ -286,15 +327,18 @@ export async function POST(request: NextRequest) {
         expires_in: viaProfile.session.expires_in,
         expires_at: Math.floor(Date.now() / 1000) + (viaProfile.session.expires_in || 3600),
         token_type: "bearer",
-        user: null,
+        user: viaProfile.session.user,
       });
       const cookieValue = "base64-" + Buffer.from(sessionJson).toString("base64url");
-      res.cookies.set("sb-gucxpmgwvnbqykevucbi-auth-token", cookieValue, {
-        path: "/",
-        maxAge: viaProfile.session.expires_in || 3600,
-        sameSite: "lax",
-        httpOnly: false,
-      });
+      const cookieName = getSupabaseAuthCookieName(supabaseUrl);
+      if (cookieName) {
+        res.cookies.set(cookieName, cookieValue, {
+          path: "/",
+          maxAge: viaProfile.session.expires_in || 3600,
+          sameSite: "lax",
+          httpOnly: false,
+        });
+      }
       return res;
     }
   }

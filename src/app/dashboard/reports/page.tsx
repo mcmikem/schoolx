@@ -370,7 +370,7 @@ export default function ReportsPage() {
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;")
                 .replace(/\"/g, "&quot;")
-                .replace(/'/g, "&var(--primary, #039);");
+                .replace(/'/g, "&#39;");
             const reportAssessmentColumns = Array.from(
               new Set<string>(
                 (report.subjects || []).flatMap((subject: any) =>

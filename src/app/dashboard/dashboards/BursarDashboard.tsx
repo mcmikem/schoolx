@@ -24,7 +24,7 @@ import {
   useStudents,
 } from "@/lib/hooks";
 import type { FeeDefaulter } from "@/lib/hooks";
-import { greetingFor, todayLabelFor } from "@/lib/utils";
+import { greetingFor } from "@/lib/utils";
 
 type CollectionPeriod = "today" | "week" | "month";
 
@@ -52,10 +52,9 @@ function BursarDashboardContent() {
     refetch: refetchPayments,
   } = useFeePayments(school?.id);
   const { feeStructure, loading: feeStructureLoading, error: feeStructureError } = useFeeStructure(school?.id);
-  // Scoped to the term the header names. fee_summary() falls back to the
-  // school's other fees when that term has none that apply, so this never
-  // drops to zero just because a term has not been set up yet.
-  const { summary: feeSummary, loading: feeSummaryLoading } = useFeeSummary(school?.id, currentTerm, academicYear);
+  // The Fees Tracker shows the outstanding balance across every fee period.
+  // Use the same all-period scope here so bursars see one consistent position.
+  const { summary: feeSummary, loading: feeSummaryLoading } = useFeeSummary(school?.id);
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
   const [period, setPeriod] = useState<CollectionPeriod>("week");
   const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
@@ -76,7 +75,6 @@ function BursarDashboardContent() {
 
   const currentDate = new Date();
   const greeting = greetingFor(currentDate);
-  const todayLabel = todayLabelFor(currentDate);
 
   const legacyFigures = useMemo(() => {
     const expected = students.reduce((total, student) => {
@@ -223,7 +221,11 @@ function BursarDashboardContent() {
 
   const fallbackUnavailable = Boolean(studentsError || paymentsError || feeStructureError);
   const figuresReady = feeSummary !== null || (!dataLoading && !fallbackUnavailable);
-  const sourceLabel = isDemo ? "Demo figures" : feeSummary ? "School-wide summary" : "Loaded-record estimate";
+  const sourceLabel = isDemo
+    ? "Demo figures"
+    : feeSummary
+      ? "All fee periods · school-wide summary"
+      : "Loaded-record estimate";
 
   const active =
     period === "today"
@@ -325,7 +327,7 @@ function BursarDashboardContent() {
       <SchoolHero
         school={school}
         userName={user?.full_name?.split(" ")[0] || "Bursar"}
-        subtitle={[school?.name, todayLabel, `Term ${currentTerm}, ${academicYear}`].filter(Boolean).join(" · ")}
+        subtitle={[school?.name, `Term ${currentTerm}, ${academicYear}`].filter(Boolean).join(" · ")}
         rightSection={
           <div className="flex flex-wrap items-center gap-2">
             <Link href="/dashboard/money" className="btn-pill btn-secondary">
@@ -407,6 +409,10 @@ function BursarDashboardContent() {
                   <p className="col-span-3 text-[11px] text-blue-100">Other: {formatCurrency(otherTakings)}</p>
                 )}
               </div>
+            ) : barMax === 0 ? (
+              <p className="mt-5 border-t border-white/15 pt-4 text-sm text-blue-100">
+                No collections to chart {period === "week" ? "this week" : "this month"}.
+              </p>
             ) : (
               <div className="mt-6 border-t border-white/15 pt-5">
                 <div
@@ -496,7 +502,7 @@ function BursarDashboardContent() {
 
       <section aria-label="Fee summary" className="min-w-0 border-t border-[var(--border)] pt-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-base font-bold text-[var(--t1)]">Term {currentTerm} fees</h2>
+          <h2 className="text-base font-bold text-[var(--t1)]">All fee periods</h2>
           <span className="text-xs text-[var(--t3)]">{sourceLabel}</span>
         </div>
         {!isDemo && !feeSummary && !feeSummaryLoading && (

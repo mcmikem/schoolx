@@ -1,6 +1,6 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useClasses, useSubjects, useTimetableManager, useStaff } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
@@ -37,6 +37,8 @@ import {
 } from "@/lib/timetable/uganda-day";
 import { DEMO_SUBJECTS, DEMO_TIMETABLE } from "@/lib/demo-data";
 import { buildDefaultTimetableSlots } from "@/lib/school-setup";
+import { offlineDB, useOnlineStatus } from "@/lib/offline";
+import { parseTimetableOcrText } from "@/lib/timetable/ocr-text";
 
 const DAYS = [
   { value: 1, label: "Mon", full: "Monday" },
@@ -140,9 +142,15 @@ const TIMETABLE_EDIT_ROLES = ["super_admin", "school_admin", "admin", "headmaste
 
 export default function TimetablePage() {
   const { school, user, isDemo } = useAuth();
+  const isOnline = useOnlineStatus();
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
   const { classes } = useClasses(school?.id);
+  const classIdsKey = classes
+    .map((classItem) => classItem.id)
+    .sort()
+    .join("|");
+  const classIds = useMemo(() => new Set(classIdsKey ? classIdsKey.split("|") : []), [classIdsKey]);
   const { subjects } = useSubjects(school?.id);
   const { slots, loading: loadingSlots, refetch: refetchSlots } = useTimetableManager(school?.id, school?.school_type);
   const { staff } = useStaff(school?.id);
@@ -175,6 +183,24 @@ export default function TimetablePage() {
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showDaySetup, setShowDaySetup] = useState(false);
   const [showPrint, setShowPrint] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [bulkImportSource, setBulkImportSource] = useState<"csv" | "image">("csv");
+  const [ocrBusy, setOcrBusy] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState("");
+  const [bulkRows, setBulkRows] = useState<
+    Array<{
+      day_of_week: number;
+      period_number: number;
+      class_id: string;
+      subject_id: string;
+      teacher_id: string;
+      start_time: string;
+      end_time: string;
+      room: string | null;
+    }>
+  >([]);
+  const bulkFileRef = useRef<HTMLInputElement>(null);
+  const timetableImageRef = useRef<HTMLInputElement>(null);
   const [showAllClashes, setShowAllClashes] = useState(false);
   const canAutoGenerate = !!user && TIMETABLE_EDIT_ROLES.includes(user.role);
   // Adding/removing lessons is a school-wide structural change, not a teacher's
@@ -182,6 +208,18 @@ export default function TimetablePage() {
   // in the school, so without this gate a teacher could silently rewrite the
   // whole timetable from the "+ Add lesson" cells.
   const canEditTimetable = !!user && TIMETABLE_EDIT_ROLES.includes(user.role);
+
+  // Rehydrate the last complete school schedule immediately, then refresh it
+  // from Supabase when a connection is available. This keeps clash detection
+  // useful offline as well as the selected class grid.
+  useEffect(() => {
+    if (!school?.id) return;
+    const classIds = new Set(classes.map((item) => item.id));
+    void offlineDB.getAllFromCache("teacher_timetable").then((cached) => {
+      const schoolRows = cached.filter((row) => classIds.has(String(row.class_id)));
+      if (schoolRows.length) setAllClassTimetables(schoolRows as unknown as AllClassTimetableEntry[]);
+    });
+  }, [school?.id, classes]);
 
   // Fetch the timetable for the selected class
   const fetchTimetable = useCallback(async () => {
@@ -207,19 +245,36 @@ export default function TimetablePage() {
         timeoutFallback(),
       );
       if (isTimeoutResult(result)) {
-        toast.error("Timetable is taking too long to load. Check your connection and try again.");
+        const cached = await offlineDB.getAllFromCache("teacher_timetable", { class_id: selectedClassId });
+        if (cached.length) {
+          setTimetable(cached as unknown as TimetableEntry[]);
+          toast.info("Showing the saved timetable. Reconnect to refresh it.");
+        } else {
+          toast.error("Timetable is taking too long to load. Check your connection and try again.");
+        }
         return;
       }
       const { data, error } = result ?? {};
       if (error) throw error;
-      setTimetable((data || []) as TimetableEntry[]);
+      const rows = (data || []) as TimetableEntry[];
+      setTimetable(rows);
+      await offlineDB.cacheFromServer(
+        "teacher_timetable",
+        rows.map((row) => ({ ...row, school_id: school?.id })) as unknown as Record<string, unknown>[],
+      );
     } catch (err) {
       logger.error("Error fetching timetable:", err);
-      toast.error("Failed to load timetable");
+      const cached = await offlineDB.getAllFromCache("teacher_timetable", { class_id: selectedClassId });
+      if (cached.length) {
+        setTimetable(cached as unknown as TimetableEntry[]);
+        toast.info("Showing the saved timetable. Changes will sync when you are online.");
+      } else {
+        toast.error("Failed to load timetable");
+      }
     } finally {
       setLoading(false);
     }
-  }, [selectedClassId, isDemo, setLoading, setTimetable, toast]);
+  }, [selectedClassId, isDemo, setLoading, setTimetable, toast, school?.id]);
 
   // Fetch ALL class timetables for the school to enable cross-class conflict detection
   // Note: depends only on school?.id, not classes array (to avoid re-render loops)
@@ -257,12 +312,21 @@ export default function TimetablePage() {
       if (isTimeoutResult(result)) return;
       const { data, error } = result ?? {};
       if (error) throw error;
-      const knownClassIds = new Set(classes.map((classItem) => classItem.id));
-      setAllClassTimetables((data || []).filter((entry) => knownClassIds.has(entry.class_id)));
+      const rows = (data || [])
+        .filter((entry) => classIds.has(entry.class_id))
+        .map((entry) => ({
+          ...entry,
+          school_id: school.id,
+        }));
+      setAllClassTimetables(rows);
+      await offlineDB.cacheFromServer("teacher_timetable", rows as unknown as Record<string, unknown>[]);
     } catch (err) {
       logger.error("Error fetching all timetables:", err);
+      const cached = await offlineDB.getAllFromCache("teacher_timetable");
+      const schoolRows = cached.filter((row) => classIds.has(String(row.class_id)));
+      if (schoolRows.length) setAllClassTimetables(schoolRows as unknown as AllClassTimetableEntry[]);
     }
-  }, [school?.id, isDemo, classes]);
+  }, [school?.id, isDemo, classIds]);
 
   useEffect(() => {
     if (selectedClassId) fetchTimetable();
@@ -441,9 +505,19 @@ export default function TimetablePage() {
     }
 
     try {
-      const { error } = await supabase.from("teacher_timetable").insert([entryData]);
-      if (error) throw error;
-      toast.success("Timetable entry added");
+      if (!isOnline) {
+        const saved = await offlineDB.save("teacher_timetable", {
+          ...entryData,
+          school_id: school?.id,
+          subjects: subjects.find((subject) => subject.id === entryData.subject_id) || null,
+        });
+        setTimetable((current) => [...current, saved as unknown as TimetableEntry]);
+        toast.success("Timetable entry saved on this device. It will sync when you reconnect.");
+      } else {
+        const { error } = await supabase.from("teacher_timetable").insert([entryData]);
+        if (error) throw error;
+        toast.success("Timetable entry added");
+      }
       setShowEntryModal(false);
       setConflicts([]);
       fetchTimetable();
@@ -458,15 +532,194 @@ export default function TimetablePage() {
     const entryId = pendingDeleteEntryId;
     setPendingDeleteEntryId(null);
     try {
-      const { error } = await supabase.from("teacher_timetable").delete().eq("id", entryId);
-      if (error) throw error;
-      toast.success("Entry removed");
+      if (!isOnline) {
+        await offlineDB.delete("teacher_timetable", entryId);
+        setTimetable((current) => current.filter((entry) => entry.id !== entryId));
+        toast.success("Entry removed on this device. The change will sync when you reconnect.");
+      } else {
+        const { error } = await supabase.from("teacher_timetable").delete().eq("id", entryId);
+        if (error) throw error;
+        toast.success("Entry removed");
+      }
       fetchTimetable();
       fetchAllTimetables();
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to remove timetable entry"));
     }
   };
+
+  const handleBulkTimetableFile = async (file?: File) => {
+    if (!file) return;
+    setBulkImportSource("csv");
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).filter((line) => line.trim());
+    if (lines.length < 2) {
+      toast.error("Add a header row and at least one lesson row to the CSV file.");
+      return;
+    }
+    const split = (line: string) => (line.includes("\t") ? line.split("\t") : line.split(","));
+    const headers = split(lines[0]).map((value) =>
+      value
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_"),
+    );
+    const index = (...names: string[]) =>
+      headers.findIndex((header) => names.some((name) => header === name || header.includes(name)));
+    const col = {
+      day: index("day", "weekday"),
+      period: index("period", "lesson_number"),
+      class: index("class", "stream"),
+      subject: index("subject", "learning_area"),
+      teacher: index("teacher", "staff"),
+      start: index("start", "from"),
+      end: index("end", "to"),
+      room: index("room", "venue"),
+    };
+    if (
+      Object.values(col)
+        .slice(0, 7)
+        .some((value) => value < 0)
+    ) {
+      toast.error("CSV needs columns for day, period, class, subject, teacher, start time and end time.");
+      return;
+    }
+    const dayNumber = (value: string) => {
+      const n = Number(value);
+      if (Number.isInteger(n) && n >= 1 && n <= 7) return n;
+      return DAYS.find((day) => day.full.toLowerCase() === value.trim().toLowerCase())?.value ?? 0;
+    };
+    const match = (items: Array<{ id: string; name?: string; full_name?: string }>, value: string) =>
+      items.find((item) => (item.name || item.full_name || "").trim().toLowerCase() === value.trim().toLowerCase())
+        ?.id || "";
+    const rows = lines.slice(1).map((line) => {
+      const values = split(line).map((value) => value.trim());
+      const get = (at: number) => (at >= 0 ? values[at] || "" : "");
+      const classId = match(classes as any, get(col.class));
+      const subjectId = match(subjects as any, get(col.subject));
+      const teacherId = match(teachers as any, get(col.teacher));
+      const day = dayNumber(get(col.day));
+      const period = Number(get(col.period));
+      const slot = effectiveSlots.find((item) => item.order_number === period || item.period_number === period);
+      return {
+        day_of_week: day,
+        period_number: period,
+        class_id: classId,
+        subject_id: subjectId,
+        teacher_id: teacherId,
+        start_time: get(col.start) || slot?.start_time || "",
+        end_time: get(col.end) || slot?.end_time || "",
+        room: get(col.room) || null,
+      };
+    });
+    setBulkRows(rows);
+    setShowBulkImport(true);
+  };
+
+  const handleTimetableImage = async (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Choose a timetable photo or image file.");
+      return;
+    }
+    if (file.size > 12 * 1024 * 1024) {
+      toast.error("This image is over 12 MB. Resize or crop it, then try again.");
+      return;
+    }
+    setOcrBusy(true);
+    setOcrProgress("Preparing image…");
+    try {
+      const { createWorker } = await import("tesseract.js");
+      const worker = await createWorker("eng", 1, {
+        workerPath: "/vendor/tesseract/worker.min.js",
+        corePath: "/vendor/tesseract",
+        langPath: "/vendor/tesseract/tessdata",
+        logger: (message) => {
+          if (message.status === "recognizing text")
+            setOcrProgress(`Reading timetable… ${Math.round(message.progress * 100)}%`);
+          else if (message.status === "loading language traineddata") setOcrProgress("Loading offline OCR language…");
+        },
+      });
+      try {
+        const result = await worker.recognize(file);
+        const drafts = parseTimetableOcrText(result.data.text);
+        if (!drafts.length) {
+          toast.error("No lesson rows were recognised. Try a clearer, straight-on photo or use CSV import.");
+          return;
+        }
+        const dayNumber = (value: string) => {
+          const normalized = value.toLowerCase();
+          return (
+            DAYS.find((day) => day.full.toLowerCase() === normalized || day.label.toLowerCase() === normalized)
+              ?.value ?? 0
+          );
+        };
+        const match = (items: Array<{ id: string; name?: string; full_name?: string }>, value: string) =>
+          items.find((item) => (item.name || item.full_name || "").trim().toLowerCase() === value.trim().toLowerCase())
+            ?.id || "";
+        setBulkRows(
+          drafts.map((row) => {
+            const period = Number(row.period) || 0;
+            const slot = effectiveSlots.find((item) => item.order_number === period || item.period_number === period);
+            return {
+              day_of_week: dayNumber(row.day),
+              period_number: period,
+              class_id: match(classes as any, row.className),
+              subject_id: match(subjects as any, row.subject),
+              teacher_id: match(teachers as any, row.teacher),
+              start_time: row.startTime || slot?.start_time || "",
+              end_time: row.endTime || slot?.end_time || "",
+              room: row.room || null,
+            };
+          }),
+        );
+        setBulkImportSource("image");
+        setShowBulkImport(true);
+      } finally {
+        await worker.terminate();
+      }
+    } catch (error) {
+      logger.error("Timetable image OCR failed", error);
+      toast.error("Could not read this image. Check that the OCR assets are available, or use CSV import.");
+    } finally {
+      setOcrBusy(false);
+      setOcrProgress("");
+    }
+  };
+
+  const confirmBulkImport = async () => {
+    const invalid = bulkRows.find(
+      (row) =>
+        !row.day_of_week ||
+        !row.class_id ||
+        !row.subject_id ||
+        !row.teacher_id ||
+        !row.start_time ||
+        !row.end_time ||
+        row.period_number < 1,
+    );
+    if (invalid) {
+      toast.error("Some rows could not be matched. Fix the CSV names and times, then select the file again.");
+      return;
+    }
+    try {
+      const payload = bulkRows.map((row) => ({
+        ...row,
+        academic_year: academicYear || String(new Date().getFullYear()),
+      }));
+      const { error } = await supabase.from("teacher_timetable").insert(payload);
+      if (error) throw error;
+      toast.success(`${payload.length} timetable lessons imported.`);
+      setShowBulkImport(false);
+      setBulkRows([]);
+      await Promise.all([fetchTimetable(), fetchAllTimetables()]);
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Could not import timetable rows. Check your scheduling permissions."));
+    }
+  };
+
+  const updateBulkRow = (index: number, patch: Partial<(typeof bulkRows)[number]>) =>
+    setBulkRows((current) => current.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row)));
 
   const getEntry = (day: number, periodNumber: number) => {
     return timetable.find((t) => t.day_of_week === day && t.period_number === periodNumber);
@@ -487,7 +740,9 @@ export default function TimetablePage() {
     { id: "calendar", label: "Term Calendar" },
     { id: "fc", label: "Week View" },
   ];
-  const [mainTab, setMainTab] = useState<"timetable" | "wall" | "calendar" | "fc">("wall");
+  // Open on the actionable class timetable. The wall chart remains available
+  // as a separate view and is much less usable as the default on a phone.
+  const [mainTab, setMainTab] = useState<"timetable" | "wall" | "calendar" | "fc">("timetable");
 
   if (loadingSlots) {
     return (
@@ -550,7 +805,42 @@ export default function TimetablePage() {
         <PageHeader
           title="Timetable"
           subtitle="Class schedule and academic calendar"
-          actions={<VideoLessonButton lesson="timetable" label="Watch how" />}
+          actions={
+            <div className="flex flex-wrap gap-2">
+              {canAutoGenerate && (
+                <>
+                  <Button variant="outline" onClick={() => bulkFileRef.current?.click()}>
+                    Import CSV
+                  </Button>
+                  <Button variant="outline" onClick={() => timetableImageRef.current?.click()} disabled={ocrBusy}>
+                    {ocrBusy ? ocrProgress || "Reading image…" : "Import timetable photo"}
+                  </Button>
+                </>
+              )}
+              <VideoLessonButton lesson="timetable" label="Watch how" />
+              <input
+                ref={bulkFileRef}
+                type="file"
+                accept=".csv,text/csv,.tsv,text/tab-separated-values"
+                className="hidden"
+                onChange={(event) => {
+                  void handleBulkTimetableFile(event.target.files?.[0]);
+                  event.currentTarget.value = "";
+                }}
+              />
+              <input
+                ref={timetableImageRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                capture="environment"
+                className="hidden"
+                onChange={(event) => {
+                  void handleTimetableImage(event.currentTarget.files?.[0]);
+                  event.currentTarget.value = "";
+                }}
+              />
+            </div>
+          }
         />
 
         <StatStrip
@@ -631,7 +921,8 @@ export default function TimetablePage() {
                     {globalClashes.length} clash{globalClashes.length > 1 ? "es" : ""} detected in timetable
                   </p>
                   <p className="mt-1 text-xs text-[var(--red-ink)]/80">
-                    Teachers or rooms are double-booked across classes. Re-run Auto-generate after fixing assignments, or edit the affected periods.
+                    Teachers or rooms are double-booked across classes. Re-run Auto-generate after fixing assignments,
+                    or edit the affected periods.
                   </p>
                   <ul className="mt-2 space-y-1">
                     {(showAllClashes ? globalClashes : globalClashes.slice(0, 8)).map((clash, i) => (
@@ -1053,6 +1344,189 @@ export default function TimetablePage() {
         confirmLabel="Remove"
         variant="danger"
       />
+      {showBulkImport && (
+        <Modal
+          isOpen={showBulkImport}
+          onClose={() => setShowBulkImport(false)}
+          title="Review timetable import"
+          size="xl"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-[var(--t2)]">
+              {bulkImportSource === "image"
+                ? "Photo text was read on this device. OCR may misread table columns; check every field and correct unmatched values before importing."
+                : "Review the matched class, subject and teacher for each lesson. Nothing is saved until you confirm."}
+            </p>
+            <div className="max-h-[55vh] overflow-auto rounded-xl border border-[var(--border)]">
+              <table className="w-full min-w-[760px] text-left text-xs">
+                <thead className="sticky top-0 bg-[var(--surface-container-low)] text-[var(--t2)]">
+                  <tr>
+                    {["Day", "Period", "Class", "Subject", "Teacher", "Time", "Room"].map((label) => (
+                      <th key={label} className="px-3 py-2">
+                        {label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {bulkRows.slice(0, 250).map((row, index) => {
+                    const className = classes.find((item) => item.id === row.class_id)?.name || "Unmatched";
+                    const subjectName = subjects.find((item) => item.id === row.subject_id)?.name || "Unmatched";
+                    const teacherName = teachers.find((item) => item.id === row.teacher_id)?.full_name || "Unmatched";
+                    const valid =
+                      !!row.day_of_week &&
+                      !!row.class_id &&
+                      !!row.subject_id &&
+                      !!row.teacher_id &&
+                      !!row.start_time &&
+                      !!row.end_time;
+                    const cellClass =
+                      "max-w-36 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-xs text-[var(--t1)]";
+                    return (
+                      <tr
+                        key={`${row.class_id}-${row.day_of_week}-${row.period_number}-${index}`}
+                        className={valid ? "border-t border-[var(--border)]" : "border-t border-red-200 bg-red-50"}
+                      >
+                        <td className="px-2 py-2">
+                          <select
+                            aria-label={`Day for row ${index + 1}`}
+                            className={cellClass}
+                            value={row.day_of_week || ""}
+                            onChange={(event) => updateBulkRow(index, { day_of_week: Number(event.target.value) })}
+                          >
+                            <option value="">Choose day</option>
+                            {DAYS.map((day) => (
+                              <option key={day.value} value={day.value}>
+                                {day.full}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-2 py-2">
+                          <input
+                            aria-label={`Period for row ${index + 1}`}
+                            className={`${cellClass} w-20`}
+                            type="number"
+                            min="1"
+                            value={row.period_number || ""}
+                            onChange={(event) => updateBulkRow(index, { period_number: Number(event.target.value) })}
+                          />
+                        </td>
+                        <td className="px-2 py-2">
+                          <select
+                            aria-label={`Class for row ${index + 1}`}
+                            className={cellClass}
+                            value={row.class_id}
+                            onChange={(event) => updateBulkRow(index, { class_id: event.target.value })}
+                          >
+                            <option value="">Choose class</option>
+                            {classes.map((item) => (
+                              <option key={item.id} value={item.id}>
+                                {item.name}
+                                {item.stream ? ` ${item.stream}` : ""}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="sr-only">{className}</span>
+                        </td>
+                        <td className="px-2 py-2">
+                          <select
+                            aria-label={`Subject for row ${index + 1}`}
+                            className={cellClass}
+                            value={row.subject_id}
+                            onChange={(event) => updateBulkRow(index, { subject_id: event.target.value })}
+                          >
+                            <option value="">Choose subject</option>
+                            {subjects.map((item) => (
+                              <option key={item.id} value={item.id}>
+                                {item.name}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="sr-only">{subjectName}</span>
+                        </td>
+                        <td className="px-2 py-2">
+                          <select
+                            aria-label={`Teacher for row ${index + 1}`}
+                            className={cellClass}
+                            value={row.teacher_id}
+                            onChange={(event) => updateBulkRow(index, { teacher_id: event.target.value })}
+                          >
+                            <option value="">Choose teacher</option>
+                            {teachers.map((item) => (
+                              <option key={item.id} value={item.id}>
+                                {item.full_name}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="sr-only">{teacherName}</span>
+                        </td>
+                        <td className="px-2 py-2">
+                          <div className="flex flex-col gap-1">
+                            <input
+                              aria-label={`Start time for row ${index + 1}`}
+                              type="time"
+                              className={`${cellClass} w-28`}
+                              value={row.start_time}
+                              onChange={(event) => updateBulkRow(index, { start_time: event.target.value })}
+                            />
+                            <input
+                              aria-label={`End time for row ${index + 1}`}
+                              type="time"
+                              className={`${cellClass} w-28`}
+                              value={row.end_time}
+                              onChange={(event) => updateBulkRow(index, { end_time: event.target.value })}
+                            />
+                          </div>
+                        </td>
+                        <td className="px-2 py-2">
+                          <input
+                            aria-label={`Room for row ${index + 1}`}
+                            className={`${cellClass} w-24`}
+                            value={row.room || ""}
+                            onChange={(event) => updateBulkRow(index, { room: event.target.value || null })}
+                            placeholder="Optional"
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {bulkRows.length > 250 && (
+                <p className="p-3 text-xs text-[var(--t3)]">
+                  Showing first 250 of {bulkRows.length} rows. All rows are checked before import.
+                </p>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs text-[var(--t3)]">
+                {bulkRows.length} rows ·{" "}
+                {
+                  bulkRows.filter(
+                    (row) =>
+                      row.day_of_week &&
+                      row.class_id &&
+                      row.subject_id &&
+                      row.teacher_id &&
+                      row.start_time &&
+                      row.end_time,
+                  ).length
+                }{" "}
+                ready
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowBulkImport(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={() => void confirmBulkImport()} disabled={!bulkRows.length}>
+                  Import lessons
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
       {showGenerateModal && (
         <GenerateTimetableModal
           isOpen={showGenerateModal}

@@ -3,6 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 import { supabaseClientOptions } from "@/lib/api-utils";
 import { createHmac, timingSafeEqual } from "crypto";
+import { buildPhoneLookupCandidates } from "@/lib/auth-phone";
+import { normalizeAuthPhone } from "@/lib/validation";
 
 const webhookSecret = process.env.AFRICAS_TALKING_WEBHOOK_SECRET || "";
 
@@ -53,6 +55,9 @@ export async function POST(request: NextRequest) {
   try {
     // Africa's Talking sends payload as application/x-www-form-urlencoded.
     const rawBody = await request.text();
+    if (rawBody.length > 20_000) {
+      return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+    }
     const signatureHeader =
       request.headers.get("x-africastalking-signature") || request.headers.get("x-signature") || "";
 
@@ -73,7 +78,7 @@ export async function POST(request: NextRequest) {
     const message = formData.get("message") || formData.get("text") || "";
     const date = formData.get("date") || "";
 
-    if (!from || !message) {
+    if (!from || from.length > 32 || !message || message.length > 1600) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -83,53 +88,91 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Server configuration error" }, { status: 503 });
     }
 
-    logger.info(`Incoming SMS from ${from}: ${message}`);
+    const normalizedPhone = normalizeAuthPhone(from);
+    const phoneCandidates = Array.from(
+      new Set(
+        [
+          ...buildPhoneLookupCandidates(from),
+          ...buildPhoneLookupCandidates(normalizedPhone),
+          normalizedPhone ? `+${normalizedPhone}` : "",
+          from.trim(),
+        ].filter(Boolean),
+      ),
+    );
+    if (phoneCandidates.length === 0) return NextResponse.json({ status: "OK" });
 
-    // Normalize phone number
-    const normalizedPhone = from.replace(/^256/, "0").replace(/^\+256/, "0");
-
-    // Find the student by parent phone
-    const { data: student } = await supabaseAdmin
-      .from("students")
-      .select("id, first_name, last_name, school_id, parent_phone")
-      .or(`parent_phone.eq.${normalizedPhone},parent_phone.eq.${from}`)
-      .limit(1)
-      .maybeSingle();
-
-    if (!student) {
-      logger.warn(`No student found for phone: ${from}`);
+    // Use parameterized `in` filters for sender-controlled values. Search both
+    // contacts and deduplicate a learner whose two guardian numbers match.
+    const [primaryMatches, secondaryMatches] = await Promise.all([
+      supabaseAdmin
+        .from("students")
+        .select("id, first_name, last_name, school_id")
+        .in("parent_phone", phoneCandidates)
+        .limit(100),
+      supabaseAdmin
+        .from("students")
+        .select("id, first_name, last_name, school_id")
+        .in("parent_phone2", phoneCandidates)
+        .limit(100),
+    ]);
+    if (primaryMatches.error || secondaryMatches.error) {
+      logger.error("Incoming SMS contact lookup failed", {
+        primary: primaryMatches.error?.code,
+        secondary: secondaryMatches.error?.code,
+      });
+      return NextResponse.json({ error: "Unable to route this message" }, { status: 500 });
+    }
+    const students = Array.from(
+      new Map(
+        [...(primaryMatches.data || []), ...(secondaryMatches.data || [])].map((student) => [student.id, student]),
+      ).values(),
+    );
+    if (students.length === 0) {
+      logger.info(`Incoming SMS from phone ending ${normalizedPhone.slice(-4)} did not match a learner`);
       return NextResponse.json({ status: "OK" });
     }
 
-    // Store the incoming SMS
-    const { data: smsLog, error: logError } = await supabaseAdmin
-      .from("sms_logs")
-      .insert({
-        school_id: student.school_id,
-        student_id: student.id,
-        parent_phone: from,
-        message: message,
-        status: "pending",
-        sent_at: new Date(date || new Date().toISOString()).toISOString(),
-      })
-      .select()
-      .single();
+    const schoolIds = new Set(students.map((student) => student.school_id).filter(Boolean));
+    // A phone can be shared by families and schools. Without a school code in
+    // the SMS, never reveal the message to an arbitrary school's staff.
+    if (schoolIds.size !== 1) {
+      logger.warn(`Incoming SMS from phone ending ${normalizedPhone.slice(-4)} matched multiple schools; not routed`);
+      return NextResponse.json({ status: "OK" });
+    }
+    logger.info(
+      `Incoming SMS routed to ${students.length} learner record(s); phone ending ${normalizedPhone.slice(-4)}`,
+    );
+
+    const sentAtCandidate = date ? new Date(date) : new Date();
+    const sentAt = Number.isNaN(sentAtCandidate.getTime()) ? new Date().toISOString() : sentAtCandidate.toISOString();
+    const smsRows = students.map((student) => ({
+      school_id: student.school_id,
+      student_id: student.id,
+      parent_phone: normalizedPhone,
+      message,
+      status: "pending",
+      sent_at: sentAt,
+    }));
+    const { error: logError } = await supabaseAdmin.from("sms_logs").insert(smsRows);
 
     if (logError) {
       logger.error("Failed to log incoming SMS:", logError);
+      return NextResponse.json({ error: "Unable to store this message" }, { status: 500 });
     }
 
     // Create a notification for the school
     try {
-      await supabaseAdmin.from("parent_notifications").insert({
-        school_id: student.school_id,
-        parent_id: null, // No user for incoming SMS
-        student_id: student.id,
-        type: "message",
-        title: "Parent Reply",
-        message: `Parent of ${student.first_name} replied: ${message.substring(0, 100)}`,
-        action_url: `/dashboard/messages?from=${student.id}`,
-      });
+      await supabaseAdmin.from("parent_notifications").insert(
+        students.map((student) => ({
+          school_id: student.school_id,
+          parent_id: null,
+          student_id: student.id,
+          type: "message",
+          title: "Parent Reply",
+          message: `Parent of ${student.first_name} replied: ${message.substring(0, 100)}`,
+          action_url: `/dashboard/messages?from=${student.id}`,
+        })),
+      );
     } catch (notifError) {
       logger.warn("Failed to create parent notification (table may not exist):", notifError);
     }

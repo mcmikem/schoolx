@@ -294,6 +294,8 @@ export interface FeePayment {
   deleted_at?: string;
   deleted_by?: string;
   created_at: string;
+  /** Local-only marker: the payment is queued on this device, not server-confirmed. */
+  offline_sync_status?: "pending" | "synced";
   students?: Student & { classes?: Class };
   /** Fee line this payment settled, when it names one. */
   fee_structure?: { name: string } | null;

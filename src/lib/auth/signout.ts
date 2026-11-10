@@ -21,6 +21,15 @@ export async function doSignOut(params: {
     logger.warn("signOut API call failed, clearing session locally");
   }
   try {
+    // Clear private cached school rows on shared devices. Pending writes are
+    // preserved in the queue and are tagged to their original user/school, so
+    // the next account cannot see or replay another person's work.
+    const { offlineDB } = await import("../offline");
+    await offlineDB.clearCachedData();
+  } catch (error) {
+    logger.warn("Could not clear offline cache during sign out", error);
+  }
+  try {
     localStorage.removeItem(OFFLINE_USER_KEY);
     localStorage.removeItem(OFFLINE_SCHOOL_KEY);
     const cookies = document.cookie.split(";");
@@ -30,6 +39,7 @@ export async function doSignOut(params: {
         document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
       }
     }
+    document.cookie = "skoolmate_last_dashboard_path=; Path=/; Max-Age=0; SameSite=Lax";
   } catch {
     // Ignore cookie/storage clearing errors
   }

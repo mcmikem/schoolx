@@ -23,6 +23,12 @@ import { EmptyState } from "@/components/EmptyState";
 import { DEMO_STAFF, DEMO_CLASSES, DEMO_SCHOOL_ID } from "@/lib/demo-data";
 import { useStaff, useStaffReviews, useDashboardStats } from "@/lib/hooks";
 import { logger } from "@/lib/logger";
+import {
+  passwordMeetsPolicy,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_POLICY_MESSAGE,
+} from "@/lib/password-policy";
 import { getErrorMessage } from "@/lib/validation";
 import { isMissingTableColumnError, withTimeout } from "@/lib/hooks/utils";
 import { StaffReview, School } from "@/types";
@@ -1110,8 +1116,8 @@ function DirectoryTab({
   };
 
   const handleResetPassword = async (id: string, pass: string): Promise<boolean> => {
-    if (pass.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    if (!passwordMeetsPolicy(pass)) {
+      toast.error(PASSWORD_POLICY_MESSAGE);
       return false;
     }
     if (isDemo) {
@@ -1130,7 +1136,7 @@ function DirectoryTab({
       });
       const result = await response.json();
       if (!result.success) throw new Error(result.error || "Failed to reset password");
-      toast.success("Password reset successfully");
+      toast.success("Temporary password set. They must choose a new password when they sign in.");
       return true;
     } catch (err: unknown) {
       logger.error("Failed to reset password:", err);
@@ -1139,6 +1145,11 @@ function DirectoryTab({
     } finally {
       setSaving(false);
     }
+  };
+
+  const closeResetModal = () => {
+    setResetTarget(null);
+    setResetPasswordValue("");
   };
 
   const formatRoleLabel = (role: string) =>
@@ -1183,7 +1194,7 @@ function DirectoryTab({
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/\"/g, "&quot;")
-        .replace(/'/g, "&var(--primary, #039);");
+        .replace(/'/g, "&#39;");
 
     const initials =
       member.full_name
@@ -2293,7 +2304,7 @@ function DirectoryTab({
       {resetTarget && (
         <div
           className="fixed inset-0 bg-black/45 z-50 p-3 sm:p-4 flex items-start sm:items-center justify-center overflow-y-auto"
-          onClick={() => setResetTarget(null)}
+          onClick={closeResetModal}
         >
           <div
             className="bg-[var(--surface)] rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
@@ -2303,7 +2314,7 @@ function DirectoryTab({
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-[var(--t1)]">Reset password</h2>
                 <button
-                  onClick={() => setResetTarget(null)}
+                  onClick={closeResetModal}
                   className="p-2 text-[var(--t3)] hover:text-[var(--t1)]"
                   aria-label="Close"
                 >
@@ -2326,26 +2337,31 @@ function DirectoryTab({
               className="p-6 space-y-4"
             >
               <div>
-                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">New password</label>
+                <label htmlFor="temporary-staff-password" className="text-sm font-medium text-[var(--t1)] mb-2 block">
+                  Temporary password
+                </label>
                 <input
+                  id="temporary-staff-password"
                   type="password"
                   autoFocus
-                  placeholder="Min 6 characters"
+                  placeholder="8+ characters, uppercase and number"
                   value={resetPasswordValue}
                   onChange={(e) => setResetPasswordValue(e.target.value)}
                   className="input"
                   required
-                  minLength={6}
+                  minLength={PASSWORD_MIN_LENGTH}
+                  maxLength={PASSWORD_MAX_LENGTH}
                 />
+                <p className="mt-1 text-xs text-[var(--t3)]">{PASSWORD_POLICY_MESSAGE}</p>
               </div>
               <div className="flex gap-3 pt-2">
-                <Button type="button" variant="secondary" onClick={() => setResetTarget(null)} className="flex-1">
+                <Button type="button" variant="secondary" onClick={closeResetModal} className="flex-1">
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   variant="primary"
-                  disabled={saving || resetPasswordValue.length < 6}
+                  disabled={saving || !passwordMeetsPolicy(resetPasswordValue)}
                   loading={saving}
                   className="flex-1"
                 >

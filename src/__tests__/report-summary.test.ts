@@ -1,10 +1,25 @@
-import { classicReportSubject, rankCompleteReports, summarizeClassicReport } from "@/lib/report-summary";
+import {
+  classicReportSubject,
+  formatReportScore,
+  rankCompleteReports,
+  reportScoreForPrint,
+  summarizeClassicReport,
+} from "@/lib/report-summary";
 import { sumUgandaTotals } from "@/lib/uganda-report";
 
 const exam = (score: number, maximum = 100) =>
   classicReportSubject([{ assessment_type: "exam", score, max_score: maximum }]);
 
 describe("classical report calculations", () => {
+  it("prints a missing mark differently from a genuine zero", () => {
+    expect(formatReportScore(null)).toBe("—");
+    expect(formatReportScore(0)).toBe("0");
+    expect(reportScoreForPrint(false, undefined)).toBeNull();
+    expect(reportScoreForPrint(false, " ")).toBeNull();
+    expect(reportScoreForPrint(true, 0)).toBeNull();
+    expect(reportScoreForPrint(false, 0)).toBe(0);
+  });
+
   it("normalizes assessment maxima instead of adding raw assessment marks", () => {
     const subject = classicReportSubject([
       { assessment_type: "ca1", score: 90, max_score: 100 },

@@ -52,6 +52,23 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServiceRoleClientOrThrow();
 
+    // attendance has no school_id column. Anchor this privileged query to
+    // classes that belong to the authenticated school before reading rows.
+    const { data: schoolClasses, error: classesError } = await supabase
+      .from("classes")
+      .select("id")
+      .eq("school_id", scope.schoolId);
+    if (classesError) {
+      logger.error("Failed to resolve school classes for attendance report:", classesError);
+      return apiError("Could not verify school classes", 500);
+    }
+    const schoolClassIds = (schoolClasses || []).map((row: { id: string }) => row.id);
+    const schoolClassIdSet = new Set(schoolClassIds);
+
+    if (class_id && !schoolClassIdSet.has(class_id)) {
+      return apiError("Class not found", 404);
+    }
+
     // Without class_id this route dumps the whole school's register. That is
     // fine for management roles; a teacher must name a class they teach (the
     // RLS equivalent, repeated here because this route bypasses RLS).
@@ -65,9 +82,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    if (schoolClassIds.length === 0) {
+      return apiSuccess({
+        summary: { total: 0, present: 0, absent: 0, late: 0, excused: 0, rate: 0 },
+        students: [],
+        class_aggregate: null,
+      });
+    }
+
     let attendanceQuery = supabase
       .from("attendance")
       .select("id, student_id, class_id, date, status, recorded_by, created_at")
+      .in("class_id", schoolClassIds)
       .gte("date", date_from || "1970-01-01")
       .lte("date", date_to || "2099-12-31");
 
@@ -108,6 +134,7 @@ export async function GET(request: NextRequest) {
       const { data, error: studentsError } = await supabase
         .from("students")
         .select("id, first_name, last_name, student_number, class_id")
+        .eq("school_id", scope.schoolId)
         .in("id", chunk);
 
       if (studentsError) {
@@ -118,13 +145,15 @@ export async function GET(request: NextRequest) {
     }
 
     const studentMap = new Map((studentsData || []).map((s: any) => [s.id, s]));
+    const scopedAttendance = (attendance as any[]).filter((row) => studentMap.has(row.student_id));
+    const scopedStudentIds = [...new Set(scopedAttendance.map((row) => row.student_id))];
 
     const perStudent: Record<string, any> = {};
-    for (const sid of studentIds) {
+    for (const sid of scopedStudentIds) {
       perStudent[sid] = { present: 0, absent: 0, late: 0, excused: 0, total: 0 };
     }
 
-    for (const record of attendance as any[]) {
+    for (const record of scopedAttendance) {
       const s = perStudent[record.student_id];
       if (s) {
         s[record.status] = (s[record.status] || 0) + 1;
@@ -145,11 +174,11 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    const totalPresent = attendance.filter((a: any) => a.status === "present").length;
-    const totalAbsent = attendance.filter((a: any) => a.status === "absent").length;
-    const totalLate = attendance.filter((a: any) => a.status === "late").length;
-    const totalExcused = attendance.filter((a: any) => a.status === "excused").length;
-    const totalAll = attendance.length;
+    const totalPresent = scopedAttendance.filter((a: any) => a.status === "present").length;
+    const totalAbsent = scopedAttendance.filter((a: any) => a.status === "absent").length;
+    const totalLate = scopedAttendance.filter((a: any) => a.status === "late").length;
+    const totalExcused = scopedAttendance.filter((a: any) => a.status === "excused").length;
+    const totalAll = scopedAttendance.length;
     const overallRate = totalAll > 0 ? (totalPresent / totalAll) * 100 : 0;
 
     let classAggregate = null;
@@ -161,7 +190,7 @@ export async function GET(request: NextRequest) {
         late: totalLate,
         excused: totalExcused,
         rate: Math.round(overallRate * 10) / 10,
-        student_count: studentIds.length,
+        student_count: scopedStudentIds.length,
       };
     }
 

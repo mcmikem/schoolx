@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomBytes } from "node:crypto";
 import {
   createServiceRoleClientOrThrow,
   apiSuccess,
@@ -9,8 +10,6 @@ import {
 import { normalizeAuthPhone } from "@/lib/validation";
 import { logger } from "@/lib/logger";
 import { buildAuthEmailFromPhone } from "@/lib/auth-login";
-
-const DEFAULT_PASSWORD = "Omutofoundation";
 
 const isEmailConfigured = !!process.env.RESEND_API_KEY && !!process.env.EMAIL_FROM;
 
@@ -100,11 +99,11 @@ async function sendLoginLinkEmail(
         subject: "Your Marketer Account – Login Link",
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
-            <h2 style="color: #001F3F;">Welcome, ${name}!</h2>
+            <h2 style="color: #001F3F;">Welcome, ${escapeHtml(name)}!</h2>
             <p>Your SkoolMate marketer account has been created.</p>
             <p>Click the button below to log in:</p>
             <p style="text-align: center; margin: 28px 0;">
-              <a href="${loginLink}"
+              <a href="${escapeHtml(loginLink)}"
                  style="background: #001F3F; color: white; padding: 12px 32px;
                         text-decoration: none; border-radius: 8px; font-weight: bold;">
                 Log in to SkoolMate
@@ -125,6 +124,19 @@ async function sendLoginLinkEmail(
   } catch (err) {
     return { success: false, error: String(err) };
   }
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (char) => {
+    const entities: Record<string, string> = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    };
+    return entities[char] || char;
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -192,8 +204,9 @@ export async function POST(request: NextRequest) {
       email_confirm: true,
     };
 
+    const temporaryPassword = useEmailFlow ? null : randomBytes(24).toString("base64url");
     if (!useEmailFlow) {
-      authPayload.password = DEFAULT_PASSWORD;
+      authPayload.password = temporaryPassword;
     }
 
     const { data: authData, error: authError } = await supabase.auth.admin.createUser(authPayload);
@@ -264,7 +277,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── Phone flow: return default password ─────────────────────────────────
+    // ── Phone flow: return the one-time generated temporary password ────────
     return new Response(
       JSON.stringify({
         success: true,
@@ -274,8 +287,10 @@ export async function POST(request: NextRequest) {
           full_name: name,
           phone: profilePayload.phone || null,
           role: "marketer",
+          temporaryPassword,
         },
-        message: `Marketer created. Default password: ${DEFAULT_PASSWORD}`,
+        message:
+          "Marketer created. Share the one-time temporary password through a secure channel and ask the marketer to change it after signing in.",
       }),
       { status: 201, headers: { "Content-Type": "application/json" } },
     );

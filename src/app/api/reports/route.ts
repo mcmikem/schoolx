@@ -11,7 +11,7 @@ import {
   createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
 import { requireActiveSubscription, requireModuleEntitlement } from "@/lib/subscription-guard";
-import { canAccessClass, isClassScopedRole } from "@/lib/server/class-scope";
+import { canAccessClass, getAssignedClassIds, isClassScopedRole } from "@/lib/server/class-scope";
 import { detectLevelFromClass, isLowerPrimary, pleAggregate, weighOldCurriculum } from "@/lib/grading-tracks";
 import { bucketUgandaSubject, ugandaGrade } from "@/lib/uganda-report";
 import { parseTermGradeBasis, TERM_GRADE_BASIS_KEY } from "@/lib/report-rows";
@@ -113,6 +113,16 @@ export async function GET(request: NextRequest) {
         return apiError("Student does not belong to the requested school", 403);
       }
 
+      // The service-role client bypasses the database's class-scoped RLS.
+      // Keep individual report reads within the teacher's assigned classes,
+      // just like the report-card generation path below.
+      if (
+        isClassScopedRole(auth.context.user.role) &&
+        !(await canAccessClass(supabase, auth.context.user.role, auth.context.user.id, student.class_id))
+      ) {
+        return apiError("Not authorized to view this student report", 403);
+      }
+
       const { data: grades } = await supabase
         .from("grades")
         .select("*, subjects (name, code)")
@@ -123,11 +133,22 @@ export async function GET(request: NextRequest) {
       return apiSuccess({ student, grades: grades || [] });
     }
 
-    const { data: students, error: studentsError } = await supabase
+    let assignedClassIds: Set<string> | null = null;
+    if (isClassScopedRole(auth.context.user.role)) {
+      assignedClassIds = await getAssignedClassIds(supabase, auth.context.user.id);
+      if (assignedClassIds.size === 0) return apiSuccess({ students: [] });
+    }
+
+    let studentsQuery = supabase
       .from("students")
-      .select("id, first_name, last_name, classes (id, name, level)")
-      .eq("school_id", scope.schoolId)
-      .limit(limit);
+      .select("id, first_name, last_name, class_id, classes (id, name, level)")
+      .eq("school_id", scope.schoolId);
+
+    if (assignedClassIds) {
+      studentsQuery = studentsQuery.in("class_id", [...assignedClassIds]);
+    }
+
+    const { data: students, error: studentsError } = await studentsQuery.limit(limit);
 
     if (studentsError) {
       logger.error("Failed to fetch students:", studentsError);

@@ -2,7 +2,7 @@
 import { OfflinePreparation } from "@/components/OfflinePreparation";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
-import { offlineDB } from "@/lib/offline";
+import { getOfflineQueueState, offlineDB, SYNC_QUEUE_EVENT } from "@/lib/offline";
 import { useOnlineStatus } from "@/lib/offline";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -23,6 +23,10 @@ interface PendingItem {
   data: Record<string, unknown>;
   timestamp: number;
   attempts: number;
+  synced?: boolean;
+  status?: "pending" | "syncing" | "failed" | "conflict" | "synced";
+  last_attempt_at?: number;
+  synced_at?: number;
   reason?: string;
 }
 
@@ -35,7 +39,7 @@ interface SyncMetadata {
 type ServerRow = Record<string, unknown>;
 
 function isConflict(item: PendingItem): boolean {
-  return Boolean(item.reason && item.reason.includes("server newer"));
+  return getOfflineQueueState(item) === "conflict";
 }
 
 function actionVariant(action: PendingItem["action"]): "success" | "info" | "error" {
@@ -90,13 +94,32 @@ function humanAction(action: string): string {
   return ACTION_WORDS[action] || action;
 }
 
+function syncState(item: PendingItem): string {
+  const state = getOfflineQueueState(item);
+  if (state === "synced") return "Synced";
+  if (state === "conflict") return "Needs review";
+  if (state === "syncing") return "Syncing";
+  if (state === "failed") return "Failed";
+  return "Waiting";
+}
+
+function syncStateVariant(item: PendingItem): "success" | "info" | "warning" | "error" {
+  const state = syncState(item);
+  if (state === "Synced") return "success";
+  if (state === "Needs review") return "warning";
+  if (state === "Failed") return "error";
+  return "info";
+}
+
 export default function SyncCenterPage() {
   const isOnline = useOnlineStatus();
   const { health: storageHealth } = useStorageHealth();
   const [pending, setPending] = useState<PendingItem[]>([]);
+  const [recentlySynced, setRecentlySynced] = useState<PendingItem[]>([]);
   const [failed, setFailed] = useState<PendingItem[]>([]);
   const [serverRows, setServerRows] = useState<Record<string, ServerRow | null>>({});
   const [cacheSummary, setCacheSummary] = useState<SyncMetadata[]>([]);
+  const [quarantinedCount, setQuarantinedCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [syncResult, setSyncResult] = useState<{
@@ -110,11 +133,15 @@ export default function SyncCenterPage() {
     try {
       const pendingItems = (await offlineDB.getPendingSync()) as unknown as PendingItem[];
       const failedItems = (await offlineDB.getFailedSync()) as unknown as PendingItem[];
+      const syncedItems = (await offlineDB.getRecentSynced()) as unknown as PendingItem[];
       const summary = await offlineDB.getCacheSummary();
+      const quarantined = await offlineDB.getQuarantinedSyncCount();
 
       setPending(pendingItems);
       setFailed(failedItems);
+      setRecentlySynced(syncedItems);
       setCacheSummary(summary);
+      setQuarantinedCount(quarantined);
 
       const conflicts = failedItems.filter(isConflict);
       if (conflicts.length === 0) {
@@ -147,9 +174,11 @@ export default function SyncCenterPage() {
     loadData();
     const interval = setInterval(loadData, 10000);
     document.addEventListener("visibilitychange", loadData);
+    window.addEventListener(SYNC_QUEUE_EVENT, loadData);
     return () => {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", loadData);
+      window.removeEventListener(SYNC_QUEUE_EVENT, loadData);
     };
   }, [loadData]);
 
@@ -202,6 +231,12 @@ export default function SyncCenterPage() {
     await handleSync();
   };
 
+  const handleRetryOne = async (item: PendingItem) => {
+    if (!isOnline || syncing) return;
+    await offlineDB.retrySyncItem(item.id);
+    await handleSync();
+  };
+
   const handleDiscardFailed = async () => {
     for (const item of failed) {
       await offlineDB.removeSyncItem(item.id);
@@ -247,6 +282,22 @@ export default function SyncCenterPage() {
       sortValue: (item) => item.attempts,
       render: (item) => <span className="tabular-nums">{item.attempts}</span>,
     },
+    {
+      key: "status",
+      header: "Status",
+      render: (item) => <Badge variant={syncStateVariant(item)}>{syncState(item)}</Badge>,
+    },
+    {
+      key: "last_attempt",
+      header: "Last attempt",
+      sortValue: (item) => item.synced_at ?? item.last_attempt_at ?? 0,
+      render: (item) => {
+        const attemptedAt = item.last_attempt_at ?? item.synced_at;
+        return (
+          <span className="text-xs text-[var(--t3)]">{attemptedAt ? formatTime(attemptedAt) : "Not tried yet"}</span>
+        );
+      },
+    },
   ];
 
   const failedColumns: DataColumn<PendingItem>[] = [
@@ -258,6 +309,18 @@ export default function SyncCenterPage() {
       render: (item) => (
         <span className="block max-w-[28rem] break-words text-xs text-[var(--red)]">{item.reason || "—"}</span>
       ),
+    },
+    {
+      key: "retry",
+      header: "Action",
+      render: (item) =>
+        isConflict(item) ? (
+          <span className="text-xs text-[var(--t3)]">Resolve above</span>
+        ) : (
+          <Button size="sm" variant="secondary" onClick={() => handleRetryOne(item)} disabled={!isOnline || syncing}>
+            Retry
+          </Button>
+        ),
     },
   ];
 
@@ -300,6 +363,25 @@ export default function SyncCenterPage() {
           subtitle="Offline changes, conflicts and last-sync status — one place, on any device"
         />
         <OfflinePreparation />
+
+        {quarantinedCount > 0 && (
+          <div
+            role="alert"
+            className="flex items-start gap-3 rounded-2xl border border-[var(--amber)]/40 bg-[var(--amber-soft)] p-4 text-sm text-[var(--t2)]"
+          >
+            <MaterialIcon icon="lock" size={20} className="mt-0.5 shrink-0 text-[var(--amber-ink)]" />
+            <div>
+              <p className="font-semibold text-[var(--t1)]">
+                {quarantinedCount} offline change{quarantinedCount === 1 ? " is" : "s are"} waiting under another
+                account or an older app version.
+              </p>
+              <p className="mt-1 leading-5">
+                SkoolMate keeps this work separate and will not send it using the current account. Reopen the app as the
+                account that made those changes to sync them.
+              </p>
+            </div>
+          </div>
+        )}
 
         <StatStrip
           ariaLive="polite"
@@ -380,6 +462,20 @@ export default function SyncCenterPage() {
               )}
             </CardBody>
           </Card>
+        )}
+
+        {recentlySynced.length > 0 && (
+          <section className="space-y-2">
+            <h2 className="text-sm font-semibold text-[var(--t1)]">Recently uploaded</h2>
+            <DataTable
+              caption="Offline changes recently accepted by the server"
+              columns={pendingColumns}
+              rows={recentlySynced}
+              getRowId={(item) => String(item.id)}
+              initialSort={{ key: "last_attempt", dir: "desc" }}
+              footer={<span className="text-xs text-[var(--t3)]">Accepted by the server in the last 24 hours.</span>}
+            />
+          </section>
         )}
 
         <section className="space-y-2">
@@ -479,7 +575,7 @@ export default function SyncCenterPage() {
           </section>
         )}
 
-        {pending.length === 0 && failed.length === 0 && (
+        {pending.length === 0 && failed.length === 0 && recentlySynced.length === 0 && (
           <EmptyState
             icon="cloud_done"
             title="All synced"

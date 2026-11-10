@@ -8,6 +8,7 @@ export type FeeStatusFilter = "all" | "paid" | "partial" | "unpaid" | "unbilled"
 interface FeeStatsProps {
   stats: FeeRosterPartition;
   paymentsCount: number;
+  loading?: boolean;
   onFilter?: (status: FeeStatusFilter) => void;
   activeFilter?: FeeStatusFilter;
   onSetFees?: () => void;
@@ -102,7 +103,14 @@ function RosterDonut({
   );
 }
 
-export default function FeeStats({ stats, paymentsCount, onFilter, activeFilter = "all", onSetFees }: FeeStatsProps) {
+export default function FeeStats({
+  stats,
+  paymentsCount,
+  loading = false,
+  onFilter,
+  activeFilter = "all",
+  onSetFees,
+}: FeeStatsProps) {
   const rows: Array<{ key: FeeStatusFilter; label: string; count: number; dot: string }> = [
     { key: "paid", label: "Cleared", count: stats.cleared, dot: "bg-[var(--green)]" },
     { key: "partial", label: "Part paid", count: stats.partial, dot: "bg-[var(--amber)]" },
@@ -111,6 +119,17 @@ export default function FeeStats({ stats, paymentsCount, onFilter, activeFilter 
       ? [{ key: "unbilled" as const, label: "No fees", count: stats.unbilled, dot: "bg-[var(--t3)]" }]
       : []),
   ];
+
+  if (loading) {
+    return (
+      <section aria-label="Fee collection overview" aria-busy="true" className="border-t border-[var(--border)] pt-5">
+        <p role="status" className="text-sm text-[var(--t3)]">
+          Loading fee balances…
+        </p>
+        <div aria-hidden="true" className="mt-3 h-2 w-full animate-pulse rounded bg-[var(--surface-container)]" />
+      </section>
+    );
+  }
 
   return (
     <section aria-label="Fee collection overview" className="border-t border-[var(--border)] pt-5">

@@ -27,6 +27,7 @@ import { type ModuleKey } from "@/lib/modules/catalog";
 import { generateWhatsAppShareLink } from "@/lib/whatsapp";
 import { PLATFORM_SUPPORT_PHONE } from "@/lib/support-contact";
 import { generateSchoolCode } from "@/lib/server/marketer-logic";
+import { PRIVACY_NOTICE_VERSION, SCHOOL_TERMS_VERSION } from "@/lib/legal-versions";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -49,6 +50,9 @@ interface RegisterRequest {
   adminName: string;
   adminPhone: string;
   password: string;
+  acceptedSchoolAgreement?: boolean;
+  termsVersion?: string;
+  privacyNoticeVersion?: string;
 }
 
 const REGISTRATION_MODULE_KEYS: ModuleKey[] = [
@@ -151,12 +155,23 @@ export async function POST(request: NextRequest) {
       adminName,
       adminPhone,
       password,
+      acceptedSchoolAgreement,
+      termsVersion,
+      privacyNoticeVersion,
       _gotcha,
     } = body;
 
     // Honeypot: bots fill hidden fields; humans leave them blank
     if (_gotcha) {
       return apiSuccess({ message: "Registration received." });
+    }
+
+    if (
+      acceptedSchoolAgreement !== true ||
+      termsVersion !== SCHOOL_TERMS_VERSION ||
+      privacyNoticeVersion !== PRIVACY_NOTICE_VERSION
+    ) {
+      return apiError("Please review and accept the current School Agreement and Privacy Notice.", 400);
     }
 
     // Validate required fields
@@ -230,11 +245,17 @@ export async function POST(request: NextRequest) {
 
     // 1. Check if phone number already exists
     logger.debug("[Register] Step 5: Checking existing user in DB");
-    const { data: existingUser } = await supabaseAdmin
+    const { data: existingUser, error: existingUserError } = await supabaseAdmin
       .from("users")
       .select("id")
       .eq("phone", normalizedPhone)
+      .limit(1)
       .maybeSingle();
+
+    if (existingUserError) {
+      logger.error("[Register] Existing admin phone lookup failed:", existingUserError);
+      return apiError("Unable to verify the registration phone number. Please try again.", 503);
+    }
 
     if (existingUser) {
       return apiError("Registration could not be completed. If you already have an account, please sign in.", 400);
@@ -246,11 +267,16 @@ export async function POST(request: NextRequest) {
     let codeAttempts = 0;
 
     while (codeAttempts < 10) {
-      const { data: existingSchool } = await supabaseAdmin
+      const { data: existingSchool, error: schoolCodeLookupError } = await supabaseAdmin
         .from("schools")
         .select("id")
         .eq("school_code", schoolCode)
         .maybeSingle();
+
+      if (schoolCodeLookupError) {
+        logger.error("[Register] School-code collision lookup failed:", schoolCodeLookupError);
+        return apiError("Unable to reserve a school code right now. Please try again.", 503);
+      }
 
       if (!existingSchool) break;
 
@@ -339,6 +365,14 @@ export async function POST(request: NextRequest) {
     rollbacks.push(async () => {
       await supabaseAdmin.from("users").delete().eq("id", createdUser.id);
     });
+
+    const { error: agreementError } = await supabaseAdmin.from("school_agreement_acceptances").insert({
+      school_id: schoolData.id,
+      accepted_by_user_id: createdUser.id,
+      terms_version: SCHOOL_TERMS_VERSION,
+      privacy_notice_version: PRIVACY_NOTICE_VERSION,
+    });
+    if (agreementError) throw agreementError;
 
     let moduleRequestLink: string | null = null;
     let moduleRequestMessage: string | null = null;

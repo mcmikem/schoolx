@@ -8,6 +8,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { ChildSelector } from "@/components/parent-portal/ChildSelector";
 import { useParentPortal } from "@/components/parent-portal/ParentPortalProvider";
 import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
+import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/Toast";
 import { useAuth } from "@/lib/auth-context";
 import { getLocalDateString, timeoutFallback, withTimeout } from "@/lib/hooks/utils";
@@ -128,8 +129,13 @@ function ParentDashboardContent() {
       ]);
       return;
     }
-    const selectedChildId = selectedChild.id;
+    let cancelled = false;
     setChildDataLoading(true);
+    setAttendance([]);
+    setGrades([]);
+    setFeeStructureItems([]);
+    setFeePayments([]);
+    setFeeAdjustments([]);
 
     async function fetchStudentData() {
       const scopedChild = selectedChild;
@@ -210,6 +216,8 @@ function ParentDashboardContent() {
           ),
         ]);
 
+        if (cancelled) return;
+
         const normalizedFeeStructure = pickPreferredSchemaRows({
           modernRows: normalizeFeeTermItems((modernFeeTermsRes.data || []) as never[]),
           modernError: modernFeeTermsRes.error,
@@ -253,12 +261,15 @@ function ParentDashboardContent() {
           })),
         );
       } catch (err) {
-        logger.error("Fetch student data error:", err);
+        if (!cancelled) logger.error("Fetch student data error:", err);
       } finally {
-        setChildDataLoading(false);
+        if (!cancelled) setChildDataLoading(false);
       }
     }
-    fetchStudentData();
+    void fetchStudentData();
+    return () => {
+      cancelled = true;
+    };
   }, [selectedChild, isDemo]);
 
   // Fetch wallet when child changes
@@ -269,11 +280,18 @@ function ParentDashboardContent() {
     }
     const scopedChild = selectedChild;
     if (!scopedChild) return;
+    let cancelled = false;
+    setWalletBalance(null);
     withTimeout(
       supabase.from("student_wallets").select("balance").eq("student_id", scopedChild.id).maybeSingle(),
       12000,
       timeoutFallback(),
-    ).then(({ data }) => setWalletBalance(data?.balance ?? 0));
+    ).then(({ data }) => {
+      if (!cancelled) setWalletBalance(data?.balance ?? 0);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [selectedChild, isDemo, children]);
 
   const [isOnline, setIsOnline] = useState(true);
@@ -395,11 +413,15 @@ function ParentDashboardContent() {
   }, [user?.id, isDemo, toast, isOnline]);
 
   const handleTopup = async () => {
-    if (!selectedChild || !topupAmount) return;
+    const amount = Number(topupAmount);
+    if (!selectedChild || !Number.isFinite(amount) || amount <= 0) {
+      toast.error("Enter a valid amount greater than zero.");
+      return;
+    }
     setTopupLoading(true);
     if (isDemo) {
       await new Promise((r) => setTimeout(r, 1000));
-      setWalletBalance((prev) => (prev ?? 0) + parseFloat(topupAmount));
+      setWalletBalance((prev) => (prev ?? 0) + amount);
       setTopupAmount("");
       setShowTopup(false);
       setTopupLoading(false);
@@ -409,7 +431,7 @@ function ParentDashboardContent() {
       const { error } = await withTimeout(
         supabase.rpc("topup_student_wallet", {
           p_student_id: child.id,
-          p_amount: parseFloat(topupAmount),
+          p_amount: amount,
           p_description: "Top-up by Parent via Portal",
           p_ref: `PAR-${Date.now()}`,
           // Deliberately null: recorded_by is a staff column, and this is the
@@ -421,7 +443,7 @@ function ParentDashboardContent() {
         timeoutFallback(),
       );
       if (error) throw error;
-      setWalletBalance((prev) => (prev ?? 0) + parseFloat(topupAmount));
+      setWalletBalance((prev) => (prev ?? 0) + amount);
       setTopupAmount("");
       setShowTopup(false);
       toast.success("Pocket money added successfully.");
@@ -449,281 +471,351 @@ function ParentDashboardContent() {
 
   return (
     <ParentPortalShell pageTitle="Parent Portal">
-      <div className="p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto">
-        <div className="max-w-6xl mx-auto space-y-8">
-          <section className="portal-glass rounded-[28px] p-6 shadow-none">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-4">
-                {child?.photo_url ? (
-                  <img
-                    src={child.photo_url}
-                    alt={child.first_name}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-14 w-14 shrink-0 rounded-full border border-[var(--portal-border)] object-cover"
-                  />
-                ) : child ? (
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--portal-surface-blue)] text-lg font-bold text-[var(--portal-ink)]">
-                    {child.first_name?.[0]}
-                    {child.last_name?.[0]}
-                  </div>
-                ) : null}
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--portal-muted)]">
-                    Parent Portal
-                  </p>
-                  <h1 className="mt-2 text-3xl font-bold text-[var(--portal-ink)]">
-                    {child
-                      ? `Welcome back — ${child.first_name}`
-                      : `Welcome back, ${user?.full_name?.split(" ")[0] || "Parent"}`}
-                  </h1>
-                  <p className="mt-3 max-w-2xl text-base text-[var(--portal-ink-soft)]">
-                    Keep track of your child&apos;s attendance, fees, homework, and school updates in one place.
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => selectedChild && router.push(`/parent-portal/fees?child=${selectedChild.id}`)}
-                  className="rounded-2xl bg-[var(--portal-surface-blue)] px-4 py-3 text-sm font-semibold text-[var(--portal-ink)] transition hover:bg-[var(--portal-border)]"
-                >
-                  Pay fees
-                </button>
-                <button
-                  type="button"
-                  onClick={() => selectedChild && router.push(`/parent-portal/attendance?child=${selectedChild.id}`)}
-                  className="rounded-2xl bg-[var(--portal-surface-alt)] px-4 py-3 text-sm font-semibold text-[var(--portal-ink)] transition hover:bg-[var(--portal-surface-blue-2)]"
-                >
-                  Attendance
-                </button>
-              </div>
-            </div>
-          </section>
-
-          {childrenLoading ? (
-            <div className="flex items-center justify-center min-h-[300px]">
-              <OwlMascot size={52} premium ring glow animated />
-            </div>
-          ) : children.length === 0 ? (
-            <div className="text-center py-10 rounded-[28px] portal-glass p-8 shadow-none">
-              <OwlMascot size={56} premium ring glow animated />
-              <h3 className="text-lg font-bold mt-4 text-[var(--portal-ink)]">No learners linked yet</h3>
-              <p className="text-sm text-[var(--portal-ink-soft)] mt-1">Your phone on file: {user?.phone || "N/A"}</p>
-              <p className="text-sm text-[var(--portal-ink-soft)] mt-2">
-                Contact the school office to link your account and access the portal.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-8">
-              <ChildSelector />
-
-              <section className="grid gap-4 xl:grid-cols-[1.4fr_0.9fr]">
-                <div className="grid gap-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <article
-                      className={`rounded-[28px] border p-5 ${attendanceStatus === "present" ? "bg-[var(--portal-success-soft)] border-[var(--portal-success-border)]" : "bg-[var(--portal-surface-gray)] border-[var(--portal-surface-gray-3)]"}`}
-                    >
-                      <div className="flex items-center justify-between gap-4">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.20em] text-[var(--portal-muted)]">
-                            Attendance
-                          </p>
-                          <p className="mt-3 text-xl font-bold text-[var(--portal-ink)]">
-                            {attendanceStatus === "present" ? "Present" : "Not recorded"}
-                          </p>
-                        </div>
-                        <span
-                          className={`material-symbols-outlined text-4xl ${attendanceStatus === "present" ? "text-[var(--portal-success)]" : "text-[var(--portal-muted-strong)]"}`}
-                        >
-                          {attendanceStatus === "present" ? "check_circle" : "help"}
-                        </span>
-                      </div>
-                    </article>
-                    <article
-                      className={`rounded-[28px] border p-5 ${hasFeeBalance ? "bg-[var(--portal-danger-soft)] border-[var(--portal-danger-border)]" : "bg-[var(--portal-success-soft)] border-[var(--portal-success-soft-2)]"}`}
-                    >
-                      <div className="flex items-center justify-between gap-4">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.20em] text-[var(--portal-muted)]">
-                            Fee Balance
-                          </p>
-                          <p
-                            className={`mt-3 text-xl font-bold ${hasFeeBalance ? "text-[var(--portal-danger)]" : "text-[var(--portal-success)]"}`}
-                          >
-                            {hasFeeBalance ? `UGX ${feeStats.balance?.toLocaleString()}` : "Cleared"}
-                          </p>
-                        </div>
-                        <span className="material-symbols-outlined text-4xl text-[var(--portal-ink)]">payments</span>
-                      </div>
-                      <p className="mt-3 text-sm text-[var(--portal-ink-soft)]">
-                        {feeStats.totalCredits > 0
-                          ? `Fees due: UGX ${feeStats.expected?.toLocaleString()}`
-                          : `Total fee: UGX ${feeStats.totalFee?.toLocaleString()}`}
-                      </p>
-                      {feeStats.totalCredits > 0 && (
-                        <p className="text-sm text-[var(--portal-success)]">
-                          Discount applied: −UGX {feeStats.totalCredits.toLocaleString()}
-                        </p>
-                      )}
-                      <p className="text-sm text-[var(--portal-ink-soft)]">
-                        Paid so far: UGX {feeStats.totalPaid?.toLocaleString()}
-                      </p>
-                      <p className="text-sm text-[var(--portal-ink-soft)]">
-                        {nextDue
-                          ? `Next due: ${nextDue.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}`
-                          : "No upcoming due date set"}
-                      </p>
-                    </article>
-                  </div>
-
-                  <article className="rounded-[28px] portal-glass p-6 shadow-none">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="text-sm font-semibold uppercase tracking-[0.20em] text-[var(--portal-muted)]">
-                          Quick Actions
-                        </p>
-                        <p className="mt-2 text-sm text-[var(--portal-ink-soft)]">
-                          Jump to the most important sections for this learner.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handlePayFees()}
-                        className="rounded-2xl bg-[var(--portal-primary)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--portal-primary-deep)]"
-                      >
-                        View fee details
-                      </button>
-                    </div>
-
-                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                      <Link
-                        href={`/parent-portal/attendance${selectedChild ? `?child=${selectedChild.id}` : ""}`}
-                        className="flex items-center gap-3 rounded-2xl border border-[var(--portal-border)] bg-[var(--portal-surface)] p-4 text-sm font-semibold text-[var(--portal-ink)] hover:border-[var(--portal-border-strong)]"
-                      >
-                        <span className="material-symbols-outlined text-[26px]">how_to_reg</span>
-                        Attendance
-                      </Link>
-                      <Link
-                        href={`/parent-portal/homework${selectedChild ? `?child=${selectedChild.id}` : ""}`}
-                        className="flex items-center gap-3 rounded-2xl border border-[var(--portal-border)] bg-[var(--portal-surface)] p-4 text-sm font-semibold text-[var(--portal-ink)] hover:border-[var(--portal-border-strong)]"
-                      >
-                        <span className="material-symbols-outlined text-[26px]">assignment</span>
-                        Homework
-                      </Link>
-                      <Link
-                        href={`/parent-portal/academics${selectedChild ? `?child=${selectedChild.id}` : ""}`}
-                        className="flex items-center gap-3 rounded-2xl border border-[var(--portal-border)] bg-[var(--portal-surface)] p-4 text-sm font-semibold text-[var(--portal-ink)] hover:border-[var(--portal-border-strong)]"
-                      >
-                        <span className="material-symbols-outlined text-[26px]">grade</span>
-                        Grades
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => setShowTopup(true)}
-                        className="flex items-center gap-3 rounded-2xl border border-[var(--portal-border)] bg-[var(--portal-surface)] p-4 text-sm font-semibold text-[var(--portal-ink)] hover:border-[var(--portal-border-strong)]"
-                      >
-                        <span className="material-symbols-outlined text-[26px]">wallet</span>
-                        Add pocket money
-                      </button>
-                    </div>
-                  </article>
-                </div>
-
-                <aside className="space-y-4">
-                  <article className="rounded-[28px] portal-glass p-6 shadow-none">
-                    <p className="text-sm font-semibold uppercase tracking-[0.20em] text-[var(--portal-muted)]">
-                      Important alerts
-                    </p>
-                    <div className="mt-4 space-y-3">
-                      <div className="rounded-2xl bg-[var(--portal-warning-soft)] p-4">
-                        <p className="text-sm font-semibold text-[var(--portal-warning)]">
-                          {urgentUnreads ? `You have ${unreadCount} unread notification(s)` : "No new notifications"}
-                        </p>
-                      </div>
-                      <div className="rounded-2xl bg-[var(--portal-success-faint)] p-4">
-                        <p className="text-sm text-[var(--portal-ink)]">
-                          {hasFeeBalance ? "Please settle your fee balance soon." : "Fee account is up to date."}
-                        </p>
-                      </div>
-                    </div>
-                  </article>
-                  <article className="rounded-[28px] portal-glass p-6 shadow-none">
-                    <p className="text-sm font-semibold uppercase tracking-[0.20em] text-[var(--portal-muted)]">
-                      Next steps
-                    </p>
-                    <ol className="mt-3 space-y-3 text-sm text-[var(--portal-ink-soft)]">
-                      <li>• Check today's attendance</li>
-                      <li>• Review recent notifications</li>
-                      <li>• Pay any outstanding fees</li>
-                    </ol>
-                  </article>
-                </aside>
-              </section>
-            </div>
+      <div className="w-full space-y-6 px-4 py-5 sm:px-6 lg:space-y-7 lg:px-8 lg:py-8">
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--primary)]">Parent portal</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--t1)] sm:text-3xl">Portal Dashboard</h1>
+            <p className="mt-1 text-sm text-[var(--t3)]">
+              Welcome back{user?.full_name?.trim() ? `, ${user.full_name.trim().split(/\s+/)[0]}` : ""}. Here is what is
+              happening at school.
+            </p>
+          </div>
+          {urgentUnreads && (
+            <Link
+              href="/parent-portal/messages"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--t2)] hover:bg-[var(--surface-container-low)]"
+            >
+              <MaterialIcon icon="notifications" size={18} />
+              {unreadCount} unread update{unreadCount === 1 ? "" : "s"}
+            </Link>
           )}
-        </div>
-      </div>
+        </header>
 
-      {/* Top-up Modal */}
-      {showTopup && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-lg">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <div className="w-12 h-12 rounded-xl bg-[var(--surface-container)] text-[var(--t2)] flex items-center justify-center">
-                  <MaterialIcon icon="add_card" />
-                </div>
-                <button
-                  onClick={() => setShowTopup(false)}
-                  className="p-2 hover:bg-[var(--surface-container)] rounded-xl"
-                >
-                  <MaterialIcon icon="close" className="text-[var(--t3)]" />
-                </button>
-              </div>
-              <h3 className="text-2xl font-bold text-[var(--t1)] mb-1">Add Pocket Money</h3>
-              <p className="text-base text-[var(--t3)] font-medium mb-8">
-                Funds will be available immediately in {selectedChild?.first_name}&apos;s digital wallet
-              </p>
-
-              <div className="space-y-6">
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={topupAmount}
-                  onChange={(e) => setTopupAmount(e.target.value)}
-                  placeholder="Amount (UGX)"
-                  className="w-full px-6 py-4 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-xl text-2xl font-bold outline-none focus:ring-2 focus:ring-blue-900"
-                />
-                <div className="flex gap-2 flex-wrap">
-                  {[1000, 2000, 5000, 10000, 20000].map((a) => (
-                    <button
-                      key={a}
-                      onClick={() => setTopupAmount(a.toString())}
-                      className="flex-1 min-w-[64px] py-3 rounded-xl border border-[var(--border)] text-sm font-bold text-[var(--t2)] hover:border-blue-900 hover:text-blue-900 transition-colors"
-                    >
-                      +{a / 1000}k
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={handleTopup}
-                  disabled={!topupAmount || topupLoading}
-                  className="w-full py-4 bg-blue-900 text-white rounded-xl font-bold uppercase tracking-wide hover:bg-blue-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-3"
-                >
-                  {topupLoading ? (
-                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <MaterialIcon icon="bolt" /> Confirm Top-up
-                    </>
-                  )}
-                </button>
-              </div>
+        {childrenLoading ? (
+          <div className="flex min-h-40 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+            <div
+              className="flex items-center gap-3 text-sm font-medium text-[var(--t3)]"
+              role="status"
+              aria-live="polite"
+            >
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--primary-200)] border-t-[var(--primary)]" />
+              Loading linked learners…
             </div>
           </div>
+        ) : children.length === 0 ? (
+          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-10 text-center shadow-[var(--sh1)] sm:px-8">
+            <OwlMascot size={52} premium ring glow animated />
+            <h2 className="mt-4 text-lg font-bold text-[var(--t1)]">No learners linked yet</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--t3)]">
+              Contact the school office to link your parent account and view attendance, fees, results, and school
+              notices.
+            </p>
+          </section>
+        ) : (
+          <>
+            <section
+              aria-label="Choose a learner"
+              className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--sh1)] sm:p-5"
+            >
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-bold text-[var(--t1)]">Your learners</h2>
+                  <p className="mt-0.5 text-xs text-[var(--t3)]">Choose a learner to see their school information.</p>
+                </div>
+                {child?.class_name && (
+                  <span className="hidden rounded-full bg-[var(--surface-container)] px-3 py-1 text-xs font-semibold text-[var(--t2)] sm:inline-flex">
+                    {child.class_name}
+                  </span>
+                )}
+              </div>
+              <ChildSelector />
+              {child?.class_name && <p className="mt-2 text-xs text-[var(--t3)] sm:hidden">{child.class_name}</p>}
+            </section>
+
+            <section aria-label="Learner overview" className="grid gap-4 sm:grid-cols-2">
+              <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--sh1)]">
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)]">
+                  Today&apos;s attendance
+                </p>
+                <div className="mt-3 flex items-center gap-3">
+                  <MaterialIcon
+                    icon={
+                      attendanceStatus === "present"
+                        ? "check_circle"
+                        : attendanceStatus === "absent"
+                          ? "cancel"
+                          : attendanceStatus === "late"
+                            ? "schedule"
+                            : "info"
+                    }
+                    size={26}
+                    className={
+                      attendanceStatus === "present"
+                        ? "text-[var(--green)]"
+                        : attendanceStatus === "absent"
+                          ? "text-[var(--red)]"
+                          : "text-[var(--primary)]"
+                    }
+                  />
+                  <p className="text-lg font-bold text-[var(--t1)]">
+                    {childDataLoading
+                      ? "Checking…"
+                      : attendanceStatus
+                        ? attendanceStatus.charAt(0).toUpperCase() + attendanceStatus.slice(1)
+                        : "Not recorded yet"}
+                  </p>
+                </div>
+                <p className="mt-2 text-xs text-[var(--t3)]">
+                  {todayAttendance?.notes ||
+                    (attendanceStatus
+                      ? "Attendance recorded for today."
+                      : "The school has not recorded attendance today.")}
+                </p>
+              </article>
+
+              <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--sh1)]">
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)]">Academic updates</p>
+                <div className="mt-3 flex items-center gap-3">
+                  <MaterialIcon icon="trending_up" size={26} className="text-[var(--primary)]" />
+                  <p className="text-lg font-bold text-[var(--t1)]">
+                    {childDataLoading
+                      ? "Loading results…"
+                      : grades.length
+                        ? `${grades.length} recent result${grades.length === 1 ? "" : "s"}`
+                        : "No results recorded yet"}
+                  </p>
+                </div>
+                <p className="mt-2 text-xs text-[var(--t3)]">
+                  Open results to see marks and report cards shared by the school.
+                </p>
+              </article>
+            </section>
+
+            <section
+              aria-label="Fee balance"
+              className="rounded-2xl bg-[#0045ad] p-5 text-white shadow-[var(--sh2)] sm:p-6"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/80">
+                    Outstanding fee balance
+                  </p>
+                  <p className="mt-1 text-3xl font-black tracking-tight sm:text-4xl">
+                    {childDataLoading
+                      ? "Updating…"
+                      : feeStats.status === "unknown"
+                        ? "Not available"
+                        : `UGX ${feeStats.balance.toLocaleString()}`}
+                  </p>
+                  <p className="mt-3 text-xs text-white/80">
+                    {feeStats.status === "unknown"
+                      ? "The school has not shared a current fee statement."
+                      : hasFeeBalance
+                        ? `Paid so far: UGX ${feeStats.totalPaid.toLocaleString()}${nextDue ? ` · Next due ${nextDue.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}` : ""}`
+                        : "No outstanding balance is recorded."}
+                  </p>
+                </div>
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10" aria-hidden="true">
+                  <MaterialIcon icon="account_balance_wallet" size={23} />
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handlePayFees}
+                className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-bold text-[#0045ad] transition hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                <MaterialIcon icon="payments" size={19} />
+                {hasFeeBalance ? "View and pay fees" : "View fee details"}
+              </button>
+            </section>
+
+            <section aria-labelledby="parent-quick-links" className="space-y-3">
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <h2 id="parent-quick-links" className="text-lg font-bold text-[var(--t1)]">
+                    Quick links
+                  </h2>
+                  <p className="mt-0.5 text-sm text-[var(--t3)]">Go straight to the information you need.</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                {[
+                  {
+                    href: "/parent-portal/results",
+                    label: "Results",
+                    icon: "grade",
+                    tone: "text-[var(--primary)] bg-[var(--primary-50)]",
+                  },
+                  {
+                    href: "/parent-portal/homework",
+                    label: "Homework",
+                    icon: "assignment",
+                    tone: "text-[#9a5a00] bg-[#fff5e6]",
+                  },
+                  {
+                    href: "/parent-portal/attendance",
+                    label: "Attendance",
+                    icon: "history",
+                    tone: "text-[#168878] bg-[#e8f7f4]",
+                  },
+                  {
+                    href: "/parent-portal/messages",
+                    label: "Messages",
+                    icon: "chat_bubble",
+                    tone: "text-[#6650a4] bg-[#f2effb]",
+                  },
+                ].map((action) => (
+                  <Link
+                    key={action.href}
+                    href={`${action.href}${selectedChild ? `?child=${selectedChild.id}` : ""}`}
+                    className="flex min-h-[112px] flex-col items-start justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm font-bold text-[var(--t1)] shadow-[var(--sh1)] transition hover:border-[var(--border2)] hover:bg-[var(--surface-container-low)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--primary)] sm:min-h-[124px] sm:p-5"
+                  >
+                    <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${action.tone}`}>
+                      <MaterialIcon icon={action.icon} size={23} />
+                    </span>
+                    <span className="mt-3 flex w-full items-center justify-between gap-2">
+                      {action.label}
+                      <MaterialIcon icon="arrow_forward" size={17} className="text-[var(--t3)]" />
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+
+            <section aria-label="Canteen wallet and school notices" className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+              <article className="flex flex-col justify-between gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--sh1)] sm:flex-row sm:items-center lg:flex-col lg:items-start">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--surface-container)] text-[var(--primary)]">
+                    <MaterialIcon icon="wallet" size={22} />
+                  </span>
+                  <div>
+                    <h2 className="text-sm font-bold text-[var(--t1)]">Canteen wallet</h2>
+                    <p className="mt-1 text-lg font-bold text-[var(--t1)]">
+                      {walletBalance === null ? "Balance not available" : `UGX ${walletBalance.toLocaleString()}`}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowTopup(true)}
+                  disabled={!selectedChild || !isOnline}
+                  className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Add pocket money
+                </button>
+              </article>
+
+              <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--sh1)]">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-bold text-[var(--t1)]">School notices</h2>
+                    <p className="mt-0.5 text-xs text-[var(--t3)]">Updates shared by your school.</p>
+                  </div>
+                  <Link
+                    href="/parent-portal/notices"
+                    className="inline-flex min-h-10 items-center gap-1 rounded-lg px-2 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--surface-container-low)]"
+                  >
+                    View all <MaterialIcon icon="arrow_forward" size={16} />
+                  </Link>
+                </div>
+                {notices.length ? (
+                  <div className="mt-3 divide-y divide-[var(--border)]">
+                    {notices.slice(0, 3).map((notice, index) => (
+                      <div key={`${notice.title}-${notice.created_at}-${index}`} className="py-3 first:pt-2 last:pb-0">
+                        <div className="flex items-start justify-between gap-3">
+                          <h3 className="text-sm font-semibold text-[var(--t1)]">{notice.title}</h3>
+                          <time className="shrink-0 text-[11px] text-[var(--t3)]" dateTime={notice.created_at}>
+                            {new Date(notice.created_at).toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "short",
+                            })}
+                          </time>
+                        </div>
+                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--t3)]">{notice.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-4 rounded-xl bg-[var(--surface-container-low)] px-3 py-4 text-sm text-[var(--t3)]">
+                    No school notices to show right now.
+                  </p>
+                )}
+                {notifications.length > 0 && (
+                  <Link
+                    href="/parent-portal/messages"
+                    className="mt-3 inline-flex min-h-10 items-center gap-2 text-xs font-semibold text-[var(--primary)]"
+                  >
+                    {unreadCount
+                      ? `${unreadCount} unread update${unreadCount === 1 ? "" : "s"}`
+                      : `${notifications.length} recent updates`}
+                    <MaterialIcon icon="arrow_forward" size={15} />
+                  </Link>
+                )}
+              </article>
+            </section>
+          </>
+        )}
+      </div>
+
+      <Modal
+        isOpen={showTopup}
+        onClose={() => setShowTopup(false)}
+        title="Add Pocket Money"
+        size="sm"
+        className="max-h-[calc(100dvh-1.5rem)] overflow-y-auto"
+      >
+        <div className="space-y-6">
+          <p className="text-sm text-[var(--t3)] font-medium">
+            Funds will be available immediately in {selectedChild?.first_name}&apos;s digital wallet.
+          </p>
+          <label htmlFor="parent-wallet-topup-amount" className="sr-only">
+            Amount in Ugandan shillings
+          </label>
+          <input
+            id="parent-wallet-topup-amount"
+            type="number"
+            inputMode="numeric"
+            min="1"
+            step="1000"
+            value={topupAmount}
+            onChange={(e) => setTopupAmount(e.target.value)}
+            placeholder="Amount (UGX)"
+            className="w-full px-6 py-4 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-xl text-2xl font-bold outline-none focus:ring-2 focus:ring-blue-900"
+          />
+          <div className="flex gap-2 flex-wrap" aria-label="Suggested top-up amounts">
+            {[1000, 2000, 5000, 10000, 20000].map((a) => (
+              <button
+                key={a}
+                type="button"
+                onClick={() => setTopupAmount(a.toString())}
+                aria-label={`Set amount to ${a.toLocaleString()} Ugandan shillings`}
+                className="flex-1 min-w-[64px] py-3 rounded-xl border border-[var(--border)] text-sm font-bold text-[var(--t2)] hover:border-blue-900 hover:text-blue-900 transition-colors"
+              >
+                +{a / 1000}k
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={handleTopup}
+            disabled={!topupAmount || Number(topupAmount) <= 0 || topupLoading}
+            className="w-full py-4 bg-blue-900 text-white rounded-xl font-bold uppercase tracking-wide hover:bg-blue-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-3"
+          >
+            {topupLoading ? (
+              <span
+                role="status"
+                aria-label="Processing top-up"
+                className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"
+              />
+            ) : (
+              <>
+                <MaterialIcon icon="bolt" /> Confirm Top-up
+              </>
+            )}
+          </button>
         </div>
-      )}
+      </Modal>
     </ParentPortalShell>
   );
 }

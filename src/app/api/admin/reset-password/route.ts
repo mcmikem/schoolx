@@ -9,6 +9,7 @@ import {
   supabaseClientOptions,
 } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
+import { passwordMeetsPolicy, PASSWORD_POLICY_MESSAGE } from "@/lib/password-policy";
 
 // The staff directory lets a headmaster (isHM) reset passwords, so the API
 // must accept the same roles the UI shows the action for — otherwise the
@@ -33,15 +34,18 @@ export async function POST(request: NextRequest) {
       return apiError("Server configuration error", 500);
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return apiError("Invalid request body", 400);
+    }
     const { userId, password } = body;
 
-    if (!userId || !password) {
+    if (typeof userId !== "string" || !userId.trim() || typeof password !== "string") {
       return apiError("User ID and password are required", 400);
     }
 
-    if (password.length < 6) {
-      return apiError("Password must be at least 6 characters", 400);
+    if (!passwordMeetsPolicy(password)) {
+      return apiError(PASSWORD_POLICY_MESSAGE, 400);
     }
 
     const supabase = createClient(
@@ -56,7 +60,7 @@ export async function POST(request: NextRequest) {
     const { data: userData, error: userError } = await supabase
       .from("users")
       .select("auth_id, school_id")
-      .eq("id", userId)
+      .eq("id", userId.trim())
       .maybeSingle();
 
     if (userError || !userData?.auth_id || !userData?.school_id) {
@@ -75,8 +79,8 @@ export async function POST(request: NextRequest) {
     const { error: updateError } = await supabase.auth.admin.updateUserById(userData.auth_id, { password: password });
 
     if (updateError) {
-      logger.error("Failed to update password:", updateError);
-      return apiError(updateError.message, 500);
+      logger.error("Failed to update password", { code: updateError.code, status: updateError.status });
+      return apiError("Could not reset the password. Please try again.", 500);
     }
 
     // The password above was chosen by an admin; force the recipient to pick
@@ -84,14 +88,14 @@ export async function POST(request: NextRequest) {
     const { error: flagError } = await supabase
       .from("users")
       .update({ password_reset_required: true })
-      .eq("id", userId);
+      .eq("id", userId.trim());
     if (flagError) {
       logger.error("Failed to flag password_reset_required:", flagError);
     }
 
     return apiSuccess({ success: true }, "Password reset successful");
   } catch (error) {
-    logger.error("[Admin Reset Password Error]", error);
-    return apiError(error instanceof Error ? error.message : "Failed to reset password", 500);
+    logger.error("[Admin Reset Password Error]", { errorType: error instanceof Error ? error.name : "unknown" });
+    return apiError("Could not reset the password. Please try again.", 500);
   }
 }

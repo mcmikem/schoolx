@@ -7,14 +7,17 @@ const startTime = Date.now();
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
-  const isAuthenticated = !cronSecret || authHeader === `Bearer ${cronSecret}`;
+  const isAuthenticated = Boolean(cronSecret && authHeader === `Bearer ${cronSecret}`);
 
   if (!isAuthenticated) {
-    return NextResponse.json({
-      status: "ok",
-      timestamp: new Date().toISOString(),
-      version: "1.0.0",
-    });
+    return NextResponse.json(
+      {
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        version: "1.0.0",
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   }
 
   const checks: Record<string, string | { read: string; write: string }> = {};
@@ -91,13 +94,16 @@ export async function GET(request: NextRequest) {
   };
   details.env = envChecks;
 
-  return NextResponse.json({
-    status: "ok",
-    timestamp: new Date().toISOString(),
-    uptime: `${Math.floor((Date.now() - startTime) / 1000)}s`,
-    version: "1.0.0",
-    environment: process.env.NODE_ENV || "development",
-    ...checks,
-    ...details,
-  });
+  return NextResponse.json(
+    {
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      uptime: `${Math.floor((Date.now() - startTime) / 1000)}s`,
+      version: "1.0.0",
+      environment: process.env.NODE_ENV || "development",
+      ...checks,
+      ...details,
+    },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }

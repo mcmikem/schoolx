@@ -1004,7 +1004,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       let payload: {
         success?: boolean;
-        data?: { access_token?: string; refresh_token?: string; role?: string };
+        data?: {
+          access_token?: string;
+          refresh_token?: string;
+          expires_in?: number;
+          role?: string;
+          user?: {
+            id?: string;
+            email?: string | null;
+            phone?: string | null;
+            created_at?: string;
+            user_metadata?: Record<string, unknown>;
+          };
+        };
         error?: string;
       } = {};
       try {
@@ -1026,6 +1038,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // setSession also delivers SIGNED_IN to the subscribers, and the
         // profile fetch runs inside that delivery. A stuck session must not
         // hold the whole login: bound it.
+        let sessionStartError: unknown = null;
         try {
           const { data, error } = await Promise.race([
             supabase!.auth.setSession({
@@ -1039,10 +1052,117 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!error && data.session) {
             return { error: null, role: payload.data.role || "admin" };
           }
-        } catch {
-          // Fall through: the direct attempts are still available.
+          sessionStartError = error || new Error("Supabase did not return a session");
+        } catch (error) {
+          sessionStartError = error;
         }
-        return { error: { message: "Could not start your session. Please try again." } };
+
+        // The sign-in API has already checked the password and set the
+        // same-origin Supabase session cookie. Some mobile browsers can still
+        // fail the follow-up GoTrue get-user request made by setSession().
+        // Recover through SkoolMate's same-origin profile endpoint instead of
+        // calling that a failed password or sending the user back to login.
+        const verifiedAuthUser = payload.data.user;
+        if (verifiedAuthUser?.id) {
+          const accessToken = payload.data.access_token;
+          try {
+            const profileResponse = await fetch("/api/auth/me/", {
+              headers: { authorization: `Bearer ${accessToken}` },
+              signal: controller.signal,
+            });
+            if (profileResponse.ok) {
+              const profile = (await profileResponse.json()) as {
+                user?: Record<string, unknown> & { auth_id?: string; role?: string; is_active?: boolean };
+                school?: Record<string, unknown> | null;
+              };
+              const userData = profile.user;
+              if (userData?.auth_id === verifiedAuthUser.id && userData.is_active !== false && userData.role) {
+                const recoveredUser = {
+                  ...userData,
+                  role: userData.role as User["role"],
+                  roles: normaliseRoles(userData.roles, userData.role),
+                } as User;
+                setUser(recoveredUser);
+                setIsDemo(false);
+                setProfileDegraded(false);
+                setLoading(false);
+                setAuthInitialized(true);
+                authCheckedRef.current = true;
+                try {
+                  localStorage.setItem(OFFLINE_USER_KEY, JSON.stringify(recoveredUser));
+                } catch (error) {
+                  logger.warn("Failed to persist recovered sign-in profile:", error);
+                }
+
+                if (userData.role === "super_admin") {
+                  setSchool(null);
+                  setIsTrialExpired(false);
+                } else if (profile.school) {
+                  const recoveredSchool = {
+                    ...profile.school,
+                    is_tester: Boolean(profile.school.is_tester),
+                    feature_stage: (profile.school.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
+                  } as School;
+                  setSchool(recoveredSchool);
+                  setIsTrialExpired(computeTrialExpired(recoveredSchool, userData.role));
+                  try {
+                    localStorage.setItem(OFFLINE_SCHOOL_KEY, JSON.stringify(recoveredSchool));
+                  } catch (error) {
+                    logger.warn("Failed to persist recovered school profile:", error);
+                  }
+                } else {
+                  setSchool(null);
+                  setIsTrialExpired(false);
+                }
+                profileCache.set(verifiedAuthUser.id, {
+                  data: { role: userData.role },
+                  expires: Date.now() + PROFILE_CACHE_TTL_MS,
+                });
+                logger.warn(
+                  "[Auth] Browser session validation failed; recovered verified sign-in through SkoolMate API",
+                  {
+                    error: sessionStartError instanceof Error ? sessionStartError.name : "unknown",
+                  },
+                );
+                return { error: null, role: userData.role };
+              }
+              // A valid password is not enough if the school profile is
+              // missing or inactive. Do not apply the degraded login here.
+              return { error: { message: "Your account is verified, but its school profile is unavailable." } };
+            }
+
+            if (profileResponse.status < 500) {
+              return { error: { message: "Your account is verified, but its school profile could not be confirmed." } };
+            }
+          } catch (recoveryError) {
+            if (controller.signal.aborted) return null;
+            logger.warn("[Auth] Same-origin profile recovery failed after verified sign-in", {
+              error: recoveryError instanceof Error ? recoveryError.name : "unknown",
+            });
+          }
+
+          // A previous, server-verified profile for this exact auth identity
+          // is safe to restore while the profile API recovers. Never derive
+          // school permissions from editable auth user_metadata.
+          try {
+            const cached = localStorage.getItem(OFFLINE_USER_KEY);
+            const cachedUser = cached ? (JSON.parse(cached) as User) : null;
+            if (cachedUser && (cachedUser.auth_id === verifiedAuthUser.id || cachedUser.id === verifiedAuthUser.id)) {
+              applyDegradedUser(verifiedAuthUser as Parameters<typeof applyDegradedUser>[0]);
+              return { error: null, role: cachedUser.role };
+            }
+          } catch (error) {
+            logger.warn("[Auth] Could not restore the verified user's cached profile:", error);
+          }
+        }
+
+        return {
+          error: {
+            message: verifiedAuthUser?.id
+              ? "Your password was accepted, but SkoolMate could not finish loading your account. Please try again."
+              : "Could not start your session. Please try again.",
+          },
+        };
       }
 
       // The server answered, so it is the authority on this sign-in: it

@@ -13,6 +13,7 @@ describe("verified offline data preparation", () => {
   const query = {
     select: jest.fn(),
     eq: jest.fn(),
+    in: jest.fn(),
     gte: jest.fn(),
     gt: jest.fn(),
     order: jest.fn(),
@@ -21,9 +22,10 @@ describe("verified offline data preparation", () => {
   };
   beforeEach(() => {
     jest.clearAllMocks();
-    for (const key of ["select", "eq", "gte", "gt", "order", "range"] as const) query[key].mockReturnValue(query);
+    for (const key of ["select", "eq", "in", "gte", "gt", "order", "range"] as const) query[key].mockReturnValue(query);
     (supabase.from as jest.Mock).mockReturnValue(query);
     jest.spyOn(offlineDB, "cacheFromServer").mockResolvedValue(undefined);
+    jest.spyOn(offlineDB, "pruneCachedTableToClassSelection").mockResolvedValue(undefined);
   });
   afterEach(() => jest.restoreAllMocks());
   it("labels a capped history download as partial and uses a stable cursor", async () => {
@@ -45,6 +47,25 @@ describe("verified offline data preparation", () => {
     expect(query.eq).toHaveBeenCalledWith("term", 3);
     expect(query.gt).toHaveBeenCalledWith("id", "b");
     expect(progress).toHaveBeenLastCalledWith("grades", 4, 5, false);
+    expect(result.tables).toBe(0);
+    expect(result.errors[0]).toContain("downloaded 4 of 5 records");
+  });
+  it("does not claim a capped table is complete when the server omits its total", async () => {
+    query.abortSignal.mockResolvedValueOnce({
+      data: [{ id: "a" }, { id: "b" }],
+      count: null,
+      error: null,
+    });
+    const progress = jest.fn();
+    const result = await offlineDB.warmTables(["grades"], {
+      pageSize: 2,
+      maxRows: 2,
+      schoolId: "school-a",
+      onProgress: progress,
+    });
+    expect(result.tables).toBe(0);
+    expect(result.errors[0]).toContain("downloaded 2 of an unknown number of records");
+    expect(progress).toHaveBeenLastCalledWith("grades", 2, null, false);
   });
   it("finishes the roster even when history has a smaller budget", async () => {
     query.abortSignal
@@ -54,6 +75,25 @@ describe("verified offline data preparation", () => {
     await offlineDB.warmTables(["students"], { pageSize: 2, maxRows: 2, schoolId: "school-a", onProgress: progress });
     expect(progress).toHaveBeenLastCalledWith("students", 3, 3, true);
     expect(offlineDB.cacheFromServer).toHaveBeenCalledTimes(2);
+  });
+  it("limits a selected-class preparation to its roster and student-linked marks", async () => {
+    query.abortSignal
+      .mockResolvedValueOnce({ data: [{ id: "learner-a" }, { id: "learner-b" }], count: 2, error: null })
+      .mockResolvedValueOnce({ data: [{ id: "learner-a" }], count: 1, error: null });
+    const result = await offlineDB.warmTables(["students", "grades"], {
+      schoolId: "school-a",
+      classIds: ["class-a"],
+    });
+    expect(result.errors).toEqual([]);
+    expect(query.in).toHaveBeenCalledWith("class_id", ["class-a"]);
+    expect(query.in).toHaveBeenCalledWith("student_id", ["learner-a", "learner-b"]);
+    expect(query.eq).toHaveBeenCalledWith("school_id", "school-a");
+    expect(offlineDB.pruneCachedTableToClassSelection).toHaveBeenCalledWith(
+      "grades",
+      "school-a",
+      ["class-a"],
+      ["learner-a", "learner-b"],
+    );
   });
   it("does not report failed downloads as complete", async () => {
     query.abortSignal.mockResolvedValueOnce({ data: null, count: null, error: { message: "Network failed" } });

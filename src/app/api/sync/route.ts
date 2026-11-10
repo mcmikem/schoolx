@@ -60,7 +60,7 @@ const SYNC_ALLOWED_ROLES = [
   "dorm_master",
 ];
 
-async function resolveSchoolOwnership(params: {
+export async function resolveSchoolOwnership(params: {
   supabase: SupabaseClient<Database>;
   table: string;
   action: SyncItem["action"];
@@ -108,24 +108,37 @@ async function resolveSchoolOwnership(params: {
     if (action === "create") {
       const classId = data.class_id;
       const studentId = data.student_id;
+      let hasVerifiedOwner = false;
 
       if (typeof classId === "string") {
-        const { data: classRow } = await supabase.from("classes").select("school_id").eq("id", classId).maybeSingle();
+        const { data: classRow, error } = await supabase
+          .from("classes")
+          .select("school_id")
+          .eq("id", classId)
+          .maybeSingle();
         const classSchoolId = (classRow as { school_id?: string | null } | null)?.school_id;
-        if (classSchoolId === schoolId) return { ok: true };
+        if (error || classSchoolId !== schoolId) {
+          return { ok: false, error: "Forbidden: attendance class is outside school scope" };
+        }
+        hasVerifiedOwner = true;
       }
 
       if (typeof studentId === "string") {
-        const { data: studentRow } = await supabase
+        const { data: studentRow, error } = await supabase
           .from("students")
           .select("school_id")
           .eq("id", studentId)
           .maybeSingle();
         const studentSchoolId = (studentRow as { school_id?: string | null } | null)?.school_id;
-        if (studentSchoolId === schoolId) return { ok: true };
+        if (error || studentSchoolId !== schoolId) {
+          return { ok: false, error: "Forbidden: attendance student is outside school scope" };
+        }
+        hasVerifiedOwner = true;
       }
 
-      return { ok: false, error: "Forbidden: attendance record is outside school scope" };
+      return hasVerifiedOwner
+        ? { ok: true }
+        : { ok: false, error: "Forbidden: attendance record is outside school scope" };
     }
 
     const recordId = data.id;
@@ -156,24 +169,35 @@ async function resolveSchoolOwnership(params: {
     if (action === "create") {
       const classId = data.class_id;
       const studentId = data.student_id;
+      let hasVerifiedOwner = false;
 
       if (typeof classId === "string") {
-        const { data: classRow } = await supabase.from("classes").select("school_id").eq("id", classId).maybeSingle();
+        const { data: classRow, error } = await supabase
+          .from("classes")
+          .select("school_id")
+          .eq("id", classId)
+          .maybeSingle();
         const classSchoolId = (classRow as { school_id?: string | null } | null)?.school_id;
-        if (classSchoolId === schoolId) return { ok: true };
+        if (error || classSchoolId !== schoolId) {
+          return { ok: false, error: "Forbidden: grade class is outside school scope" };
+        }
+        hasVerifiedOwner = true;
       }
 
       if (typeof studentId === "string") {
-        const { data: studentRow } = await supabase
+        const { data: studentRow, error } = await supabase
           .from("students")
           .select("school_id")
           .eq("id", studentId)
           .maybeSingle();
         const studentSchoolId = (studentRow as { school_id?: string | null } | null)?.school_id;
-        if (studentSchoolId === schoolId) return { ok: true };
+        if (error || studentSchoolId !== schoolId) {
+          return { ok: false, error: "Forbidden: grade student is outside school scope" };
+        }
+        hasVerifiedOwner = true;
       }
 
-      return { ok: false, error: "Forbidden: grade record is outside school scope" };
+      return hasVerifiedOwner ? { ok: true } : { ok: false, error: "Forbidden: grade record is outside school scope" };
     }
 
     const recordId = data.id;

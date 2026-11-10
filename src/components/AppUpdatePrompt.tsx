@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import MaterialIcon from "./MaterialIcon";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { logger } from "@/lib/logger";
+import { askOwly } from "@/lib/owly-bus";
 
 /**
  * App-wide "a new build is ready" control.
@@ -20,11 +20,22 @@ import { logger } from "@/lib/logger";
 export function AppUpdatePrompt() {
   const [updateReady, setUpdateReady] = useState(false);
   const [applying, setApplying] = useState(false);
+  const applyUpdateRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
 
-    const announce = () => setUpdateReady(true);
+    const announce = () => {
+      setUpdateReady(true);
+      askOwly({
+        kind: "notify",
+        title: "A SkoolMate update is ready",
+        detail: "Update now to get the latest improvements. Your current page will reopen after the update.",
+        severity: "info",
+        actionLabel: "Update now",
+        onAction: () => applyUpdateRef.current(),
+      });
+    };
 
     // A worker may already be waiting by the time this mounts (the app can open
     // after a deploy), so check rather than relying only on the event.
@@ -74,53 +85,11 @@ export function AppUpdatePrompt() {
     });
   }, []);
 
+  useEffect(() => {
+    applyUpdateRef.current = applyUpdate;
+  }, [applyUpdate]);
+
   if (!updateReady) return null;
 
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      style={{
-        position: "fixed",
-        left: 12,
-        right: 12,
-        bottom: "calc(12px + env(safe-area-inset-bottom, 0px))",
-        zIndex: 60,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 10,
-        flexWrap: "wrap",
-        padding: "10px 14px",
-        borderRadius: 12,
-        background: "var(--secondary)",
-        color: "var(--on-primary, #fff)",
-        fontSize: 13,
-        fontWeight: 600,
-        boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
-      }}
-    >
-      <MaterialIcon icon="system_update_alt" style={{ fontSize: 18 }} />
-      <span>New version available</span>
-      <button
-        type="button"
-        onClick={applyUpdate}
-        disabled={applying}
-        style={{
-          background: "var(--surface, #fff)",
-          color: "var(--secondary)",
-          border: "none",
-          padding: "7px 14px",
-          borderRadius: 6,
-          fontSize: 12,
-          fontWeight: 700,
-          cursor: applying ? "wait" : "pointer",
-          opacity: applying ? 0.7 : 1,
-          minHeight: 32,
-        }}
-      >
-        {applying ? "Updating…" : "Update now"}
-      </button>
-    </div>
-  );
+  return null;
 }

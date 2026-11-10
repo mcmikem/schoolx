@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { detectConsecutiveAbsenceAlerts, filterAbsenceAlertsForCooldown } from "@/lib/operations";
 import type { AttendanceAlert } from "@/lib/operations";
-import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
+import {
+  apiError,
+  handleApiError,
+  requireCronSecretOrDeny,
+  createServiceRoleClientOrThrow,
+  requireExistingSchoolOrDeny,
+} from "@/lib/api-utils";
 import { sendToParent } from "@/lib/messaging-server";
 import { logger } from "@/lib/logger";
 
@@ -10,12 +16,19 @@ export async function POST(request: NextRequest) {
     const cron = requireCronSecretOrDeny(request);
     if (!cron.ok) return cron.response;
 
-    const { schoolId, threshold } = await request.json();
+    const body = await request.json().catch(() => null);
+    const schoolId = typeof body?.schoolId === "string" ? body.schoolId : "";
+    const threshold: unknown = body?.threshold === undefined ? 3 : body.threshold;
+    if (!schoolId) return apiError("A school is required", 400);
+    if (!Number.isInteger(threshold) || (threshold as number) < 1 || (threshold as number) > 30) {
+      return apiError("Threshold must be a whole number from 1 to 30", 400);
+    }
+
     const supabase = createServiceRoleClientOrThrow();
     const school = await requireExistingSchoolOrDeny({ supabase, schoolId });
     if (!school.ok) return school.response;
 
-    const absenceThreshold = threshold || 3;
+    const absenceThreshold = threshold as number;
 
     // Get all active students
     const { data: students, error: studentsError } = await supabase
@@ -25,22 +38,13 @@ export async function POST(request: NextRequest) {
       .eq("status", "active");
 
     if (studentsError) {
-      return NextResponse.json(
-        { error: "Failed to fetch students", details: "Internal server error" },
-        { status: 500 },
-      );
+      return apiError("Unable to prepare attendance follow-up. Please retry.", 500);
     }
 
     if (!students || students.length === 0) {
       return NextResponse.json({
         success: true,
-        summary: {
-          studentsFlagged: 0,
-          smsSent: 0,
-          skipped: 0,
-          errors: 0,
-        },
-        results: { flagged: [], skipped: [], errors: [] },
+        summary: { studentsFlagged: 0, smsSent: 0, skipped: 0, errors: 0, threshold: absenceThreshold },
       });
     }
 
@@ -57,13 +61,7 @@ export async function POST(request: NextRequest) {
       .order("date", { ascending: false });
 
     if (attendanceError) {
-      return NextResponse.json(
-        {
-          error: "Failed to fetch attendance records",
-          details: "Internal server error",
-        },
-        { status: 500 },
-      );
+      return apiError("Unable to prepare attendance follow-up. Please retry.", 500);
     }
 
     // Detect consecutive absence alerts using existing utility
@@ -90,38 +88,24 @@ export async function POST(request: NextRequest) {
       cooldownHours: 24,
     });
 
-    const flagged: any[] = [];
-    const smsResults: any[] = [];
-    const skipped: any[] = [];
-    const errors: any[] = [];
+    let studentsFlagged = 0;
+    let smsSent = 0;
+    let skipped = 0;
+    let errorCount = 0;
     const sentAt = new Date().toISOString();
 
     for (const alert of alerts as AttendanceAlert[]) {
       const shouldSend = alertsToSend.some((a) => a.studentId === alert.studentId);
 
-      flagged.push({
-        studentId: alert.studentId,
-        studentName: alert.studentName,
-        consecutiveAbsentDays: alert.consecutiveAbsentDays,
-        parentPhone: alert.parentPhone,
-        shouldNotify: shouldSend,
-      });
+      studentsFlagged++;
 
       if (!shouldSend) {
-        skipped.push({
-          studentId: alert.studentId,
-          studentName: alert.studentName,
-          reason: "Already notified within cooldown period (24h)",
-        });
+        skipped++;
         continue;
       }
 
       if (!alert.parentPhone) {
-        skipped.push({
-          studentId: alert.studentId,
-          studentName: alert.studentName,
-          reason: "No parent phone number",
-        });
+        skipped++;
         continue;
       }
 
@@ -151,7 +135,7 @@ export async function POST(request: NextRequest) {
             timeoutFallback(),
           );
           if (attMsgResult?.error) {
-            logger.error("Attendance followup message insert error:", attMsgResult.error);
+            logger.error("Attendance followup message insert failed");
           }
 
           // Log the automated message
@@ -169,51 +153,29 @@ export async function POST(request: NextRequest) {
             timeoutFallback(),
           );
           if (attLogResult?.error) {
-            logger.error("Attendance followup log insert error:", attLogResult.error);
+            logger.error("Attendance followup delivery log insert failed");
           }
 
-          smsResults.push({
-            studentId: alert.studentId,
-            studentName: alert.studentName,
-            phone: alert.parentPhone,
-            messageId: smsResult.messageId,
-            channel: smsResult.channel,
-          });
+          smsSent++;
         } else {
-          errors.push({
-            studentId: alert.studentId,
-            studentName: alert.studentName,
-            reason: `${smsResult.channel === "whatsapp" ? "WhatsApp" : "SMS"} failed: ${smsResult.error}`,
-          });
+          errorCount++;
         }
-      } catch (err) {
-        errors.push({
-          studentId: alert.studentId,
-          studentName: alert.studentName,
-          reason: "Attendance follow-up failed",
-        });
+      } catch {
+        errorCount++;
       }
     }
 
     return NextResponse.json({
       success: true,
       summary: {
-        studentsFlagged: flagged.length,
-        smsSent: smsResults.length,
-        skipped: skipped.length,
-        errors: errors.length,
+        studentsFlagged,
+        smsSent,
+        skipped,
+        errors: errorCount,
         threshold: absenceThreshold,
       },
-      results: { flagged, smsResults, skipped, errors },
     });
   } catch (error) {
-    logger.error("Auto attendance follow-up error:", error);
-    return NextResponse.json(
-      {
-        error: "Auto attendance follow-up failed",
-        details: "Internal server error",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

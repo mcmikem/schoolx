@@ -61,6 +61,16 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         sanitized[key] = updates[key];
       }
     }
+
+    if (sanitized.fee_id) {
+      const { data: fee } = await supabase
+        .from("fee_structure")
+        .select("id")
+        .eq("id", sanitized.fee_id)
+        .eq("school_id", resolvedSchoolId)
+        .maybeSingle();
+      if (!fee) return apiError("Selected fee is not available in this school", 400);
+    }
     sanitized.updated_at = new Date().toISOString();
     sanitized.updated_by = auth.context.user.id;
 

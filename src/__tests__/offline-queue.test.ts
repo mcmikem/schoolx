@@ -1,4 +1,4 @@
-import { findPendingWrite, mergeOfflineRecord, storeOptions } from "@/lib/offline";
+import { findPendingWrite, getOfflineQueueState, mergeOfflineRecord, storeOptions } from "@/lib/offline";
 
 /**
  * Regression tests for the offline write pipeline.
@@ -66,6 +66,24 @@ describe("offline store key configuration", () => {
   });
 });
 
+describe("durable queue status", () => {
+  it("reports a write in progress", () => {
+    expect(getOfflineQueueState({ synced: false, status: "syncing", attempts: 1 })).toBe("syncing");
+  });
+
+  it("distinguishes a server conflict from an ordinary failed write", () => {
+    expect(
+      getOfflineQueueState({ status: "conflict", attempts: 3, reason: "server newer than offline mutation" }),
+    ).toBe("conflict");
+    expect(getOfflineQueueState({ status: "failed", attempts: 3, reason: "network unavailable" })).toBe("failed");
+  });
+
+  it("shows accepted writes as synced and new rows as pending", () => {
+    expect(getOfflineQueueState({ synced: true, status: "synced" })).toBe("synced");
+    expect(getOfflineQueueState({ synced: false, attempts: 0 })).toBe("pending");
+  });
+});
+
 describe("offline edits", () => {
   it("keeps the cached student fields when saving a partial offline edit", () => {
     const record = mergeOfflineRecord(
@@ -106,5 +124,22 @@ describe("offline edits", () => {
 
     expect(findPendingWrite([synced, otherRow, create], "students", "student-1")).toBe(create);
     expect(findPendingWrite([create], "grades", "student-1")).toBeUndefined();
+  });
+
+  it("never coalesces another user's queued write", () => {
+    const write = {
+      id: 1,
+      table: "attendance",
+      data: { id: "row-1" },
+      action: "update" as const,
+      timestamp: 1,
+      synced: false,
+      attempts: 0,
+      owner_user_id: "teacher-a",
+      owner_school_id: "school-a",
+    };
+
+    expect(findPendingWrite([write], "attendance", "row-1", "teacher-b", "school-a")).toBeUndefined();
+    expect(findPendingWrite([write], "attendance", "row-1", "teacher-a", "school-a")).toBe(write);
   });
 });

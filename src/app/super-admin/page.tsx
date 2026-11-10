@@ -33,6 +33,7 @@ import {
 } from "./_shared";
 import { UserActions } from "./_user-actions";
 import ManualPaymentsSection from "./_manual-payments";
+import { PrivacyRequestsTab } from "./_privacy-requests-tab";
 
 export default function SuperAdminPage() {
   const { user, authInitialized, signOut } = useAuth();
@@ -308,6 +309,7 @@ export default function SuperAdminPage() {
     { id: "marketers", label: "Marketers", icon: "campaign" },
     { id: "audit", label: "Audit Log", icon: "history" },
     { id: "activity", label: "App Activity", icon: "insights" },
+    { id: "privacy_requests", label: "Privacy Requests", icon: "privacy_tip" },
     { id: "modules", label: "Modules", icon: "extension" },
     { id: "settings", label: "Settings", icon: "tune" },
   ];
@@ -1124,6 +1126,8 @@ export default function SuperAdminPage() {
           {tab === "audit" && <AuditLogTab />}
 
           {tab === "activity" && <AppActivityTab />}
+
+          {tab === "privacy_requests" && <PrivacyRequestsTab />}
 
           {tab === "settings" && (
             <div className="max-w-xl space-y-6">

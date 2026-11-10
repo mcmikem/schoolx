@@ -687,6 +687,16 @@ export default function HomePage() {
                     </div>
                     <p className="mt-4 text-sm font-semibold text-[var(--t1)]">{item.platform}</p>
                     <p className="mt-1 text-xs text-[var(--t3)] leading-5">{item.desc}</p>
+                    {item.platform === "Android" && (
+                      <a
+                        href={ANDROID_APP_URL}
+                        download
+                        className="btn btn-secondary mt-4 inline-flex w-full justify-center px-4 py-3 text-sm"
+                      >
+                        <MaterialIcon icon="download" className="mr-2 text-base" />
+                        Download Android APK
+                      </a>
+                    )}
                   </div>
                 </FadeIn>
               ))}

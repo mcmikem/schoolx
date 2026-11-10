@@ -34,8 +34,8 @@ export default function MoESExportPage() {
   const { students, loading: studentsLoading, error: studentsError } = useStudents(school?.id, { limit: 5000 });
   const { classes, loading: classesLoading } = useClasses(school?.id);
   const [exporting, setExporting] = useState(false);
-  // This page writes a statutory return to the Ministry of Education. Both
-  // hooks used to drop their loading and error flags, so the counts rendered
+  // This page produces a local headcount working summary, not a statutory
+  // return to the Ministry. Both hooks used to drop their loading and error flags, so the counts rendered
   // as real zeroes while still in flight and the Export button was live --
   // producing a valid-looking .xlsx containing only headers and TOTAL 0 0 0,
   // announced with a green success toast. Never export an unfinished load.
@@ -118,8 +118,8 @@ export default function MoESExportPage() {
       const ExcelJS = (await import("exceljs")).default;
 
       const data = [
-        ["MINISTRY OF EDUCATION AND SPORTS"],
-        ["SCHOOL HEADCOUNT RETURN"],
+        ["SKOOLMATE SCHOOL HEADCOUNT WORKING SUMMARY"],
+        ["Not an official MoES or EMIS template. Verify against current Ministry instructions."],
         [""],
         ["School Name:", school?.name || ""],
         ["School Code:", school?.school_code || ""],
@@ -148,7 +148,7 @@ export default function MoESExportPage() {
       ];
 
       const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet("MoES Headcount");
+      const worksheet = workbook.addWorksheet("Headcount Summary");
       data.forEach((row) => worksheet.addRow(row));
 
       const buffer = await workbook.xlsx.writeBuffer();
@@ -158,11 +158,11 @@ export default function MoESExportPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `MoES_Headcount_${school?.school_code}_${academicYear}.xlsx`;
+      a.download = `SkoolMate_Headcount_Summary_${school?.school_code || "school"}_${academicYear}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
 
-      toast.success("MoES headcount exported");
+      toast.success("School headcount summary exported");
     } catch (err) {
       toast.error("Export failed");
     } finally {
@@ -173,7 +173,26 @@ export default function MoESExportPage() {
   return (
     <PageErrorBoundary>
       <div className="p-4 sm:p-6 lg:p-8">
-        <PageHeader title="MoES Headcount" subtitle="Ministry of Education headcount return" />
+        <PageHeader
+          title="School Headcount Summary"
+          subtitle="Prepare and review enrolment figures from your SkoolMate records"
+        />
+
+        <Card className="mb-6 border-l-4 border-l-amber-500">
+          <CardBody>
+            <div className="flex items-start gap-3">
+              <MaterialIcon icon="info" className="text-amber-700" />
+              <div>
+                <h2 className="font-semibold text-[var(--t1)]">Working summary, not an official EMIS submission</h2>
+                <p className="mt-1 text-sm text-[var(--t3)]">
+                  This spreadsheet uses SkoolMate&apos;s current class, gender, and age fields. The Ministry&apos;s
+                  current EMIS process and required templates must be confirmed with MoES. Review these figures and
+                  follow the official EMIS instructions before submitting. SkoolMate does not submit this file to EMIS.
+                </p>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
 
         <Card className="max-w-2xl mb-6">
           <CardBody>
@@ -288,26 +307,24 @@ export default function MoESExportPage() {
           </CardBody>
         </Card>
 
-        <Button
-          onClick={exportToExcel}
-          disabled={exporting || dataLoading || !!studentsError || moesData.length === 0}
-          title={dataLoading || studentsError || moesData.length === 0 ? exportDisabledReason : undefined}
-          icon={exporting ? undefined : <MaterialIcon icon="download" />}
-        >
-          {exporting ? "Exporting..." : "Download MoES Headcount (Excel)"}
-        </Button>
-
-        <Card className="max-w-2xl mt-6">
-          <CardBody>
-            <h2 className="font-semibold text-[var(--t1)] mb-4">About MoES Returns</h2>
-            <ul className="space-y-2 text-sm text-[var(--t3)]">
-              <li>This report generates the official Ministry of Education headcount format</li>
-              <li>Includes student counts by class, gender, and age</li>
-              <li>Required for government reporting and capitation grant allocation</li>
-              <li>Submit to your District Education Officer (DEO)</li>
-            </ul>
-          </CardBody>
-        </Card>
+        <div className="flex flex-wrap gap-3 print:hidden">
+          <Button
+            onClick={exportToExcel}
+            disabled={exporting || dataLoading || !!studentsError || moesData.length === 0}
+            title={dataLoading || studentsError || moesData.length === 0 ? exportDisabledReason : undefined}
+            icon={exporting ? undefined : <MaterialIcon icon="download" />}
+          >
+            {exporting ? "Preparing…" : "Download headcount summary"}
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => window.print()}
+            disabled={dataLoading || !!studentsError || moesData.length === 0}
+            icon={<MaterialIcon icon="print" />}
+          >
+            Print / Save PDF
+          </Button>
+        </div>
       </div>
     </PageErrorBoundary>
   );
