@@ -184,7 +184,11 @@ export async function POST(request: NextRequest) {
         });
         if (authError) {
           const msg = authError.message;
-          if (msg.includes("already registered") || msg.includes("already exists") || msg.includes("already taken")) {
+          if (
+            (msg.includes("already") && msg.includes("registered")) ||
+            msg.includes("already exists") ||
+            msg.includes("already taken")
+          ) {
             return NextResponse.json({ success: false, error: "This account already exists" }, { status: 409 });
           }
           throw authError;

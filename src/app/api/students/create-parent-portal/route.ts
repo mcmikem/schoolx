@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
 
   const parentName = fullName?.trim() || student.parent_name?.trim() || `Parent of ${student.first_name}`;
   const generatedPassword = generateTemporaryPassword();
-  const authEmail = buildAuthEmailFromPhone(phoneNormalized);
+  let authEmail = buildAuthEmailFromPhone(phoneNormalized);
   const e164Phone = phoneNormalized.startsWith("+") ? phoneNormalized : `+${phoneNormalized}`;
 
   // Fetch school name for WhatsApp message
@@ -258,32 +258,54 @@ export async function POST(request: NextRequest) {
   }
 
   // Some deployments have phone auth disabled; attempt with phone first, then retry with email-only.
-  let { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-    email: authEmail,
-    phone: e164Phone,
-    password: generatedPassword,
-    email_confirm: true,
-    user_metadata: {
-      full_name: parentName,
-      phone: phoneNormalized,
-      role: "parent",
-      must_change_password: true,
-    },
-  });
+  // A phone number is not globally unique across schools (a staff member in one
+  // school and a parent in another can share one), so the derived @omuto.org
+  // email may already be registered to a different account. When that happens,
+  // retry with a school-scoped email so this parent still gets their own auth
+  // account instead of failing with "auth not created".
+  const isCollision = (msg?: string) =>
+    !!msg && /already.*registered|already exists|already taken|duplicate/i.test(msg);
 
-  if (authError) {
-    logger.warn("[create-parent-portal] Auth create with phone failed, retrying email-only:", authError);
+  const candidateEmails = [authEmail, `${phoneNormalized}+${schoolId}@omuto.org`];
+
+  const userMetadata = {
+    full_name: parentName,
+    phone: phoneNormalized,
+    role: "parent",
+    must_change_password: true,
+  };
+
+  let authData: any = null;
+  let authError: { message: string } | null = null;
+
+  outer: for (const candidate of candidateEmails) {
+    // Attempt 1: with phone identity.
     ({ data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: authEmail,
+      email: candidate,
+      phone: e164Phone,
       password: generatedPassword,
       email_confirm: true,
-      user_metadata: {
-        full_name: parentName,
-        phone: phoneNormalized,
-        role: "parent",
-        must_change_password: true,
-      },
+      user_metadata: userMetadata,
     }));
+    if (!authError) {
+      authEmail = candidate;
+      break outer;
+    }
+    if (!isCollision(authError.message)) break outer;
+
+    // Attempt 2: email-only (phone auth may be disabled on this project).
+    ({ data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: candidate,
+      password: generatedPassword,
+      email_confirm: true,
+      user_metadata: userMetadata,
+    }));
+    if (!authError) {
+      authEmail = candidate;
+      break outer;
+    }
+    if (!isCollision(authError.message)) break outer;
+    // collision on this candidate; try the next
   }
 
   if (authError) {
@@ -291,7 +313,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Failed to create auth account" }, { status: 500 });
   }
 
-  if (!authData.user) {
+  if (!authData?.user) {
     return NextResponse.json({ error: "Auth user not returned" }, { status: 500 });
   }
 

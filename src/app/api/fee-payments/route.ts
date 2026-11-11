@@ -343,6 +343,24 @@ export async function POST(request: NextRequest) {
       }
       const data = (inserted.data as unknown[] | null)?.[0] as { id: string } | undefined;
       logger.info(`Created fee payment ${data?.id} (UGX ${parsedAmount}) in school ${schoolId}`);
+      try {
+        await supabase.from("audit_log").insert({
+          school_id: schoolId,
+          user_id: auth.context.user.id,
+          user_name: auth.context.user.full_name || auth.context.user.email || "system",
+          action: "create",
+          module: "fees",
+          description: `Recorded fee payment UGX ${parsedAmount}`,
+          record_id: data?.id,
+          new_value: {
+            student_id: paymentData.student_id,
+            amount_paid: parsedAmount,
+            payment_method: paymentData.payment_method,
+          },
+        });
+      } catch (auditErr) {
+        logger.error("[API FeePayments] Audit log failed:", auditErr);
+      }
       return apiSuccess({ id: data?.id }, "Payment recorded successfully", 201);
     }
 
@@ -379,6 +397,24 @@ export async function POST(request: NextRequest) {
         return apiError(inserted.error.message, 500);
       }
       const data = (inserted.data as unknown[] | null)?.[0] as { id: string } | undefined;
+      try {
+        await supabase.from("audit_log").insert({
+          school_id: schoolId,
+          user_id: auth.context.user.id,
+          user_name: auth.context.user.full_name || auth.context.user.email || "system",
+          action: "create",
+          module: "fees",
+          description: `Recorded overpayment UGX ${parsedAmount}`,
+          record_id: data?.id,
+          new_value: {
+            student_id: paymentData.student_id,
+            amount_paid: parsedAmount,
+            payment_method: paymentData.payment_method,
+          },
+        });
+      } catch (auditErr) {
+        logger.error("[API FeePayments] Audit log failed:", auditErr);
+      }
       return apiSuccess({ id: data?.id }, "Overpayment recorded", 201);
     }
 
@@ -405,6 +441,19 @@ export async function POST(request: NextRequest) {
     logger.info(
       `Created ${ids.length} fee payment row(s) (UGX ${parsedAmount} split oldest-first) in school ${schoolId}`,
     );
+    try {
+      await supabase.from("audit_log").insert({
+        school_id: schoolId,
+        user_id: auth.context.user.id,
+        user_name: auth.context.user.full_name || auth.context.user.email || "system",
+        action: "create",
+        module: "fees",
+        description: `Split payment UGX ${parsedAmount} across ${allocations.length} fee(s)`,
+        new_value: { student_id: paymentData.student_id, amount_paid: parsedAmount, ids },
+      });
+    } catch (auditErr) {
+      logger.error("[API FeePayments] Audit log failed:", auditErr);
+    }
     return apiSuccess({ ids, allocations }, `Payment split across ${allocations.length} outstanding fee(s)`, 201);
   } catch (error) {
     return handleApiError(error);

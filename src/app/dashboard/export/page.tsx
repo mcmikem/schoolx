@@ -25,168 +25,173 @@ export default function ExportPage() {
     return students.filter((s) => s.class_id === selectedClass);
   }, [students, selectedClass]);
 
+  const prepareData = async (): Promise<{ data: any[]; filename: string }> => {
+    let data: any[] = [];
+    let filename = "";
+
+    if (isDemo) {
+      const { DEMO_GRADES, DEMO_ATTENDANCE, DEMO_FEE_PAYMENTS, DEMO_STUDENTS } = await import("@/lib/demo-data");
+
+      switch (exportType) {
+        case "students":
+          data = filteredStudents.map((s) => ({
+            "First Name": s.first_name,
+            "Last Name": s.last_name,
+            Gender: s.gender === "M" ? "Male" : "Female",
+            "Student Number": s.student_number || "",
+            Class: s.classes?.name || "",
+            "Parent Name": s.parent_name || "",
+            "Parent Phone": s.parent_phone || "",
+            "Date of Birth": s.date_of_birth || "",
+            Status: s.status || "active",
+          }));
+          filename = "students_export.xlsx";
+          break;
+
+        case "uneb":
+          data = filteredStudents.map((s) => ({
+            "Index Number": s.ple_index_number || "",
+            "Student Number": s.student_number || "",
+            "First Name": s.first_name,
+            "Last Name": s.last_name,
+            Gender: s.gender === "M" ? "Male" : "Female",
+            "Date of Birth": s.date_of_birth || "",
+            Class: s.classes?.name || "",
+            "School Code": school?.school_code || "",
+          }));
+          filename = "uneb_candidate_list.xlsx";
+          break;
+
+        case "grades":
+          data = DEMO_GRADES.map((g) => ({
+            "Student ID": g.student_id,
+            "Subject ID": g.subject_id,
+            Assessment: g.assessment_type,
+            Score: g.score,
+            "Max Score": g.max_score,
+            Term: g.term,
+            Year: g.academic_year,
+          }));
+          filename = "grades_export.xlsx";
+          break;
+
+        case "attendance":
+          data = DEMO_ATTENDANCE.slice(0, 50).map((a) => ({
+            "Student ID": a.student_id,
+            "Class ID": a.class_id,
+            Date: a.date,
+            Status: a.status,
+            Remarks: a.remarks || "",
+          }));
+          filename = "attendance_export.xlsx";
+          break;
+
+        case "fees":
+          data = DEMO_FEE_PAYMENTS.map((p) => ({
+            "Student ID": p.student_id,
+            Amount: p.amount_paid,
+            Method: p.payment_method,
+            Reference: p.payment_reference || "",
+            "Paid By": p.paid_by || "",
+            Date: p.payment_date,
+          }));
+          filename = "fees_export.xlsx";
+          break;
+      }
+    } else {
+      switch (exportType) {
+        case "students":
+          data = filteredStudents.map((s) => ({
+            "First Name": s.first_name,
+            "Last Name": s.last_name,
+            Gender: s.gender === "M" ? "Male" : "Female",
+            "Student Number": s.student_number || "",
+            Class: s.classes?.name || "",
+            "Parent Name": s.parent_name || "",
+            "Parent Phone": s.parent_phone || "",
+            "Parent Phone 2": s.parent_phone2 || "",
+            "Date of Birth": s.date_of_birth || "",
+            Status: s.status || "active",
+          }));
+          filename = "students_export.xlsx";
+          break;
+
+        case "uneb":
+          data = filteredStudents.map((s) => ({
+            "Index Number": s.ple_index_number || "",
+            "Student Number": s.student_number || "",
+            "First Name": s.first_name,
+            "Last Name": s.last_name,
+            Gender: s.gender === "M" ? "Male" : "Female",
+            "Date of Birth": s.date_of_birth || "",
+            Class: s.classes?.name || "",
+            "School Code": school?.school_code || "",
+          }));
+          filename = "uneb_candidate_list.xlsx";
+          break;
+
+        case "grades":
+          const { data: grades } = await supabase
+            .from("grades")
+            .select("*, students(first_name, last_name, student_number), subjects(name, code)")
+            .eq("class_id", selectedClass !== "all" ? selectedClass : undefined);
+
+          data =
+            grades?.map((g) => ({
+              "Student Name": `${g.students?.first_name} ${g.students?.last_name}`,
+              "Student Number": g.students?.student_number || "",
+              Subject: g.subjects?.name || "",
+              Assessment: g.assessment_type,
+              Score: g.score,
+              Term: g.term,
+              Year: g.academic_year,
+            })) || [];
+          filename = "grades_export.xlsx";
+          break;
+
+        case "attendance":
+          const { data: attendance } = await supabase
+            .from("attendance")
+            .select("*, students(first_name, last_name, student_number)")
+            .gte("date", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]);
+
+          data =
+            attendance?.map((a) => ({
+              "Student Name": `${a.students?.first_name} ${a.students?.last_name}`,
+              "Student Number": a.students?.student_number || "",
+              Date: a.date,
+              Status: a.status,
+            })) || [];
+          filename = "attendance_export.xlsx";
+          break;
+
+        case "fees":
+          const { data: payments } = await supabase
+            .from("fee_payments")
+            .select("*, students(first_name, last_name, student_number)");
+
+          data =
+            payments?.map((p) => ({
+              "Student Name": `${p.students?.first_name} ${p.students?.last_name}`,
+              "Student Number": p.students?.student_number || "",
+              Amount: p.amount_paid,
+              Method: p.payment_method,
+              Reference: p.payment_reference || "",
+              Date: p.payment_date,
+            })) || [];
+          filename = "fees_export.xlsx";
+          break;
+      }
+    }
+
+    return { data, filename };
+  };
+
   const exportToExcel = async () => {
     setExporting(true);
     try {
       const ExcelJS = (await import("exceljs")).default;
-
-      let data: any[] = [];
-      let filename = "";
-
-      if (isDemo) {
-        const { DEMO_GRADES, DEMO_ATTENDANCE, DEMO_FEE_PAYMENTS, DEMO_STUDENTS } = await import("@/lib/demo-data");
-
-        switch (exportType) {
-          case "students":
-            data = filteredStudents.map((s) => ({
-              "First Name": s.first_name,
-              "Last Name": s.last_name,
-              Gender: s.gender === "M" ? "Male" : "Female",
-              "Student Number": s.student_number || "",
-              Class: s.classes?.name || "",
-              "Parent Name": s.parent_name || "",
-              "Parent Phone": s.parent_phone || "",
-              "Date of Birth": s.date_of_birth || "",
-              Status: s.status || "active",
-            }));
-            filename = "students_export.xlsx";
-            break;
-
-          case "uneb":
-            data = filteredStudents.map((s) => ({
-              "Index Number": s.ple_index_number || "",
-              "Student Number": s.student_number || "",
-              "First Name": s.first_name,
-              "Last Name": s.last_name,
-              Gender: s.gender === "M" ? "Male" : "Female",
-              "Date of Birth": s.date_of_birth || "",
-              Class: s.classes?.name || "",
-              "School Code": school?.school_code || "",
-            }));
-            filename = "uneb_candidate_list.xlsx";
-            break;
-
-          case "grades":
-            data = DEMO_GRADES.map((g) => ({
-              "Student ID": g.student_id,
-              "Subject ID": g.subject_id,
-              Assessment: g.assessment_type,
-              Score: g.score,
-              "Max Score": g.max_score,
-              Term: g.term,
-              Year: g.academic_year,
-            }));
-            filename = "grades_export.xlsx";
-            break;
-
-          case "attendance":
-            data = DEMO_ATTENDANCE.slice(0, 50).map((a) => ({
-              "Student ID": a.student_id,
-              "Class ID": a.class_id,
-              Date: a.date,
-              Status: a.status,
-              Remarks: a.remarks || "",
-            }));
-            filename = "attendance_export.xlsx";
-            break;
-
-          case "fees":
-            data = DEMO_FEE_PAYMENTS.map((p) => ({
-              "Student ID": p.student_id,
-              Amount: p.amount_paid,
-              Method: p.payment_method,
-              Reference: p.payment_reference || "",
-              "Paid By": p.paid_by || "",
-              Date: p.payment_date,
-            }));
-            filename = "fees_export.xlsx";
-            break;
-        }
-      } else {
-        switch (exportType) {
-          case "students":
-            data = filteredStudents.map((s) => ({
-              "First Name": s.first_name,
-              "Last Name": s.last_name,
-              Gender: s.gender === "M" ? "Male" : "Female",
-              "Student Number": s.student_number || "",
-              Class: s.classes?.name || "",
-              "Parent Name": s.parent_name || "",
-              "Parent Phone": s.parent_phone || "",
-              "Parent Phone 2": s.parent_phone2 || "",
-              "Date of Birth": s.date_of_birth || "",
-              Status: s.status || "active",
-            }));
-            filename = "students_export.xlsx";
-            break;
-
-          case "uneb":
-            data = filteredStudents.map((s) => ({
-              "Index Number": s.ple_index_number || "",
-              "Student Number": s.student_number || "",
-              "First Name": s.first_name,
-              "Last Name": s.last_name,
-              Gender: s.gender === "M" ? "Male" : "Female",
-              "Date of Birth": s.date_of_birth || "",
-              Class: s.classes?.name || "",
-              "School Code": school?.school_code || "",
-            }));
-            filename = "uneb_candidate_list.xlsx";
-            break;
-
-          case "grades":
-            const { data: grades } = await supabase
-              .from("grades")
-              .select("*, students(first_name, last_name, student_number), subjects(name, code)")
-              .eq("class_id", selectedClass !== "all" ? selectedClass : undefined);
-
-            data =
-              grades?.map((g) => ({
-                "Student Name": `${g.students?.first_name} ${g.students?.last_name}`,
-                "Student Number": g.students?.student_number || "",
-                Subject: g.subjects?.name || "",
-                Assessment: g.assessment_type,
-                Score: g.score,
-                Term: g.term,
-                Year: g.academic_year,
-              })) || [];
-            filename = "grades_export.xlsx";
-            break;
-
-          case "attendance":
-            const { data: attendance } = await supabase
-              .from("attendance")
-              .select("*, students(first_name, last_name, student_number)")
-              .gte("date", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]);
-
-            data =
-              attendance?.map((a) => ({
-                "Student Name": `${a.students?.first_name} ${a.students?.last_name}`,
-                "Student Number": a.students?.student_number || "",
-                Date: a.date,
-                Status: a.status,
-              })) || [];
-            filename = "attendance_export.xlsx";
-            break;
-
-          case "fees":
-            const { data: payments } = await supabase
-              .from("fee_payments")
-              .select("*, students(first_name, last_name, student_number)");
-
-            data =
-              payments?.map((p) => ({
-                "Student Name": `${p.students?.first_name} ${p.students?.last_name}`,
-                "Student Number": p.students?.student_number || "",
-                Amount: p.amount_paid,
-                Method: p.payment_method,
-                Reference: p.payment_reference || "",
-                Date: p.payment_date,
-              })) || [];
-            filename = "fees_export.xlsx";
-            break;
-        }
-      }
+      const { data, filename } = await prepareData();
 
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Data");
@@ -213,10 +218,34 @@ export default function ExportPage() {
     }
   };
 
+  const copyForSheets = async () => {
+    setExporting(true);
+    try {
+      const { data } = await prepareData();
+      if (!data || data.length === 0) {
+        toast.error("No data to copy");
+        return;
+      }
+      const headers = Object.keys(data[0]);
+      const rows = data.map((row: any) => headers.map((h) => row[h] ?? "").join("\t"));
+      const tsv = [headers.join("\t"), ...rows].join("\n");
+      await navigator.clipboard.writeText(tsv);
+      toast.success("Copied! Open Google Sheets and paste (Ctrl/Cmd+V).");
+    } catch (err: unknown) {
+      logger.error("Copy for Sheets error:", err);
+      toast.error(err instanceof Error ? err.message : "Copy failed");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <PageErrorBoundary>
       <div className="p-4 sm:p-6 lg:p-8">
-        <PageHeader title="Export Data" subtitle="Export school data to Excel" />
+        <PageHeader
+          title="Data Center"
+          subtitle="View, export and copy school data (students, attendance, grades, fees) to Excel or Google Sheets"
+        />
 
         <UICard className="max-w-2xl p-6">
           <div className="space-y-6">
@@ -287,6 +316,16 @@ export default function ExportPage() {
                 <span className="flex items-center gap-2">
                   <MaterialIcon icon="download" />
                   Download Excel File
+                </span>
+              )}
+            </Button>
+            <Button onClick={copyForSheets} disabled={exporting} className="w-full" size="lg" variant="secondary">
+              {exporting ? (
+                "Copying..."
+              ) : (
+                <span className="flex items-center gap-2">
+                  <MaterialIcon icon="content_copy" />
+                  Copy for Google Sheets
                 </span>
               )}
             </Button>

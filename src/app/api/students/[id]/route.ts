@@ -159,6 +159,21 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     logger.info(`Updated student ${id} in school ${schoolId}`);
 
+    try {
+      await supabase.from("audit_log").insert({
+        school_id: schoolId,
+        user_id: auth.context.user.id,
+        user_name: auth.context.user.full_name || auth.context.user.email || "system",
+        action: "update",
+        module: "students",
+        description: `Updated student ${id}`,
+        record_id: id,
+        new_value: sanitized,
+      });
+    } catch (auditErr) {
+      logger.error("[API Students] Audit log failed:", auditErr);
+    }
+
     return apiSuccess({ id: data.id }, "Student updated successfully");
   } catch (error) {
     return handleApiError(error);
@@ -195,6 +210,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
         status: "dropped",
         dropout_reason: "Deleted via API",
         dropout_date: new Date().toISOString().split("T")[0],
+        deleted_at: new Date().toISOString(),
       })
       .eq("id", id)
       .eq("school_id", schoolId);
@@ -205,6 +221,20 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     logger.info(`Soft-deleted student ${id} in school ${schoolId}`);
+
+    try {
+      await supabase.from("audit_log").insert({
+        school_id: schoolId,
+        user_id: auth.context.user.id,
+        user_name: auth.context.user.full_name || auth.context.user.email || "system",
+        action: "delete",
+        module: "students",
+        description: `Soft-deleted student ${id}`,
+        record_id: id,
+      });
+    } catch (auditErr) {
+      logger.error("[API Students] Audit log failed:", auditErr);
+    }
 
     return apiSuccess({ id }, "Student soft-deleted successfully");
   } catch (error) {

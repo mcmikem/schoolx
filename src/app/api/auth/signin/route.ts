@@ -193,8 +193,8 @@ async function signInWithEmail(email: string, password: string) {
  * normalised phone and a raw-local email, and no amount of guessing from the
  * number alone gets that right.
  */
-async function lookupProfileEmail(identifier: string): Promise<string | null> {
-  if (!isUsableServiceKey(supabaseServiceKey)) return null;
+async function lookupProfileEmails(identifier: string): Promise<string[]> {
+  if (!isUsableServiceKey(supabaseServiceKey)) return [];
   try {
     const admin = createClient(
       supabaseUrl!,
@@ -206,37 +206,41 @@ async function lookupProfileEmail(identifier: string): Promise<string | null> {
     const phoneCandidates = [normalized, digits, digits.startsWith("0") ? digits.slice(1) : `0${digits}`].filter(
       (v): v is string => Boolean(v),
     );
-    if (phoneCandidates.length === 0) return null;
+    if (phoneCandidates.length === 0) return [];
 
     const profiles = await withDeadline(
       (async () => {
-        const { data } = await admin.from("users").select("email, auth_id").in("phone", phoneCandidates).limit(1);
+        const { data } = await admin.from("users").select("email, auth_id").in("phone", phoneCandidates).limit(10);
         return data as Array<{ email?: string | null; auth_id?: string | null }> | null;
       })(),
       OUTBOUND_TIMEOUT_MS,
-      null,
+      [] as any,
     );
-    const profile = profiles?.[0];
-    if (profile?.email) return String(profile.email).toLowerCase();
-
-    // No email on the profile: ask the auth user directly.
-    if (profile?.auth_id) {
-      const authEmail = await withDeadline(
-        (async () => {
-          const { data } = await admin.auth.admin.getUserById(profile.auth_id!);
-          return data?.user?.email ?? null;
-        })(),
-        OUTBOUND_TIMEOUT_MS,
-        null,
-      );
-      if (authEmail) return authEmail.toLowerCase();
+    const out = new Set<string>();
+    for (const profile of profiles ?? []) {
+      if (profile?.email) {
+        out.add(String(profile.email).toLowerCase());
+        continue;
+      }
+      // No email on the profile: ask the auth user directly.
+      if (profile?.auth_id) {
+        const authEmail = await withDeadline(
+          (async () => {
+            const { data } = await admin.auth.admin.getUserById(profile.auth_id!);
+            return data?.user?.email ?? null;
+          })(),
+          OUTBOUND_TIMEOUT_MS,
+          null,
+        );
+        if (authEmail) out.add(authEmail.toLowerCase());
+      }
     }
-    return null;
+    return [...out];
   } catch (e) {
     // A lookup failure must not stop the sign-in: the candidate list covers
     // every account we know how to address.
     logger.warn("[Auth sign-in] Account lookup failed, falling back to candidate identities", e);
-    return null;
+    return [];
   }
 }
 
@@ -332,31 +336,33 @@ export async function POST(request: NextRequest) {
   // None of the obvious shapes worked. The school's own records know the
   // account -- the profile keeps the auth user's real email, which is the
   // only place the truth lives for an account created in an unusual way.
-  const profileEmail = await lookupProfileEmail(identifier);
-  if (profileEmail && !candidates.includes(profileEmail)) {
-    const viaProfile = await signInWithEmail(profileEmail, password);
-    if (viaProfile.session) {
-      const res = sessionResponse(viaProfile.session);
-      const sessionJson = JSON.stringify({
-        access_token: viaProfile.session.access_token,
-        refresh_token: viaProfile.session.refresh_token,
-        expires_in: viaProfile.session.expires_in,
-        expires_at: Math.floor(Date.now() / 1000) + (viaProfile.session.expires_in || 3600),
-        token_type: "bearer",
-        user: viaProfile.session.user,
+  // A phone number can be shared across accounts (staff in one school,
+  // parent in another), so try every matching profile, not just the first.
+  const profileEmails = await lookupProfileEmails(identifier);
+  const extraEmails = profileEmails.filter((e) => !candidates.includes(e));
+  const profileResults = await Promise.all(extraEmails.map((e) => signInWithEmail(e, password)));
+  const viaProfile = profileResults.find((r) => r.session);
+  if (viaProfile?.session) {
+    const res = sessionResponse(viaProfile.session);
+    const sessionJson = JSON.stringify({
+      access_token: viaProfile.session.access_token,
+      refresh_token: viaProfile.session.refresh_token,
+      expires_in: viaProfile.session.expires_in,
+      expires_at: Math.floor(Date.now() / 1000) + (viaProfile.session.expires_in || 3600),
+      token_type: "bearer",
+      user: viaProfile.session.user,
+    });
+    const cookieValue = "base64-" + Buffer.from(sessionJson).toString("base64url");
+    const cookieName = getSupabaseAuthCookieName(supabaseUrl);
+    if (cookieName) {
+      res.cookies.set(cookieName, cookieValue, {
+        path: "/",
+        maxAge: viaProfile.session.expires_in || 3600,
+        sameSite: "lax",
+        httpOnly: false,
       });
-      const cookieValue = "base64-" + Buffer.from(sessionJson).toString("base64url");
-      const cookieName = getSupabaseAuthCookieName(supabaseUrl);
-      if (cookieName) {
-        res.cookies.set(cookieName, cookieValue, {
-          path: "/",
-          maxAge: viaProfile.session.expires_in || 3600,
-          sameSite: "lax",
-          httpOnly: false,
-        });
-      }
-      return res;
     }
+    return res;
   }
 
   // A rate limit from Supabase is worth saying out loud: it is not a wrong

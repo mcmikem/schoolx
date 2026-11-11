@@ -225,10 +225,10 @@ button {
      transient UI can clear it instead of landing on top of it. */
   --mobile-nav-clearance: calc(76px + env(safe-area-inset-bottom, 0px));
 
-  --bg: #f5f8fe;
+  --bg: #f1f3f6;
   --surface: #ffffff;
-  --border: #d9e7fb;
-  --border2: #b0ccf7;
+  --border: #e4e8ee;
+  --border2: #d3d9e2;
 
   /* Text Colors (Depth Slate) */
   --t1: #171717;
@@ -298,9 +298,9 @@ button {
   --mm: 24px;
   --ml: 32px;
 
-  --sh1: 0 2px 10px rgba(0, 69, 173, 0.06);
-  --sh2: 0 12px 30px rgba(0, 69, 173, 0.08);
-  --sh3: 0 24px 54px rgba(0, 69, 173, 0.12);
+  --sh1: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --sh2: 0 12px 30px rgba(16, 24, 40, 0.07);
+  --sh3: 0 24px 54px rgba(16, 24, 40, 0.1);
 
   --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --dur: 200ms;
@@ -1117,6 +1117,23 @@ table tr {
     outline: 2px solid var(--navy);
     outline-offset: 2px;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Minimum touch target for interactive elements on small screens */
+  @media (max-width: 640px) {
+    button, a, [role="button"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
 }
 
 @layer components {
@@ -1210,14 +1227,16 @@ table tr {
     font-family: "DM Sans", sans-serif;
   }
 
-  /* Sidebar section label + count badge (MENU / GENERAL grouping) */
+  /* Sidebar section label + count badge (MENU / GENERAL grouping).
+     Sentence case at caption size: the previous all-caps extended
+     tracking shouted louder than the items it was labelling. */
   .sidebar-section-label {
-    @apply text-xs uppercase tracking-widest font-extrabold text-[var(--t4)] px-3 pt-4 pb-1.5;
+    @apply text-[11px] font-semibold tracking-normal text-[var(--t4)] px-3 pt-4 pb-1.5;
     font-family: "DM Sans", sans-serif;
   }
 
   .sidebar-count-badge {
-    @apply ml-auto text-xs font-bold px-1.5 py-0.5 rounded-full bg-[var(--t1)] text-white uppercase tracking-wider flex-shrink-0;
+    @apply ml-auto text-[11px] font-medium tabular-nums text-[var(--t4)] flex-shrink-0;
     font-family: "DM Mono", monospace;
   }
 
@@ -2534,39 +2553,25 @@ h6,
 }
 
 /* ── SIDEBAR BRAND HEADER ─────────────────────────────────────
-   Dark navy header area at top of sidebar. School identity is
-   presented on the brand gradient, not generic white surface.
+   Flat surface header, matching the panel below it. The school
+   identity used to sit on a navy gradient with a multi-colour
+   stripe under it; that read as a separate "banner" inside the
+   rail and spent the interface's only accent colour on a block
+   that carries no action.
 ───────────────────────────────────────────────────────────── */
 .sidebar-brand-header {
-  background: linear-gradient(145deg, #0045ad 0%, #005ce6 72%, #1d74ef 100%);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
   padding: 16px 16px 14px;
   position: relative;
   flex-shrink: 0;
 }
 .sidebar-brand-header::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background-image: linear-gradient(
-    90deg,
-    #fac5c5 0%,
-    #fac5c5 25%,
-    #dff7f3 25%,
-    #dff7f3 50%,
-    #b0ccf7 50%,
-    #b0ccf7 75%,
-    #ffffff 75%,
-    #ffffff 100%
-  );
-  background-size: 32px 100%;
-  opacity: 0.65;
+  content: none;
 }
 
 [data-theme="dark"] .sidebar-brand-header {
-  background: linear-gradient(145deg, #000a14 0%, #001428 55%, #001f3d 100%);
+  background: var(--surface);
 }
 
 /* Ensure minimum 44px touch targets for mobile accessibility */

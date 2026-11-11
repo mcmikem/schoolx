@@ -305,7 +305,7 @@ export async function POST(request: NextRequest) {
 
     if (authError) {
       if (
-        authError.message.includes("already registered") ||
+        (authError.message.includes("already") && authError.message.includes("registered")) ||
         authError.message.includes("duplicate") ||
         authError.message.includes("already exists") ||
         authError.message.includes("already taken")

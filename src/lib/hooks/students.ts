@@ -184,6 +184,7 @@ async function fetchStudentsWithFallback(options: {
       .from("students")
       .select(STUDENT_SLIM_FIELDS)
       .eq("school_id", options.schoolId)
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .range(options.offset, options.offset + options.limit - 1);
 
@@ -207,6 +208,7 @@ async function fetchStudentsWithFallback(options: {
           .from("students")
           .select(attempt.fields)
           .eq("school_id", options.schoolId)
+          .is("deleted_at", null)
           .order("created_at", { ascending: false });
     const result = await query.range(options.offset, options.offset + options.limit - 1);
 
@@ -533,7 +535,11 @@ export function useStudents(schoolId?: string, options?: StudentQueryOptions): U
           withTimeout(
             (registry
               ? registryQuery(querySchoolId, "id", registry, true)
-              : supabase.from("students").select("id", { count: "exact", head: true }).eq("school_id", querySchoolId)
+              : supabase
+                  .from("students")
+                  .select("id", { count: "exact", head: true })
+                  .eq("school_id", querySchoolId)
+                  .is("deleted_at", null)
             ).then((result) => ({ count: result.count, error: result.error })),
             5000,
             null,

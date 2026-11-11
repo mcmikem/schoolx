@@ -29,6 +29,9 @@ export default function AttendanceHistoryPage() {
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [records, setRecords] = useState<any[]>([]);
+  const [dayDate, setDayDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [dayRecords, setDayRecords] = useState<any[]>([]);
+  const [dayLoading, setDayLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [summary, setSummary] = useState({
@@ -164,6 +167,63 @@ export default function AttendanceHistoryPage() {
     URL.revokeObjectURL(url);
   };
 
+  const copyForSheets = async () => {
+    if (records.length === 0) return;
+    const headers = [
+      "Student Number",
+      "First Name",
+      "Last Name",
+      "Present",
+      "Absent",
+      "Late",
+      "Excused",
+      "Total",
+      "Rate%",
+    ];
+    const rows = records.map((r: any) => [
+      r.student_number || r.students?.student_number || "",
+      r.first_name || r.students?.first_name || "",
+      r.last_name || r.students?.last_name || "",
+      r.present ?? 0,
+      r.absent ?? 0,
+      r.late ?? 0,
+      r.excused ?? 0,
+      r.total ?? 0,
+      r.rate ?? 0,
+    ]);
+    // Tab-separated values paste cleanly into Google Sheets as columns.
+    const tsv = [headers.join("\t"), ...rows.map((row: any[]) => row.join("\t"))].join("\n");
+    try {
+      await navigator.clipboard.writeText(tsv);
+      alert("Copied! Open Google Sheets and paste (Ctrl/Cmd+V) to create your record.");
+    } catch {
+      // Fallback: trigger CSV download
+      exportCsv();
+    }
+  };
+
+  const fetchDayRegister = useCallback(async () => {
+    if (!school?.id) return;
+    try {
+      setDayLoading(true);
+      const params = new URLSearchParams({
+        school_id: school.id,
+        date_from: dayDate,
+        date_to: dayDate,
+      });
+      if (selectedClass) params.set("class_id", selectedClass);
+      const res = await fetch(`/api/attendance/report/?${params.toString()}`);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || "Failed to load day register");
+      setDayRecords(json.data?.students || []);
+    } catch (err) {
+      logger.error("Error fetching day register:", err);
+      setDayRecords([]);
+    } finally {
+      setDayLoading(false);
+    }
+  }, [school?.id, dayDate, selectedClass]);
+
   const totalRate = summary.total > 0 ? ((summary.present / summary.total) * 100).toFixed(1) : "0.0";
 
   return (
@@ -174,15 +234,26 @@ export default function AttendanceHistoryPage() {
           subtitle="View and export attendance records"
           actions={
             canExport ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={exportCsv}
-                disabled={records.length === 0}
-                icon={<MaterialIcon icon="download" />}
-              >
-                Export CSV
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={exportCsv}
+                  disabled={records.length === 0}
+                  icon={<MaterialIcon icon="download" />}
+                >
+                  Export CSV
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={copyForSheets}
+                  disabled={records.length === 0}
+                  icon={<MaterialIcon icon="content_copy" />}
+                >
+                  Copy for Google Sheets
+                </Button>
+              </div>
             ) : null
           }
         />
@@ -403,6 +474,91 @@ export default function AttendanceHistoryPage() {
           </Card>
         )}
       </div>
+
+      <Card className="p-4 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <h3 className="text-base font-semibold text-[var(--t1)]">Day register (single day)</h3>
+          <div className="flex gap-2 items-center">
+            <input
+              type="date"
+              value={dayDate}
+              onChange={(e) => setDayDate(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)]"
+            />
+            <Button size="sm" onClick={fetchDayRegister} disabled={dayLoading} icon={<MaterialIcon icon="event" />}>
+              {dayLoading ? "Loading..." : "Load register"}
+            </Button>
+          </div>
+        </div>
+        {dayRecords.length > 0 && (
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-[var(--t3)]">
+                    <th className="py-2">Student</th>
+                    <th className="py-2">Number</th>
+                    <th className="py-2">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dayRecords.map((r: any) => {
+                    const status =
+                      r.present > 0
+                        ? "Present"
+                        : r.absent > 0
+                          ? "Absent"
+                          : r.late > 0
+                            ? "Late"
+                            : r.excused > 0
+                              ? "Excused"
+                              : "—";
+                    return (
+                      <tr key={r.student_id} className="border-t border-[var(--border)]">
+                        <td className="py-2">
+                          {r.first_name} {r.last_name}
+                        </td>
+                        <td className="py-2">{r.student_number}</td>
+                        <td className="py-2">{status}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {/* Mobile cards */}
+            <div className="md:hidden space-y-2">
+              {dayRecords.map((r: any) => {
+                const status =
+                  r.present > 0
+                    ? "Present"
+                    : r.absent > 0
+                      ? "Absent"
+                      : r.late > 0
+                        ? "Late"
+                        : r.excused > 0
+                          ? "Excused"
+                          : "—";
+                return (
+                  <div
+                    key={r.student_id}
+                    className="flex items-center justify-between p-3 rounded-lg border border-[var(--border)] bg-[var(--surface)]"
+                  >
+                    <div>
+                      <div className="font-medium">
+                        {r.first_name} {r.last_name}
+                      </div>
+                      <div className="text-xs text-[var(--t3)]">{r.student_number}</div>
+                    </div>
+                    <span className="text-sm font-semibold">{status}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </Card>
     </PageErrorBoundary>
   );
 }

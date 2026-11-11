@@ -78,6 +78,21 @@ export async function POST(request: NextRequest) {
 
     if (upsertError) return apiError("Failed to record attendance", 500);
 
+    try {
+      await supabase.from("audit_log").insert({
+        school_id: schoolId,
+        user_id: auth.context.user.id,
+        user_name: auth.context.user.full_name || auth.context.user.email || "system",
+        action: "create",
+        module: "attendance",
+        description: `Scanned attendance: ${student.first_name} ${student.last_name} marked present`,
+        record_id: student.id,
+        new_value: { student_id: student.id, date: today, status: "present" },
+      });
+    } catch (auditErr) {
+      // non-fatal
+    }
+
     return apiSuccess(
       {
         student: {

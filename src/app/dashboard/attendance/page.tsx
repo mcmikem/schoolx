@@ -1210,6 +1210,14 @@ export default function AttendancePage() {
                       Notify Parents ({absentCount})
                     </Button>
                   )}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => router.push("/dashboard/attendance/history/")}
+                    icon={<MaterialIcon icon="history" />}
+                  >
+                    History & Records
+                  </Button>
                   <VideoLessonButton lesson="attendance" />
                   <Button
                     onClick={() => saveAttendance()}
