@@ -76,12 +76,15 @@ describe("offline background warmers", () => {
     expect(warmer).toContain('"attendance"');
     expect(warmer).toContain('"grades"');
     expect(warmer).toContain('"fee_payments"');
+    expect(warmer).toContain('"student_wallets"');
+    expect(warmer).toContain('"canteen_items"');
     expect(warmer).toContain("pageSize: 100, maxRows: 100");
   });
 
   it("limits offline page downloads to core work screens on weak connections", () => {
     const warmer = read("src/lib/offline-route-warmer.tsx");
     expect(warmer).toContain('"/dashboard/money/"');
+    expect(warmer).toContain('"/dashboard/store/pos/"');
     expect(warmer).toContain('"/dashboard/fee-structure/"');
     expect(warmer).toContain('"/dashboard/messages/"');
     expect(warmer).toContain("PRIORITY_ROUTES.filter((route) => roleRoutes.includes(route))");

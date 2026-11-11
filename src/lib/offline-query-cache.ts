@@ -63,6 +63,8 @@ const API_BLOCKED_PREFIXES = [
   "/api/forgot-password",
   "/api/register",
   "/api/payment/",
+  "/api/parent/mobile-money/",
+  "/api/settings/mobile-money/",
   "/api/modules/",
   "/api/sms/",
   "/api/ai/",
@@ -81,6 +83,8 @@ const API_BLOCKED_PREFIXES = [
  */
 const ONLINE_ONLY_API_PREFIXES = [
   "/api/payment/",
+  "/api/parent/mobile-money/",
+  "/api/settings/mobile-money/",
   "/api/schoolpay/",
   "/api/parent/fee-payment",
   "/api/sms/",

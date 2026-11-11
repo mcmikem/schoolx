@@ -7,14 +7,15 @@ import { logger } from "@/lib/logger";
 import { payloadMatchesServerRow, stripLocalOnlySyncKeys } from "@/lib/sync-payload";
 import { FEE_PAYMENT_SYNCED_EVENT } from "@/lib/fee-payment-status";
 import { isOutsideOfflineClassSelection } from "@/lib/offline-cache-scope";
+import { reconcileCachedWalletRows } from "@/lib/offline-wallet";
 
 const DB_NAME = "omuto.org-db";
 // 10 -> 11: adds the academic_terms, homework and homework_submissions stores.
 // 11 -> 12: adds student_transfers and student_promotions, so graduation and
 // transfers can be queued offline.
-// Existing browsers only run onupgradeneeded when the version rises, so a
-// version bump is what actually creates them.
-const DB_VERSION = 13;
+// 13 -> 14 adds locally saved canteen wallet balances. Existing browsers only
+// run onupgradeneeded when the version rises, so a version bump creates it.
+const DB_VERSION = 14;
 
 /**
  * IndexedDB key configuration for each object store, exported so unit tests can
@@ -73,6 +74,11 @@ export function storeOptions(storeName: string): { keyPath: string; autoIncremen
   if (storeName === "sync_metadata") return { keyPath: "table" };
   if (storeName === "sync_queue") return { keyPath: "id", autoIncrement: true };
   return { keyPath: "id" };
+}
+
+/** The v9 sync queue had the wrong key configuration; later upgrades must keep queued work. */
+export function shouldRecreateSyncQueueStore(oldVersion: number, storeExists: boolean): boolean {
+  return storeExists && oldVersion < 10;
 }
 
 /**
@@ -304,10 +310,12 @@ class OfflineDB {
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
+        const oldVersion = (event as IDBVersionChangeEvent).oldVersion;
 
         const stores = [
           "students",
           "classes",
+          "student_wallets",
           "subjects",
           // Cached and read by offline-hooks but never given a store, so every
           // read threw NotFoundError: Failed to execute 'transaction' on
@@ -358,9 +366,13 @@ class OfflineDB {
 
         stores.forEach((storeName) => {
           // IndexedDB cannot change a store's keyPath/autoIncrement in place —
-          // the options must be deleted and recreated. This is the v9→v10
-          // migration for sync_queue, which v9 created without autoIncrement.
-          if (storeName === "sync_queue" && db.objectStoreNames.contains(storeName)) {
+          // the options must be deleted and recreated. Only v9 had the invalid
+          // sync_queue key. Recreating it on every later upgrade erases pending
+          // changes teachers saved while offline.
+          if (
+            storeName === "sync_queue" &&
+            shouldRecreateSyncQueueStore(oldVersion, db.objectStoreNames.contains(storeName))
+          ) {
             db.deleteObjectStore(storeName);
           }
 
@@ -412,6 +424,15 @@ class OfflineDB {
                   unique: false,
                 });
               }
+
+              if (storeName === "student_wallets") {
+                store.createIndex("student_id", "student_id", { unique: false });
+              }
+            }
+          } else if (storeName === "student_wallets") {
+            const store = (event.target as IDBOpenDBRequest).transaction?.objectStore(storeName);
+            if (store && !store.indexNames.contains("student_id")) {
+              store.createIndex("student_id", "student_id", { unique: false });
             }
           }
         });
@@ -432,13 +453,85 @@ class OfflineDB {
     const identity = getOfflineIdentity();
     const id = String(data.id || newOfflineId());
     const updatedAt = new Date().toISOString();
+    const rawWalletDeduction = table === "canteen_sales" ? data.pending_wallet_deduction : undefined;
+    const walletDeduction = rawWalletDeduction as { student_id?: unknown; amount?: unknown } | undefined;
+    const hasWalletDeduction = rawWalletDeduction !== undefined;
+    if (
+      hasWalletDeduction &&
+      (typeof walletDeduction?.student_id !== "string" ||
+        !walletDeduction.student_id ||
+        !Number.isFinite(Number(walletDeduction.amount)) ||
+        Number(walletDeduction.amount) <= 0)
+    ) {
+      throw new Error("This wallet sale is missing a valid student or amount. Reconnect and try again.");
+    }
+    const walletStudentId = hasWalletDeduction ? String(walletDeduction!.student_id) : null;
+    const walletAmount = hasWalletDeduction ? Number(walletDeduction!.amount) : 0;
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([table, "sync_queue"], "readwrite");
+      const storeNames: string[] = [table, "sync_queue"];
+      if (hasWalletDeduction) storeNames.push("student_wallets");
+      const transaction = db.transaction(storeNames, "readwrite");
       const store = transaction.objectStore(table);
       const syncStore = transaction.objectStore("sync_queue");
+      const walletStore = hasWalletDeduction ? transaction.objectStore("student_wallets") : null;
       const existingRequest = store.get(id);
       let savedRecord: Record<string, unknown> | undefined;
+      let failure: Error | null = null;
+
+      const failTransaction = (message: string) => {
+        failure = new Error(message);
+        try {
+          transaction.abort();
+        } catch {
+          reject(failure);
+        }
+      };
+
+      const applyWalletAdjustments = (pending: OfflineRecord | undefined) => {
+        if (!walletStore) return;
+        const oldDeduction =
+          pending?.table === "canteen_sales"
+            ? (pending.data?.pending_wallet_deduction as { student_id?: unknown; amount?: unknown } | undefined)
+            : undefined;
+        const adjustments = new Map<string, number>();
+        if (typeof oldDeduction?.student_id === "string") {
+          const oldAmount = Number(oldDeduction.amount);
+          if (Number.isFinite(oldAmount) && oldAmount > 0) {
+            adjustments.set(oldDeduction.student_id, (adjustments.get(oldDeduction.student_id) ?? 0) + oldAmount);
+          }
+        }
+        if (walletStudentId) {
+          adjustments.set(walletStudentId, (adjustments.get(walletStudentId) ?? 0) - walletAmount);
+        }
+
+        const entries = Array.from(adjustments.entries()).filter(([, amount]) => amount !== 0);
+        const applyAt = (index: number) => {
+          if (index >= entries.length) return;
+          const [studentId, adjustment] = entries[index];
+          const request = walletStore.index("student_id").get(studentId);
+          request.onsuccess = () => {
+            const wallet = request.result as Record<string, unknown> | undefined;
+            if (!wallet) {
+              failTransaction(
+                "This learner's wallet is not saved on this device. Connect to the internet before charging it.",
+              );
+              return;
+            }
+            const currentBalance = Number(wallet.balance ?? 0);
+            const safeBalance = Number.isFinite(currentBalance) ? currentBalance : 0;
+            const nextBalance = safeBalance + adjustment;
+            if (adjustment < 0 && nextBalance < -0.000001) {
+              failTransaction("The saved wallet balance is too low for this sale. Connect and refresh the balance.");
+              return;
+            }
+            walletStore.put({ ...wallet, balance: Math.max(0, nextBalance), updated_at: updatedAt });
+            applyAt(index + 1);
+          };
+          request.onerror = () => failTransaction("Could not update the saved wallet balance. Please try again.");
+        };
+        applyAt(0);
+      };
 
       existingRequest.onsuccess = () => {
         savedRecord = mergeOfflineRecord(
@@ -470,6 +563,7 @@ class OfflineDB {
             delete updatedPending.reason;
             delete updatedPending.last_attempt_at;
             syncStore.put(updatedPending);
+            applyWalletAdjustments(pending);
             return;
           }
 
@@ -486,6 +580,7 @@ class OfflineDB {
             attempts: 0,
             status: "pending",
           });
+          applyWalletAdjustments(undefined);
         };
       };
 
@@ -494,7 +589,10 @@ class OfflineDB {
         announceQueueChange();
         resolve(savedRecord || mergeOfflineRecord(undefined, data, id, updatedAt));
       };
-      transaction.onerror = () => reject(transaction.error);
+      transaction.onerror = () => {
+        failure ??= transaction.error instanceof Error ? transaction.error : new Error("Could not save offline work.");
+      };
+      transaction.onabort = () => reject(failure ?? transaction.error ?? new Error("Could not save offline work."));
     });
   }
 
@@ -657,17 +755,28 @@ class OfflineDB {
 
       await new Promise<void>((resolve, reject) => {
         const transaction = db.transaction(
-          table === "teacher_timetable" ? [table, "sync_metadata", "sync_queue"] : [table, "sync_metadata"],
+          table === "teacher_timetable" || table === "student_wallets"
+            ? [table, "sync_metadata", "sync_queue"]
+            : [table, "sync_metadata"],
           "readwrite",
         );
         const store = transaction.objectStore(table);
         const metaStore = transaction.objectStore("sync_metadata");
 
-        data.forEach((item) => {
-          if (item.id) {
-            store.put(item);
-          }
-        });
+        if (table === "student_wallets") {
+          const queueStore = transaction.objectStore("sync_queue");
+          const queueRequest = queueStore.getAll();
+          queueRequest.onsuccess = () => {
+            const rows = reconcileCachedWalletRows(data, queueRequest.result as OfflineRecord[]);
+            rows.forEach((item) => {
+              if (item.id) store.put(item);
+            });
+          };
+        } else {
+          data.forEach((item) => {
+            if (item.id) store.put(item);
+          });
+        }
 
         if (table === "teacher_timetable") {
           const queueStore = transaction.objectStore("sync_queue");
@@ -1501,6 +1610,7 @@ class OfflineDB {
       const selectedClassIds = [...new Set((options.classIds ?? []).filter(Boolean))];
       const selectedStudentIds: string[] | null = selectedClassIds.length > 0 ? [] : null;
       const studentScopedTables = new Set([
+        "student_wallets",
         "attendance",
         "period_attendance",
         "grades",
@@ -1546,7 +1656,7 @@ class OfflineDB {
         let cursor: string | number | null = null;
         let tableFailed = false;
 
-        const tableCap = table === "students" || table === "classes" ? 10000 : maxRows;
+        const tableCap = table === "students" || table === "classes" || table === "student_wallets" ? 10000 : maxRows;
         let total: number | null = null;
         while (tableRows < tableCap) {
           if (options.signal?.aborted) throw new Error("Preparation cancelled");

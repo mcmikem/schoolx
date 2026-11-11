@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { supabase } from "@/lib/supabase";
 import { newOfflineId, offlineDB, useOnlineStatus } from "@/lib/offline";
+import { findCachedPOSStudent } from "@/lib/offline-wallet";
 import { useToast } from "@/components/Toast";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -45,6 +46,7 @@ interface ScannedStudent {
   last_name: string;
   student_number: string;
   balance: number;
+  walletAvailable?: boolean;
   photo_url?: string;
 }
 
@@ -319,8 +321,6 @@ export default function CanteenPOSPage() {
             student_id: student.id,
             amount: total,
           };
-          // Optimistically update local balance so UI reflects it
-          setStudent((prev: any) => (prev ? { ...prev, balance: Math.max(0, prev.balance - total) } : prev));
         }
         await offlineDB.save("canteen_sales", saleRecord);
         toast.info("Offline: Order saved to sync queue");
@@ -421,10 +421,25 @@ export default function CanteenPOSPage() {
     }
     setLoading(true);
     try {
+      if (!isOnline) {
+        const [students, wallets] = await Promise.all([
+          offlineDB.getAllFromCache("students", { school_id: school.id }),
+          offlineDB.getAllFromCache("student_wallets", { school_id: school.id }),
+        ]);
+        const cachedStudent = findCachedPOSStudent(students, wallets, school.id, studentIdOrNumber);
+        if (!cachedStudent) {
+          toast.error("Student not saved on this device. Connect and prepare offline data first.");
+          return;
+        }
+        setStudent(cachedStudent);
+        toast.success(`Loaded saved record for ${cachedStudent.first_name} ${cachedStudent.last_name}`);
+        return;
+      }
+
       // Try lookup by ID first, then by student_number
       let query = supabase
         .from("students")
-        .select("id, first_name, last_name, student_number, photo_url")
+        .select("id, school_id, first_name, last_name, student_number, photo_url")
         .eq("school_id", school.id);
 
       // Check if it looks like a UUID
@@ -442,13 +457,16 @@ export default function CanteenPOSPage() {
         toast.error("Student not found. Please check the ID card.");
         return;
       }
+      await offlineDB.cacheFromServer("students", [studentData]);
 
       // Fetch wallet balance
       const { data: walletData } = await supabase
         .from("student_wallets")
-        .select("balance")
+        .select("id, student_id, school_id, balance, updated_at")
+        .eq("school_id", school.id)
         .eq("student_id", studentData.id)
         .maybeSingle();
+      if (walletData) await offlineDB.cacheFromServer("student_wallets", [walletData]);
 
       setStudent({
         id: studentData.id,
@@ -456,6 +474,7 @@ export default function CanteenPOSPage() {
         last_name: studentData.last_name || "",
         student_number: studentData.student_number || "",
         balance: Number(walletData?.balance || 0),
+        walletAvailable: Boolean(walletData),
         photo_url: studentData.photo_url,
       });
       toast.success(`Verified: ${studentData.first_name} ${studentData.last_name}`);
@@ -709,6 +728,17 @@ export default function CanteenPOSPage() {
                   {walletBlocked && (
                     <p role="alert" className="mt-3 text-xs font-bold text-amber-200">
                       Insufficient wallet balance for this order.
+                    </p>
+                  )}
+                  {!isOnline && paymentMethod === "wallet" && (
+                    <p role="status" className="mt-3 text-xs font-bold text-amber-100">
+                      Offline: this is the last saved balance. The sale will wait to sync, and another device may have
+                      spent from this wallet.
+                    </p>
+                  )}
+                  {!isOnline && paymentMethod === "wallet" && student.walletAvailable === false && (
+                    <p role="alert" className="mt-2 text-xs font-bold text-amber-100">
+                      This device has no saved wallet balance. Connect before taking a wallet payment.
                     </p>
                   )}
                 </div>

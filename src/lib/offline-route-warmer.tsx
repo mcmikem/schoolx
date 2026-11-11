@@ -28,6 +28,7 @@ const PRIORITY_ROUTES = [
   "/dashboard/fees/",
   "/dashboard/fee-structure/",
   "/dashboard/money/",
+  "/dashboard/store/pos/",
   "/dashboard/students/",
   "/dashboard/messages/",
   "/dashboard/report-cards/",

@@ -1,4 +1,10 @@
-import { findPendingWrite, getOfflineQueueState, mergeOfflineRecord, storeOptions } from "@/lib/offline";
+import {
+  findPendingWrite,
+  getOfflineQueueState,
+  mergeOfflineRecord,
+  shouldRecreateSyncQueueStore,
+  storeOptions,
+} from "@/lib/offline";
 
 /**
  * Regression tests for the offline write pipeline.
@@ -21,6 +27,7 @@ describe("offline store key configuration", () => {
   it("gives every data store a string id keyPath", () => {
     const dataStores = [
       "students",
+      "student_wallets",
       "classes",
       "subjects",
       "attendance",
@@ -55,6 +62,12 @@ describe("offline store key configuration", () => {
     for (const store of dataStores) {
       expect(storeOptions(store).keyPath).toBe("id");
     }
+  });
+
+  it("repairs only the known broken v9 queue and preserves later queued work", () => {
+    expect(shouldRecreateSyncQueueStore(9, true)).toBe(true);
+    expect(shouldRecreateSyncQueueStore(13, true)).toBe(false);
+    expect(shouldRecreateSyncQueueStore(13, false)).toBe(false);
   });
 
   it("only sync_queue auto-generates its key", () => {

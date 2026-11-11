@@ -27,6 +27,7 @@ const REFRESH_AFTER_MS = 24 * 60 * 60 * 1000;
  */
 const OFFLINE_DATA_TABLES = [
   "students",
+  "student_wallets",
   "classes",
   "subjects",
   "academic_terms",
@@ -65,6 +66,7 @@ const OFFLINE_DATA_TABLES = [
 // phones where Data Saver is enabled, without downloading the full cache.
 const ESSENTIAL_OFFLINE_DATA_TABLES = [
   "students",
+  "student_wallets",
   "classes",
   "subjects",
   "teacher_timetable",
@@ -73,6 +75,8 @@ const ESSENTIAL_OFFLINE_DATA_TABLES = [
   "grades",
   "fee_structure",
   "fee_payments",
+  "canteen_items",
+  "canteen_sales",
 ];
 
 interface WarmedRecord {

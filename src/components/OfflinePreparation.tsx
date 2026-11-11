@@ -132,6 +132,18 @@ export function OfflinePreparation() {
                 </tr>
                 <tr>
                   <th scope="row" className="px-2 py-2 font-medium text-[var(--t1)]">
+                    Canteen
+                  </th>
+                  <td className="px-2 py-2">
+                    Use downloaded products and learner wallet balances; cash sales can be queued.
+                  </td>
+                  <td className="px-2 py-2">
+                    Wallet sales use the last saved balance and stay pending until sync. Another device may have spent
+                    from that wallet; confirm the sync before treating the sale as final.
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row" className="px-2 py-2 font-medium text-[var(--t1)]">
                     Reports
                   </th>
                   <td className="px-2 py-2">Preview reports from cached student and grade records.</td>
@@ -180,6 +192,13 @@ export function OfflinePreparation() {
                   </th>
                   <td className="px-2 py-2">Offline parent workflows have not been verified.</td>
                   <td className="px-2 py-2">Use the portal while connected.</td>
+                </tr>
+                <tr>
+                  <th scope="row" className="px-2 py-2 font-medium text-[var(--t1)]">
+                    Mobile money
+                  </th>
+                  <td className="px-2 py-2">No payment can be started offline.</td>
+                  <td className="px-2 py-2">Connect before starting or confirming a provider payment.</td>
                 </tr>
               </tbody>
             </table>

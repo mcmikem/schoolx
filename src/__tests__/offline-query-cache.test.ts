@@ -306,6 +306,8 @@ describe("offline api cache: eligibility", () => {
     expect(isCacheableApiRequest("/api/auth/session/", "GET")).toBe(false);
     expect(isCacheableApiRequest("/api/demo-login/", "GET")).toBe(false);
     expect(isCacheableApiRequest("/api/payment/invoices/?limit=10", "GET")).toBe(false);
+    expect(isCacheableApiRequest("/api/parent/mobile-money/", "GET")).toBe(false);
+    expect(isCacheableApiRequest("/api/settings/mobile-money/", "GET")).toBe(false);
     expect(isCacheableApiRequest("https://other.example/api/reports/", "GET")).toBe(false);
     expect(isCacheableApiRequest("https://proj.supabase.co/rest/v1/students", "GET")).toBe(false);
   });
@@ -470,6 +472,8 @@ describe("offline api actions that cannot be queued", () => {
     expect(isOnlineOnlyApiRequest("/api/ai/ask/")).toBe(true);
     expect(isOnlineOnlyApiRequest("/api/import/students/")).toBe(true);
     expect(isOnlineOnlyApiRequest("/api/parent/fee-payment-claims/")).toBe(true);
+    expect(isOnlineOnlyApiRequest("/api/parent/mobile-money/")).toBe(true);
+    expect(isOnlineOnlyApiRequest("/api/settings/mobile-money/")).toBe(true);
     expect(isOnlineOnlyApiRequest("/api/automation/sms/run/")).toBe(true);
     expect(isOnlineOnlyApiRequest("/api/reports/attendance/")).toBe(false);
   });
