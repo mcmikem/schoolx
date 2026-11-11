@@ -136,7 +136,7 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
                 className={cn(
                   "mx-auto flex h-11 w-11 items-center justify-center rounded-xl border transition-all",
                   hasActive
-                    ? "border-[var(--primary)] bg-[var(--primary)] text-white shadow-[0_10px_20px_rgba(0,92,230,0.18)]"
+                    ? "border-[var(--border2)] bg-[var(--surface)] text-[var(--primary)] shadow-[var(--sh1)]"
                     : "border-[var(--border)] bg-[var(--surface)] text-[var(--t3)] hover:bg-[var(--surface-container-low)] hover:text-[var(--t2)]",
                 )}
                 aria-label={group.label}
@@ -200,9 +200,9 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
                 onClick={() => toggleGroup(group)}
                 title={group.label}
                 className={cn(
-                  "flex min-h-11 items-center w-full px-3 py-2.5 text-xs font-extrabold uppercase tracking-widest transition-colors duration-150 rounded-lg focus-visible:ring-2 focus-visible:ring-[var(--primary)]",
+                  "flex min-h-11 items-center w-full px-3 py-2.5 text-[11px] font-semibold tracking-normal transition-colors duration-150 rounded-lg focus-visible:ring-2 focus-visible:ring-[var(--primary)]",
                   hasActive || isOpen
-                    ? "text-[var(--primary)]"
+                    ? "text-[var(--t2)]"
                     : "text-[var(--t4)] hover:text-[var(--t2)] hover:bg-[var(--surface-container-low)]",
                 )}
                 aria-expanded={isOpen}
@@ -238,19 +238,18 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
                           onNavigate?.();
                         }}
                         className={cn(
-                          "flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] transition-all min-h-11 lg:min-h-[36px] group relative tap-effect",
+                          "flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] lg:text-[14px] transition-all min-h-11 lg:min-h-[40px] group relative tap-effect",
                           isActive
-                            ? "bg-[var(--primary)] text-white font-semibold shadow-[0_10px_20px_rgba(0,92,230,0.18)]"
+                            ? "bg-[var(--surface)] text-[var(--t1)] font-semibold border border-[var(--border)] shadow-[var(--sh1)]"
                             : "text-[var(--t2)] hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)]",
                         )}
                         aria-current={isActive ? "page" : undefined}
                       >
-                        {isActive && <div className="absolute left-0 w-1 h-4 bg-[var(--surface)] rounded-r-full" />}
                         <MaterialIcon
                           icon={item.icon}
                           className={cn(
                             "text-[17px]",
-                            isActive ? "text-white" : "text-[var(--t3)] group-hover:text-[var(--t2)]",
+                            isActive ? "text-[var(--primary)]" : "text-[var(--t3)] group-hover:text-[var(--t2)]",
                           )}
                         />
                         <span className="flex-1 truncate">{item.label}</span>

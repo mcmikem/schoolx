@@ -188,7 +188,7 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
     >
       <div className="sidebar-brand-header">
         <div className="flex items-center gap-2.5 mb-0.5">
-          <div className="w-9 h-9 rounded-xl bg-[var(--surface)]/15 flex items-center justify-center flex-shrink-0 ring-1 ring-white/20">
+          <div className="w-9 h-9 rounded-xl bg-[var(--surface-container-low)] flex items-center justify-center flex-shrink-0 ring-1 ring-[var(--border)]">
             {school?.logo_url ? (
               <Image
                 src={school.logo_url}
@@ -203,16 +203,16 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
                 alt={`${APP_NAME} Logo`}
                 width={26}
                 height={26}
-                className="w-[26px] h-[26px] object-contain brightness-0 invert"
+                className="w-[26px] h-[26px] object-contain"
               />
             )}
           </div>
           {showExpanded && (
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-bold text-white tracking-[-.15px] leading-tight truncate">
+              <div className="text-[14px] font-bold text-[var(--t1)] tracking-[-.15px] leading-tight truncate">
                 {schoolName}
               </div>
-              <div className="text-xs text-white/75 mt-0.5 flex items-center gap-1.5">
+              <div className="text-xs text-[var(--t3)] mt-0.5 flex items-center gap-1.5">
                 <span className="inline-block w-[5px] h-[5px] rounded-full bg-[var(--green)] flex-shrink-0" />
                 {user?.role?.replace("_", " ") || "User"}
                 {currentTerm ? ` · Term ${currentTerm}` : ""}
@@ -222,22 +222,22 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
           {!isDesktop && (
             <button
               onClick={() => close()}
-              className="h-11 w-11 tap-44 rounded-lg border-none bg-[var(--surface)]/10 hover:bg-[var(--surface)]/20 cursor-pointer items-center justify-center transition-colors flex"
+              className="h-11 w-11 tap-44 rounded-lg border-none bg-[var(--surface-container-low)] hover:bg-[var(--surface-container)] cursor-pointer items-center justify-center transition-colors flex"
               aria-label="Close sidebar"
             >
-              <MaterialIcon icon="close" style={{ fontSize: 18, color: "rgba(255,255,255,0.8)" }} />
+              <MaterialIcon icon="close" style={{ fontSize: 18, color: "var(--t2)" }} />
             </button>
           )}
           {isDesktop && (
             <button
               onClick={() => setIsPinnedOpen((prev) => !prev)}
-              className="h-11 w-11 flex-shrink-0 rounded-lg border-none bg-[var(--surface)]/10 hover:bg-[var(--surface)]/20 cursor-pointer items-center justify-center transition-colors flex"
+              className="h-11 w-11 flex-shrink-0 rounded-lg border-none bg-[var(--surface-container-low)] hover:bg-[var(--surface-container)] cursor-pointer items-center justify-center transition-colors flex"
               aria-label={isPinnedOpen ? "Collapse sidebar" : "Pin sidebar open"}
               title={isPinnedOpen ? "Collapse" : "Pin open"}
             >
               <MaterialIcon
                 icon={isPinnedOpen ? "left_panel_close" : "left_panel_open"}
-                style={{ fontSize: 18, color: "rgba(255,255,255,0.85)" }}
+                style={{ fontSize: 18, color: "var(--t2)" }}
               />
             </button>
           )}

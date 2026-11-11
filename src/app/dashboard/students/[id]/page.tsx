@@ -218,8 +218,8 @@ function AttendanceRing({ percentage }: { percentage: number }) {
         />
       </svg>
       <div className="-mt-14 text-center">
-        <div className="text-lg font-extrabold text-[var(--t1)]">{percentage}%</div>
-        <div className="text-xs font-bold uppercase tracking-wider text-[var(--t3)]">Attendance</div>
+        <div className="text-lg font-semibold text-[var(--t1)]">{percentage}%</div>
+        <div className="text-[11px] font-medium text-[var(--t4)]">Attendance</div>
       </div>
     </div>
   );
@@ -291,26 +291,26 @@ function FeeProgressBar({ paid, total }: { paid: number; total: number }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-semibold text-[var(--t1)]">
+        <span className="text-[13.5px] font-medium text-[var(--t1)]">
           {total <= 0 ? "No fees recorded" : isPaid ? "Fully paid" : `UGX ${balance.toLocaleString()} outstanding`}
         </span>
         <span
-          className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+          className={`rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${
             isPaid
-              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-700"
-              : "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-700"
+              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+              : "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400"
           }`}
         >
           {pct.toFixed(0)}%
         </span>
       </div>
-      <div className="h-3 bg-[var(--bg)] rounded-full overflow-hidden">
+      <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-container-low)]">
         <div
           className={`h-full rounded-full transition-all duration-700 ${isPaid ? "bg-emerald-500" : "bg-red-500"}`}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <div className="flex justify-between mt-1 text-xs text-[var(--t3)]">
+      <div className="mt-1.5 flex flex-wrap justify-between gap-x-3 text-[11px] text-[var(--t4)]">
         <span>Paid: UGX {paid.toLocaleString()}</span>
         <span>Total: UGX {total.toLocaleString()}</span>
       </div>
@@ -338,14 +338,20 @@ function GradeSparkline({ data }: { data: { term: string; average: number }[] })
   const trend = lastVal >= prevVal;
 
   return (
-    <div className="flex items-center gap-2">
-      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+    <div className="flex items-center gap-3">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
+        className="h-10 min-w-0 flex-1"
+        aria-hidden="true"
+      >
         <polyline
           fill="none"
           stroke={trend ? "var(--green)" : "var(--red)"}
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
           points={points.join(" ")}
         />
         {data.map((d, i) => {
@@ -362,9 +368,9 @@ function GradeSparkline({ data }: { data: { term: string; average: number }[] })
           );
         })}
       </svg>
-      <div>
-        <div className={`text-lg font-extrabold ${trend ? "text-emerald-600" : "text-red-600"}`}>{lastVal}%</div>
-        <div className="flex items-center gap-0.5 text-xs font-bold text-[var(--t3)] uppercase tracking-wider">
+      <div className="shrink-0">
+        <div className={`text-lg font-semibold ${trend ? "text-emerald-600" : "text-red-600"}`}>{lastVal}%</div>
+        <div className="flex items-center gap-1 text-[11px] font-medium text-[var(--t4)]">
           {trend ? (
             <MaterialIcon icon="trending_up" size={12} className="h-3 text-emerald-500" />
           ) : (
@@ -432,6 +438,20 @@ function fmtDate(value?: string | null): string | null {
   return value ? new Date(value).toLocaleDateString() : null;
 }
 
+function MetaChip({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "amber" }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium ${
+        tone === "amber"
+          ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300"
+          : "border-[var(--border)] bg-[var(--surface-container-low)] text-[var(--t2)]"
+      }`}
+    >
+      {children}
+    </span>
+  );
+}
+
 function InfoCard({
   title,
   icon,
@@ -446,15 +466,17 @@ function InfoCard({
   children: ReactNode;
 }) {
   return (
-    <section className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm ${className}`}>
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h3 className="flex items-center gap-2 font-semibold text-[var(--t1)]">
-          <MaterialIcon icon={icon} size={16} className="w-4 text-[var(--t3)]" />
-          {title}
+    <section
+      className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--sh1)] ${className}`}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-4 sm:px-5 sm:pt-5">
+        <h3 className="flex min-w-0 items-center gap-2 text-[13px] font-semibold text-[var(--t1)]">
+          <MaterialIcon icon={icon} size={16} className="w-4 shrink-0 text-[var(--t4)]" />
+          <span className="truncate">{title}</span>
         </h3>
-        {action}
+        {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      {children}
+      <div className="px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5">{children}</div>
     </section>
   );
 }
@@ -462,9 +484,9 @@ function InfoCard({
 function DetailRow({ label, value, mono = false }: { label: string; value?: string | null; mono?: boolean }) {
   return (
     <div className="min-w-0">
-      <dt className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--t3)]">{label}</dt>
+      <dt className="text-[11px] font-medium text-[var(--t4)]">{label}</dt>
       <dd
-        className={`mt-0.5 truncate text-sm ${value ? "font-semibold text-[var(--t1)]" : "italic text-[var(--t3)]"} ${mono ? "font-mono" : ""}`}
+        className={`mt-1 break-words text-[13.5px] ${value ? "font-medium text-[var(--t1)]" : "italic text-[var(--t3)]"} ${mono ? "font-mono text-[12.5px]" : ""}`}
       >
         {value || "Not recorded"}
       </dd>
@@ -732,18 +754,51 @@ export default function StudentProfilePage() {
 
   if (studentLoading)
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-800"></div>
+      <div
+        className="mx-auto flex w-full min-w-0 max-w-[1400px] flex-col gap-6 p-4 pb-28 sm:p-6 sm:pb-28 lg:pb-20"
+        aria-busy="true"
+        aria-label="Loading student profile"
+      >
+        <div className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--sh1)] sm:p-6">
+          <Skeleton className="h-5 w-24 rounded-md" />
+          <div className="mt-4 flex items-start gap-3.5 sm:gap-5">
+            <Skeleton className="h-16 w-16 shrink-0 rounded-2xl sm:h-24 sm:w-24" />
+            <div className="flex-1 space-y-2 pt-1">
+              <Skeleton className="h-6 w-2/3 max-w-[240px] rounded-md" />
+              <Skeleton className="h-4 w-40 rounded-md" />
+              <Skeleton className="h-5 w-32 rounded-md" />
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-[76px] rounded-2xl" />
+          ))}
+        </div>
+        <Skeleton className="h-10 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
 
   if (error || !student)
     return (
-      <div className="p-8 text-center">
-        <div className="text-red-600 dark:text-red-400 mb-4">Student not found</div>
-        <Link href="/dashboard/students" className="btn btn-primary">
-          Back to Students
-        </Link>
+      <div className="mx-auto flex w-full min-w-0 max-w-[1400px] flex-col gap-6 p-4 pb-28 sm:p-6 sm:pb-28 lg:pb-20">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-6 py-14 text-center shadow-[var(--sh1)]">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--surface-container-low)]">
+            <MaterialIcon icon="person_off" size={22} className="text-[var(--t3)]" />
+          </div>
+          <p className="mt-3 text-sm font-semibold text-[var(--t1)]">Student not found</p>
+          <p className="mx-auto mt-1 max-w-xs text-[13px] text-[var(--t3)]">
+            This profile may have been moved, merged, or removed.
+          </p>
+          <Link
+            href="/dashboard/students"
+            className="mt-4 inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white hover:bg-[var(--primary-600)]"
+          >
+            <MaterialIcon icon="arrow_back" size={16} />
+            Back to students
+          </Link>
+        </div>
       </div>
     );
 
@@ -776,7 +831,7 @@ export default function StudentProfilePage() {
 
   return (
     <PageErrorBoundary>
-      <div className="space-y-6">
+      <div className="mx-auto flex w-full min-w-0 max-w-[1400px] flex-col gap-6 p-4 pb-28 sm:p-6 sm:pb-28 lg:pb-20">
         {isConstrainedNetwork && showDataSaver && (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
             Data saver mode is active — showing lightweight analytics for faster loading.
@@ -788,12 +843,28 @@ export default function StudentProfilePage() {
           </div>
         )}
 
-        <section className="overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
-          <div className="h-20 bg-[var(--secondary)] opacity-90 sm:h-24" />
-          <div className="px-5 pb-5 sm:px-7">
-            <div className="-mt-10 flex flex-col gap-5 sm:-mt-12 sm:flex-row sm:items-end sm:justify-between">
-              <div className="flex min-w-0 items-end gap-4">
-                <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-4 border-[var(--surface)] bg-[var(--navy-soft)] shadow-md sm:h-28 sm:w-28">
+        <header className="overflow-hidden rounded-[20px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--sh1)]">
+          <div className="p-4 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <Link
+                href="/dashboard/students"
+                aria-label="Back to students"
+                className="-ml-1.5 inline-flex h-9 items-center gap-1 rounded-lg px-1.5 text-[13px] font-medium text-[var(--t3)] transition-colors hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)]"
+              >
+                <MaterialIcon icon="arrow_back" size={18} />
+                <span className="hidden sm:inline">All students</span>
+              </Link>
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${statusCfg.dot}`} />
+                {statusCfg.label}
+              </span>
+            </div>
+
+            <div className="mt-2 flex flex-col gap-4 sm:mt-1 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+              <div className="flex items-start gap-3.5 sm:gap-5">
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-[var(--surface-container-low)] ring-1 ring-[var(--border)] sm:h-24 sm:w-24">
                   {student.photo_url ? (
                     <Image
                       src={student.photo_url}
@@ -804,52 +875,45 @@ export default function StudentProfilePage() {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-3xl font-bold text-[var(--secondary)]">
+                    <div className="flex h-full w-full items-center justify-center text-xl font-semibold text-[var(--t3)] sm:text-2xl">
                       {initials}
                     </div>
                   )}
-                  <span
-                    className={`absolute bottom-2 right-2 h-3.5 w-3.5 rounded-full border-2 border-[var(--surface)] ${statusCfg.dot}`}
-                    title={statusCfg.label}
-                  />
                 </div>
-                <div className="min-w-0 pb-1">
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href="/dashboard/students"
-                      aria-label="Back to students"
-                      className="shrink-0 rounded-lg p-1 text-[var(--t3)] hover:bg-[var(--surface-container-low)]"
-                    >
-                      <MaterialIcon icon="arrow_back" size={18} />
-                    </Link>
-                    <h1 className="truncate text-2xl font-bold text-[var(--t1)]">{fullName}</h1>
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--surface-container-low)] px-2.5 py-1 text-xs font-medium text-[var(--t2)]">
-                      <MaterialIcon icon="school" size={12} className="w-3" />
+
+                <div className="min-w-0 flex-1 sm:pt-1">
+                  <h1 className="truncate text-[20px] font-bold leading-tight tracking-[-0.02em] text-[var(--t1)] sm:text-[26px]">
+                    {fullName}
+                  </h1>
+                  <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[13px] text-[var(--t3)]">
+                    <span className="inline-flex items-center gap-1">
+                      <MaterialIcon icon="school" size={14} className="shrink-0" />
                       {classLabel}
                     </span>
-                    {student.student_number && (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--surface-container-low)] px-2.5 py-1 font-mono text-xs font-medium text-[var(--t2)]">
-                        <MaterialIcon icon="badge" size={12} className="w-3" />
-                        {student.student_number}
-                      </span>
-                    )}
-                    <span className={`text-xs font-semibold ${statusCfg.text}`}>{statusCfg.label}</span>
-                    {student.repeating && (
-                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                        Repeating
-                      </span>
-                    )}
-                  </div>
+                    {student.student_number ? (
+                      <>
+                        <span className="text-[var(--t4)]">·</span>
+                        <span className="font-mono text-[12px]">{student.student_number}</span>
+                      </>
+                    ) : null}
+                  </p>
+                  {(genderLabel || student.boarding_status || student.repeating || leadershipRoles.length > 0) && (
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {genderLabel && <MetaChip>{genderLabel}</MetaChip>}
+                      {student.boarding_status && <MetaChip>{student.boarding_status}</MetaChip>}
+                      {leadershipRoles.length > 0 && <MetaChip>{leadershipRoles[0]}</MetaChip>}
+                      {student.repeating && <MetaChip tone="amber">Repeating</MetaChip>}
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2 sm:justify-end">
+
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0 sm:pt-1">
                 {canEditDetails && (
                   <button
                     type="button"
                     onClick={() => setShowEdit(true)}
-                    className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+                    className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--primary-600)] sm:col-span-1"
                   >
                     <MaterialIcon icon="edit" size={16} className="w-4" />
                     Edit details
@@ -859,7 +923,7 @@ export default function StudentProfilePage() {
                   <button
                     type="button"
                     onClick={() => setSmsOpen(true)}
-                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--t1)] transition-colors hover:bg-[var(--surface-container-low)]"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 text-[13px] font-medium text-[var(--t1)] transition-colors hover:bg-[var(--surface-container-low)] sm:px-4 sm:text-sm"
                   >
                     <MaterialIcon icon="chat" size={16} className="w-4" />
                     SMS parent
@@ -868,7 +932,7 @@ export default function StudentProfilePage() {
                 {canSeeFeePosition && (
                   <Link
                     href={`/dashboard/fees?pay=${student.id}`}
-                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--t1)] transition-colors hover:bg-[var(--surface-container-low)]"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 text-[13px] font-medium text-[var(--t1)] transition-colors hover:bg-[var(--surface-container-low)] sm:px-4 sm:text-sm"
                   >
                     <MaterialIcon icon="payments" size={16} className="w-4" />
                     Record payment
@@ -877,9 +941,9 @@ export default function StudentProfilePage() {
               </div>
             </div>
           </div>
-        </section>
+        </header>
 
-        <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-4">
           {[
             {
               label: "Attendance",
@@ -920,26 +984,26 @@ export default function StudentProfilePage() {
           ].map((item) => (
             <div
               key={item.label}
-              className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm"
+              className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3.5 shadow-[var(--sh1)] sm:p-4"
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-container-low)]">
-                <MaterialIcon icon={item.icon} size={20} className={item.tone} />
+              <div className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--t4)]">
+                <MaterialIcon icon={item.icon} size={13} className="shrink-0" />
+                {item.label}
               </div>
-              <div className="min-w-0">
-                <div className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--t3)]">{item.label}</div>
-                <div className={`mt-0.5 truncate text-base font-bold ${item.tone}`}>{item.value}</div>
+              <div className={`mt-1.5 truncate text-[17px] font-semibold tracking-tight sm:text-[18px] ${item.tone}`}>
+                {item.value}
               </div>
             </div>
           ))}
         </div>
 
-        <Tabs tabs={profileTabs} activeTab={activeTab} onChange={setActiveTab} className="mb-6" />
+        <Tabs tabs={profileTabs} activeTab={activeTab} onChange={setActiveTab} scroll />
 
         <TabPanel activeTab={activeTab} tabId="overview">
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
             <div className="space-y-6 lg:col-span-2">
               <InfoCard title="Personal details" icon="person">
-                <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-3.5 sm:gap-x-8 sm:gap-y-4">
                   <DetailRow label="Student number" value={student.student_number} mono />
                   <DetailRow label="Class" value={classLabel} />
                   <DetailRow label="Gender" value={genderLabel} />
@@ -956,12 +1020,12 @@ export default function StudentProfilePage() {
               </InfoCard>
 
               <InfoCard title="Home & origin" icon="home">
-                <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-3.5 sm:gap-x-8 sm:gap-y-4">
                   <DetailRow label="District of origin" value={student.district_origin} />
                   <DetailRow label="Sub-county" value={student.sub_county} />
                   <DetailRow label="Parish" value={student.parish} />
                   <DetailRow label="Village" value={student.village} />
-                  <div className="sm:col-span-2">
+                  <div className="col-span-2">
                     <DetailRow label="Home address" value={student.address} />
                   </div>
                 </dl>
@@ -1015,7 +1079,7 @@ export default function StudentProfilePage() {
         </TabPanel>
 
         <TabPanel activeTab={activeTab} tabId="academics" lazy>
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
             <InfoCard title="Performance trend" icon="trending_up">
               {detailsLoading ? (
                 <Skeleton className="h-24 w-full rounded-2xl" />
@@ -1040,15 +1104,19 @@ export default function StudentProfilePage() {
               ) : (
                 <ul className="divide-y divide-[var(--border)]">
                   {subjectScores.map((s, i) => (
-                    <li key={`${s.subject}-${i}`} className="flex items-center gap-3 py-3">
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--t1)]">{s.subject}</span>
-                      <div className="hidden h-2 w-40 overflow-hidden rounded-full bg-[var(--surface-container-low)] sm:block">
+                    <li key={`${s.subject}-${i}`} className="flex items-center gap-3 py-2.5">
+                      <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-[var(--t1)]">
+                        {s.subject}
+                      </span>
+                      <div className="h-1.5 w-16 shrink-0 overflow-hidden rounded-full bg-[var(--surface-container-low)] sm:w-40">
                         <div
                           className={`h-full rounded-full ${s.score >= 50 ? "bg-emerald-500" : "bg-red-500"}`}
                           style={{ width: `${Math.min(100, Math.max(0, s.score))}%` }}
                         />
                       </div>
-                      <span className="w-12 text-right text-sm font-bold tabular-nums text-[var(--t1)]">{s.score}</span>
+                      <span className="w-10 shrink-0 text-right text-[13.5px] font-semibold tabular-nums text-[var(--t1)]">
+                        {s.score}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -1085,7 +1153,7 @@ export default function StudentProfilePage() {
                 <button
                   type="button"
                   onClick={() => setShowGuardianModal(true)}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
+                  className="inline-flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-lg bg-[var(--primary)] px-3 text-xs font-semibold text-white transition-colors hover:bg-[var(--primary-600)]"
                 >
                   <MaterialIcon icon="person" size={14} className="w-3.5" />
                   Add guardian
@@ -1093,7 +1161,7 @@ export default function StudentProfilePage() {
               ) : undefined
             }
           >
-            <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[var(--t3)]">Primary contact</p>
+            <p className="mb-2 text-[11px] font-medium text-[var(--t4)]">Primary contact</p>
             <div className="space-y-3 text-sm text-[var(--t1)]">
               <div className="flex items-center gap-2">
                 <MaterialIcon icon="person" size={16} className="w-4 text-[var(--t3)]" />
@@ -1123,7 +1191,7 @@ export default function StudentProfilePage() {
                   type="button"
                   onClick={handleCreatePortalAccess}
                   disabled={creatingPortal}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                  className="inline-flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-[var(--border)] px-3 text-xs font-semibold text-[var(--t1)] transition-colors hover:bg-[var(--surface-container-low)] disabled:opacity-50"
                 >
                   <MaterialIcon icon="person" size={14} className="w-3.5" />
                   {creatingPortal ? "Creating..." : "Create parent portal access"}
@@ -1148,7 +1216,7 @@ export default function StudentProfilePage() {
             )}
 
             <div className="my-5 border-t border-[var(--border)]" />
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[var(--t3)]">Linked guardians</p>
+            <p className="mb-3 text-[11px] font-medium text-[var(--t4)]">Linked guardians</p>
             {guardiansLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-12 w-full rounded-xl" />
@@ -1167,18 +1235,20 @@ export default function StudentProfilePage() {
                   return (
                     <div
                       key={g.id}
-                      className="flex items-center justify-between rounded-xl bg-[var(--surface-container-low)] px-4 py-3"
+                      className="flex items-start justify-between gap-3 rounded-xl border border-[var(--border)] px-3.5 py-3"
                     >
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">{guardianUser.full_name || "Unknown"}</span>
+                          <span className="truncate text-[13.5px] font-medium text-[var(--t1)]">
+                            {guardianUser.full_name || "Unknown"}
+                          </span>
                           {isPrimary && (
-                            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                            <span className="shrink-0 rounded-md bg-[var(--primary-50)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--primary-700)]">
                               Primary
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-[var(--t3)]">
+                        <div className="text-[12px] text-[var(--t3)]">
                           {guardianUser.phone || ""}
                           {g.relationship !== "parent" ? ` · ${g.relationship}` : ""}
                         </div>
@@ -1190,7 +1260,7 @@ export default function StudentProfilePage() {
                         <button
                           type="button"
                           onClick={() => handleSetPrimaryGuardian(g)}
-                          className="shrink-0 text-xs text-blue-600 hover:underline"
+                          className="inline-flex min-h-9 shrink-0 items-center rounded-lg border border-[var(--border)] px-2.5 text-[11px] font-medium text-[var(--t2)] transition-colors hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)]"
                           title="Set as primary guardian"
                         >
                           Set primary
@@ -1205,9 +1275,9 @@ export default function StudentProfilePage() {
         </TabPanel>
 
         <TabPanel activeTab={activeTab} tabId="health" lazy>
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
             <InfoCard title="Medical profile" icon="favorite">
-              <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-3.5 sm:gap-x-8 sm:gap-y-4">
                 <DetailRow label="Blood type" value={student.blood_type} />
               </dl>
               <p className="mt-3 text-xs text-[var(--t3)]">
@@ -1241,7 +1311,7 @@ export default function StudentProfilePage() {
                 <button
                   type="button"
                   onClick={() => setSmsOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
+                  className="inline-flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-lg bg-[var(--primary)] px-3 text-xs font-semibold text-white transition-colors hover:bg-[var(--primary-600)]"
                 >
                   <MaterialIcon icon="chat" size={14} className="w-3.5" />
                   SMS parent
@@ -1313,90 +1383,106 @@ export default function StudentProfilePage() {
 
       {showGuardianModal && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 sm:items-center sm:p-4"
           onClick={() => setShowGuardianModal(false)}
         >
-          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-[var(--t1)] mb-2">Add Guardian</h3>
-            <p className="text-sm text-[var(--t3)] mb-5">Search existing users or add a new parent/guardian.</p>
-            <div className="space-y-4">
+          <div
+            className="w-full max-w-md overflow-hidden rounded-t-[20px] bg-[var(--surface)] shadow-[var(--sh3)] sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-guardian-title"
+          >
+            <div className="flex items-start justify-between gap-3 border-b border-[var(--border)] px-4 pb-3 pt-4 sm:px-5">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  value={guardianForm.name}
-                  onChange={(e) => setGuardianForm({ ...guardianForm, name: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                  placeholder="e.g. John Doe"
-                  required
-                />
+                <h3 id="add-guardian-title" className="text-base font-semibold text-[var(--t1)]">
+                  Add guardian
+                </h3>
+                <p className="mt-0.5 text-[12px] text-[var(--t3)]">Links a contact and creates parent-portal access.</p>
               </div>
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  inputMode="tel"
-                  value={guardianForm.phone}
-                  onChange={(e) => setGuardianForm({ ...guardianForm, phone: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                  placeholder="0700000000"
-                  required
-                />
+              <button
+                type="button"
+                onClick={() => setShowGuardianModal(false)}
+                aria-label="Close"
+                className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[var(--t3)] transition-colors hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)]"
+              >
+                <MaterialIcon icon="close" size={18} />
+              </button>
+            </div>
+            <div className="max-h-[65vh] overflow-y-auto px-4 py-4 sm:px-5">
+              <div className="space-y-3">
+                <div>
+                  <label className="mb-1.5 block text-[11px] font-medium text-[var(--t4)]">Full Name</label>
+                  <input
+                    type="text"
+                    value={guardianForm.name}
+                    onChange={(e) => setGuardianForm({ ...guardianForm, name: e.target.value })}
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 text-sm text-[var(--t1)] outline-none transition-colors focus:border-[var(--primary)]"
+                    placeholder="e.g. John Doe"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-[11px] font-medium text-[var(--t4)]">Phone Number</label>
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    value={guardianForm.phone}
+                    onChange={(e) => setGuardianForm({ ...guardianForm, phone: e.target.value })}
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 text-sm text-[var(--t1)] outline-none transition-colors focus:border-[var(--primary)]"
+                    placeholder="0700000000"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-[11px] font-medium text-[var(--t4)]">Email (optional)</label>
+                  <input
+                    type="email"
+                    value={guardianForm.email}
+                    onChange={(e) => setGuardianForm({ ...guardianForm, email: e.target.value })}
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 text-sm text-[var(--t1)] outline-none transition-colors focus:border-[var(--primary)]"
+                    placeholder="guardian@example.com"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-[11px] font-medium text-[var(--t4)]">Relationship</label>
+                  <select
+                    value={guardianForm.relationship}
+                    onChange={(e) =>
+                      setGuardianForm({
+                        ...guardianForm,
+                        relationship: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 text-sm text-[var(--t1)] outline-none transition-colors focus:border-[var(--primary)]"
+                  >
+                    <option value="parent">Parent</option>
+                    <option value="guardian">Guardian</option>
+                    <option value="aunt">Aunt</option>
+                    <option value="uncle">Uncle</option>
+                    <option value="grandparent">Grandparent</option>
+                    <option value="sibling">Sibling</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
-                  Email (optional)
-                </label>
-                <input
-                  type="email"
-                  value={guardianForm.email}
-                  onChange={(e) => setGuardianForm({ ...guardianForm, email: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                  placeholder="guardian@example.com"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
-                  Relationship
-                </label>
-                <select
-                  value={guardianForm.relationship}
-                  onChange={(e) =>
-                    setGuardianForm({
-                      ...guardianForm,
-                      relationship: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-                >
-                  <option value="parent">Parent</option>
-                  <option value="guardian">Guardian</option>
-                  <option value="aunt">Aunt</option>
-                  <option value="uncle">Uncle</option>
-                  <option value="grandparent">Grandparent</option>
-                  <option value="sibling">Sibling</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setShowGuardianModal(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-[var(--border)] text-sm font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAddGuardian}
-                  disabled={guardianSaving || !guardianForm.name || !guardianForm.phone}
-                  className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 disabled:opacity-50"
-                >
-                  {guardianSaving ? "Adding..." : "Add Guardian"}
-                </button>
-              </div>
+            </div>
+            <div className="flex gap-2 border-t border-[var(--border)] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5">
+              <button
+                type="button"
+                onClick={() => setShowGuardianModal(false)}
+                className="min-h-11 flex-1 rounded-xl border border-[var(--border)] text-sm font-medium text-[var(--t2)] transition-colors hover:bg-[var(--surface-container-low)]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAddGuardian}
+                disabled={guardianSaving || !guardianForm.name || !guardianForm.phone}
+                className="min-h-11 flex-1 rounded-xl bg-[var(--primary)] text-sm font-semibold text-white transition-colors hover:bg-[var(--primary-600)] disabled:opacity-50"
+              >
+                {guardianSaving ? "Adding..." : "Add guardian"}
+              </button>
             </div>
           </div>
         </div>

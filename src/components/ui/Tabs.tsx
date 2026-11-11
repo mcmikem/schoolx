@@ -14,9 +14,15 @@ interface TabsProps {
   activeTab: string;
   onChange: (tabId: string) => void;
   className?: string;
+  /**
+   * Horizontal scroller instead of wrapping. A seven-tab profile set wrapped
+   * into four rows on a phone and pushed the actual content below the fold;
+   * scrolling keeps it to one row with a fixed height.
+   */
+  scroll?: boolean;
 }
 
-export function Tabs({ tabs, activeTab, onChange, className = "" }: TabsProps) {
+export function Tabs({ tabs, activeTab, onChange, className = "", scroll = false }: TabsProps) {
   const uid = useId();
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -37,7 +43,11 @@ export function Tabs({ tabs, activeTab, onChange, className = "" }: TabsProps) {
 
   return (
     <div
-      className={cn("flex flex-wrap sm:flex-nowrap gap-1 p-1 bg-[var(--surface-container-low)] rounded-xl", className)}
+      className={cn(
+        "flex gap-1 p-1 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-xl",
+        scroll ? "w-full flex-nowrap overflow-x-auto no-scrollbar sm:w-auto" : "flex-wrap sm:flex-nowrap",
+        className,
+      )}
       role="tablist"
       aria-label="Tab navigation"
     >
@@ -55,9 +65,10 @@ export function Tabs({ tabs, activeTab, onChange, className = "" }: TabsProps) {
           onClick={() => onChange(tab.id)}
           onKeyDown={(e) => handleKeyDown(e, i)}
           className={cn(
-            "flex-1 min-w-[140px] sm:min-w-0 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all text-center",
+            "px-3 sm:px-4 py-2 text-[13px] sm:text-sm font-medium rounded-lg transition-all text-center min-h-9",
+            scroll ? "shrink-0 whitespace-nowrap" : "flex-1 min-w-[140px] sm:min-w-0 sm:flex-none",
             activeTab === tab.id
-              ? "bg-[var(--surface)] text-[var(--t1)] shadow-sm"
+              ? "bg-[var(--surface)] text-[var(--t1)] shadow-[var(--sh1)]"
               : "text-[var(--t3)] hover:text-[var(--t2)]",
           )}
         >
