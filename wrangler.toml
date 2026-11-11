@@ -12,10 +12,10 @@ head_sampling_rate = 1
 [observability.traces]
 enabled = true
 
-# R2 binding for nightly backups (no egress fees).
-[[r2_buckets]]
-binding = "SCHOOL_BACKUPS"
-bucket_name = "school-backups"
+# KV binding for edge caching (fee structures, timetables, notices).
+[[kv_namespaces]]
+binding = "SKOOLMATE_CACHE"
+id = "78b57dd35fb841258cefbbf7e7bac210"
 
 [assets]
 directory = ".open-next/assets"
