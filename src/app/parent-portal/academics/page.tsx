@@ -89,7 +89,7 @@ export default function ParentAcademicsPage() {
   };
 
   return (
-    <ParentPortalShell pageTitle="Academics">
+    <ParentPortalShell pageTitle="Progress">
       <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
         <PageHeader
           title="Academics"
@@ -202,7 +202,7 @@ export default function ParentAcademicsPage() {
 
         <Card>
           <CardBody>
-            <h2 className="font-bold text-[var(--on-surface)] mb-4">Grade Records</h2>
+            <h2 className="font-bold text-[var(--on-surface)] mb-4">Your child&apos;s results</h2>
             {loading ? (
               <div className="space-y-3">
                 {Array.from({ length: 4 }).map((_, index) => (

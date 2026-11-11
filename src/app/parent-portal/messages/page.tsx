@@ -144,7 +144,7 @@ export default function ParentMessagesPage() {
   };
 
   return (
-    <ParentPortalShell pageTitle="Message School">
+    <ParentPortalShell pageTitle="Messages">
       <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
           <PageHeader
@@ -219,7 +219,7 @@ export default function ParentMessagesPage() {
                   <h2 className="text-xl font-black text-[var(--on-surface)]">New Message</h2>
                   <p className="text-sm text-[var(--on-surface-variant)]">
                     {selectedChild
-                      ? `Current learner context: ${selectedChild.first_name} ${selectedChild.last_name}`
+                      ? `About ${selectedChild.first_name} ${selectedChild.last_name}`
                       : "This message will go to school administration"}
                   </p>
                 </div>

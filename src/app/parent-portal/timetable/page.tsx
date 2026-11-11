@@ -181,7 +181,7 @@ export default function ParentTimetablePage() {
   }, {});
 
   return (
-    <ParentPortalShell pageTitle="Timetable">
+    <ParentPortalShell pageTitle="School day">
       <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
         <PageHeader
           title="Class Timetable"

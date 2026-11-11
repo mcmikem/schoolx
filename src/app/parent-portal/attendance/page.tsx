@@ -109,7 +109,7 @@ export default function ParentAttendancePage() {
 
         <Card>
           <CardBody>
-            <h2 className="font-bold text-[var(--on-surface)] mb-4">Recent Records (Last 60 Days)</h2>
+            <h2 className="font-bold text-[var(--on-surface)] mb-4">Recent days at school</h2>
             {loading ? (
               <div className="space-y-2">
                 {Array.from({ length: 5 }).map((_, i) => (

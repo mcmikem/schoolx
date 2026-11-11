@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { mapParentStudentLinks, resolveSelectedChild, ParentPortalChild } from "@/lib/parent-portal";
 import { getDemoChildren } from "@/lib/parent-portal-demo";
+import { readDemoStorage } from "@/lib/auth-demo";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { normalizeAuthPhone } from "@/lib/validation";
 import { logger } from "@/lib/logger";
@@ -29,7 +30,12 @@ export function useParentPortal() {
 }
 
 export function ParentPortalProvider({ children }: { children: React.ReactNode }) {
-  const { user, isDemo } = useAuth();
+  const { user, isDemo: authIsDemo } = useAuth();
+  // Demo detection can lag behind the demo storage being written (the demo
+  // login lands on /parent-portal before the auth context has read it). Treat
+  // the presence of demo storage as demo too, so a parent is never shown an
+  // empty "no child linked" screen just because the load ran too early.
+  const isDemo = authIsDemo || (typeof window !== "undefined" && readDemoStorage() !== null);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -39,6 +45,18 @@ export function ParentPortalProvider({ children }: { children: React.ReactNode }
   const [selectedChild, setSelectedChildState] = useState<ParentPortalChild | null>(null);
   const [loading, setLoading] = useState(true);
   const hasLoadedRef = useRef(false);
+  const prevIsDemoRef = useRef(isDemo);
+
+  // Auth state (demo vs real) can settle after this provider has already
+  // mounted — e.g. the demo login lands on /parent-portal before the demo
+  // storage is read. Re-arm the load in that case so a parent never sees an
+  // empty "no child linked" screen just because the load ran too early.
+  useEffect(() => {
+    if (prevIsDemoRef.current !== isDemo) {
+      prevIsDemoRef.current = isDemo;
+      hasLoadedRef.current = false;
+    }
+  }, [isDemo]);
 
   const refreshChildren = useCallback(async () => {
     if (isDemo) {

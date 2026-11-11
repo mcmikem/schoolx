@@ -99,9 +99,9 @@ export default function ParentNoticesPage() {
   }, [fetchNotices]);
 
   return (
-    <ParentPortalShell pageTitle="Notice Board">
+    <ParentPortalShell pageTitle="School notices">
       <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
-        <PageHeader title="Notice Board" subtitle="Important news and updates from your child’s school" />
+        <PageHeader title="School notices" subtitle="News and updates from your child’s school" />
 
         {loading ? (
           <div className="space-y-4">

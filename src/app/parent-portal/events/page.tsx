@@ -151,10 +151,10 @@ export default function ParentEventsPage() {
   const past = events.filter((ev) => ev.start_date < today && (ev.end_date ? ev.end_date < today : true));
 
   return (
-    <ParentPortalShell pageTitle="Events">
+    <ParentPortalShell pageTitle="School calendar">
       <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
         <PageHeader
-          title="School Events"
+          title="School calendar"
           subtitle="Exams, meetings, holidays and activities from your child's school"
           variant="premium"
         />

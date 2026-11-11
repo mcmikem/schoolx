@@ -432,10 +432,10 @@ export default function ParentFeesPage() {
   };
 
   return (
-    <ParentPortalShell pageTitle="Fees & Receipts">
+    <ParentPortalShell pageTitle="Fees">
       <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
         <PageHeader
-          title="Fees & Receipts"
+          title="Fees"
           subtitle="See what fees are due, what you have paid, and top up your child’s canteen wallet"
           variant="premium"
         />
@@ -504,7 +504,7 @@ export default function ParentFeesPage() {
                 <p className="text-xs text-[var(--on-surface-variant)]">
                   {selectedChild
                     ? `${selectedChild.first_name}'s fee and canteen snapshot`
-                    : "Select a learner to view details"}
+                    : "Choose your child to see details"}
                 </p>
               </div>
               <div className="flex gap-3">
@@ -750,7 +750,7 @@ export default function ParentFeesPage() {
                 <div>
                   <h2 className="text-xl font-black text-[var(--on-surface)]">Add Pocket Money</h2>
                   <p className="text-sm text-[var(--on-surface-variant)]">
-                    {selectedChild ? `Top up ${selectedChild.first_name}'s canteen wallet` : "Select a learner first"}
+                    {selectedChild ? `Top up ${selectedChild.first_name}'s canteen wallet` : "Choose your child first"}
                   </p>
                 </div>
                 <button
@@ -806,7 +806,7 @@ export default function ParentFeesPage() {
                 <div>
                   <h2 className="text-xl font-black text-[var(--on-surface)]">Pay School Fees</h2>
                   <p className="text-sm text-[var(--on-surface-variant)]">
-                    {selectedChild ? `${selectedChild.first_name}'s fee payment` : "Select a learner first"}
+                    {selectedChild ? `${selectedChild.first_name}'s fee payment` : "Choose your child first"}
                   </p>
                 </div>
                 <button

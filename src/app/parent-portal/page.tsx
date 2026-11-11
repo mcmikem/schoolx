@@ -22,6 +22,7 @@ import {
   normalizePayments,
   ParentPortalAdjustment,
   ParentPortalAttendanceRecord,
+  ParentPortalChild,
   ParentPortalFeeStructureItem,
   ParentPortalGradeRecord,
   ParentPortalNotice,
@@ -29,6 +30,41 @@ import {
   pickPreferredSchemaRows,
 } from "@/lib/parent-portal";
 import { supabase } from "@/lib/supabase";
+
+/**
+ * The child's face, with initials when the school has not uploaded a photo.
+ * Plain <img> on purpose: parent photos come from storage URLs the image
+ * optimiser has no allow-list for, and the shell already renders the same way.
+ */
+function ChildAvatar({ child, size = 56 }: { child: ParentPortalChild; size?: number }) {
+  const [failed, setFailed] = useState(false);
+  const photo = child.photo_url || child.avatar_url;
+
+  if (photo && !failed) {
+    return (
+      <img
+        src={photo}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        onError={() => setFailed(true)}
+        className="shrink-0 rounded-2xl object-cover ring-1 ring-[var(--border)]"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+
+  return (
+    <span
+      aria-hidden="true"
+      className="flex shrink-0 items-center justify-center rounded-2xl bg-[var(--surface-container-low)] font-semibold text-[var(--t3)] ring-1 ring-[var(--border)]"
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}
+    >
+      {child.first_name?.[0]}
+      {child.last_name?.[0]}
+    </span>
+  );
+}
 
 function ParentDashboardContent() {
   const { user, isDemo } = useAuth();
@@ -456,7 +492,7 @@ function ParentDashboardContent() {
 
   const handlePayFees = () => {
     if (!selectedChild || feeStats.balance <= 0) {
-      toast.info("No outstanding fees for this learner.");
+      toast.info("There is nothing left to pay right now.");
       return;
     }
     router.push("/parent-portal/fees");
@@ -469,290 +505,302 @@ function ParentDashboardContent() {
   const hasFeeBalance = feeStats.balance > 0;
   const urgentUnreads = unreadCount > 0;
 
+  const childFirstName = child?.first_name || "your child";
+  const parentFirstName = user?.full_name?.trim().split(/\s+/)[0] || "";
+  const attendanceTone =
+    attendanceStatus === "present"
+      ? "bg-[var(--green-soft)] text-[var(--green-ink)]"
+      : attendanceStatus === "absent"
+        ? "bg-[var(--red-soft)] text-[var(--red-ink)]"
+        : attendanceStatus === "late"
+          ? "bg-[var(--amber-soft)] text-[var(--amber-ink)]"
+          : "bg-[var(--surface-container-low)] text-[var(--t2)]";
+  const attendanceLabel = childDataLoading
+    ? "Checking…"
+    : attendanceStatus
+      ? attendanceStatus.charAt(0).toUpperCase() + attendanceStatus.slice(1)
+      : "Not recorded";
+  const feePercent =
+    feeStats.status !== "unknown" && feeStats.expected > 0
+      ? Math.min(100, Math.round((feeStats.totalPaid / feeStats.expected) * 100))
+      : 0;
+
   return (
-    <ParentPortalShell pageTitle="Parent Portal">
-      <div className="w-full space-y-6 px-4 py-5 sm:px-6 lg:space-y-7 lg:px-8 lg:py-8">
-        <header className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--primary)]">Parent portal</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--t1)] sm:text-3xl">Portal Dashboard</h1>
-            <p className="mt-1 text-sm text-[var(--t3)]">
-              Welcome back{user?.full_name?.trim() ? `, ${user.full_name.trim().split(/\s+/)[0]}` : ""}. Here is what is
-              happening at school.
-            </p>
-          </div>
-          {urgentUnreads && (
-            <Link
-              href="/parent-portal/messages"
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--t2)] hover:bg-[var(--surface-container-low)]"
-            >
-              <MaterialIcon icon="notifications" size={18} />
-              {unreadCount} unread update{unreadCount === 1 ? "" : "s"}
-            </Link>
-          )}
+    <ParentPortalShell pageTitle="Home">
+      <div className="flex w-full flex-col gap-4 px-4 pb-4 pt-5 sm:gap-5 sm:px-6 sm:pt-6 lg:px-8">
+        <header>
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--t1)] sm:text-2xl">
+            Welcome back{parentFirstName ? `, ${parentFirstName}` : ""}
+          </h1>
+          <p className="mt-1 text-[13.5px] leading-6 text-[var(--t3)]">
+            {child
+              ? `Here is how things are going for ${childFirstName}${child.class_name ? ` in ${child.class_name}` : ""}.`
+              : "Here is what your school has shared with you."}
+          </p>
         </header>
 
         {childrenLoading ? (
-          <div className="flex min-h-40 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+          <div className="flex min-h-[8.5rem] items-center justify-center rounded-[18px] border border-[var(--border)] bg-[var(--surface)]">
             <div
-              className="flex items-center gap-3 text-sm font-medium text-[var(--t3)]"
+              className="flex items-center gap-3 text-[13.5px] font-medium text-[var(--t3)]"
               role="status"
               aria-live="polite"
             >
-              <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--primary-200)] border-t-[var(--primary)]" />
-              Loading linked learners…
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--border2)] border-t-[var(--primary)]" />
+              Getting your child&apos;s details…
             </div>
           </div>
         ) : children.length === 0 ? (
-          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-10 text-center shadow-[var(--sh1)] sm:px-8">
-            <OwlMascot size={52} premium ring glow animated />
-            <h2 className="mt-4 text-lg font-bold text-[var(--t1)]">No learners linked yet</h2>
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--t3)]">
-              Contact the school office to link your parent account and view attendance, fees, results, and school
-              notices.
+          <section className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] px-5 py-8 text-center shadow-[var(--sh1)] sm:px-8">
+            <OwlMascot size={54} premium ring glow animated />
+            <h2 className="mt-4 text-[17px] font-semibold text-[var(--t1)]">We cannot see your child yet</h2>
+            <p className="mx-auto mt-2 max-w-sm text-[13.5px] leading-6 text-[var(--t3)]">
+              Your phone number is not linked to your child at school. Ask the school office to add it, then come back
+              and sign in again.
             </p>
+            <Link
+              href="/login"
+              className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--primary)] px-5 text-sm font-semibold text-white transition-colors hover:bg-[var(--primary-600)]"
+            >
+              Sign in again
+            </Link>
           </section>
         ) : (
           <>
+            {/* Who this page is about. Identity first, because every number
+                below belongs to this one child. */}
             <section
-              aria-label="Choose a learner"
-              className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--sh1)] sm:p-5"
+              aria-label="Your child"
+              className="overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--sh1)]"
             >
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-sm font-bold text-[var(--t1)]">Your learners</h2>
-                  <p className="mt-0.5 text-xs text-[var(--t3)]">Choose a learner to see their school information.</p>
-                </div>
-                {child?.class_name && (
-                  <span className="hidden rounded-full bg-[var(--surface-container)] px-3 py-1 text-xs font-semibold text-[var(--t2)] sm:inline-flex">
-                    {child.class_name}
+              <div className="flex items-start gap-3.5 p-4 sm:gap-4 sm:p-5">
+                {child && <ChildAvatar child={child} size={56} />}
+                <div className="min-w-0 flex-1">
+                  <h2 className="truncate text-[18px] font-semibold leading-snug tracking-[-0.01em] text-[var(--t1)] sm:text-[19px]">
+                    {child?.first_name} {child?.last_name}
+                  </h2>
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[13px] text-[var(--t3)]">
+                    <span className="inline-flex items-center gap-1">
+                      <MaterialIcon icon="school" size={14} className="shrink-0" />
+                      {child?.class_name || "Class not set"}
+                    </span>
+                    {child?.student_number ? (
+                      <>
+                        <span aria-hidden="true" className="text-[var(--t4)]">
+                          ·
+                        </span>
+                        <span className="font-mono text-[12px]">{child.student_number}</span>
+                      </>
+                    ) : null}
+                  </p>
+                  <span
+                    className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-medium ${attendanceTone}`}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        attendanceStatus === "present"
+                          ? "bg-[var(--green)]"
+                          : attendanceStatus === "absent"
+                            ? "bg-[var(--red)]"
+                            : attendanceStatus === "late"
+                              ? "bg-[var(--amber)]"
+                              : "bg-[var(--t4)]"
+                      }`}
+                    />
+                    {attendanceLabel} today
                   </span>
-                )}
+                </div>
               </div>
-              <ChildSelector />
-              {child?.class_name && <p className="mt-2 text-xs text-[var(--t3)] sm:hidden">{child.class_name}</p>}
+              {children.length > 1 && (
+                <div className="border-t border-[var(--border)] px-4 py-3 sm:px-5">
+                  <p className="mb-2 text-[11.5px] text-[var(--t4)]">You are following more than one child</p>
+                  <ChildSelector label="child" />
+                </div>
+              )}
             </section>
 
-            <section aria-label="Learner overview" className="grid gap-4 sm:grid-cols-2">
-              <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--sh1)]">
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)]">
-                  Today&apos;s attendance
-                </p>
-                <div className="mt-3 flex items-center gap-3">
-                  <MaterialIcon
-                    icon={
-                      attendanceStatus === "present"
-                        ? "check_circle"
-                        : attendanceStatus === "absent"
-                          ? "cancel"
-                          : attendanceStatus === "late"
-                            ? "schedule"
-                            : "info"
-                    }
-                    size={26}
-                    className={
-                      attendanceStatus === "present"
-                        ? "text-[var(--green)]"
-                        : attendanceStatus === "absent"
-                          ? "text-[var(--red)]"
-                          : "text-[var(--primary)]"
-                    }
-                  />
-                  <p className="text-lg font-bold text-[var(--t1)]">
-                    {childDataLoading
-                      ? "Checking…"
-                      : attendanceStatus
-                        ? attendanceStatus.charAt(0).toUpperCase() + attendanceStatus.slice(1)
-                        : "Not recorded yet"}
-                  </p>
-                </div>
-                <p className="mt-2 text-xs text-[var(--t3)]">
-                  {todayAttendance?.notes ||
-                    (attendanceStatus
-                      ? "Attendance recorded for today."
-                      : "The school has not recorded attendance today.")}
-                </p>
-              </article>
-
-              <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--sh1)]">
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)]">Academic updates</p>
-                <div className="mt-3 flex items-center gap-3">
-                  <MaterialIcon icon="trending_up" size={26} className="text-[var(--primary)]" />
-                  <p className="text-lg font-bold text-[var(--t1)]">
-                    {childDataLoading
-                      ? "Loading results…"
-                      : grades.length
-                        ? `${grades.length} recent result${grades.length === 1 ? "" : "s"}`
-                        : "No results recorded yet"}
-                  </p>
-                </div>
-                <p className="mt-2 text-xs text-[var(--t3)]">
-                  Open results to see marks and report cards shared by the school.
-                </p>
-              </article>
-            </section>
-
+            {/* Money first after identity: it is the one thing a parent is
+                usually checking for. Statement, not an advert. */}
             <section
-              aria-label="Fee balance"
-              className="rounded-2xl bg-[#0045ad] p-5 text-white shadow-[var(--sh2)] sm:p-6"
+              aria-label="School fees"
+              className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--sh1)] sm:p-5"
             >
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/80">
-                    Outstanding fee balance
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[13px] font-medium text-[var(--t3)]">School fees</p>
+                  <p className="mt-1 text-[26px] font-semibold leading-none tracking-[-0.02em] text-[var(--t1)]">
+                    {childDataLoading ? (
+                      <span className="text-[var(--t3)]">Checking…</span>
+                    ) : feeStats.status === "unknown" ? (
+                      <span className="text-[18px] font-medium text-[var(--t2)]">No statement yet</span>
+                    ) : hasFeeBalance ? (
+                      `UGX ${feeStats.balance.toLocaleString()}`
+                    ) : (
+                      <span className="text-emerald-600 dark:text-emerald-400">Fully paid</span>
+                    )}
                   </p>
-                  <p className="mt-1 text-3xl font-black tracking-tight sm:text-4xl">
-                    {childDataLoading
-                      ? "Updating…"
-                      : feeStats.status === "unknown"
-                        ? "Not available"
-                        : `UGX ${feeStats.balance.toLocaleString()}`}
-                  </p>
-                  <p className="mt-3 text-xs text-white/80">
+                  <p className="mt-1.5 text-[13px] leading-5 text-[var(--t3)]">
                     {feeStats.status === "unknown"
-                      ? "The school has not shared a current fee statement."
+                      ? `The school has not shared a fee statement for ${childFirstName} yet.`
                       : hasFeeBalance
-                        ? `Paid so far: UGX ${feeStats.totalPaid.toLocaleString()}${nextDue ? ` · Next due ${nextDue.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}` : ""}`
-                        : "No outstanding balance is recorded."}
+                        ? `Left to pay${nextDue ? ` · due ${nextDue.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}` : ""}`
+                        : "Nothing outstanding. Thank you for keeping up to date."}
                   </p>
                 </div>
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10" aria-hidden="true">
-                  <MaterialIcon icon="account_balance_wallet" size={23} />
+                <span
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-container-low)] text-[var(--t3)]"
+                  aria-hidden="true"
+                >
+                  <MaterialIcon icon="receipt_long" size={20} />
                 </span>
               </div>
+
+              {feeStats.status !== "unknown" && (
+                <div className="mt-3.5">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-container-low)]">
+                    <div
+                      className={`h-full rounded-full ${hasFeeBalance ? "bg-[var(--primary)]" : "bg-emerald-500"}`}
+                      style={{ width: `${feePercent}%` }}
+                    />
+                  </div>
+                  <p className="mt-1.5 text-[11.5px] text-[var(--t4)]">
+                    UGX {feeStats.totalPaid.toLocaleString()} paid of UGX {feeStats.expected.toLocaleString()}
+                  </p>
+                </div>
+              )}
+
               <button
                 type="button"
                 onClick={handlePayFees}
-                className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-bold text-[#0045ad] transition hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="mt-3.5 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--primary-600)]"
               >
-                <MaterialIcon icon="payments" size={19} />
-                {hasFeeBalance ? "View and pay fees" : "View fee details"}
+                {hasFeeBalance ? "Pay fees" : "See fee details"}
               </button>
             </section>
 
-            <section aria-labelledby="parent-quick-links" className="space-y-3">
-              <div className="flex items-end justify-between gap-3">
-                <div>
-                  <h2 id="parent-quick-links" className="text-lg font-bold text-[var(--t1)]">
-                    Quick links
-                  </h2>
-                  <p className="mt-0.5 text-sm text-[var(--t3)]">Go straight to the information you need.</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--sh1)]">
+                <p className="text-[13px] font-medium text-[var(--t3)]">Results</p>
+                <p className="mt-1 text-[17px] font-semibold text-[var(--t1)]">
+                  {childDataLoading
+                    ? "Checking…"
+                    : grades.length
+                      ? `${grades.length} result${grades.length === 1 ? "" : "s"} shared`
+                      : "Nothing shared yet"}
+                </p>
+                <p className="mt-1 text-[12.5px] leading-5 text-[var(--t3)]">
+                  Marks and report cards the school has shared with you.
+                </p>
+                <Link
+                  href={`/parent-portal/results${selectedChild ? `?child=${selectedChild.id}` : ""}`}
+                  className="mt-2 inline-flex min-h-9 items-center gap-1 text-[13px] font-semibold text-[var(--primary)]"
+                >
+                  See progress
+                  <MaterialIcon icon="arrow_forward" size={15} />
+                </Link>
+              </article>
+
+              <article className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--sh1)]">
+                <p className="text-[13px] font-medium text-[var(--t3)]">Pocket money</p>
+                <p className="mt-1 text-[17px] font-semibold text-[var(--t1)]">
+                  {walletBalance === null ? "Not available" : `UGX ${walletBalance.toLocaleString()}`}
+                </p>
+                <p className="mt-1 text-[12.5px] leading-5 text-[var(--t3)]">
+                  For meals and snacks at the school canteen.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowTopup(true)}
+                  disabled={!selectedChild || !isOnline}
+                  className="mt-2 inline-flex min-h-9 items-center gap-1 text-[13px] font-semibold text-[var(--primary)] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Add money
+                  <MaterialIcon icon="add" size={15} />
+                </button>
+              </article>
+            </div>
+
+            <section aria-label="More about your child" className="space-y-2.5">
+              <h2 className="text-[15px] font-semibold text-[var(--t1)]">More</h2>
+              <div className="divide-y divide-[var(--border)] overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--sh1)]">
                 {[
-                  {
-                    href: "/parent-portal/results",
-                    label: "Results",
-                    icon: "grade",
-                    tone: "text-[var(--primary)] bg-[var(--primary-50)]",
-                  },
-                  {
-                    href: "/parent-portal/homework",
-                    label: "Homework",
-                    icon: "assignment",
-                    tone: "text-[#9a5a00] bg-[#fff5e6]",
-                  },
                   {
                     href: "/parent-portal/attendance",
                     label: "Attendance",
-                    icon: "history",
-                    tone: "text-[#168878] bg-[#e8f7f4]",
+                    hint: "Every day this term",
+                    icon: "fact_check",
                   },
-                  {
-                    href: "/parent-portal/messages",
-                    label: "Messages",
-                    icon: "chat_bubble",
-                    tone: "text-[#6650a4] bg-[#f2effb]",
-                  },
-                ].map((action) => (
+                  { href: "/parent-portal/homework", label: "Homework", hint: "What is due", icon: "assignment" },
+                  { href: "/parent-portal/timetable", label: "Timetable", hint: "The school day", icon: "schedule" },
+                  { href: "/parent-portal/events", label: "School calendar", hint: "Events and dates", icon: "event" },
+                ].map((item) => (
                   <Link
-                    key={action.href}
-                    href={`${action.href}${selectedChild ? `?child=${selectedChild.id}` : ""}`}
-                    className="flex min-h-[112px] flex-col items-start justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm font-bold text-[var(--t1)] shadow-[var(--sh1)] transition hover:border-[var(--border2)] hover:bg-[var(--surface-container-low)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--primary)] sm:min-h-[124px] sm:p-5"
+                    key={item.href}
+                    href={`${item.href}${selectedChild ? `?child=${selectedChild.id}` : ""}`}
+                    className="flex min-h-14 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-[var(--surface-container-low)]"
                   >
-                    <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${action.tone}`}>
-                      <MaterialIcon icon={action.icon} size={23} />
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-container-low)] text-[var(--t3)]">
+                      <MaterialIcon icon={item.icon} size={18} />
                     </span>
-                    <span className="mt-3 flex w-full items-center justify-between gap-2">
-                      {action.label}
-                      <MaterialIcon icon="arrow_forward" size={17} className="text-[var(--t3)]" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px] font-medium text-[var(--t1)]">{item.label}</span>
+                      <span className="block truncate text-[12px] text-[var(--t4)]">{item.hint}</span>
                     </span>
+                    <MaterialIcon icon="chevron_right" size={18} className="shrink-0 text-[var(--t4)]" />
                   </Link>
                 ))}
               </div>
             </section>
 
-            <section aria-label="Canteen wallet and school notices" className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
-              <article className="flex flex-col justify-between gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--sh1)] sm:flex-row sm:items-center lg:flex-col lg:items-start">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--surface-container)] text-[var(--primary)]">
-                    <MaterialIcon icon="wallet" size={22} />
-                  </span>
-                  <div>
-                    <h2 className="text-sm font-bold text-[var(--t1)]">Canteen wallet</h2>
-                    <p className="mt-1 text-lg font-bold text-[var(--t1)]">
-                      {walletBalance === null ? "Balance not available" : `UGX ${walletBalance.toLocaleString()}`}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowTopup(true)}
-                  disabled={!selectedChild || !isOnline}
-                  className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
+            <section
+              aria-labelledby="parent-school-updates"
+              className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--sh1)] sm:p-5"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <h2 id="parent-school-updates" className="text-[15px] font-semibold text-[var(--t1)]">
+                  From school
+                </h2>
+                <Link
+                  href="/parent-portal/notices"
+                  className="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-[13px] font-semibold text-[var(--primary)] transition-colors hover:bg-[var(--surface-container-low)]"
                 >
-                  Add pocket money
-                </button>
-              </article>
-
-              <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--sh1)]">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-lg font-bold text-[var(--t1)]">School notices</h2>
-                    <p className="mt-0.5 text-xs text-[var(--t3)]">Updates shared by your school.</p>
-                  </div>
-                  <Link
-                    href="/parent-portal/notices"
-                    className="inline-flex min-h-10 items-center gap-1 rounded-lg px-2 text-sm font-semibold text-[var(--primary)] hover:bg-[var(--surface-container-low)]"
-                  >
-                    View all <MaterialIcon icon="arrow_forward" size={16} />
-                  </Link>
-                </div>
-                {notices.length ? (
-                  <div className="mt-3 divide-y divide-[var(--border)]">
-                    {notices.slice(0, 3).map((notice, index) => (
-                      <div key={`${notice.title}-${notice.created_at}-${index}`} className="py-3 first:pt-2 last:pb-0">
-                        <div className="flex items-start justify-between gap-3">
-                          <h3 className="text-sm font-semibold text-[var(--t1)]">{notice.title}</h3>
-                          <time className="shrink-0 text-[11px] text-[var(--t3)]" dateTime={notice.created_at}>
-                            {new Date(notice.created_at).toLocaleDateString("en-GB", {
-                              day: "2-digit",
-                              month: "short",
-                            })}
-                          </time>
-                        </div>
-                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--t3)]">{notice.content}</p>
+                  All notices
+                  <MaterialIcon icon="arrow_forward" size={15} />
+                </Link>
+              </div>
+              {notices.length ? (
+                <div className="mt-1 divide-y divide-[var(--border)]">
+                  {notices.slice(0, 3).map((notice, index) => (
+                    <div key={`${notice.title}-${notice.created_at}-${index}`} className="py-3 last:pb-0">
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="text-[14px] font-medium text-[var(--t1)]">{notice.title}</h3>
+                        <time className="shrink-0 text-[11.5px] text-[var(--t4)]" dateTime={notice.created_at}>
+                          {new Date(notice.created_at).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                          })}
+                        </time>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="mt-4 rounded-xl bg-[var(--surface-container-low)] px-3 py-4 text-sm text-[var(--t3)]">
-                    No school notices to show right now.
-                  </p>
-                )}
-                {notifications.length > 0 && (
-                  <Link
-                    href="/parent-portal/messages"
-                    className="mt-3 inline-flex min-h-10 items-center gap-2 text-xs font-semibold text-[var(--primary)]"
-                  >
-                    {unreadCount
-                      ? `${unreadCount} unread update${unreadCount === 1 ? "" : "s"}`
-                      : `${notifications.length} recent updates`}
-                    <MaterialIcon icon="arrow_forward" size={15} />
-                  </Link>
-                )}
-              </article>
+                      <p className="mt-1 line-clamp-2 text-[12.5px] leading-5 text-[var(--t3)]">{notice.content}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 rounded-xl bg-[var(--surface-container-low)] px-3 py-3.5 text-[13px] text-[var(--t3)]">
+                  Nothing new from the school right now.
+                </p>
+              )}
+              {notifications.length > 0 && (
+                <Link
+                  href="/parent-portal/messages"
+                  className="mt-3 inline-flex min-h-9 items-center gap-1.5 text-[12.5px] font-semibold text-[var(--primary)]"
+                >
+                  {urgentUnreads
+                    ? `${unreadCount} unread update${unreadCount === 1 ? "" : "s"}`
+                    : `${notifications.length} recent update${notifications.length === 1 ? "" : "s"}`}
+                  <MaterialIcon icon="arrow_forward" size={15} />
+                </Link>
+              )}
             </section>
           </>
         )}
@@ -765,9 +813,10 @@ function ParentDashboardContent() {
         size="sm"
         className="max-h-[calc(100dvh-1.5rem)] overflow-y-auto"
       >
-        <div className="space-y-6">
-          <p className="text-sm text-[var(--t3)] font-medium">
-            Funds will be available immediately in {selectedChild?.first_name}&apos;s digital wallet.
+        <div className="space-y-5">
+          <p className="text-[13.5px] leading-6 text-[var(--t3)]">
+            Money goes straight into {selectedChild?.first_name || "your child"}&apos;s canteen wallet and can be spent
+            the same day.
           </p>
           <label htmlFor="parent-wallet-topup-amount" className="sr-only">
             Amount in Ugandan shillings
@@ -780,19 +829,24 @@ function ParentDashboardContent() {
             step="1000"
             value={topupAmount}
             onChange={(e) => setTopupAmount(e.target.value)}
-            placeholder="Amount (UGX)"
-            className="w-full px-6 py-4 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-xl text-2xl font-bold outline-none focus:ring-2 focus:ring-blue-900"
+            placeholder="Amount in UGX"
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-4 py-3.5 text-[22px] font-semibold text-[var(--t1)] outline-none focus:border-[var(--primary)]"
           />
-          <div className="flex gap-2 flex-wrap" aria-label="Suggested top-up amounts">
+          <div className="flex flex-wrap gap-2" aria-label="Suggested amounts">
             {[1000, 2000, 5000, 10000, 20000].map((a) => (
               <button
                 key={a}
                 type="button"
                 onClick={() => setTopupAmount(a.toString())}
                 aria-label={`Set amount to ${a.toLocaleString()} Ugandan shillings`}
-                className="flex-1 min-w-[64px] py-3 rounded-xl border border-[var(--border)] text-sm font-bold text-[var(--t2)] hover:border-blue-900 hover:text-blue-900 transition-colors"
+                aria-pressed={topupAmount === a.toString()}
+                className={`min-h-11 flex-1 basis-[4.5rem] rounded-xl border px-2 text-sm font-medium transition-colors ${
+                  topupAmount === a.toString()
+                    ? "border-[var(--primary)] bg-[var(--primary-50)] text-[var(--primary)]"
+                    : "border-[var(--border)] text-[var(--t2)] hover:bg-[var(--surface-container-low)]"
+                }`}
               >
-                +{a / 1000}k
+                {a.toLocaleString()}
               </button>
             ))}
           </div>
@@ -800,17 +854,18 @@ function ParentDashboardContent() {
             type="button"
             onClick={handleTopup}
             disabled={!topupAmount || Number(topupAmount) <= 0 || topupLoading}
-            className="w-full py-4 bg-blue-900 text-white rounded-xl font-bold uppercase tracking-wide hover:bg-blue-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-3"
+            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--primary-600)] disabled:opacity-50"
           >
             {topupLoading ? (
               <span
                 role="status"
-                aria-label="Processing top-up"
-                className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"
+                aria-label="Adding money"
+                className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"
               />
             ) : (
               <>
-                <MaterialIcon icon="bolt" /> Confirm Top-up
+                <MaterialIcon icon="add" size={18} />
+                Add money
               </>
             )}
           </button>
