@@ -1,6 +1,21 @@
 import { logger } from "@/lib/logger";
 import { randomUUID } from "crypto";
 import { APP_NAME } from "@/lib/app-name";
+import {
+  cacheProviderToken,
+  providerTokenCacheKey,
+  readCachedProviderToken,
+} from "@/lib/payments/provider-token-cache";
+
+export class MobileMoneyProviderError extends Error {
+  readonly outcome: "rejected" | "unknown";
+
+  constructor(message: string, outcome: "rejected" | "unknown") {
+    super(message);
+    this.name = "MobileMoneyProviderError";
+    this.outcome = outcome;
+  }
+}
 
 // ─── MoneyUnify API ───────────────────────────────────────────────────────────
 // Docs: https://owk7kqf8sn.apidog.io/
@@ -111,15 +126,21 @@ export class MoneyUnifyClient {
 // ─── MTN MoMo REST API ────────────────────────────────────────────────────────
 // Docs: https://momodeveloper.mtn.com/api-documentation
 const MOMO_SANDBOX_BASE_URL = "https://sandbox.momodeveloper.mtn.com";
-const MOMO_PROD_BASE_URL = "https://proxy.momoapi.mtn.com";
+// MTN's Uganda production platform migrated from proxy.momoapi.mtn.com in
+// October 2026. The old host and API User/API Key pair are no longer valid on
+// the new platform.
+const MOMO_PROD_BASE_URL = "https://momoapi.momo.africa";
 
-function getBaseUrl(): string {
-  const env = (process.env.MTN_MOMO_ENVIRONMENT || "sandbox").toLowerCase();
-  return env === "sandbox" ? MOMO_SANDBOX_BASE_URL : MOMO_PROD_BASE_URL;
+export interface MtnMomoCredentials {
+  subscriptionKey: string;
+  userId: string;
+  credentialToken: string;
+  environment: "sandbox" | "production";
+  targetEnvironment?: string;
 }
 
-function getTargetEnvironment(): string {
-  return process.env.MTN_MOMO_ENVIRONMENT || "sandbox";
+function getBaseUrl(environment: string): string {
+  return environment === "sandbox" ? MOMO_SANDBOX_BASE_URL : MOMO_PROD_BASE_URL;
 }
 
 interface MomoTokenResponse {
@@ -144,17 +165,34 @@ export class MtnMomoClient {
   private subscriptionKey: string;
   private apiUser: string;
   private apiKey: string;
+  private environment: "sandbox" | "production";
+  private targetEnvironment: string;
 
-  constructor() {
-    this.subscriptionKey = process.env.MTN_MOMO_COLLECTION_SUBSCRIPTION_KEY || "";
-    this.apiUser = process.env.MTN_MOMO_API_USER || "";
-    this.apiKey = process.env.MTN_MOMO_API_KEY || "";
+  constructor(credentials?: MtnMomoCredentials) {
+    this.environment =
+      credentials?.environment ??
+      ((process.env.MTN_MOMO_ENVIRONMENT || "sandbox").toLowerCase() === "production" ? "production" : "sandbox");
+    this.targetEnvironment =
+      credentials?.targetEnvironment ||
+      (this.environment === "sandbox" ? "sandbox" : process.env.MTN_MOMO_TARGET_ENVIRONMENT || "mtnuganda");
+    this.subscriptionKey = credentials?.subscriptionKey || process.env.MTN_MOMO_COLLECTION_SUBSCRIPTION_KEY || "";
+    // Production on the migrated MTN API requires User ID + Credential Token.
+    // Keep the old variables only for the sandbox and old subscriptions that
+    // have not yet moved to the production API.
+    this.apiUser =
+      credentials?.userId ||
+      (this.environment === "production" ? process.env.MTN_MOMO_USER_ID || "" : process.env.MTN_MOMO_API_USER || "");
+    this.apiKey =
+      credentials?.credentialToken ||
+      (this.environment === "production"
+        ? process.env.MTN_MOMO_CREDENTIAL_TOKEN || ""
+        : process.env.MTN_MOMO_API_KEY || "");
   }
 
   private assertConfigured(): void {
     if (!this.subscriptionKey || !this.apiUser || !this.apiKey) {
       throw new Error(
-        "MTN MoMo payments are not configured. Set MTN_MOMO_COLLECTION_SUBSCRIPTION_KEY, MTN_MOMO_API_USER, and MTN_MOMO_API_KEY in your environment variables.",
+        "MTN MoMo payments are not configured. Add the collection subscription key and the credentials for the selected MTN environment.",
       );
     }
   }
@@ -162,24 +200,37 @@ export class MtnMomoClient {
   async getAccessToken(): Promise<string> {
     this.assertConfigured();
 
+    const cacheKey = providerTokenCacheKey("mtn-momo", [
+      this.environment,
+      this.targetEnvironment,
+      this.subscriptionKey,
+      this.apiUser,
+      this.apiKey,
+    ]);
+    const cached = readCachedProviderToken(cacheKey);
+    if (cached) return cached;
+
     const credentials = Buffer.from(`${this.apiUser}:${this.apiKey}`).toString("base64");
-    const url = `${getBaseUrl()}/collection/token/`;
+    const url = `${getBaseUrl(this.environment)}/collection/token/`;
 
     const response = await fetch(url, {
       method: "POST",
       headers: {
         Authorization: `Basic ${credentials}`,
         "Ocp-Apim-Subscription-Key": this.subscriptionKey,
+        "X-Target-Environment": this.targetEnvironment,
       },
     });
 
     if (!response.ok) {
-      const text = await response.text();
-      logger.error("MTN MoMo token error:", text);
-      throw new Error(`MTN MoMo auth failed (${response.status}): ${text}`);
+      logger.error("MTN MoMo token request failed", { status: response.status });
+      throw new Error(
+        `MTN MoMo connection failed (${response.status}). Check the merchant credentials and environment.`,
+      );
     }
 
     const data = (await response.json()) as MomoTokenResponse;
+    cacheProviderToken(cacheKey, data.access_token, data.expires_in);
     return data.access_token;
   }
 
@@ -194,17 +245,18 @@ export class MtnMomoClient {
     payerMessage?: string;
     payeeNote?: string;
     callbackUrl?: string;
+    referenceId?: string;
   }): Promise<string> {
     this.assertConfigured();
 
-    const referenceId = randomUUID();
+    const referenceId = params.referenceId || randomUUID();
     const token = await this.getAccessToken();
-    const url = `${getBaseUrl()}/collection/v1_0/requesttopay`;
+    const url = `${getBaseUrl(this.environment)}/collection/v1_0/requesttopay`;
 
     const headers: Record<string, string> = {
       Authorization: `Bearer ${token}`,
       "X-Reference-Id": referenceId,
-      "X-Target-Environment": getTargetEnvironment(),
+      "X-Target-Environment": this.targetEnvironment,
       "Ocp-Apim-Subscription-Key": this.subscriptionKey,
       "Content-Type": "application/json",
     };
@@ -217,7 +269,7 @@ export class MtnMomoClient {
     const body = {
       amount: String(params.amount),
       currency: "UGX",
-      externalId: params.externalId,
+      externalId: params.externalId || referenceId,
       payer: {
         partyIdType: "MSISDN",
         partyId: params.phone,
@@ -226,16 +278,29 @@ export class MtnMomoClient {
       payeeNote: params.payeeNote || `${APP_NAME} Subscription Payment`,
     };
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-    });
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      });
+    } catch {
+      throw new MobileMoneyProviderError(
+        "MTN did not return a response. The payment status is being checked.",
+        "unknown",
+      );
+    }
 
     if (response.status !== 202) {
-      const text = await response.text();
-      logger.error("MTN MoMo requesttopay error:", text);
-      throw new Error(`MTN MoMo request-to-pay failed (${response.status}): ${text}`);
+      // A response from MTN means the request was rejected; the caller may
+      // safely mark the intent failed. Network exceptions are handled as an
+      // unknown outcome because MTN may have accepted the request.
+      logger.error("MTN MoMo request-to-pay was rejected", { status: response.status });
+      throw new MobileMoneyProviderError(
+        `MTN MoMo did not accept the payment request (${response.status}).`,
+        "rejected",
+      );
     }
 
     return referenceId;
@@ -245,21 +310,20 @@ export class MtnMomoClient {
     this.assertConfigured();
 
     const token = await this.getAccessToken();
-    const url = `${getBaseUrl()}/collection/v1_0/requesttopay/${referenceId}`;
+    const url = `${getBaseUrl(this.environment)}/collection/v1_0/requesttopay/${referenceId}`;
 
     const response = await fetch(url, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
-        "X-Target-Environment": getTargetEnvironment(),
+        "X-Target-Environment": this.targetEnvironment,
         "Ocp-Apim-Subscription-Key": this.subscriptionKey,
       },
     });
 
     if (!response.ok) {
-      const text = await response.text();
-      logger.error("MTN MoMo status check error:", text);
-      throw new Error(`MTN MoMo status check failed (${response.status}): ${text}`);
+      logger.error("MTN MoMo status check failed", { status: response.status });
+      throw new Error(`MTN MoMo status check failed (${response.status}).`);
     }
 
     return (await response.json()) as MomoPaymentStatusResponse;

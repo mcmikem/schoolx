@@ -6,6 +6,7 @@ import { useToast } from "@/components/Toast";
 import { useAuth } from "@/lib/auth-context";
 import { loadSchoolSetting, saveSchoolSetting } from "@/lib/school-settings";
 import { getMessagingCapability, CHANNEL_SETTING_KEY, type MessagingChannel } from "@/lib/messaging";
+import SchoolMobileMoneySettings from "@/components/settings/SchoolMobileMoneySettings";
 
 const TEMPLATE_KEYS = [
   { kind: "fee_reminder", label: "Fee reminder" },
@@ -229,6 +230,8 @@ export default function MessagingPaymentsSettings() {
           </p>
         </div>
       </div>
+
+      <SchoolMobileMoneySettings />
 
       <Button onClick={save} loading={saving} className="btn btn-primary">
         Save changes

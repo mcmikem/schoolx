@@ -1,14 +1,14 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import OwlMascot from "@/components/brand/OwlMascot";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { ChildSelector } from "@/components/parent-portal/ChildSelector";
+import ParentMobileMoneyCheckout from "@/components/parent-portal/ParentMobileMoneyCheckout";
 import { useParentPortal } from "@/components/parent-portal/ParentPortalProvider";
 import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
-import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/Toast";
 import { useAuth } from "@/lib/auth-context";
 import { getLocalDateString, timeoutFallback, withTimeout } from "@/lib/hooks/utils";
@@ -73,8 +73,6 @@ function ParentDashboardContent() {
   const { children, selectedChild, loading: childrenLoading } = useParentPortal();
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [showTopup, setShowTopup] = useState(false);
-  const [topupAmount, setTopupAmount] = useState("");
-  const [topupLoading, setTopupLoading] = useState(false);
   const [notices, setNotices] = useState<ParentPortalNotice[]>([]);
   const [attendance, setAttendance] = useState<ParentPortalAttendanceRecord[]>([]);
   const [grades, setGrades] = useState<ParentPortalGradeRecord[]>([]);
@@ -448,47 +446,20 @@ function ParentDashboardContent() {
     };
   }, [user?.id, isDemo, toast, isOnline]);
 
-  const handleTopup = async () => {
-    const amount = Number(topupAmount);
-    if (!selectedChild || !Number.isFinite(amount) || amount <= 0) {
-      toast.error("Enter a valid amount greater than zero.");
-      return;
-    }
-    setTopupLoading(true);
-    if (isDemo) {
-      await new Promise((r) => setTimeout(r, 1000));
-      setWalletBalance((prev) => (prev ?? 0) + amount);
-      setTopupAmount("");
-      setShowTopup(false);
-      setTopupLoading(false);
-      return;
-    }
-    try {
-      const { error } = await withTimeout(
-        supabase.rpc("topup_student_wallet", {
-          p_student_id: child.id,
-          p_amount: amount,
-          p_description: "Top-up by Parent via Portal",
-          p_ref: `PAR-${Date.now()}`,
-          // Deliberately null: recorded_by is a staff column, and this is the
-          // parent paying. The description already says who acted, so the row
-          // explains itself instead of carrying an unattributed gap.
-          p_recorded_by: null,
-        }),
-        12000,
-        timeoutFallback(),
-      );
-      if (error) throw error;
-      setWalletBalance((prev) => (prev ?? 0) + amount);
-      setTopupAmount("");
-      setShowTopup(false);
-      toast.success("Pocket money added successfully.");
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Top-up failed");
-    } finally {
-      setTopupLoading(false);
-    }
-  };
+  const handleWalletPaymentConfirmed = useCallback(
+    async (amount: number) => {
+      setWalletBalance((previous) => (previous ?? 0) + amount);
+      if (selectedChild && !isDemo) {
+        const { data } = await supabase
+          .from("student_wallets")
+          .select("balance")
+          .eq("student_id", selectedChild.id)
+          .maybeSingle();
+        if (data) setWalletBalance(Number(data.balance || 0));
+      }
+    },
+    [selectedChild, isDemo],
+  );
 
   const handlePayFees = () => {
     if (!selectedChild || feeStats.balance <= 0) {
@@ -806,71 +777,14 @@ function ParentDashboardContent() {
         )}
       </div>
 
-      <Modal
+      <ParentMobileMoneyCheckout
         isOpen={showTopup}
         onClose={() => setShowTopup(false)}
-        title="Add Pocket Money"
-        size="sm"
-        className="max-h-[calc(100dvh-1.5rem)] overflow-y-auto"
-      >
-        <div className="space-y-5">
-          <p className="text-[13.5px] leading-6 text-[var(--t3)]">
-            Money goes straight into {selectedChild?.first_name || "your child"}&apos;s canteen wallet and can be spent
-            the same day.
-          </p>
-          <label htmlFor="parent-wallet-topup-amount" className="sr-only">
-            Amount in Ugandan shillings
-          </label>
-          <input
-            id="parent-wallet-topup-amount"
-            type="number"
-            inputMode="numeric"
-            min="1"
-            step="1000"
-            value={topupAmount}
-            onChange={(e) => setTopupAmount(e.target.value)}
-            placeholder="Amount in UGX"
-            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-4 py-3.5 text-[22px] font-semibold text-[var(--t1)] outline-none focus:border-[var(--primary)]"
-          />
-          <div className="flex flex-wrap gap-2" aria-label="Suggested amounts">
-            {[1000, 2000, 5000, 10000, 20000].map((a) => (
-              <button
-                key={a}
-                type="button"
-                onClick={() => setTopupAmount(a.toString())}
-                aria-label={`Set amount to ${a.toLocaleString()} Ugandan shillings`}
-                aria-pressed={topupAmount === a.toString()}
-                className={`min-h-11 flex-1 basis-[4.5rem] rounded-xl border px-2 text-sm font-medium transition-colors ${
-                  topupAmount === a.toString()
-                    ? "border-[var(--primary)] bg-[var(--primary-50)] text-[var(--primary)]"
-                    : "border-[var(--border)] text-[var(--t2)] hover:bg-[var(--surface-container-low)]"
-                }`}
-              >
-                {a.toLocaleString()}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={handleTopup}
-            disabled={!topupAmount || Number(topupAmount) <= 0 || topupLoading}
-            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--primary-600)] disabled:opacity-50"
-          >
-            {topupLoading ? (
-              <span
-                role="status"
-                aria-label="Adding money"
-                className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"
-              />
-            ) : (
-              <>
-                <MaterialIcon icon="add" size={18} />
-                Add money
-              </>
-            )}
-          </button>
-        </div>
-      </Modal>
+        child={selectedChild}
+        purpose="wallet_topup"
+        isDemo={isDemo}
+        onPaymentConfirmed={handleWalletPaymentConfirmed}
+      />
     </ParentPortalShell>
   );
 }

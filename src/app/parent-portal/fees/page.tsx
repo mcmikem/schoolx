@@ -13,6 +13,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button, StatStrip } from "@/components/ui/index";
 import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
 import { ChildSelector } from "@/components/parent-portal/ChildSelector";
+import ParentMobileMoneyCheckout from "@/components/parent-portal/ParentMobileMoneyCheckout";
 import { useParentPortal } from "@/components/parent-portal/ParentPortalProvider";
 import {
   calculateFeeStats,
@@ -41,8 +42,6 @@ const WALLET_BADGE_STYLES: Record<ParentPortalWalletTransaction["type"], string>
   adjustment: "bg-[var(--surface-container)] text-[var(--t2)] border-[var(--border)]",
 };
 
-const QUICK_TOPUP_AMOUNTS = [5000, 10000, 20000, 50000] as const;
-
 export default function ParentFeesPage() {
   const { isDemo } = useAuth();
   const isOnline = useOnlineStatus();
@@ -58,9 +57,8 @@ export default function ParentFeesPage() {
   const [clearance, setClearance] = useState<{ isCleared: boolean; balance: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [showTopup, setShowTopup] = useState(false);
-  const [topupAmount, setTopupAmount] = useState("");
-  const [topupLoading, setTopupLoading] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
+  const [showInAppPayModal, setShowInAppPayModal] = useState(false);
   const [payAmount, setPayAmount] = useState("");
   const [payMethod, setPayMethod] = useState<"mobile_money" | "cash" | "bank" | "in_kind">("mobile_money");
   const [payReference, setPayReference] = useState("");
@@ -313,72 +311,58 @@ export default function ParentFeesPage() {
     setShowPayModal(true);
   };
 
-  const handleTopup = async () => {
-    if (!selectedChild) return;
-    const amount = Number(topupAmount);
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-      toast.error("Enter a valid top-up amount.");
-      return;
-    }
-
-    setTopupLoading(true);
-
-    if (isDemo) {
-      const createdAt = new Date().toISOString();
-      setWalletBalance((current) => current + amount);
-      setWalletTransactions((current) => [
-        {
-          id: `demo-wallet-${Date.now()}`,
-          amount,
-          type: "topup",
-          reference: `PAR-${Date.now()}`,
-          description: "Pocket money top-up",
-          created_at: createdAt,
-        },
-        ...current,
-      ]);
-      setTopupAmount("");
-      setShowTopup(false);
-      setTopupLoading(false);
-      toast.success("Pocket money added successfully.");
-      return;
-    }
-
-    try {
-      const { error } = await withTimeout(
-        supabase.rpc("topup_student_wallet", {
-          p_student_id: selectedChild.id,
-          p_amount: amount,
-          p_description: "Top-up by Parent via Portal",
-          p_ref: `PAR-${Date.now()}`,
-          // Deliberately null: recorded_by is a staff column, and this is the
-          // parent paying. The description already says who acted, so the row
-          // explains itself instead of carrying an unattributed gap.
-          p_recorded_by: null,
-        }),
-        12000,
-        timeoutFallback(),
-      );
-
-      if (error) {
-        throw error;
+  const handleWalletTopupConfirmed = useCallback(
+    async (amount: number) => {
+      if (isDemo) {
+        const createdAt = new Date().toISOString();
+        const reference = `DEMO-${Date.now()}`;
+        setWalletBalance((current) => current + amount);
+        setWalletTransactions((current) => [
+          {
+            id: `demo-wallet-${Date.now()}`,
+            amount,
+            type: "topup",
+            reference,
+            description: "Demo pocket money top-up",
+            created_at: createdAt,
+          },
+          ...current,
+        ]);
+        return;
       }
+      if (selectedChild) await fetchFees(selectedChild);
+    },
+    [fetchFees, isDemo, selectedChild],
+  );
 
-      await fetchFees(selectedChild);
-      setTopupAmount("");
-      setShowTopup(false);
-      toast.success("Pocket money added successfully.");
-    } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : "Top-up failed");
-    } finally {
-      setTopupLoading(false);
-    }
+  const handleFeePaymentConfirmed = useCallback(
+    async (amount: number) => {
+      if (isDemo) {
+        const reference = `DEMO-${Date.now()}`;
+        setPayments((current) => [
+          {
+            id: `demo-fee-payment-${Date.now()}`,
+            amount_paid: amount,
+            payment_date: new Date().toISOString(),
+            payment_method: "Mobile Money (demo)",
+            payment_reference: reference,
+          },
+          ...current,
+        ]);
+        return;
+      }
+      if (selectedChild) await fetchFees(selectedChild);
+    },
+    [fetchFees, isDemo, selectedChild],
+  );
+
+  const openInAppFeePayment = () => {
+    setShowPayModal(false);
+    setShowInAppPayModal(true);
   };
 
-  // Manual payment flow. The parent pays the school directly (Momo/Airtel/cash)
-  // and tells us about it here; the bursar confirms once the money lands. This
-  // replaces the in-app mobile-money push, which is deferred.
+  // Manual claim flow for payments made outside the app. The bursar confirms
+  // the funds before the fee balance changes.
   const submitPaymentClaim = async () => {
     if (!selectedChild) return;
     const amountValue = Number(payAmount);
@@ -742,62 +726,24 @@ export default function ParentFeesPage() {
           </Card>
         </div>
 
-        {showTopup && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-hidden="true" />
-            <div className="relative bg-[var(--surface)] rounded-3xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8 space-y-5">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-xl font-black text-[var(--on-surface)]">Add Pocket Money</h2>
-                  <p className="text-sm text-[var(--on-surface-variant)]">
-                    {selectedChild ? `Top up ${selectedChild.first_name}'s canteen wallet` : "Choose your child first"}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowTopup(false)}
-                  className="p-2 hover:bg-[var(--surface-container)] rounded-xl"
-                >
-                  <MaterialIcon icon="close" />
-                </button>
-              </div>
+        <ParentMobileMoneyCheckout
+          isOpen={showTopup}
+          onClose={() => setShowTopup(false)}
+          child={selectedChild}
+          purpose="wallet_topup"
+          isDemo={isDemo}
+          onPaymentConfirmed={handleWalletTopupConfirmed}
+        />
 
-              <div>
-                <label className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
-                  Amount (UGX)
-                </label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={topupAmount}
-                  onChange={(event) => setTopupAmount(event.target.value)}
-                  placeholder="e.g. 10000"
-                  className="input w-full"
-                />
-              </div>
-
-              <div className="grid grid-cols-4 gap-2">
-                {QUICK_TOPUP_AMOUNTS.map((amount) => (
-                  <button
-                    key={amount}
-                    onClick={() => setTopupAmount(amount.toString())}
-                    className="rounded-xl border border-[var(--border)] py-2 text-xs font-black text-[var(--on-surface-variant)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
-                  >
-                    {amount.toLocaleString()}
-                  </button>
-                ))}
-              </div>
-
-              <Button
-                onClick={handleTopup}
-                disabled={!selectedChild || !topupAmount.trim() || topupLoading}
-                loading={topupLoading}
-                className="w-full"
-              >
-                <MaterialIcon icon="add_card" /> Confirm Top-up
-              </Button>
-            </div>
-          </div>
-        )}
+        <ParentMobileMoneyCheckout
+          isOpen={showInAppPayModal}
+          onClose={() => setShowInAppPayModal(false)}
+          child={selectedChild}
+          purpose="fee_payment"
+          defaultAmount={payAmount}
+          isDemo={isDemo}
+          onPaymentConfirmed={handleFeePaymentConfirmed}
+        />
 
         {showPayModal && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
@@ -819,6 +765,13 @@ export default function ParentFeesPage() {
 
               {payStep === "form" ? (
                 <>
+                  <Button onClick={openInAppFeePayment} disabled={!selectedChild || !isOnline} className="w-full">
+                    <MaterialIcon icon="phone_android" /> Pay now with mobile money
+                  </Button>
+                  <p className="-mt-2 text-center text-xs text-[var(--on-surface-variant)]">
+                    Approve the request on your phone. Your fee balance updates after confirmation.
+                  </p>
+
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4 space-y-3">
                     <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)]">
                       Send your payment to
@@ -983,16 +936,6 @@ export default function ParentFeesPage() {
                   <p className="text-xs text-[var(--t3)] text-center leading-relaxed">
                     Your balance updates once the school confirms they received the money.
                   </p>
-
-                  <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-container-low)] p-3">
-                    <p className="text-xs text-[var(--t3)] flex items-start gap-2">
-                      <MaterialIcon icon="schedule" className="text-sm shrink-0" />
-                      <span>
-                        <span className="font-bold text-[var(--t2)]">Coming soon:</span> paying straight from this
-                        portal without leaving the app. For now, pay the school directly and tell us here.
-                      </span>
-                    </p>
-                  </div>
                 </>
               ) : (
                 <div className="flex flex-col items-center text-center gap-4 py-6">
