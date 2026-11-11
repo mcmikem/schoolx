@@ -4,6 +4,24 @@ import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
+// Try to get the R2 bucket binding when running on Cloudflare Workers.
+// Falls back to null in local dev (where the binding isn't available).
+async function getR2Bucket(): Promise<{
+  put: (key: string, value: string | ArrayBuffer | ReadableStream) => Promise<unknown>;
+} | null> {
+  try {
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    const ctx = getCloudflareContext({ async: true }) as {
+      env?: {
+        SCHOOL_BACKUPS?: { put: (key: string, value: string | ArrayBuffer | ReadableStream) => Promise<unknown> };
+      };
+    };
+    return ctx?.env?.SCHOOL_BACKUPS ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function toCsv(rows: Record<string, unknown>[]): string {
   if (!rows.length) return "";
   const headers = Object.keys(rows[0]);
@@ -56,17 +74,28 @@ export async function GET(request: NextRequest) {
       const attendanceCsv = toCsv(schoolAttendance as Record<string, unknown>[]);
 
       const base = `${school.id}/${date}`;
+      const r2 = await getR2Bucket();
       if (studentsCsv) {
-        const { error } = await supabase.storage
-          .from("school-backups")
-          .upload(`${base}/students.csv`, new Blob([studentsCsv], { type: "text/csv" }), { upsert: true });
-        if (!error) results.files += 1;
+        if (r2) {
+          await r2.put(`${base}/students.csv`, studentsCsv);
+          results.files += 1;
+        } else {
+          const { error } = await supabase.storage
+            .from("school-backups")
+            .upload(`${base}/students.csv`, new Blob([studentsCsv], { type: "text/csv" }), { upsert: true });
+          if (!error) results.files += 1;
+        }
       }
       if (attendanceCsv) {
-        const { error } = await supabase.storage
-          .from("school-backups")
-          .upload(`${base}/attendance.csv`, new Blob([attendanceCsv], { type: "text/csv" }), { upsert: true });
-        if (!error) results.files += 1;
+        if (r2) {
+          await r2.put(`${base}/attendance.csv`, attendanceCsv);
+          results.files += 1;
+        } else {
+          const { error } = await supabase.storage
+            .from("school-backups")
+            .upload(`${base}/attendance.csv`, new Blob([attendanceCsv], { type: "text/csv" }), { upsert: true });
+          if (!error) results.files += 1;
+        }
       }
     } catch (e) {
       results.errors.push(`${school.id}: ${e instanceof Error ? e.message : String(e)}`);
