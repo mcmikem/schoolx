@@ -38,10 +38,10 @@ export const metadata: Metadata = {
     siteName: APP_NAME,
     images: [
       {
-        url: "/icons/icon-512x512.png",
-        width: 512,
-        height: 512,
-        alt: APP_NAME,
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "SkoolMate OS — school management system for Ugandan schools",
       },
     ],
   },
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: `${APP_NAME} | Your Digital School Partner`,
     description: "Run your entire school from one dashboard. Attendance, grades, fees, and parent SMS.",
-    images: ["/icons/icon-512x512.png"],
+    images: ["/og-image.png"],
   },
 };
 
