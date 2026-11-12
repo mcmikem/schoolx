@@ -229,13 +229,13 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('push', (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch { data = { title: 'SkoolMate OS', body: event.data ? event.data.text() : '' }; }
-  const title = (data as any).title || 'SkoolMate OS';
+  const title = data.title || 'SkoolMate OS';
   const options = {
-    body: (data as any).body || '',
+    body: data.body || '',
     icon: '/icons/icon-192x192.png',
     badge: '/icons/icon-192-maskable.png',
-    data: (data as any).url || '/dashboard/',
-    tag: (data as any).tag || 'skoolmate',
+    data: data.url || '/dashboard/',
+    tag: data.tag || 'skoolmate',
     renotify: true,
   };
   event.waitUntil(self.registration.showNotification(title, options));
@@ -250,7 +250,7 @@ self.addEventListener('notificationclick', (event) => {
       for (const client of allClients) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
           await client.focus();
-          if ('navigate' in client) await (client as any).navigate(url);
+          if ('navigate' in client) await client.navigate(url);
           return;
         }
       }

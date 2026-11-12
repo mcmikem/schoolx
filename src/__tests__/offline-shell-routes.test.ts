@@ -45,6 +45,10 @@ describe("offline shell labels substitutions", () => {
     expect(sw).toContain("markOfflineFallback(nearest, url.pathname)");
   });
 
+  it("keeps the service worker valid browser JavaScript", () => {
+    expect(() => execFileSync(process.execPath, ["--check", path.join(ROOT, "public/sw.js")])).not.toThrow();
+  });
+
   it("accepts background route warm-ups from the signed-in app", () => {
     expect(sw).toContain("WARM_ROUTE");
     expect(sw).toContain("warmRoute");
