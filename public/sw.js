@@ -1,7 +1,7 @@
 // Bumped by hand only as an emergency: prebuild stamps this with the build id
 // on every real deploy. Raised here so installs already holding a stale runtime
 // chunk purge their caches the moment this worker activates.
-const CACHE_VERSION = 'skoolmate-202611100545';
+const CACHE_VERSION = 'skoolmate-2026111201';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -201,9 +201,10 @@ self.addEventListener('install', (event) => {
         return Promise.allSettled(PAGES_TO_CACHE.map((url) => cache.add(url)));
       }),
       warmAppShell(),
-      // Deliberately no skipWaiting() here. A new worker waits so the app can
-      // detect it and offer "Update now". Skipping would activate it silently,
-      // leaving the page on the previous build with no way to prompt.
+      // Auto-activate so users always get the latest build on next launch.
+      // Without this, a waiting worker never takes control and the user
+      // stays on stale cached pages (login flash, old manifest, etc.).
+      self.skipWaiting(),
     ])
   );
 });
