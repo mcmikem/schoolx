@@ -29,6 +29,7 @@ import {
   ParentPortalPayment,
   pickPreferredSchemaRows,
 } from "@/lib/parent-portal";
+import { cacheAside } from "@/lib/cache";
 import { supabase } from "@/lib/supabase";
 
 /**
@@ -123,21 +124,26 @@ function ParentDashboardContent() {
         return;
       }
       try {
-        const { data: noticeData, error: noticeErr } = await withTimeout(
-          supabase
-            .from("notices")
-            .select("title, content, created_at, type")
-            .eq("school_id", schoolId)
-            .in("target_audience", ["all", "parents"])
-            .order("created_at", { ascending: false })
-            .limit(5),
-          12000,
-          timeoutFallback(),
+        const noticeData = await cacheAside(
+          `notices:${schoolId}`,
+          async () => {
+            const { data, error } = await withTimeout(
+              supabase
+                .from("notices")
+                .select("title, content, created_at, type")
+                .eq("school_id", schoolId)
+                .in("target_audience", ["all", "parents"])
+                .order("created_at", { ascending: false })
+                .limit(5),
+              12000,
+              timeoutFallback(),
+            );
+            if (error || !data) return [];
+            return data;
+          },
+          { ttl: 300 },
         );
-
-        if (!noticeErr && noticeData) {
-          setNotices(noticeData);
-        }
+        setNotices(noticeData as ParentPortalNotice[]);
       } catch (noticeErr) {
         logger.warn("Failed to fetch parent notices:", noticeErr);
         setNotices([]);
