@@ -14,7 +14,7 @@ import DeferredChrome from "./deferred-chrome";
 import Providers from "./providers";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://omuto.org"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://skoolmate.omuto.org"),
   title: `${APP_NAME} | Your Digital School Partner`,
   description:
     "The all-in-one school management system built for Ugandan schools. Track attendance, grades, fees, and send parent SMS — all from one dashboard. Start your free 30-day trial today.",
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     description:
       "Attendance, grades, fees, and parent SMS — all in one system built for Ugandan schools. Start your free 30-day trial.",
     type: "website",
-    url: "https://omuto.org",
+    url: "https://skoolmate.omuto.org",
     locale: "en_UG",
     siteName: APP_NAME,
     images: [
@@ -71,6 +71,46 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "SkoolMate OS",
+              url: "https://skoolmate.omuto.org",
+              logo: "https://skoolmate.omuto.org/icons/icon-512x512.png",
+              description:
+                "The all-in-one school management system built for Ugandan schools. Track attendance, grades, fees, and send parent SMS — all from one dashboard.",
+              contactPoint: {
+                "@type": "ContactPoint",
+                contactType: "customer support",
+                email: "support@skoolmate.omuto.org",
+              },
+              sameAs: [],
+            }),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              name: "SkoolMate OS",
+              applicationCategory: "EducationalApplication",
+              operatingSystem: "Web",
+              offers: {
+                "@type": "Offer",
+                price: "0",
+                priceCurrency: "UGX",
+                description: "Free 30-day trial",
+              },
+              description:
+                "Complete school management for Ugandan schools — attendance, grades, fees, parent SMS, report cards, and more.",
+            }),
+          }}
+        />
         {process.env.NEXT_PUBLIC_SUPABASE_URL && (
           <>
             <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />

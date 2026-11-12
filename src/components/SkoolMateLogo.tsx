@@ -24,7 +24,7 @@ export default function SkoolMateLogo({
   };
 
   const logoFiles = {
-    default: "SchoolMate logo official.svg",
+    default: "SchoolMate icon.svg",
     white: "SchoolMate White.svg",
     dark: "SchoolMate black.svg",
   };

@@ -8,17 +8,13 @@ interface AnimatedLogoProps {
   autoplay?: boolean;
 }
 
-export default function AnimatedLogo({
-  type = "opening",
-  className = "",
-  autoplay = true,
-}: AnimatedLogoProps) {
+export default function AnimatedLogo({ type = "opening", className = "", autoplay = true }: AnimatedLogoProps) {
   const src =
     type === "opening"
       ? "/opening.webp"
       : type === "logo_white"
         ? "/SkoolMate logos/SchoolMate White.svg"
-        : "/SkoolMate logos/SchoolMate logo official.svg";
+        : "/SkoolMate logos/SchoolMate icon.svg";
 
   return (
     <div className={`relative ${className}`}>

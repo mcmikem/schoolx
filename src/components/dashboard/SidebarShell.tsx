@@ -199,7 +199,7 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
               />
             ) : (
               <Image
-                src="/SkoolMate logos/SchoolMate logo official.svg"
+                src="/SkoolMate logos/SchoolMate icon.svg"
                 alt={`${APP_NAME} Logo`}
                 width={26}
                 height={26}
