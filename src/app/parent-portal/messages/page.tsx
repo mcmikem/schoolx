@@ -135,6 +135,16 @@ export default function ParentMessagesPage() {
         setNewMessage("");
         setSubject("");
         setShowCompose(false);
+        // Notify school admins via push (best-effort).
+        void fetch("/api/push/notify-admins/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: trimmedSubject,
+            message: trimmedBody,
+            url: "/dashboard/parent-inbox",
+          }),
+        }).catch(() => {});
       }
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "Failed to send message"));
