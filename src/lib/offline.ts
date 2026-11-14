@@ -1467,9 +1467,17 @@ class OfflineDB {
       }
       return { status: "synced" };
     } catch (err) {
+      const reason =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err !== null
+            ? String(
+                (err as { message?: unknown }).message ?? (err as { error?: unknown }).error ?? JSON.stringify(err),
+              )
+            : String(err);
       return {
         status: "failed",
-        reason: err instanceof Error ? err.message : "Unknown sync error",
+        reason: reason || "Unknown sync error",
       };
     }
   }

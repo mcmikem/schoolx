@@ -42,9 +42,9 @@ export const PRIMARY_TEMPLATE: { classes: TemplateClass[]; subjects: TemplateSub
  *
  * Subjects deliberately carry `level: "primary"`: the `subjects.level` column
  * has a DB CHECK constraint of (primary|secondary|both), and a nursery section
- * belongs to the primary school anyway. Nursery "Mathematics" and primary
- * "Mathematics" share a name, so onboarding's name-keyed dedupe collapses them
- * into one subject rather than creating a duplicate.
+ * belongs to the primary school anyway. The five subjects are Uganda's
+ * standard nursery learning areas (LA1-LA5), seeded only for schools that
+ * run a nursery section.
  */
 export const NURSERY_TEMPLATE: { classes: TemplateClass[]; subjects: TemplateSubject[] } = {
   classes: [
@@ -53,13 +53,11 @@ export const NURSERY_TEMPLATE: { classes: TemplateClass[]; subjects: TemplateSub
     { name: "Top Class", level: "nursery" },
   ],
   subjects: [
-    { name: "Language", code: "LNG", level: "primary", is_compulsory: true },
-    { name: "Mathematics", code: "MTC", level: "primary", is_compulsory: true },
-    { name: "Environmental Activities", code: "ENV", level: "primary", is_compulsory: true },
-    { name: "Creative Activities", code: "CRE", level: "primary", is_compulsory: true },
-    { name: "Physical Activities", code: "PA", level: "primary", is_compulsory: true },
-    { name: "Social Studies", code: "SST", level: "primary", is_compulsory: false },
-    { name: "Religious Education", code: "RE", level: "primary", is_compulsory: false },
+    { name: "Social Development", code: "SD", level: "primary", is_compulsory: true },
+    { name: "Language Development", code: "LD", level: "primary", is_compulsory: true },
+    { name: "Health Habits", code: "HH", level: "primary", is_compulsory: true },
+    { name: "Mathematical Concepts", code: "MC", level: "primary", is_compulsory: true },
+    { name: "Reading and Writing", code: "RW", level: "primary", is_compulsory: true },
   ],
 };
 

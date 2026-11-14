@@ -2489,7 +2489,7 @@ VALUES (
     5242880,
     ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 ) ON CONFLICT (id) DO NOTHING;
-UPDATE storage.buckets SET public = false WHERE id = 'student-photos';
+UPDATE storage.buckets SET public = true WHERE id = 'student-photos';
 
 -- Create policy for authenticated users to upload school logos
 DROP POLICY IF EXISTS "Allow authenticated users to upload school logos" ON storage.objects;
@@ -2524,7 +2524,7 @@ INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 VALUES (
     'student-photos',
     'student-photos',
-    false,
+    true,
     5242880,
     ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 ) ON CONFLICT (id) DO NOTHING;

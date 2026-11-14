@@ -610,7 +610,7 @@ function DirectoryTab({
 
       if (uploadResult.error && uploadResult.error.message.includes("bucket")) {
         await supabase.storage.createBucket("student-photos", {
-          public: false,
+          public: true,
           fileSizeLimit: 5 * 1024 * 1024,
           allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"],
         });
@@ -626,13 +626,11 @@ function DirectoryTab({
         throw uploadResult.error;
       }
 
-      const { data: signed, error: signedUrlError } = await supabase.storage
-        .from("student-photos")
-        .createSignedUrl(filePath, 60 * 60);
-      if (signedUrlError || !signed?.signedUrl)
-        throw signedUrlError || new Error("Could not create a private staff photo URL");
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("student-photos").getPublicUrl(filePath);
 
-      return withCacheBust(signed.signedUrl);
+      return withCacheBust(publicUrl);
     },
     [school?.id, isDemo],
   );

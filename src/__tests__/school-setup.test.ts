@@ -81,13 +81,12 @@ describe("school setup defaults", () => {
     const withoutNursery = getTemplateSubjects("primary");
     const withNursery = getTemplateSubjects("primary", { nursery: true });
 
-    expect(withoutNursery.some((s) => s.name === "Environmental Activities")).toBe(false);
-    expect(withNursery.some((s) => s.name === "Environmental Activities")).toBe(true);
-    expect(withNursery.some((s) => s.name === "Language")).toBe(true);
+    expect(withoutNursery.some((s) => s.name === "Social Development")).toBe(false);
+    expect(withNursery.some((s) => s.name === "Social Development")).toBe(true);
+    expect(withNursery.some((s) => s.name === "Language Development")).toBe(true);
 
-    // Nursery and primary both teach Mathematics — one subject, not two.
-    expect(withNursery.filter((s) => s.name === "Mathematics")).toHaveLength(1);
-    expect(withNursery.filter((s) => s.code === "MTC")).toHaveLength(1);
+    // Nursery learning areas are distinct from primary subjects.
+    expect(withNursery.filter((s) => s.name === "Social Development")).toHaveLength(1);
 
     expect(getTemplateSubjects("secondary", { nursery: true }).some((s) => s.name === "Language")).toBe(false);
   });

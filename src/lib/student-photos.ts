@@ -240,7 +240,7 @@ export async function uploadStudentPhoto(options: {
 
   if (uploadResult.error && uploadResult.error.message.includes("bucket")) {
     await supabase.storage.createBucket("student-photos", {
-      public: false,
+      public: true,
       fileSizeLimit: MAX_FILE_SIZE_BYTES,
       allowedMimeTypes: Array.from(ALLOWED_IMAGE_TYPES),
     });
@@ -260,10 +260,9 @@ export async function uploadStudentPhoto(options: {
     throw uploadResult.error;
   }
 
-  const { data: signed, error: signedUrlError } = await supabase.storage
-    .from("student-photos")
-    .createSignedUrl(filePath, 60 * 60);
-  if (signedUrlError || !signed?.signedUrl) throw signedUrlError || new Error("Could not create a private photo URL");
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("student-photos").getPublicUrl(filePath);
 
-  return { publicUrl: withCacheBust(signed.signedUrl), filePath };
+  return { publicUrl: withCacheBust(publicUrl), filePath };
 }
