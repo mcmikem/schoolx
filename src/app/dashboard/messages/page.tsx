@@ -11,6 +11,7 @@ import { logger } from "@/lib/logger";
 import { detectConsecutiveAbsenceAlerts, calculateStudentFeePosition } from "@/lib/operations";
 import type { FinancialAdjustmentType } from "@/lib/operations";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { isWebPushSupported, subscribeWebPush } from "@/lib/web-push-client";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import NotifyParentsModal, { type NotifyParentEntry } from "@/components/students/NotifyParentsModal";
@@ -1329,6 +1330,13 @@ export default function CommunicationHubPage() {
         </TabPanel>
 
         <TabPanel activeTab={activeTab} tabId="parent-inbox" lazy>
+          {isWebPushSupported() && (
+            <div className="mb-4">
+              <Button size="sm" variant="secondary" onClick={() => user?.id && subscribeWebPush(user.id)}>
+                Enable push notifications
+              </Button>
+            </div>
+          )}
           {parentInboxLoading ? (
             <p className="text-sm text-[var(--t3)]">Loading…</p>
           ) : parentInboxMessages.length === 0 ? (
