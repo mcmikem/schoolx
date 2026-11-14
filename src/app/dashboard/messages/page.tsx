@@ -10,7 +10,7 @@ import { DEMO_CLASSES, DEMO_MESSAGES, DEMO_STUDENTS, DEMO_NOTICES, DEMO_STAFF } 
 import { logger } from "@/lib/logger";
 import { detectConsecutiveAbsenceAlerts, calculateStudentFeePosition } from "@/lib/operations";
 import type { FinancialAdjustmentType } from "@/lib/operations";
-import { withTimeout } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import NotifyParentsModal, { type NotifyParentEntry } from "@/components/students/NotifyParentsModal";
@@ -36,6 +36,7 @@ import { filterBulkRecipients } from "@/lib/bulk-recipients";
 
 const communicationTabs = [
   { id: "messages", label: "Messages" },
+  { id: "parent-inbox", label: "Parent Inbox" },
   { id: "bulk-sms", label: "Bulk SMS" },
   { id: "automation", label: "Automation" },
   { id: "templates", label: "Templates" },
@@ -44,6 +45,7 @@ const communicationTabs = [
 
 const communicationTabHints: Record<string, string> = {
   messages: "Send one-off messages to parents using Auto, WhatsApp, or SMS.",
+  "parent-inbox": "Messages sent by parents to the school.",
   "bulk-sms": "Reach many recipients at once by class, audience, or selected learners.",
   automation: "Configure and run trigger-based communication rules.",
   templates: "Create reusable message templates for faster outreach.",
@@ -125,6 +127,8 @@ export default function CommunicationHubPage() {
   const toast = useToast();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState("messages");
+  const [parentInboxMessages, setParentInboxMessages] = useState<any[]>([]);
+  const [parentInboxLoading, setParentInboxLoading] = useState(false);
   const { staff } = useStaff(school?.id, activeTab === "notices");
   const {
     triggers,
@@ -522,12 +526,38 @@ export default function CommunicationHubPage() {
     setTemplates(data || []);
   }, [school?.id]);
 
+  const fetchParentInbox = useCallback(async () => {
+    if (!school?.id) return;
+    setParentInboxLoading(true);
+    const { data } = await withTimeout(
+      supabase
+        .from("parent_messages")
+        .select("id, parent_id, school_id, student_id, subject, body, sender_role, created_at, is_read")
+        .eq("school_id", school.id)
+        .order("created_at", { ascending: true }),
+      12000,
+      timeoutFallback(),
+    );
+    setParentInboxMessages((data || []) as any[]);
+    setParentInboxLoading(false);
+  }, [school?.id]);
+
   useEffect(() => {
     if (user?.school_id && activeTab === "messages") fetchMessagesData();
     if (activeTab === "bulk-sms") fetchBulkData();
     if (activeTab === "templates") fetchTemplates();
     if (activeTab === "notices" && noticesLoadedForSchool.current !== school?.id) fetchNotices();
-  }, [activeTab, user?.school_id, school?.id, fetchMessagesData, fetchBulkData, fetchNotices, fetchTemplates]);
+    if (activeTab === "parent-inbox") fetchParentInbox();
+  }, [
+    activeTab,
+    user?.school_id,
+    school?.id,
+    fetchMessagesData,
+    fetchBulkData,
+    fetchNotices,
+    fetchTemplates,
+    fetchParentInbox,
+  ]);
 
   useEffect(() => {
     async function loadAbsencePreview() {
@@ -1279,6 +1309,36 @@ export default function CommunicationHubPage() {
               onRetry={fetchMessagesData}
             />
           </div>
+        </TabPanel>
+
+        <TabPanel activeTab={activeTab} tabId="parent-inbox" lazy>
+          {parentInboxLoading ? (
+            <p className="text-sm text-[var(--t3)]">Loading…</p>
+          ) : parentInboxMessages.length === 0 ? (
+            <p className="text-sm text-[var(--t3)]">No parent messages yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {parentInboxMessages.map((m: any) => (
+                <div key={m.id} className="p-4 rounded-2xl bg-[var(--surface-container-low)]">
+                  <div className="flex justify-between items-start gap-4 mb-1">
+                    <p className="text-xs font-black uppercase tracking-wider text-[var(--on-surface-variant)]">
+                      {m.sender_role === "parent" ? "Parent" : "School"}
+                    </p>
+                    <p className="text-xs text-[var(--on-surface-variant)] whitespace-nowrap">
+                      {new Date(m.created_at).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                  {m.subject && <p className="font-bold text-sm mb-1">{m.subject}</p>}
+                  <p className="text-sm">{m.body}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </TabPanel>
 
         <TabPanel activeTab={activeTab} tabId="bulk-sms" lazy>
