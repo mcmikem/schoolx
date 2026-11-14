@@ -34,7 +34,7 @@ import { createRecord, updateRecord, deleteRecord, upsertRecord, CrudWriteError 
 import { IMAGE_CACHE_CONTROL } from "@/lib/student-photos";
 import { filterBulkRecipients } from "@/lib/bulk-recipients";
 
-const communicationTabs = [
+const baseCommunicationTabs = [
   { id: "messages", label: "Messages" },
   { id: "parent-inbox", label: "Parent Inbox" },
   { id: "bulk-sms", label: "Bulk SMS" },
@@ -129,6 +129,14 @@ export default function CommunicationHubPage() {
   const [activeTab, setActiveTab] = useState("messages");
   const [parentInboxMessages, setParentInboxMessages] = useState<any[]>([]);
   const [parentInboxLoading, setParentInboxLoading] = useState(false);
+  const unreadParentCount = parentInboxMessages.filter((m: any) => m.sender_role === "parent" && !m.is_read).length;
+  const communicationTabs = useMemo(
+    () =>
+      baseCommunicationTabs.map((t) =>
+        t.id === "parent-inbox" && unreadParentCount > 0 ? { ...t, label: `Parent Inbox (${unreadParentCount})` } : t,
+      ),
+    [unreadParentCount],
+  );
   const { staff } = useStaff(school?.id, activeTab === "notices");
   const {
     triggers,
@@ -538,8 +546,17 @@ export default function CommunicationHubPage() {
       12000,
       timeoutFallback(),
     );
-    setParentInboxMessages((data || []) as any[]);
+    const rows = (data || []) as any[];
+    setParentInboxMessages(rows);
     setParentInboxLoading(false);
+    const unreadIds = rows.filter((m: any) => m.sender_role === "parent" && !m.is_read).map((m: any) => m.id);
+    if (unreadIds.length > 0 && school?.id) {
+      await withTimeout(
+        supabase.from("parent_messages").update({ is_read: true }).in("id", unreadIds),
+        12000,
+        timeoutFallback(),
+      );
+    }
   }, [school?.id]);
 
   useEffect(() => {
