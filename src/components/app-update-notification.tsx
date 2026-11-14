@@ -17,6 +17,14 @@ export function AppUpdateNotification() {
 
   useEffect(() => {
     checkForUpdates();
+
+    const onSwUpdate = () => {
+      setUpdateMessage("A new version is available. Refresh to update.");
+      setIsCritical(false);
+      setShowUpdate(true);
+    };
+    window.addEventListener("sw-update-available", onSwUpdate);
+    return () => window.removeEventListener("sw-update-available", onSwUpdate);
   }, []);
 
   async function checkForUpdates() {
