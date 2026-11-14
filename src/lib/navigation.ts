@@ -687,6 +687,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
       label: "System",
       defaultOpen: false,
       items: [
+        { href: "/dashboard/parent-inbox", label: "Parent Inbox", icon: "inbox" },
         { href: "/dashboard/settings", label: "Settings", icon: "settings" },
         { href: "/dashboard/permissions", label: "Role Permissions", icon: "admin_panel_settings" },
         { href: "/dashboard/data-quality", label: "Data Quality", icon: "rule" },
@@ -743,6 +744,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
       defaultOpen: false,
       items: [
         { href: "/dashboard/messages", label: "Messages", icon: "chat" },
+        { href: "/dashboard/parent-inbox", label: "Parent Inbox", icon: "inbox" },
         { href: "/dashboard/settings", label: "Settings", icon: "settings" },
         { href: "/dashboard/permissions", label: "Role Permissions", icon: "admin_panel_settings" },
         { href: "/dashboard/data-quality", label: "Data Quality", icon: "rule" },
