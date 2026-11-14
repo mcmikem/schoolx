@@ -460,6 +460,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
       defaultOpen: false,
       items: [
         { href: "/dashboard/messages", label: "Messages", icon: "chat" },
+        { href: "/dashboard/parent-inbox", label: "Parent Inbox", icon: "inbox" },
         { href: "/dashboard/settings", label: "Settings", icon: "settings" },
       ],
     },
