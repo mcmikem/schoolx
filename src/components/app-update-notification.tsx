@@ -37,12 +37,19 @@ export function AppUpdateNotification() {
       if (!res.ok) return;
 
       const data = await res.json();
+      const serverVersion = data.new_version || data.current_version;
 
-      // Check for app version update
-      if (data.new_version && data.new_version !== process.env.NEXT_PUBLIC_APP_VERSION) {
-        setUpdateMessage(data.message || "New version available with improvements");
-        setIsCritical(data.critical || false);
-        setShowUpdate(true);
+      // Check for app version update. Compare against the last version this
+      // browser saw, so a deploy is announced even when NEXT_PUBLIC_APP_VERSION
+      // is not bumped per build.
+      if (serverVersion) {
+        const lastSeen = window.localStorage.getItem("skoolmate_last_app_version");
+        if (lastSeen && lastSeen !== serverVersion) {
+          setUpdateMessage(data.message || "New version available with improvements");
+          setIsCritical(data.critical || false);
+          setShowUpdate(true);
+        }
+        window.localStorage.setItem("skoolmate_last_app_version", serverVersion);
       }
 
       // Check for maintenance windows
