@@ -91,6 +91,20 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
       }
       if (event === "SIGNED_IN") {
         postWarmShell();
+        // Best-effort: register this device for push notifications so admins
+        // receive parent-message alerts without a manual settings step.
+        void (async () => {
+          try {
+            const { isWebPushSupported, subscribeWebPush } = await import("@/lib/web-push-client");
+            if (!isWebPushSupported()) return;
+            if (Notification.permission === "denied") return;
+            const { data: sessionData } = await supabase.auth.getSession();
+            const uid = sessionData.session?.user?.id;
+            if (uid) await subscribeWebPush(uid);
+          } catch {
+            // Best-effort only.
+          }
+        })();
       }
     });
     return () => data.subscription.unsubscribe();
