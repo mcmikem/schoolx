@@ -467,6 +467,10 @@ export default function ReportCardsPage() {
       .join(", ");
   };
   const selectedClassStage = detectLevelFromClass(selectedClassName);
+  const nurserySubjectNames = new Set(["Social Development", "Language Development", "Health Habits", "Mathematical Concepts", "Reading and Writing"]);
+  const reportSubjects = selectedClassStage === "nursery"
+    ? subjects.filter((s: any) => nurserySubjectNames.has(s.name))
+    : subjects;
   const selectedForm = Number(selectedClassName.match(/(?:S\.?\s*)(\d+)/i)?.[1] || 0);
   const reportFormatGuidance =
     selectedClassStage === "nursery"
@@ -643,7 +647,7 @@ export default function ReportCardsPage() {
     } catch {
       const { offlineDB } = await import("@/lib/offline");
       const cached = await offlineDB.getAll("grades", { class_id: classId });
-      const nameById = new Map((subjects as any[]).map((s: any) => [s.id, s.name]));
+      const nameById = new Map((reportSubjects as any[]).map((s: any) => [s.id, s.name]));
       const rows = (cached as Record<string, unknown>[])
         .filter(
           (g) =>
@@ -674,7 +678,7 @@ export default function ReportCardsPage() {
     if (isDemo) {
       gradesData = DEMO_GRADES.filter((grade) => grade.class_id === classId).map((grade) => {
         const fixtureSubject = DEMO_SUBJECTS.find((subject) => subject.id === grade.subject_id);
-        const currentSubject = subjects.find((subject) => subject.name === fixtureSubject?.name);
+        const currentSubject = reportSubjects.find((subject) => subject.name === fixtureSubject?.name);
         return {
           ...grade,
           subject_id: currentSubject?.id || grade.subject_id,
@@ -915,7 +919,7 @@ export default function ReportCardsPage() {
 
     const reportList: StudentReport[] = students.map((student) => {
       const studentRows = fetched.rows.filter((row: any) => row.student_id === student.id);
-      const subjectsCBC = subjects.map((subject) => {
+      const subjectsCBC = reportSubjects.map((subject) => {
         const rows = studentRows.filter((row: any) => row.subject_id === subject.id);
         const u1ForSubj = rows.filter((row: any) => row.assessment_type === "u1");
         const u2ForSubj = rows.filter((row: any) => row.assessment_type === "u2");

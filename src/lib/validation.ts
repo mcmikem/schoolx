@@ -30,9 +30,9 @@ export const smsRequestSchema = z
   .refine(
     (data) => {
       if (!data.phone && (!data.phones || data.phones.length === 0)) {
-        return { valid: false, error: "Either phone or phones array is required" };
+        return false;
       }
-      return { valid: true };
+      return true;
     },
     { message: "Either phone or phones array is required" },
   );
