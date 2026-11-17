@@ -255,7 +255,7 @@ export default function DormitoryPage() {
           <Card className="p-12 text-center">
             <MaterialIcon className="text-5xl text-[var(--t3)] opacity-50 mx-auto">hotel</MaterialIcon>
             <p className="mt-2 text-[var(--t3)]">
-              No dorms yet. Add a dorm to start tracking rooms, residents and incidents.
+              No dorms yet. Setup sequence: 1) Add dorm, 2) Add rooms, 3) Assign residents.
             </p>
           </Card>
         )}
