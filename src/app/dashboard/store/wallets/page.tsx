@@ -248,6 +248,12 @@ export default function StudentWalletsPage() {
                       <p className="mt-1 text-sm text-[var(--t3)]">
                         Balances appear here once students have been topped up.
                       </p>
+                      <a
+                        href="/dashboard/students"
+                        className="mt-3 inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white"
+                      >
+                        Go to Students
+                      </a>
                     </td>
                   </tr>
                 ) : (
