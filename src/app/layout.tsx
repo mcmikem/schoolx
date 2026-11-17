@@ -5,6 +5,7 @@ import "./mobile-responsive.css";
 import "./globals-dark-hex.css";
 import Script from "next/script";
 import { AppUpdatePrompt } from "@/components/AppUpdatePrompt";
+import { PushOptInPrompt } from "@/components/PushOptInPrompt";
 import { AppUpdateNotification } from "@/components/app-update-notification";
 import DebugPing from "@/components/DebugPing";
 import DiagnosticsPanel from "@/components/DiagnosticsPanel";
@@ -215,6 +216,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <DeferredChrome />
           <AppUpdatePrompt />
           <AppUpdateNotification />
+          <PushOptInPrompt />
           <DiagnosticsPanel />
         </Providers>
         {process.env.NODE_ENV === "development" && <DebugPing />}
