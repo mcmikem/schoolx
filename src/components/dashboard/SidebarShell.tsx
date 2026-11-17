@@ -144,6 +144,14 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
   }, []);
 
   const showExpanded = !isDesktop ? isOpen : isHovered || isPinnedOpen;
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const shell = document.querySelector(".dashboard-shell");
+    if (!shell) return;
+    if (isDesktop && showExpanded) shell.classList.add("sidebar-expanded");
+    else shell.classList.remove("sidebar-expanded");
+  }, [isDesktop, showExpanded]);
   const isVisible = isDesktop || isOpen;
   const staffRole = user?.role as UserRole | undefined;
   // Everyone this person is, not just the one recorded as primary. Rural staff
