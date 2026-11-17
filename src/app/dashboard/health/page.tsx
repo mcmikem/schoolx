@@ -271,19 +271,7 @@ export default function HealthPage() {
 
         {/* Records Table */}
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[
-            { label: "Admitted", value: admitted.length, tone: "text-blue-700 bg-blue-50" },
-            { label: "Discharged today", value: dischargedToday, tone: "text-emerald-700 bg-emerald-50" },
-            { label: "Referred", value: referred.length, tone: "text-red-700 bg-red-50" },
-            { label: "Records", value: records.length, tone: "text-[var(--t2)] bg-[var(--surface-container-low)]" },
-          ].map((item) => (
-            <div key={item.label} className={`rounded-2xl border border-[var(--border)] p-3 ${item.tone}`}>
-              <div className="text-xs font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
-              <div className="mt-1 text-lg font-bold">{item.value}</div>
-            </div>
-          ))}
-        </div>
+
         <div className={cardClassName + " overflow-hidden"}>
           <div className="p-5 border-b border-[var(--border)] bg-[var(--surface-container-low)]">
             <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)]">Sick Bay Records</p>
