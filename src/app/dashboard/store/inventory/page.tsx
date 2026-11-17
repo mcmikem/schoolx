@@ -249,7 +249,7 @@ export default function InventoryPage() {
     return (
       <div className="p-8 max-w-7xl mx-auto">
         <PageHeader
-          title="School Asset Inventory"
+          title="Inventory"
           subtitle="Register fixed assets, manage consumables, and track stock movements"
         />
         <TableSkeleton rows={6} />
@@ -261,7 +261,7 @@ export default function InventoryPage() {
     <PageErrorBoundary>
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
         <PageHeader
-          title="School Asset Inventory"
+          title="Inventory"
           subtitle="Asset register for classrooms, labs, offices, and infrastructure. Canteen snacks should be managed in POS/Canteen modules."
           actions={
             <div className="flex flex-wrap items-center gap-2">
