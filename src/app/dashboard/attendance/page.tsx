@@ -1980,7 +1980,7 @@ export default function AttendancePage() {
                   <span className="flex flex-col items-center leading-tight">
                     <span>Save</span>
                     <span className="text-xs font-medium opacity-80">
-                      {effectivePresentCount} present · {absentCount} absent
+                      {markedCount} marked · {unmarkedCount} unmarked (will be present) · {absentCount} absent
                       {lateCount > 0 ? ` · ${lateCount} late` : ""}
                       {excusedCount > 0 ? ` · ${excusedCount} excused` : ""}
                     </span>
