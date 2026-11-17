@@ -2858,6 +2858,9 @@ export default function ReportCardsPage() {
                   <option value="cbc">CBC/NCDC Report (A4)</option>
                 </select>
                 <p className="mt-2 text-xs leading-relaxed text-[var(--t3)]">{reportFormatGuidance}</p>
+                {selectedClassStage === "nursery" && (
+                  <p className="mt-1 text-xs text-[var(--t3)]">Rating key: 1 = Emerging, 2 = Developing, 3 = Secure.</p>
+                )}
               </div>
             </div>
           </CardBody>

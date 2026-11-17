@@ -61,6 +61,7 @@ const nextConfig = {
     return config;
   },
   experimental: {
+    reactCompiler: true,
     optimizePackageImports: ["lucide-react", "date-fns", "recharts", "qrcode.react", "react-to-print"],
   },
   images: {
