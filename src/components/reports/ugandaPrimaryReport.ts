@@ -27,6 +27,8 @@ export interface UgandaPrintSubject {
   agg: number | null;
   grade: string;
   remarks: string;
+  competencyLevel?: string;
+  competencyNotes?: string;
 }
 
 export interface UgandaPrintInput {
@@ -398,5 +400,58 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
       </div>
       ${signatureCell(school.sigHeadUrl, "Head Teacher", brand.ink, "Head Teacher")}
     </div>
+  </div>`;
+}
+
+export function generateNurseryReportBody(input: UgandaPrintInput): string {
+  const { school, pupil, subjects, comments, behaviour } = input;
+  const brand = school.primaryColor || "#002045";
+  const ratingLabel = (level?: string) => {
+    const l = (level || "").toLowerCase();
+    if (l === "secure" || l === "mastered" || l === "achieved") return "Secure (3)";
+    if (l === "developing" || l === "demonstrates") return "Developing (2)";
+    return "Emerging (1)";
+  };
+  const subjectRows = subjects
+    .map(
+      (s) =>
+        `<tr><td style="padding:4px 6px;border:1px solid #000;">${escapeHtml(s.name)}</td>` +
+        `<td style="padding:4px 6px;border:1px solid #000;text-align:center;">${ratingLabel(s.competencyLevel)}</td>` +
+        `<td style="padding:4px 6px;border:1px solid #000;font-size:10px;">${escapeHtml(s.competencyNotes || "")}</td></tr>`,
+    )
+    .join("");
+  const behaviourRows = (behaviour || [])
+    .map((b) => `<tr><td style="padding:4px 6px;border:1px solid #000;">${escapeHtml(b.skill)}</td><td style="padding:4px 6px;border:1px solid #000;text-align:center;">${b.rating ?? "—"}</td></tr>`)
+    .join("");
+
+  return `
+  <div class="nursery-report" style="width:190mm;margin:0 auto;">
+    <div style="text-align:center;margin-bottom:8px;">
+      ${school.logoUrl ? `<img src="${escapeHtml(school.logoUrl)}" alt="logo" style="max-height:52px;max-width:120px;object-fit:contain;">` : ""}
+      <div style="font-size:14px;font-weight:bold;">${escapeHtml(school.name)}</div>
+      <div style="font-size:10px;">${escapeHtml(school.address || "")}</div>
+      <div style="font-size:12px;font-weight:bold;margin-top:4px;">NURSERY PROGRESS REPORT</div>
+      <div style="font-size:10px;">Term ${escapeHtml(String(pupil.term))} · ${escapeHtml(pupil.year)}</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+      <tr><td style="padding:4px 6px;border:1px solid #000;font-weight:bold;width:20%;">Name</td><td style="padding:4px 6px;border:1px solid #000;width:40%;">${escapeHtml(pupil.name)}</td><td style="padding:4px 6px;border:1px solid #000;font-weight:bold;width:20%;">Class</td><td style="padding:4px 6px;border:1px solid #000;width:20%;">${escapeHtml(pupil.className)}</td></tr>
+      <tr><td style="padding:4px 6px;border:1px solid #000;font-weight:bold;">Gender</td><td style="padding:4px 6px;border:1px solid #000;">${escapeHtml(pupil.gender)}</td><td style="padding:4px 6px;border:1px solid #000;font-weight:bold;">Attendance</td><td style="padding:4px 6px;border:1px solid #000;">${pupil.attendancePresent ?? "—"} / ${pupil.attendanceTotal ?? "—"}</td></tr>
+    </table>
+    <h2 style="font-size:12px;font-weight:bold;margin:8px 0 3px;">Learning Areas</h2>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+      <thead><tr><th style="padding:4px 6px;border:1px solid #000;text-align:left;">Learning Area</th><th style="padding:4px 6px;border:1px solid #000;text-align:center;width:120px;">Rating</th><th style="padding:4px 6px;border:1px solid #000;text-align:left;">Teacher Observation</th></tr></thead>
+      <tbody>${subjectRows || `<tr><td colspan="3" style="padding:4px 6px;border:1px solid #000;text-align:center;">No learning areas recorded.</td></tr>`}</tbody>
+    </table>
+    <p style="font-size:10px;margin-bottom:8px;">Rating key: 1 = Emerging, 2 = Developing, 3 = Secure.</p>
+    ${behaviourRows ? `<h2 style="font-size:12px;font-weight:bold;margin:8px 0 3px;">Behaviour & Co-curricular</h2><table style="width:100%;border-collapse:collapse;margin-bottom:8px;"><thead><tr><th style="padding:4px 6px;border:1px solid #000;text-align:left;">Skill</th><th style="padding:4px 6px;border:1px solid #000;text-align:center;width:80px;">Rating</th></tr></thead><tbody>${behaviourRows}</tbody></table>` : ""}
+    <div style="margin-top:8px;">
+      <p style="font-size:10.5px;"><strong>Class Teacher's Remark:</strong> ${escapeHtml(comments.classTeacher || "")}</p>
+      <p style="font-size:10.5px;"><strong>Head Teacher's Remark:</strong> ${escapeHtml(comments.hm || "")}</p>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:16px;">
+      <div style="text-align:center;width:45%;"><div style="border-bottom:1px solid #000;height:30px;"></div><div style="font-size:9.5px;margin-top:3px;">Class Teacher</div></div>
+      <div style="text-align:center;width:45%;"><div style="border-bottom:1px solid #000;height:30px;"></div><div style="font-size:9.5px;margin-top:3px;">Head Teacher</div></div>
+    </div>
+    ${school.sigClassUrl ? `<div style="margin-top:6px;text-align:center;"><img src="${escapeHtml(school.sigClassUrl)}" alt="signature" style="max-height:40px;max-width:120px;object-fit:contain;"></div>` : ""}
   </div>`;
 }

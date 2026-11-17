@@ -7,7 +7,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { VideoLessonButton } from "@/components/onboarding/VideoLesson";
 import { OwlyHelpLink } from "@/components/owly/OwlyHelpLink";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { generateUgandaPrimaryBody, ugandaDocumentShell } from "@/components/reports/ugandaPrimaryReport";
+import { generateUgandaPrimaryBody, generateNurseryReportBody, ugandaDocumentShell } from "@/components/reports/ugandaPrimaryReport";
 import { useToast } from "@/components/Toast";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
@@ -1821,6 +1821,49 @@ export default function ReportCardsPage() {
     report: StudentReport,
     ctx: { byStudent: Map<string, { present: number; total: number }>; nextTermBegins: string | null },
   ): Promise<string> => {
+    if (selectedClassStage === "nursery") {
+      const att = ctx.byStudent.get(report.studentId);
+      return generateNurseryReportBody({
+        school: {
+          name: school?.name || "SCHOOL NAME",
+          address: (school as any)?.address || "",
+          phone: school?.phone || school?.email || "",
+          motto: (school as any)?.school_motto || (school as any)?.motto || "",
+          logoUrl: school?.logo_url || "",
+          primaryColor: school?.primary_color || "",
+          sigClassUrl: (school as any)?.signature_class_teacher_url || "",
+          sigHeadUrl: (school as any)?.signature_headteacher_url || "",
+        },
+        pupil: {
+          name: report.name,
+          studentNumber: report.studentNumber,
+          gender: report.gender === "M" ? "Male" : report.gender === "F" ? "Female" : report.gender || "",
+          className: report.className,
+          photoUrl: report.photoUrl || "",
+          term: currentTerm,
+          year: academicYear,
+          attendancePresent: att?.present ?? null,
+          attendanceTotal: att && att.total > 0 ? att.total : null,
+        },
+        subjects: report.subjects.map((s) => ({
+          name: s.name,
+          bot: null,
+          mot: null,
+          eot: null,
+          avg: null,
+          agg: null,
+          grade: s.grade,
+          remarks: s.competencyNotes || "",
+          competencyLevel: s.competencyLevel,
+          competencyNotes: s.competencyNotes,
+        })) as any,
+        totals: { midTotal: null, endTotal: null, avgMean: null, aggSum: null, division: "" },
+        comments: { classTeacher: comments[report.studentId]?.classTeacher || report.classTeacherComment || "", hm: comments[report.studentId]?.hm || report.hmComment || "" },
+        behaviour: (behaviour[report.studentId] ? Object.entries(behaviour[report.studentId]).map(([skill, rating]) => ({ skill, rating: rating as number })) : []),
+        feeBalance: report.feeBalance,
+        nextTermBegins: ctx.nextTermBegins,
+      });
+    }
     const studentComment = comments[report.studentId] || { classTeacher: "", hm: "" };
     const remarkFacts = {
       pupilName: report.name,
