@@ -354,7 +354,7 @@ export default function BehaviorPage() {
               <div className="p-6 border-b border-[var(--border)]">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-[var(--t1)]">{editingLog ? "Edit Log" : "Add Log"}</h2>
-                  <button onClick={closeModal} className="tap-44 p-2 text-[var(--t3)] hover:text-[var(--t1)]">
+                  <button onClick={closeModal} aria-label="Close" className="tap-44 p-2 text-[var(--t3)] hover:text-[var(--t1)]">
                     <MaterialIcon icon="close" className="text-xl" />
                   </button>
                 </div>

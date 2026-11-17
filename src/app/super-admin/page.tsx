@@ -369,6 +369,7 @@ export default function SuperAdminPage() {
               onClick={loadData}
               disabled={dataLoading}
               title="Refresh data"
+              aria-label="Refresh data"
               className="tap-44 p-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--bg)] text-[var(--t3)] transition-colors disabled:opacity-40"
             >
               <MaterialIcon icon="refresh" style={{ fontSize: 18 }} className={dataLoading ? "animate-spin" : ""} />

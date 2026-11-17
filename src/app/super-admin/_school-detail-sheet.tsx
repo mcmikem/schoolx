@@ -250,6 +250,7 @@ export function SchoolDetailSheet({
             </div>
             <button
               onClick={onClose}
+              aria-label="Close school details"
               className="tap-44 p-2 rounded-lg text-[var(--t3)] hover:bg-[var(--bg)] transition-colors"
             >
               <MaterialIcon icon="close" style={{ fontSize: 18 }} />

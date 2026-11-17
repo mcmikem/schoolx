@@ -25,6 +25,34 @@ export default function StaffAttendanceScanPage() {
   const [scannerError, setScannerError] = useState<string | null>(null);
   const [recent, setRecent] = useState<Array<{ name: string; action: string; time: string }>>([]);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const wasOpenRef = useRef(false);
+
+  // The scanner overlay is a modal dialog: Escape closes it and focus moves
+  // into it on open, then back where it came from on close. Without this the
+  // camera keeps running while a keyboard user tabs behind the overlay.
+  useEffect(() => {
+    if (!showScanner) {
+      wasOpenRef.current = false;
+      return;
+    }
+    wasOpenRef.current = true;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        stopScanner();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    dialogRef.current?.querySelector<HTMLElement>("button")?.focus();
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      previouslyFocused?.focus?.();
+    };
+    // stopScanner is recreated each render; the effect only cares about open/close.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showScanner]);
 
   useEffect(() => {
     return () => {
@@ -212,10 +240,19 @@ export default function StaffAttendanceScanPage() {
 
       {showScanner && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white overflow-hidden">
+          <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="staff-scan-dialog-title"
+            className="w-full max-w-md rounded-2xl bg-white overflow-hidden"
+          >
             <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
-              <h3 className="font-semibold text-[var(--t1)]">Scan Staff Card</h3>
-              <button onClick={stopScanner} className="tap-44 p-2 rounded hover:bg-[var(--surface-container)]">
+              <h3 id="staff-scan-dialog-title" className="font-semibold text-[var(--t1)]">Scan Staff Card</h3>
+              <button
+                onClick={stopScanner}
+                aria-label="Close scanner"
+                className="tap-44 p-2 rounded hover:bg-[var(--surface-container)]">
                 <MaterialIcon icon="close" />
               </button>
             </div>

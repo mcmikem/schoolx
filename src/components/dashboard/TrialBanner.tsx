@@ -92,6 +92,7 @@ export default function TrialBanner() {
             </span>
           )}
           <button
+            aria-label="Dismiss trial banner"
             onClick={handleDismiss}
             className="tap-44 p-1 text-[var(--t3)] hover:text-[var(--t4)] transition-colors"
           >

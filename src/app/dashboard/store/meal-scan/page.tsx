@@ -42,6 +42,29 @@ export default function MealScanPage() {
   const [scannerError, setScannerError] = useState<string | null>(null);
   const [recentServes, setRecentServes] = useState<Array<{ name: string; meal: string; time: string }>>([]);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Modal dialog behaviour for the scanner overlay: Escape closes it and
+  // focus moves in on open and back out on close, so the camera is never
+  // left running behind a keyboard-only session.
+  useEffect(() => {
+    if (!showScanner) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        stopScanner();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    dialogRef.current?.querySelector<HTMLElement>("button")?.focus();
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      previouslyFocused?.focus?.();
+    };
+    // stopScanner changes identity every render; this effect tracks open/close only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showScanner]);
 
   const selectedRule = rules.find((rule) => rule.meal_type === selectedMeal);
 
@@ -385,10 +408,19 @@ export default function MealScanPage() {
 
       {showScanner && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white overflow-hidden">
+          <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="meal-scan-dialog-title"
+            className="w-full max-w-md rounded-2xl bg-white overflow-hidden"
+          >
             <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
-              <h3 className="font-semibold text-[var(--t1)]">Scan Student Card</h3>
-              <button onClick={stopScanner} className="tap-44 p-2 rounded hover:bg-[var(--surface-container)]">
+              <h3 id="meal-scan-dialog-title" className="font-semibold text-[var(--t1)]">Scan Student Card</h3>
+              <button
+                onClick={stopScanner}
+                aria-label="Close scanner"
+                className="tap-44 p-2 rounded hover:bg-[var(--surface-container)]">
                 <MaterialIcon icon="close" />
               </button>
             </div>

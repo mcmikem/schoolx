@@ -64,6 +64,7 @@ export function BugReportModal({ open, onClose }: { open: boolean; onClose: () =
           </div>
           <button
             type="button"
+            aria-label="Close bug report"
             onClick={onClose}
             className="p-1 tap-44 rounded-lg hover:bg-[var(--bg)] text-[var(--t3)] transition-colors"
           >

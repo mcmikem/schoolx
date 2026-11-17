@@ -757,6 +757,7 @@ export default function ParentFeesPage() {
                 </div>
                 <button
                   onClick={closePayModal}
+                  aria-label="Close payment window"
                   className="tap-44 p-2 hover:bg-[var(--surface-container)] rounded-xl shrink-0"
                 >
                   <MaterialIcon icon="close" />
