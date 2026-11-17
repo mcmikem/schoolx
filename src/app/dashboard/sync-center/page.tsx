@@ -473,6 +473,16 @@ export default function SyncCenterPage() {
             </Button>
           )}
           {failed.length > 0 && selectedFailed.size > 0 && (
+            <Button variant="secondary" onClick={async () => {
+              for (const id of selectedFailed) await offlineDB.retrySyncItem(id);
+              setSelectedFailed(new Set());
+              await loadData();
+            }}>
+              <MaterialIcon icon="refresh" />
+              Retry selected ({selectedFailed.size})
+            </Button>
+          )}
+          {failed.length > 0 && selectedFailed.size > 0 && (
             <Button variant="ghost" onClick={async () => {
               for (const id of selectedFailed) await offlineDB.removeSyncItem(id);
               setSelectedFailed(new Set());
