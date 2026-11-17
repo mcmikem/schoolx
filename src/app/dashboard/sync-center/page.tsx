@@ -317,9 +317,20 @@ export default function SyncCenterPage() {
         isConflict(item) ? (
           <span className="text-xs text-[var(--t3)]">Resolve above</span>
         ) : (
-          <Button size="sm" variant="secondary" onClick={() => handleRetryOne(item)} disabled={!isOnline || syncing}>
-            Retry
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="secondary" onClick={() => handleRetryOne(item)} disabled={!isOnline || syncing}>
+              Retry
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() =>
+                offlineDB.removeSyncItem(item.id).then(() => window.dispatchEvent(new Event(SYNC_QUEUE_EVENT)))
+              }
+            >
+              Discard
+            </Button>
+          </div>
         ),
     },
   ];
