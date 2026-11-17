@@ -162,6 +162,11 @@ export default function AlumniPage() {
                     ? "No students have been marked as completed yet"
                     : "Try adjusting your search or filters"
                 }
+                action={
+                  alumni.length === 0
+                    ? { label: "Go to Graduation", onClick: () => { window.location.href = "/dashboard/students/graduation"; } }
+                    : undefined
+                }
               />
             ) : (
               <div className="table-wrapper">
