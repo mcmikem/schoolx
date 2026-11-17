@@ -114,7 +114,7 @@ export default function DataQualityPage() {
               <div className="py-10 text-center text-[var(--t3)]">Running quality checks...</div>
             ) : report.issues.length === 0 ? (
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700">
-                No issues detected. Core student and staff records look healthy.
+                No issues detected. Checked student names, genders, admission dates, class links, staff roles, and contact details.
               </div>
             ) : (
               <div className="space-y-3">
