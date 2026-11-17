@@ -202,6 +202,9 @@ export default function TimetablePage() {
   const bulkFileRef = useRef<HTMLInputElement>(null);
   const timetableImageRef = useRef<HTMLInputElement>(null);
   const [showAllClashes, setShowAllClashes] = useState(false);
+  /** A school-wide count in the hundreds is unreadable as one flat list —
+   *  the banner filters by clash type so the number becomes a work queue. */
+  const [clashFilter, setClashFilter] = useState<"all" | ClashInfo["type"]>("all");
   const canAutoGenerate = !!user && TIMETABLE_EDIT_ROLES.includes(user.role);
   // Adding/removing lessons is a school-wide structural change, not a teacher's
   // own diary. RLS on teacher_timetable was `FOR ALL` to any authenticated user
@@ -384,6 +387,7 @@ export default function TimetablePage() {
         const roomConflict = allClassTimetables.find(
           (t) =>
             t.room !== null &&
+            t.class_id !== selectedClassId &&
             t.room.toLowerCase() === room.toLowerCase() &&
             t.day_of_week === day &&
             t.start_time < endTime &&
@@ -419,8 +423,11 @@ export default function TimetablePage() {
         if (a.day_of_week !== b.day_of_week) continue;
         if (!(a.start_time < b.end_time && a.end_time > b.start_time)) continue;
 
-        // Teacher double-booking
-        if (a.teacher_id === b.teacher_id && a.class_id !== b.class_id) {
+        // Teacher double-booking. Both ids must be real: an unassigned lesson
+        // has a null teacher, and `null === null` made every empty slot in the
+        // school look like one teacher standing in two rooms at once — which
+        // is how a timetable reached a triple-digit "clash" count.
+        if (a.teacher_id && b.teacher_id && a.teacher_id === b.teacher_id && a.class_id !== b.class_id) {
           const classA = classes.find((c) => c.id === a.class_id)?.name || "Unknown";
           const classB = classes.find((c) => c.id === b.class_id)?.name || "Unknown";
           result.push({
@@ -447,6 +454,26 @@ export default function TimetablePage() {
     return [...unique.values()];
   }, [allClassTimetables, classes, staffNameById, teacherNameById]);
   const globalClashes = clashes;
+
+  const clashBreakdown = useMemo(() => {
+    const byType = { teacher: 0, room: 0 } as Record<ClashInfo["type"], number>;
+    for (const clash of globalClashes) byType[clash.type] += 1;
+    const byDay = new Map<number, number>();
+    for (const clash of globalClashes) byDay.set(clash.day, (byDay.get(clash.day) || 0) + 1);
+    const worstDay = [...byDay.entries()].sort((a, b) => b[1] - a[1])[0];
+    return {
+      byType,
+      byDay: [...byDay.entries()].sort((a, b) => a[0] - b[0]),
+      worstDay: worstDay
+        ? { day: DAYS.find((d) => d.value === worstDay[0])?.full || "Unknown", count: worstDay[1] }
+        : null,
+    };
+  }, [globalClashes]);
+
+  const visibleClashes = useMemo(
+    () => (clashFilter === "all" ? globalClashes : globalClashes.filter((clash) => clash.type === clashFilter)),
+    [globalClashes, clashFilter],
+  );
 
   const handleTeacherChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const teacherId = e.target.value;
@@ -916,29 +943,82 @@ export default function TimetablePage() {
             <div className="rounded-2xl border border-[var(--red-soft)] bg-[var(--red-soft)] p-4">
               <div className="flex items-start gap-3">
                 <MaterialIcon icon="error" className="text-[var(--red-ink)] shrink-0 mt-0.5" />
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-[var(--red-ink)]">
                     {globalClashes.length} clash{globalClashes.length > 1 ? "es" : ""} detected in timetable
                   </p>
                   <p className="mt-1 text-xs text-[var(--red-ink)]/80">
-                    Teachers or rooms are double-booked across classes. Re-run Auto-generate after fixing assignments,
-                    or edit the affected periods.
+                    {clashBreakdown.byType.teacher} teacher double-booking
+                    {clashBreakdown.byType.teacher === 1 ? "" : "s"} · {clashBreakdown.byType.room} room
+                    {clashBreakdown.byType.room === 1 ? "" : "s"}
+                    {clashBreakdown.worstDay
+                      ? ` · worst on ${clashBreakdown.worstDay.day} (${clashBreakdown.worstDay.count})`
+                      : ""}
+                    . Re-run Auto-generate after fixing assignments, or edit the affected periods.
                   </p>
+
+                  {/* One number in the hundreds tells a timetable master
+                      nothing. Splitting it by cause turns it into two jobs
+                      they can work through in order. */}
+                  <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Filter clashes by cause">
+                    {(
+                      [
+                        { value: "all" as const, label: `All (${globalClashes.length})` },
+                        {
+                          value: "teacher" as const,
+                          label: `Teacher (${clashBreakdown.byType.teacher})`,
+                        },
+                        { value: "room" as const, label: `Room (${clashBreakdown.byType.room})` },
+                      ]
+                    ).map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          setClashFilter(option.value);
+                          setShowAllClashes(false);
+                        }}
+                        aria-pressed={clashFilter === option.value}
+                        className={`rounded-full px-2.5 py-1 text-xs font-bold transition-colors ${
+                          clashFilter === option.value
+                            ? "bg-[var(--red-ink)] text-white"
+                            : "bg-white/70 text-[var(--red-ink)] hover:bg-white"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {clashBreakdown.byDay.length > 1 && (
+                    <p className="mt-2 text-xs text-[var(--red-ink)]/80">
+                      By day:{" "}
+                      {clashBreakdown.byDay
+                        .map(([day, count]) => `${DAYS.find((d) => d.value === day)?.label || day} ${count}`)
+                        .join(" · ")}
+                    </p>
+                  )}
+
                   <ul className="mt-2 space-y-1">
-                    {(showAllClashes ? globalClashes : globalClashes.slice(0, 8)).map((clash, i) => (
+                    {(showAllClashes ? visibleClashes : visibleClashes.slice(0, 8)).map((clash, i) => (
                       <li key={i} className="text-xs text-[var(--red-ink)] flex items-start gap-2">
                         <span className="shrink-0 mt-1 w-1 h-1 rounded-full bg-[var(--red-ink)]" />
                         {clash.description}
                       </li>
                     ))}
                   </ul>
-                  {globalClashes.length > 8 && (
+                  {visibleClashes.length === 0 && (
+                    <p className="mt-2 text-xs text-[var(--red-ink)]/80">
+                      No clashes of that kind — switch the filter above.
+                    </p>
+                  )}
+                  {visibleClashes.length > 8 && (
                     <button
                       type="button"
                       onClick={() => setShowAllClashes((v) => !v)}
                       className="mt-2 text-xs font-semibold text-[var(--red-ink)] underline"
                     >
-                      {showAllClashes ? "Show fewer" : `Show all ${globalClashes.length} clashes`}
+                      {showAllClashes ? "Show fewer" : `Show all ${visibleClashes.length} clashes`}
                     </button>
                   )}
                 </div>
