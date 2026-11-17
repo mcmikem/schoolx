@@ -1,4 +1,6 @@
 name = "skoolmate-os"
+workers_dev = true
+preview_urls = true
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 main = ".open-next/worker.js"
@@ -17,8 +19,9 @@ enabled = true
 binding = "SKOOLMATE_CACHE"
 id = "78b57dd35fb841258cefbbf7e7bac210"
 
-[[custom_domains]]
-name = "skoolmate.omuto.org"
+[[routes]]
+pattern = "skoolmate.omuto.org"
+custom_domain = true
 
 [assets]
 directory = ".open-next/assets"

@@ -116,6 +116,7 @@ export default function SettingsPage() {
     Array<{ id: string; full_name: string; phone: string; role: string; is_active: boolean }>
   >([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [cleanupStatus, setCleanupStatus] = useState<string>("");
   const [settings, setSettings] = useState<SchoolSettings>({
     sms_notifications: true,
     attendance_alerts: true,
@@ -1571,6 +1572,26 @@ export default function SettingsPage() {
             </div>
           </div>
         )}
+      <div className="mt-6">
+        <h3 className="text-sm font-semibold mb-2">Storage cleanup</h3>
+        <p className="text-xs text-[var(--t3)] mb-3">Remove orphaned files not referenced by any student or school record.</p>
+        <div className="flex gap-2">
+          <Button size="sm" variant="secondary" onClick={async () => {
+            setCleanupStatus("Running dry run…");
+            const res = await fetch("/api/storage/cleanup/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dryRun: true }) });
+            const data = await res.json();
+            setCleanupStatus(`Dry run: ${data.orphanedCount ?? 0} orphaned files found.`);
+          }}>Dry run</Button>
+          <Button size="sm" variant="ghost" onClick={async () => {
+            if (!confirm("Delete orphaned files? This cannot be undone.")) return;
+            setCleanupStatus("Cleaning…");
+            const res = await fetch("/api/storage/cleanup/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dryRun: false }) });
+            const data = await res.json();
+            setCleanupStatus(`Cleanup complete: ${data.orphanedCount ?? 0} files removed.`);
+          }}>Clean now</Button>
+        </div>
+        {cleanupStatus && <p className="text-xs mt-2 text-[var(--t3)]">{cleanupStatus}</p>}
+      </div>
       </div>
     </PageErrorBoundary>
   );
