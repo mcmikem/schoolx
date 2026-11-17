@@ -484,7 +484,7 @@ export default function LibraryPage() {
           </div>
         )}
 
-        <Modal isOpen={showAdd} onClose={closeAdd} title={editingBook ? "Edit volume" : "Add volume"} size="md">
+        <Modal isOpen={showAdd} onClose={closeAdd} title={editingBook ? "Edit book" : "Add book"} size="md">
           <form
             onSubmit={(event) => {
               event.preventDefault();
