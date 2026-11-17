@@ -161,7 +161,7 @@ async function handlePut(request: NextRequest) {
       return apiError(validation.error, 400);
     }
 
-    const { phones, message, schoolId } = validation.data;
+    const { phones, message, schoolId, messages } = validation.data;
 
     const scope = assertSchoolScopeOrDeny({
       userSchoolId: auth.context.schoolId,
@@ -200,17 +200,27 @@ async function handlePut(request: NextRequest) {
       return apiError("Daily SMS limit would be exceeded. Please reduce recipients or try again tomorrow.", 429);
     }
 
+    // Per-recipient bodies are index-aligned with the ORIGINAL `phones` array,
+    // so each entry carries its index — `validPhones` is a filtered copy and
+    // using it as the key would shift every household's message onto the wrong
+    // parent.
+    const messagesFor = (index: number): string => {
+      const perRecipient = messages?.[index];
+      return typeof perRecipient === "string" && perRecipient.length > 0 ? perRecipient : message;
+    };
+
     const validPhones = phones.filter((p): p is string => typeof p === "string" && p.length >= 10 && p.length <= 15);
 
     if (validPhones.length === 0) {
       return apiError("No valid phone numbers provided", 400);
     }
 
-    const formattedPhones: string[] = [];
+    const formattedPhones: Array<{ phone: string; body: string }> = [];
     const invalidPhones: string[] = [];
     for (const p of validPhones) {
+      const originalIndex = phones.indexOf(p);
       try {
-        formattedPhones.push(formatUgandaPhone(p));
+        formattedPhones.push({ phone: formatUgandaPhone(p), body: messagesFor(originalIndex) });
       } catch {
         invalidPhones.push(p);
       }
@@ -221,9 +231,9 @@ async function handlePut(request: NextRequest) {
     }
     const results = [];
 
-    for (const phone of formattedPhones) {
+    for (const { phone, body: smsBody } of formattedPhones) {
       try {
-        const result = await sendAfricasTalkingSMS(phone, message, {
+        const result = await sendAfricasTalkingSMS(phone, smsBody, {
           from: "SKOOLMATE",
         });
         results.push({ phone, ...result });

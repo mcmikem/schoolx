@@ -9,6 +9,7 @@ import {
 } from "@/lib/api-utils";
 import { requireActiveSubscription } from "@/lib/subscription-guard";
 import { sendToParent } from "@/lib/messaging-server";
+import { renderSmsTemplate } from "@/lib/sms-template";
 import { logger } from "@/lib/logger";
 
 // Auto Fee Reminder SMS Scheduler
@@ -226,11 +227,17 @@ export async function POST(request: NextRequest) {
         // NOTE: daily quota is enforced inside sendSchoolMessage, and only
         // when the resolved channel is actually SMS. Checking it here would
         // wrongly block WhatsApp sends once a school switches channels.
-        const message = highestTrigger.message
-          .replace("{student_name}", `${student.first_name} ${student.last_name}`)
-          .replace("{balance}", balance.toLocaleString())
-          .replace("{due_date}", dueDate.toLocaleDateString())
-          .replace("{class}", student.classes?.name || "Unknown");
+        // renderSmsTemplate replaces every occurrence — String.replace with a
+        // string pattern only fills the first one, so a template naming the
+        // pupil twice sent the second as a literal {student_name}.
+        const message = renderSmsTemplate(highestTrigger.message, {
+          student_name: `${student.first_name} ${student.last_name}`,
+          balance: balance.toLocaleString(),
+          due_date: dueDate.toLocaleDateString(),
+          class: student.classes?.name || "Unknown",
+          class_name: student.classes?.name || "Unknown",
+          school_name: typeof school.school.name === "string" ? school.school.name : undefined,
+        });
 
         const smsResult = await sendToParent(supabase, {
           schoolId: school.schoolId,

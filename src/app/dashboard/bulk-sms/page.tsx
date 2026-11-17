@@ -1,7 +1,7 @@
 "use client";
 
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
@@ -10,6 +10,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { withTimeout } from "@/lib/hooks/utils";
 import { format } from "date-fns";
+import { baseSmsVars, renderSmsTemplate, unresolvedSmsTokens, type SmsTemplateVars } from "@/lib/sms-template";
 
 type MessageTemplate = {
   id: string;
@@ -142,6 +143,25 @@ export default function SMSCenterPage() {
   const [currentTerm, setCurrentTerm] = useState<AcademicTermItem | null>(null);
   const studentSearchRef = useRef<HTMLDivElement>(null);
 
+  /**
+   * What actually leaves the phone. Templates promise {student_name} etc, but
+   * recipients here are only (phone, full_name) for most segments — so the
+   * variables we can honestly fill are school/date/term, plus the pupil when
+   * the "Specific Student" segment names one. Everything else is surfaced as
+   * unresolved below instead of being silently sent as literal braces.
+   */
+  const outgoingVars = useMemo<SmsTemplateVars>(() => {
+    const vars: SmsTemplateVars = baseSmsVars(school?.name);
+    if (currentTerm) vars.term = `Term ${currentTerm.term_number}`;
+    if (segment === "student" && selectedStudent) {
+      vars.student_name = `${selectedStudent.first_name} ${selectedStudent.last_name}`.trim();
+    }
+    return vars;
+  }, [school?.name, currentTerm, segment, selectedStudent]);
+
+  const outgoingMessage = useMemo(() => renderSmsTemplate(message, outgoingVars), [message, outgoingVars]);
+  const unresolvedVars = useMemo(() => unresolvedSmsTokens(message, outgoingVars), [message, outgoingVars]);
+
   const fetchParentPhones = useCallback(
     async (countOnly = false): Promise<{ phone: string; full_name: string }[]> => {
       if (!school?.id) return [];
@@ -246,8 +266,8 @@ export default function SMSCenterPage() {
   );
 
   useEffect(() => {
-    setCharCount(message.length);
-  }, [message]);
+    setCharCount(outgoingMessage.length);
+  }, [outgoingMessage]);
 
   useEffect(() => {
     if (!school?.id) return;
@@ -352,6 +372,14 @@ export default function SMSCenterPage() {
 
   const handleSend = async () => {
     if (!message || !school?.id) return;
+    if (unresolvedVars.length > 0) {
+      toast.error(
+        `This message still contains ${unresolvedVars
+          .map((v) => `{${v}}`)
+          .join(", ")} — parents would receive those literal braces. Pick a segment that provides the value or edit the text.`,
+      );
+      return;
+    }
     setSending(true);
     try {
       const recipients = await fetchParentPhones(false);
@@ -368,8 +396,8 @@ export default function SMSCenterPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           isBulk
-            ? { schoolId: school.id, phones: recipients.map((r) => r.phone), message }
-            : { schoolId: school.id, phone: recipients[0].phone, message },
+            ? { schoolId: school.id, phones: recipients.map((r) => r.phone), message: outgoingMessage }
+            : { schoolId: school.id, phone: recipients[0].phone, message: outgoingMessage },
         ),
       });
       const result = await res.json();
@@ -400,7 +428,8 @@ export default function SMSCenterPage() {
   };
 
   const smsCount = Math.ceil(charCount / 160);
-  const canSend = message && !sending && (recipientCount !== null ? recipientCount > 0 : true);
+  const canSend =
+    message && !sending && unresolvedVars.length === 0 && (recipientCount !== null ? recipientCount > 0 : true);
 
   return (
     <PageErrorBoundary>
@@ -619,13 +648,37 @@ export default function SMSCenterPage() {
                   className="w-full px-5 py-4 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl outline-none focus:ring-4 focus:ring-[var(--primary)]/20 transition-all text-sm font-medium text-[var(--t1)] resize-none"
                   placeholder="Type your message here..."
                 />
-                <p className="text-xs text-[var(--t3)] italic">
-                  Variables: {"{student_name}"}, {"{date}"}, {"{amount}"}, {"{school_name}"}
-                </p>
+                {unresolvedVars.length > 0 ? (
+                  <div
+                    role="alert"
+                    className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-xs text-amber-900"
+                  >
+                    <p className="font-bold">
+                      Not filled in: {unresolvedVars.map((v) => `{${v}}`).join(", ")}
+                    </p>
+                    <p className="mt-1 leading-snug">
+                      {unresolvedVars.includes("student_name")
+                        ? "Only the “Specific Student” segment knows a pupil's name. Switch segment, or remove the token — sending as-is bills you for a message full of braces."
+                        : "Edit the message so every token has a value before sending."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-3.5 py-3 text-xs text-[var(--t3)]">
+                    <p className="font-bold text-[var(--t2)]">Parents will receive</p>
+                    <p className="mt-1 leading-snug text-[var(--t2)]">{outgoingMessage || "…"}</p>
+                  </div>
+                )}
 
                 <button
                   onClick={handleSend}
                   disabled={!canSend}
+                  title={
+                    unresolvedVars.length > 0
+                      ? `Fill in ${unresolvedVars.map((v) => `{${v}}`).join(", ")} first`
+                      : recipientCount === 0
+                        ? "No recipients match this audience yet"
+                        : undefined
+                  }
                   className="w-full py-4 bg-[var(--secondary)] text-white rounded-[28px] font-black uppercase tracking-[2px] hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-xl"
                 >
                   {sending ? (

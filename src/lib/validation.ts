@@ -23,6 +23,13 @@ export const smsRequestSchema = z
     phone: phoneSchema.optional(),
     phones: z.array(phoneSchema).max(100, "Maximum 100 recipients").optional(),
     message: z.string().min(1).max(1000, "Message must be 1-1000 characters"),
+    /**
+     * Per-recipient bodies, index-aligned with `phones`. Set when the message
+     * carries template variables that resolve differently per household
+     * (`{student_name}`), so each parent gets their own child's name instead
+     * of one shared body. Falls back to `message` for any missing index.
+     */
+    messages: z.array(z.string().min(1).max(1000)).max(100).optional(),
     schoolId: z.string().uuid("Invalid school ID"),
     studentId: z.string().uuid().optional(),
     type: z.enum(["individual", "class", "all", "bulk", "staff"]).optional(),

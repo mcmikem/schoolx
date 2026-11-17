@@ -2,6 +2,7 @@
 import { useMemo } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { whatsappHref } from "@/lib/phone-links";
+import { baseSmsVars, renderSmsTemplate } from "@/lib/sms-template";
 
 export interface NotifyParentEntry {
   id: string;
@@ -41,13 +42,22 @@ export default function NotifyParentsModal({
   const today = useMemo(() => new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long" }), []);
 
   const rows = useMemo(() => {
+    const base = { ...baseSmsVars(schoolName), date: today, today };
     return entries.map((entry) => {
-      const text =
-        message ??
-        (`Hello${entry.parentName ? ` ${entry.parentName.split(" ")[0]}` : ""}! ` +
-          `${schoolName || "Our school"}: a reminder about ${entry.studentName}` +
-          `${entry.className ? ` (${entry.className})` : ""} on ${today}. ` +
-          `Kindly check the SkoolMate updates or reply here if there is anything to discuss. Thank you!`);
+      const fallback =
+        `Hello${entry.parentName ? ` ${entry.parentName.split(" ")[0]}` : ""}! ` +
+        `${schoolName || "Our school"}: a reminder about ${entry.studentName}` +
+        `${entry.className ? ` (${entry.className})` : ""} on ${today}. ` +
+        `Kindly check the SkoolMate updates or reply here if there is anything to discuss. Thank you!`;
+      // Templates like "Dear parent, {{student_name}} owes ..." name a pupil,
+      // so each row renders its own copy — otherwise every parent is handed
+      // the literal placeholder for a child that is not theirs.
+      const text = renderSmsTemplate(message ?? fallback, {
+        ...base,
+        student_name: entry.studentName,
+        parent_name: entry.parentName,
+        class_name: entry.className,
+      });
       return { ...entry, href: entry.phone ? whatsappHref(entry.phone, text) : null };
     });
   }, [entries, message, schoolName, today]);

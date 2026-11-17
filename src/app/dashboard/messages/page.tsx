@@ -34,6 +34,7 @@ import { isWhatsAppConfigured } from "@/lib/whatsapp";
 import { createRecord, updateRecord, deleteRecord, upsertRecord, CrudWriteError } from "@/lib/crud-service";
 import { IMAGE_CACHE_CONTROL } from "@/lib/student-photos";
 import { filterBulkRecipients } from "@/lib/bulk-recipients";
+import { baseSmsVars, hasSmsTokens, renderSmsTemplate, unresolvedSmsTokens } from "@/lib/sms-template";
 
 const baseCommunicationTabs = [
   { id: "messages", label: "Messages" },
@@ -385,6 +386,31 @@ export default function CommunicationHubPage() {
   }> => {
     const preferWhatsApp = deliveryChannel === "whatsapp" || (deliveryChannel === "auto" && isWhatsAppConfigured());
 
+    // Templates name a pupil the composer cannot know. Rendering happens below
+    // per household; if a token still has no value by now, the parent would
+    // read a literal "{{student_name}}" — so refuse before spending the SMS.
+    const firstEntry = entries?.[0];
+    const probeVars = {
+      ...baseSmsVars(school?.name),
+      student_name: firstEntry?.studentName,
+      parent_name: firstEntry?.parentName,
+      class_name: firstEntry?.className,
+    };
+    const unresolved = entries ? unresolvedSmsTokens(body, probeVars) : [];
+    if (unresolved.length > 0) {
+      return {
+        success: false,
+        totalSent: 0,
+        totalFailed: phones.length,
+        via: "sms" as const,
+        result: {
+          message: `Fill in ${unresolved
+            .map((t) => `{{${t}}}`)
+            .join(", ")} first — parents would otherwise receive those literal placeholders.`,
+        },
+      };
+    }
+
     // Explicitly WhatsApp OR auto-with-WhatsApp-configured: serve the share
     // link rows rather than pretending a browser-side Cloud API call can run.
     // `entries` guards the notice flow, which mixes staff phones in and has
@@ -398,10 +424,43 @@ export default function CommunicationHubPage() {
       };
     }
 
+    // Templates name a pupil ("{{student_name}}") but one body is shared by
+    // every recipient, so each household must get its own rendered copy or the
+    // parent reads a literal placeholder. Keyed by phone because the phones
+    // list is filtered independently of `entries` and the two can drift apart.
+    const entryByPhone = new Map<string, NotifyParentEntry>();
+    for (const entry of entries || []) {
+      if (entry.phone) entryByPhone.set(entry.phone, entry);
+    }
+    const baseVars = baseSmsVars(school?.name);
+    const renderedPerRecipient = phones.map((phone) => {
+      const entry = entryByPhone.get(phone);
+      return renderSmsTemplate(body, {
+        ...baseVars,
+        student_name: entry?.studentName,
+        parent_name: entry?.parentName,
+        class_name: entry?.className,
+      });
+    });
+    const personalized = hasSmsTokens(body);
+    const uniqueBodies = new Set(renderedPerRecipient);
+    const perRecipient = personalized && uniqueBodies.size > 1;
+
     const response = await fetch("/api/sms/", {
       method: phones.length === 1 ? "POST" : "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone: phones[0], phones, message: body, schoolId: user!.school_id }),
+      body: JSON.stringify(
+        phones.length === 1
+          ? { phone: phones[0], message: renderedPerRecipient[0] ?? body, schoolId: user!.school_id }
+          : {
+              phones,
+              // Every household differs only when the template actually named
+              // a pupil; otherwise one shared body is cheaper and identical.
+              message: perRecipient ? body : (renderedPerRecipient[0] ?? body),
+              ...(perRecipient ? { messages: renderedPerRecipient } : {}),
+              schoolId: user!.school_id,
+            },
+      ),
     });
     const result = await response.json();
     const resultData = result?.data || {};
