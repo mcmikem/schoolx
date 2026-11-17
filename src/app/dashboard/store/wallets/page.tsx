@@ -199,7 +199,7 @@ export default function StudentWalletsPage() {
               <MaterialIcon icon="receipt_long" style={{ fontSize: 28 }} />
             </div>
             <div>
-              <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)]">Total Top-ups (MTD)</p>
+              <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)]">Total Top-ups (This month)</p>
               <p className="text-2xl font-black text-[var(--t1)]">UGX {monthTopups.toLocaleString()}</p>
             </div>
           </div>
