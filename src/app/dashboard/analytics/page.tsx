@@ -149,9 +149,12 @@ export default function AnalyticsPage() {
                 <p className="text-2xl sm:text-3xl font-bold text-[var(--on-surface)]" aria-live="polite">
                   {Number(displayData.stats.totalStudents || 0).toLocaleString()}
                 </p>
-                <div className="flex items-center gap-1 text-green text-xs font-bold">
-                  <MaterialIcon icon="trending_up" className="text-sm" />
-                  <span>vs last term</span>
+                {/* The previous label was a green "vs last term" arrow with no
+                    comparison behind it — this number is a single point-in-time
+                    roster count, so it says what it actually is. */}
+                <div className="flex items-center gap-1 text-[var(--on-surface-variant)] text-xs font-bold">
+                  <MaterialIcon icon="groups" className="text-sm" />
+                  <span>Whole roster, all statuses</span>
                 </div>
               </CardBody>
             </Card>
@@ -178,6 +181,9 @@ export default function AnalyticsPage() {
                     }}
                   />
                 </div>
+                <p className="text-xs text-[var(--on-surface-variant)]">
+                  Collected ÷ billed across every fee structure — not one term
+                </p>
               </CardBody>
             </Card>
             <Card className="!bg-surface-container-low/40">
@@ -188,7 +194,7 @@ export default function AnalyticsPage() {
                 <p className="text-2xl sm:text-3xl font-bold text-[var(--on-surface)]">
                   {Math.round(Number(displayData.stats.avgGrade || 0))}%
                 </p>
-                <p className="text-xs text-[var(--on-surface-variant)] italic">School average</p>
+                <p className="text-xs text-[var(--on-surface-variant)] italic">Every grade recorded, all terms</p>
               </CardBody>
             </Card>
             <Card className="!bg-surface-container-low/40">
@@ -199,7 +205,7 @@ export default function AnalyticsPage() {
                 <p className="text-2xl sm:text-3xl font-bold text-[var(--on-surface)]">
                   {Math.round(Number(displayData.stats.avgAttendance || 0))}%
                 </p>
-                <p className="text-xs text-[var(--on-surface-variant)] italic">Last 30 days</p>
+                <p className="text-xs text-[var(--on-surface-variant)] italic">Latest 2,000 register entries</p>
               </CardBody>
             </Card>
             <Card className="!bg-surface-container-low/40 col-span-2 md:col-span-1">
@@ -213,18 +219,54 @@ export default function AnalyticsPage() {
                 >
                   UGX {Number(displayData.stats.projectedRevenue || 0).toLocaleString()}
                 </p>
-                <p className="text-xs text-[var(--primary)] font-bold uppercase">Term Total</p>
+                <p className="text-xs text-[var(--primary)] font-bold uppercase">All fee structures billed</p>
               </CardBody>
             </Card>
           </div>
 
+          {/*
+            Every headline above is an all-time figure computed over the whole
+            school, but they sat under a page called "Strategic insights" with
+            no period stated, so a bursar read them as this term. The scope is
+            spelled out once, here, rather than guessed at per card.
+          */}
+          <details className="mb-8 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-4 py-3 text-sm">
+            <summary className="cursor-pointer font-semibold text-[var(--t1)]">
+              What these numbers count
+            </summary>
+            <ul className="mt-3 space-y-1.5 text-[var(--t3)] leading-relaxed">
+              <li>
+                <strong className="text-[var(--t2)]">Total Students</strong> — every row on the roster, including
+                inactive and graduated pupils.
+              </li>
+              <li>
+                <strong className="text-[var(--t2)]">Fee Collection</strong> — all payments ever recorded against all
+                of this school&apos;s fee structures, divided by the sum of those structures. Switch to the Fees page
+                for a term-by-term position.
+              </li>
+              <li>
+                <strong className="text-[var(--t2)]">Avg. Grade</strong> — mean of every grade mark on file, with no
+                date or term filter.
+              </li>
+              <li>
+                <strong className="text-[var(--t2)]">Avg. Attendance</strong> — mean per-pupil attendance over the most
+                recent 2,000 register entries, so on a large school it covers fewer days than a month.
+              </li>
+              <li>
+                <strong className="text-[var(--t2)]">Projected Revenue</strong> — the total billed by the fee
+                structure, whatever has been collected so far.
+              </li>
+            </ul>
+          </details>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <Card className="!bg-surface-container-low/40">
               <CardBody>
-                <h2 className="text-lg font-bold text-[var(--on-surface)] mb-6 flex items-center gap-2">
+                <h2 className="text-lg font-bold text-[var(--on-surface)] mb-1 flex items-center gap-2">
                   <div className="w-1.5 h-6 bg-[var(--primary)] rounded-full" />
                   Revenue vs. Outstanding
                 </h2>
+                <p className="mb-6 text-xs text-[var(--t4)]">Across all fee structures, all terms</p>
                 {(() => {
                   const projections = Array.isArray(displayData.revenueProjections)
                     ? displayData.revenueProjections
@@ -550,7 +592,10 @@ export default function AnalyticsPage() {
         <TabPanel activeTab={activeTab} tabId="finance">
           <Card>
             <CardBody>
-              <h2 className="text-lg font-bold text-[var(--on-surface)] mb-4">Financial Analytics</h2>
+              <h2 className="text-lg font-bold text-[var(--on-surface)] mb-1">Financial Analytics</h2>
+              <p className="mb-4 text-xs text-[var(--t4)]">
+                Every figure here covers the school&apos;s whole billing history — switch to Fees for a single term.
+              </p>
               {displayData.stats.projectedRevenue === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
                   <MaterialIcon icon="payments" className="text-5xl text-[var(--t4)]" />
@@ -572,11 +617,17 @@ export default function AnalyticsPage() {
                         style={{ width: `${displayData.stats.feeCollectionRate}%` }}
                       />
                     </div>
+                    <p className="mt-2 text-xs text-[var(--t4)] leading-snug">
+                      All fee structures and all payments, not this term alone.
+                    </p>
                   </div>
                   <div className="p-4 rounded-xl bg-[var(--surface-container-low)]">
                     <p className="text-xs text-[var(--t4)] mb-1">Projected Revenue</p>
                     <p className="text-lg font-bold text-[var(--on-surface)]">
                       UGX {displayData.stats.projectedRevenue.toLocaleString()}
+                    </p>
+                    <p className="mt-2 text-xs text-[var(--t4)] leading-snug">
+                      Total billed by the fee structure, before any collection.
                     </p>
                   </div>
                 </div>
