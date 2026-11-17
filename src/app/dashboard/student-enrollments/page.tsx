@@ -203,7 +203,7 @@ export default function StudentEnrollmentsPage() {
     <PageErrorBoundary>
       <>
         <PageHeader
-          title="Student Enrollments"
+          title="Course Enrollments"
           subtitle="Track student course enrollments and status"
           actions={
             <Button onClick={() => setShowModal(true)} icon={<MaterialIcon icon="add" />}>
