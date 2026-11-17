@@ -339,6 +339,12 @@ export default function DashboardRouter() {
     );
   }
 
+  // Without a school object there is no data to render a role dashboard against;
+  // show the reconnect skeleton instead of a stale/empty dashboard.
+  if (!school) {
+    return <DashboardSkeleton />;
+  }
+
   // Their remembered choice, when it is one they are still eligible for.
   const preferred = user.preferred_dashboard ?? null;
   const canUsePreferred = preferred != null && eligibleDashboards.length > 0 && roles.map(String).includes(preferred);

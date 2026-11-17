@@ -68,7 +68,7 @@ describe("bursar dashboard data states", () => {
     });
     render(<BursarDashboard />);
     const summary = screen.getByRole("region", { name: "Fee summary" });
-    expect(summary).toHaveTextContent("School-wide summary");
+    expect(summary).toHaveTextContent("school-wide summary");
     expect(summary).toHaveTextContent("UGX 1.0M");
     expect(summary).toHaveTextContent("50%");
     expect(screen.getByRole("progressbar", { name: "Fee collection progress" })).toHaveAttribute("aria-valuenow", "50");

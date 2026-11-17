@@ -250,11 +250,6 @@ function RegisterPageContent() {
       return;
     }
 
-    if (!acceptedSchoolAgreement) {
-      setApiError("Please review and accept the School Agreement and Privacy Notice to continue.");
-      return;
-    }
-
     formValidation.clearErrors();
 
     if (!googleRegisterMode && form.password !== form.confirmPassword) {
@@ -264,6 +259,11 @@ function RegisterPageContent() {
     }
 
     if (!formValidation.validate(form)) {
+      return;
+    }
+
+    if (!acceptedSchoolAgreement) {
+      setApiError("Please review and accept the School Agreement and Privacy Notice to continue.");
       return;
     }
 
