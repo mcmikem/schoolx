@@ -17,6 +17,9 @@ enabled = true
 binding = "SKOOLMATE_CACHE"
 id = "78b57dd35fb841258cefbbf7e7bac210"
 
+[[custom_domains]]
+name = "skoolmate.omuto.org"
+
 [assets]
 directory = ".open-next/assets"
 binding = "ASSETS"
