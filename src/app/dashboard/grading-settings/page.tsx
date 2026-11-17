@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useToast } from "@/components/Toast";
 import { AssessmentMaximumsCard, ReportRowsCard, TermGradeBasisCard } from "@/components/settings/AcademicSettings";
@@ -14,6 +14,7 @@ import {
   GRADING_TRACKS,
   SETTING_KEYS,
   resolveUseBot,
+  type GradingTrack,
   type SecondaryTrackChoice,
   type ReportLayoutId,
 } from "@/lib/grading-tracks";
@@ -35,6 +36,46 @@ export default function GradingSettingsPage() {
   const dirty =
     saved.secondaryTrack !== secondaryTrack || saved.reportLayout !== reportLayout || saved.useBot !== useBot;
   const trackInfo = GRADING_TRACKS[secondaryTrack === "old" ? "secondary_old" : "secondary_new"];
+
+  /**
+   * The secondary curriculum choice used to be the FIRST card on this page for
+   * every school, and the assessment guide below it described O/A-level or CBC
+   * secondary columns — a primary headmaster read a secondary syllabus before
+   * reaching anything that applied to them. `school_type` is NOT NULL on the
+   * schools table, so the split is known, not guessed; `primary` is the
+   * fallback the rest of the app already uses.
+   */
+  const schoolType = school?.school_type || "primary";
+  const teachesSecondary = schoolType === "secondary" || schoolType === "combined";
+  const teachesPrimary = schoolType === "primary" || schoolType === "combined";
+
+  /**
+   * The assessment guide, scoped to what this school prints. Tracks that share
+   * a column set (primary and old-curriculum secondary both use CLASSIC_COLUMNS)
+   * are merged into one block so the same MID/END/AVG explanation never appears
+   * twice under two headings.
+   */
+  const guideGroups = useMemo(() => {
+    const candidates: Array<{ label: string; track: GradingTrack }> = [
+      ...(teachesPrimary ? [{ label: GRADING_TRACKS.primary.label, track: GRADING_TRACKS.primary }] : []),
+      ...(teachesSecondary
+        ? [{ label: trackInfo.label, track: trackInfo }]
+        : []),
+      ...(schoolType !== "secondary"
+        ? [{ label: GRADING_TRACKS.nursery.label, track: GRADING_TRACKS.nursery }]
+        : []),
+    ];
+    const groups: Array<{ labels: string[]; track: GradingTrack }> = [];
+    for (const candidate of candidates) {
+      const existing = groups.find((group) => group.track.columns === candidate.track.columns);
+      if (existing) {
+        if (!existing.labels.includes(candidate.label)) existing.labels.push(candidate.label);
+      } else {
+        groups.push({ labels: [candidate.label], track: candidate.track });
+      }
+    }
+    return groups;
+  }, [teachesPrimary, teachesSecondary, schoolType, trackInfo]);
 
   useEffect(() => {
     let cancelled = false;
@@ -153,28 +194,6 @@ export default function GradingSettingsPage() {
             <Card>
               <CardBody className="space-y-4 p-4 sm:p-6">
                 <div className="flex items-center gap-3">
-                  <MaterialIcon icon="school" className="text-primary text-2xl" />
-                  <h2 className="font-semibold text-lg">Secondary curriculum</h2>
-                </div>
-                <Select
-                  label="Curriculum track"
-                  value={secondaryTrack}
-                  disabled={saving}
-                  onChange={(event) => setSecondaryTrack(event.target.value as SecondaryTrackChoice)}
-                  options={[
-                    { value: "old", label: "Old curriculum · O/A-level" },
-                    { value: "new", label: "New curriculum · CBC" },
-                  ]}
-                />
-                <p className="text-sm leading-relaxed text-[var(--t3)]">{trackInfo.explain}</p>
-                <div className="rounded-xl bg-[var(--surface-container-low)] p-4 text-sm text-[var(--t3)]">
-                  Nursery and primary retain their own grading schemes. This choice applies to secondary classes.
-                </div>
-              </CardBody>
-            </Card>
-            <Card>
-              <CardBody className="space-y-4 p-4 sm:p-6">
-                <div className="flex items-center gap-3">
                   <MaterialIcon icon="description" className="text-primary text-2xl" />
                   <h2 className="font-semibold text-lg">Printed reports</h2>
                 </div>
@@ -194,7 +213,10 @@ export default function GradingSettingsPage() {
                     : "Traditional report with subject marks, grades and teacher comments."}
                 </p>
                 <p className="text-sm text-[var(--t3)]">
-                  Suggested for this track: {trackInfo.defaultLayout === "ncdc_cbc" ? "NCDC CBC" : "Uganda Classic"}
+                  Suggested for this school:{" "}
+                  {(teachesPrimary ? GRADING_TRACKS.primary.defaultLayout : trackInfo.defaultLayout) === "ncdc_cbc"
+                    ? "NCDC CBC"
+                    : "Uganda Classic"}
                 </p>
                 <div className="border-t border-[var(--border)] pt-4">
                   <div className="flex items-start justify-between gap-4">
@@ -229,15 +251,81 @@ export default function GradingSettingsPage() {
                 </div>
               </CardBody>
             </Card>
+            {/* A school that teaches no secondary classes has nothing to
+                configure here — leading with it made the whole page read as
+                someone else's settings. It stays reachable, just not first. */}
+            {teachesSecondary && (
+              <Card>
+                <CardBody className="space-y-4 p-4 sm:p-6">
+                  <div className="flex items-center gap-3">
+                    <MaterialIcon icon="school" className="text-primary text-2xl" />
+                    <h2 className="font-semibold text-lg">Secondary curriculum</h2>
+                  </div>
+                  <Select
+                    label="Curriculum track"
+                    value={secondaryTrack}
+                    disabled={saving}
+                    onChange={(event) => setSecondaryTrack(event.target.value as SecondaryTrackChoice)}
+                    options={[
+                      { value: "old", label: "Old curriculum · O/A-level" },
+                      { value: "new", label: "New curriculum · CBC" },
+                    ]}
+                  />
+                  <p className="text-sm leading-relaxed text-[var(--t3)]">{trackInfo.explain}</p>
+                  <div className="rounded-xl bg-[var(--surface-container-low)] p-4 text-sm text-[var(--t3)]">
+                    Nursery and primary retain their own grading schemes. This choice applies to secondary classes.
+                  </div>
+                </CardBody>
+              </Card>
+            )}
           </div>
+          {!teachesSecondary && (
+            <Card>
+              <CardBody className="space-y-3 p-4 sm:p-6">
+                <div className="flex items-center gap-3">
+                  <MaterialIcon icon="school" className="text-[var(--t3)] text-2xl" />
+                  <h2 className="font-semibold text-lg">Secondary curriculum</h2>
+                </div>
+                <p className="text-sm leading-relaxed text-[var(--t3)]">
+                  This school is registered as{" "}
+                  <strong className="text-[var(--t2)]">{schoolType === "primary" ? "primary" : "combined"}</strong>,
+                  so secondary settings do not affect your reports. You can still set the track now in case you add S.1
+                  to S.6 later.
+                </p>
+                <Select
+                  label="Curriculum track"
+                  value={secondaryTrack}
+                  disabled={saving}
+                  onChange={(event) => setSecondaryTrack(event.target.value as SecondaryTrackChoice)}
+                  options={[
+                    { value: "old", label: "Old curriculum · O/A-level" },
+                    { value: "new", label: "New curriculum · CBC" },
+                  ]}
+                />
+              </CardBody>
+            </Card>
+          )}
           <Card>
             <CardBody className="space-y-4 p-4 sm:p-6">
-              <h2 className="font-semibold text-lg">Assessment guide</h2>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {trackInfo.columns.map((column) => (
-                  <div key={column.label} className="rounded-xl border border-[var(--border)] p-4">
-                    <h3 className="font-semibold text-primary">{column.label}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-[var(--t3)]">{column.explain}</p>
+              <h2 className="font-semibold text-lg">How marks are read</h2>
+              <div className="space-y-5">
+                {guideGroups.map((group) => (
+                  <div key={group.labels.join("|")}>
+                    <div className="flex flex-wrap items-baseline gap-2">
+                      <h3 className="font-semibold text-primary">{group.labels.join(" · ")}</h3>
+                      <span className="text-xs text-[var(--t3)]">
+                        {group.track.id === "nursery" ? "always applies" : "this school"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm leading-relaxed text-[var(--t3)]">{group.track.explain}</p>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      {group.track.columns.map((column) => (
+                        <div key={column.label} className="rounded-xl border border-[var(--border)] p-4">
+                          <h4 className="font-semibold">{column.label}</h4>
+                          <p className="mt-2 text-sm leading-relaxed text-[var(--t3)]">{column.explain}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
