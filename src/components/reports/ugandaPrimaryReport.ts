@@ -428,6 +428,7 @@ export function generateNurseryReportBody(input: UgandaPrintInput): string {
   <div class="nursery-report" style="width:190mm;margin:0 auto;">
     <div style="text-align:center;margin-bottom:8px;">
       ${school.logoUrl ? `<img src="${escapeHtml(school.logoUrl)}" alt="logo" style="max-height:52px;max-width:120px;object-fit:contain;">` : ""}
+      ${pupil.photoUrl ? `<img src="${escapeHtml(pupil.photoUrl)}" alt="pupil" style="max-height:60px;max-width:60px;object-fit:cover;border-radius:8px;margin:4px auto;display:block;">` : ""}
       <div style="font-size:14px;font-weight:bold;">${escapeHtml(school.name)}</div>
       <div style="font-size:10px;">${escapeHtml(school.address || "")}</div>
       <div style="font-size:12px;font-weight:bold;margin-top:4px;">NURSERY PROGRESS REPORT</div>
