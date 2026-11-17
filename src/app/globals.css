@@ -2169,7 +2169,8 @@ table tr {
     margin-left: var(--sidebar-collapsed-width) !important;
     width: calc(100% - var(--sidebar-collapsed-width)) !important;
   }
-  .dashboard-shell:has(> .sidebar.rail-expanded) > .main-content {
+  .dashboard-shell:has(> .sidebar.rail-expanded) > .main-content,
+  .sidebar.rail-expanded ~ .main-content {
     margin-left: var(--sidebar-width) !important;
     width: calc(100% - var(--sidebar-width)) !important;
   }
