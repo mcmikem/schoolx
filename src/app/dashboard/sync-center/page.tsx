@@ -499,7 +499,7 @@ export default function SyncCenterPage() {
             </Button>
           )}
           {failed.length > 0 && (
-            <Button variant="ghost" onClick={() => setConfirmClear(true)}>
+            <Button variant="ghost" aria-label="Discard all failed" onClick={() => setConfirmClear(true)}>
               <MaterialIcon icon="delete_sweep" />
               Discard all failed
             </Button>
