@@ -1338,7 +1338,11 @@ export default function CommunicationHubPage() {
             </div>
           )}
           {parentInboxLoading ? (
-            <p className="text-sm text-[var(--t3)]">Loading…</p>
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-16 rounded-2xl bg-[var(--surface-container)] animate-pulse" />
+                ))}
+              </div>
           ) : parentInboxMessages.length === 0 ? (
             <p className="text-sm text-[var(--t3)]">No parent messages yet.</p>
           ) : (
