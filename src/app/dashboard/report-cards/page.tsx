@@ -7,7 +7,11 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { VideoLessonButton } from "@/components/onboarding/VideoLesson";
 import { OwlyHelpLink } from "@/components/owly/OwlyHelpLink";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { generateUgandaPrimaryBody, generateNurseryReportBody, ugandaDocumentShell } from "@/components/reports/ugandaPrimaryReport";
+import {
+  generateUgandaPrimaryBody,
+  generateNurseryReportBody,
+  ugandaDocumentShell,
+} from "@/components/reports/ugandaPrimaryReport";
 import { useToast } from "@/components/Toast";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
@@ -316,7 +320,13 @@ export default function ReportCardsPage() {
   const { classes } = useClasses(school?.id);
   const { staff } = useStaff(school?.id);
   const { subjects } = useSubjects(school?.id);
-  const nurserySubjectNames = new Set(["Social Development", "Language Development", "Health Habits", "Mathematical Concepts", "Reading and Writing"]);
+  const nurserySubjectNames = new Set([
+    "Social Development",
+    "Language Development",
+    "Health Habits",
+    "Mathematical Concepts",
+    "Reading and Writing",
+  ]);
   const { students: classStudents } = useStudents(school?.id, { limit: 5000 });
   const [subjectTeachers, setSubjectTeachers] = useState<Record<string, Record<string, string[]>>>({});
   const { payments } = useFeePayments(school?.id, 1, 5000, true);
@@ -468,9 +478,8 @@ export default function ReportCardsPage() {
       .join(", ");
   };
   const selectedClassStage = detectLevelFromClass(selectedClassName);
-  const reportSubjects = selectedClassStage === "nursery"
-    ? subjects.filter((s: any) => nurserySubjectNames.has(s.name))
-    : subjects;
+  const reportSubjects =
+    selectedClassStage === "nursery" ? subjects.filter((s: any) => nurserySubjectNames.has(s.name)) : subjects;
   const selectedForm = Number(selectedClassName.match(/(?:S\.?\s*)(\d+)/i)?.[1] || 0);
   const reportFormatGuidance =
     selectedClassStage === "nursery"
@@ -1858,8 +1867,13 @@ export default function ReportCardsPage() {
           competencyNotes: s.competencyNotes,
         })) as any,
         totals: { midTotal: null, endTotal: null, avgMean: null, aggSum: null, division: "" },
-        comments: { classTeacher: comments[report.studentId]?.classTeacher || report.classTeacherComment || "", hm: comments[report.studentId]?.hm || report.hmComment || "" },
-        behaviour: (behaviour[report.studentId] ? Object.entries(behaviour[report.studentId]).map(([skill, rating]) => ({ skill, rating: rating as number })) : []),
+        comments: {
+          classTeacher: comments[report.studentId]?.classTeacher || report.classTeacherComment || "",
+          hm: comments[report.studentId]?.hm || report.hmComment || "",
+        },
+        behaviour: behaviour[report.studentId]
+          ? Object.entries(behaviour[report.studentId]).map(([skill, rating]) => ({ skill, rating: rating as number }))
+          : [],
         feeBalance: report.feeBalance,
         nextTermBegins: ctx.nextTermBegins,
       });
@@ -2587,12 +2601,12 @@ export default function ReportCardsPage() {
       )}
       <Button
         onClick={handleGenerate}
-        disabled={generatingAll || generating}
+        disabled={generatingAll || generating || !selectedClass}
         loading={generating}
         className="bg-indigo-600 shadow-indigo-600/20"
       >
         <MaterialIcon icon="bolt" style={{ fontSize: "18px" }} />
-        Generate Now
+        {selectedClass ? "Generate selected class" : "Select a class to generate"}
       </Button>
       <VideoLessonButton lesson="comments" label="Watch how comments are written" />
       <VideoLessonButton lesson="reportCards" label="Watch how to print" />
@@ -2906,9 +2920,7 @@ export default function ReportCardsPage() {
                 </select>
                 <p className="mt-2 text-xs leading-relaxed text-[var(--t3)]">{reportFormatGuidance}</p>
                 {selectedClassStage === "nursery" && (
-                  <p className="mt-1 text-xs text-[var(--t3)]">
-                    Rating key: 1 = Emerging, 2 = Developing, 3 = Secure.
-                  </p>
+                  <p className="mt-1 text-xs text-[var(--t3)]">Rating key: 1 = Emerging, 2 = Developing, 3 = Secure.</p>
                 )}
                 {selectedClassStage === "nursery" && (
                   <p className="mt-1 text-xs text-[var(--t3)]">Rating key: 1 = Emerging, 2 = Developing, 3 = Secure.</p>

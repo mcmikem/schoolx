@@ -2145,7 +2145,7 @@ table tr {
   visibility: visible;
 }
 
-/* Desktop and tablet landscape: compact rail overlays content, no backdrop overlay */
+/* Desktop: reserve space for both the compact and expanded navigation. */
 @media (min-width: 1024px) {
   .sidebar {
     transform: translateX(0) !important;
@@ -2168,6 +2168,14 @@ table tr {
   .main-content {
     margin-left: var(--sidebar-collapsed-width) !important;
     width: calc(100% - var(--sidebar-collapsed-width)) !important;
+  }
+  .dashboard-shell:has(> .sidebar.rail-expanded) > .main-content {
+    margin-left: var(--sidebar-width) !important;
+    width: calc(100% - var(--sidebar-width)) !important;
+  }
+  .dashboard-shell > .main-content {
+    min-width: 0;
+    transition: margin-left 220ms var(--ease), width 220ms var(--ease);
   }
   .sidebar-close-btn {
     display: flex !important;

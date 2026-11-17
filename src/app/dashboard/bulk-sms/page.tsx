@@ -59,7 +59,7 @@ const TEMPLATES: MessageTemplate[] = [
     label: "Fee Reminder",
     icon: "payments",
     category: "Finance",
-    body: "Dear Parent, this is a reminder that school fees for {student_name} are outstanding. Please clear UGX {amount} by {deadline}. Thank you.",
+    body: "Dear Parent, this is a reminder that school fees for {student_name} are outstanding. Please clear UGX {amount} as soon as possible. Thank you.",
   },
   {
     id: "absentee",

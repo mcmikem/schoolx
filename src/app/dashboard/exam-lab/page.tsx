@@ -344,7 +344,7 @@ export default function ExamLabPage() {
               Review student submissions
             </Link>
             <a
-              href={process.env.NEXT_PUBLIC_STUDENT_EXAMS_URL || "http://localhost:3005"}
+              href={process.env.NEXT_PUBLIC_STUDENT_EXAMS_URL || "/student-portal/"}
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -361,7 +361,7 @@ export default function ExamLabPage() {
                 textDecoration: "none",
               }}
             >
-              Open Student Companion App (SkoolMate Exams) &rarr;
+              Open student practice &rarr;
             </a>
           </div>
         </header>

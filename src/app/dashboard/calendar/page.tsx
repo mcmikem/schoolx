@@ -16,7 +16,13 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { useClasses, useStaff } from "@/lib/hooks";
 import { hasAnyRole } from "@/lib/roles";
-import { expandRecurringEvents, isWithinRecurrenceLimit, type EventRecurrence } from "@/lib/calendar-event-recurrence";
+import {
+  eventOverlapsRange,
+  countCalendarOccurrences,
+  expandRecurringEvents,
+  isWithinRecurrenceLimit,
+  type EventRecurrence,
+} from "@/lib/calendar-event-recurrence";
 
 interface SchoolEvent {
   id: string;
@@ -354,9 +360,10 @@ export default function CalendarPage() {
   const monthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
   const monthEvents = calendarEvents
     .filter((evt) => {
-      const startMonth = evt.start_date.substring(0, 7);
-      const endMonth = evt.end_date?.substring(0, 7);
-      return startMonth === monthKey || endMonth === monthKey;
+      // Include events spanning the entire month, not only those starting or ending in it.
+      const monthStart = `${monthKey}-01`;
+      const monthEnd = toDateKey(new Date(currentYear, currentMonth + 1, 0));
+      return eventOverlapsRange(evt, monthStart, monthEnd);
     })
     .filter(matchesFilter)
     .sort((a, b) => a.start_date.localeCompare(b.start_date));
@@ -393,8 +400,8 @@ export default function CalendarPage() {
     },
     {
       label: "This week",
-      value: String(weekColumns.reduce((total, col) => total + col.events.length, 0)),
-      note: "In current week strip",
+      value: String(countCalendarOccurrences(weekColumns.flatMap((col) => col.events))),
+      note: "Distinct events this week",
     },
     {
       label: "Next up",
@@ -609,13 +616,13 @@ export default function CalendarPage() {
 
               {mode !== "timeline" && (
                 <>
-                  <Button variant="secondary" size="sm" onClick={goPrev}>
+                  <Button variant="secondary" size="sm" aria-label="Previous date range" onClick={goPrev}>
                     <MaterialIcon icon="chevron_left" />
                   </Button>
                   <Button variant="secondary" size="sm" onClick={goToday}>
                     Today
                   </Button>
-                  <Button variant="secondary" size="sm" onClick={goNext}>
+                  <Button variant="secondary" size="sm" aria-label="Next date range" onClick={goNext}>
                     <MaterialIcon icon="chevron_right" />
                   </Button>
                 </>
@@ -661,6 +668,7 @@ export default function CalendarPage() {
                       <button
                         type="button"
                         onClick={goPrev}
+                        aria-label="Previous month"
                         className="tap-44 rounded-full p-1 hover:bg-[var(--surface-container)]"
                       >
                         <MaterialIcon icon="chevron_left" className="text-[18px]" />
@@ -668,6 +676,7 @@ export default function CalendarPage() {
                       <button
                         type="button"
                         onClick={goNext}
+                        aria-label="Next month"
                         className="tap-44 rounded-full p-1 hover:bg-[var(--surface-container)]"
                       >
                         <MaterialIcon icon="chevron_right" className="text-[18px]" />
@@ -850,7 +859,9 @@ export default function CalendarPage() {
 
                 <div className="mb-3 flex items-center justify-between">
                   <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--t3)]">{timezoneLabel}</p>
-                  <p className="text-xs text-[var(--t1)]">Click any event to delete</p>
+                  <p className="text-xs text-[var(--t1)]">
+                    Select an event to view or edit. Use its delete button to remove it.
+                  </p>
                 </div>
 
                 {(mode === "week" || mode === "day") && (

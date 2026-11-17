@@ -310,8 +310,17 @@ export default function AcademicTermsPage() {
                         <div>
                           <div className="font-medium text-[var(--t1)]">{term.name}</div>
                           <div className="text-sm text-[var(--t3)]">
-                            {new Date(term.start_date).toLocaleDateString()} -{" "}
-                            {new Date(term.end_date).toLocaleDateString()}
+                            {new Date(`${term.start_date}T00:00:00`).toLocaleDateString("en-UG", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}{" "}
+                            -{" "}
+                            {new Date(`${term.end_date}T00:00:00`).toLocaleDateString("en-UG", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
                           </div>
                         </div>
                       </div>

@@ -473,21 +473,27 @@ export default function SyncCenterPage() {
             </Button>
           )}
           {failed.length > 0 && selectedFailed.size > 0 && (
-            <Button variant="secondary" onClick={async () => {
-              for (const id of selectedFailed) await offlineDB.retrySyncItem(id);
-              setSelectedFailed(new Set());
-              await loadData();
-            }}>
+            <Button
+              variant="secondary"
+              onClick={async () => {
+                for (const id of selectedFailed) await offlineDB.retrySyncItem(id);
+                setSelectedFailed(new Set());
+                await loadData();
+              }}
+            >
               <MaterialIcon icon="refresh" />
               Retry selected ({selectedFailed.size})
             </Button>
           )}
           {failed.length > 0 && selectedFailed.size > 0 && (
-            <Button variant="ghost" onClick={async () => {
-              for (const id of selectedFailed) await offlineDB.removeSyncItem(id);
-              setSelectedFailed(new Set());
-              await loadData();
-            }}>
+            <Button
+              variant="ghost"
+              onClick={async () => {
+                for (const id of selectedFailed) await offlineDB.removeSyncItem(id);
+                setSelectedFailed(new Set());
+                await loadData();
+              }}
+            >
               <MaterialIcon icon="delete" />
               Discard selected ({selectedFailed.size})
             </Button>
@@ -548,7 +554,7 @@ export default function SyncCenterPage() {
         <section className="space-y-2">
           <div className="flex flex-wrap items-end justify-between gap-2">
             <div>
-              <h2 className="text-sm font-semibold text-[var(--t1)]">On this phone</h2>
+              <h2 className="text-sm font-semibold text-[var(--t1)]">On this device</h2>
               <p className="text-xs text-[var(--t3)]">
                 {cachedRecordCount.toLocaleString()} records downloaded or queued · {storageSummary}
                 {storageHealth.persisted === true
@@ -564,7 +570,7 @@ export default function SyncCenterPage() {
           </div>
           {cacheSummary.length > 0 ? (
             <DataTable
-              caption="What is saved on this phone"
+              caption="What is saved on this device"
               columns={cacheColumns}
               rows={cacheSummary}
               getRowId={(entry) => entry.table}
@@ -645,8 +651,8 @@ export default function SyncCenterPage() {
         {pending.length === 0 && failed.length === 0 && recentlySynced.length === 0 && (
           <EmptyState
             icon="cloud_done"
-            title="All synced"
-            description="Every change on this device has reached the server. You can keep working offline — new changes will appear here."
+            title="No changes waiting to upload"
+            description="No pending or failed changes are waiting on this device. Check offline preparation above before relying on downloaded data or pages."
           />
         )}
       </div>

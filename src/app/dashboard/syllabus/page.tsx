@@ -40,11 +40,12 @@ export default function SyllabusPage() {
   const toast = useToast();
   const { classes } = useClasses(school?.id);
   const { subjects } = useSubjects(school?.id, false);
-  const { academicYear } = useAcademic();
+  const { academicYear, currentTerm } = useAcademic();
 
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
-  const [selectedTerm, setSelectedTerm] = useState("1");
+  const [selectedTerm, setSelectedTerm] = useState(String(currentTerm));
+  useEffect(() => setSelectedTerm(String(currentTerm)), [currentTerm]);
   const [searchQuery, setSearchQuery] = useState("");
   const [topics, setTopics] = useState<SyllabusTopic[]>([]);
   const [loading, setLoading] = useState(false);

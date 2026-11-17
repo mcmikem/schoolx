@@ -108,12 +108,14 @@ describe("Library page", () => {
     render(<LibraryPage />);
     await screen.findByText("Fountain of Knowledge");
 
-    fireEvent.click(screen.getByRole("button", { name: /new volume/i }));
+    fireEvent.click(screen.getByRole("button", { name: /add book/i }));
 
     expect(screen.getByLabelText("Title *")).toBeRequired();
     expect(screen.getByLabelText("Author *")).toBeRequired();
     expect(screen.getByLabelText("Total copies *")).toBeRequired();
-    expect(screen.getByRole("button", { name: /add book/i })).toBeDisabled();
+    expect(
+      within(screen.getByRole("dialog", { name: /add volume/i })).getByRole("button", { name: /add book/i }),
+    ).toBeDisabled();
   });
 
   it("pre-fills the form when editing a book", async () => {

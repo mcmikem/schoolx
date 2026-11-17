@@ -51,7 +51,10 @@ export default function ExamsPage() {
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedExamType, setSelectedExamType] = useState("eot");
   const [showAddExam, setShowAddExam] = useState(false);
-  const [examTypeTab, setExamTypeTab] = useState("secondary");
+  const [examTypeTab, setExamTypeTab] = useState(school?.school_type === "primary" ? "primary" : "secondary");
+  useEffect(() => {
+    setExamTypeTab(school?.school_type === "primary" ? "primary" : "secondary");
+  }, [school?.id, school?.school_type]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showWeights, setShowWeights] = useState(false);
   const [examToDelete, setExamToDelete] = useState<string | null>(null);

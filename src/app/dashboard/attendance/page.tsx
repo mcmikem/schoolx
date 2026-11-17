@@ -1629,7 +1629,10 @@ export default function AttendancePage() {
                 permanently cost vertical space on the register. */}
               {students.length > 0 && markedCount === 0 && (
                 <div className="border-l-2 border-[var(--primary)] py-1 pl-3 text-xs text-[var(--t3)]">
-                  <p>Everyone counts as Present. Mark exceptions as Absent, Late, or Excused, then save the class.</p>
+                  <p>
+                    Choose Mark All Present to start with a present class, then mark exceptions as Absent, Late, or
+                    Excused. Save when the register is complete.
+                  </p>
                   <p className="mt-1 lg:hidden">On a phone, swipe left for Present or right for Absent.</p>
                   <div className="mt-2 flex gap-3">
                     <OwlyTrigger guideId="attendance" label="How do I mark attendance?" />

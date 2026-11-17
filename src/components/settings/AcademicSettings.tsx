@@ -77,7 +77,7 @@ const DEFAULT_EXAM_WEIGHTS = [
     id: "eot",
     name: "End of Term",
     shortName: "EOT",
-    weight: 30,
+    weight: 20,
     isActive: true,
   },
 ];
@@ -209,6 +209,12 @@ export default function AcademicSettings() {
           </button>
         </div>
 
+        {!loadingWeights && totalWeight !== 100 && (
+          <p role="alert" className="mb-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+            Exam weights total {totalWeight}%. Configure them to total 100% before using this weighting. Existing saved
+            weights have not been changed.
+          </p>
+        )}
         {!showSettings ? (
           <div>
             <p className="text-sm text-on-surface-variant mb-4">

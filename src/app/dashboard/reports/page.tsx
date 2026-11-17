@@ -769,7 +769,7 @@ export default function ReportsPage() {
     <PageErrorBoundary>
       <div className="space-y-6 pb-24 md:pb-6">
         <PageHeader
-          title="Reporting Analytics"
+          title="Individual Report Cards"
           subtitle={`Term ${currentTerm}, ${academicYear} Academic Cycle`}
           variant="premium"
           actions={

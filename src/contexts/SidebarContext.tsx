@@ -1,12 +1,5 @@
 "use client";
-import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useEffect,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
 
 interface SidebarContextValue {
   isOpen: boolean;
@@ -43,7 +36,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    if (window.innerWidth < 1280) {
+    if (window.innerWidth < 1024) {
       document.body.style.overflow = isOpen ? "hidden" : "";
     }
 
@@ -52,11 +45,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     };
   }, [isOpen]);
 
-  return (
-    <SidebarContext.Provider value={{ isOpen, open, close, toggle }}>
-      {children}
-    </SidebarContext.Provider>
-  );
+  return <SidebarContext.Provider value={{ isOpen, open, close, toggle }}>{children}</SidebarContext.Provider>;
 }
 
 export function useSidebar() {

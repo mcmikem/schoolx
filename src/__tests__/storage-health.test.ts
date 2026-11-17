@@ -65,6 +65,6 @@ describe("the warning is wired into the app, not just available", () => {
   it("shows what is saved in the sync centre", () => {
     const page = readFileSync(join(__dirname, "..", "app", "dashboard", "sync-center", "page.tsx"), "utf8");
     expect(page).toContain("offlineDB.getCacheSummary()");
-    expect(page).toContain("On this phone");
+    expect(page).toContain("On this device");
   });
 });

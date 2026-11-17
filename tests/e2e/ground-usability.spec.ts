@@ -112,7 +112,7 @@ test("S20: generating demo report cards does not attempt to save school records"
   await seedDemoSession(page, "headmaster");
   await page.goto("/dashboard/report-cards/");
   await page.getByLabel("Select Class", { exact: true }).selectOption("4");
-  await page.getByRole("button", { name: "Generate Now", exact: true }).click();
+  await page.getByRole("button", { name: "Generate selected class", exact: true }).click();
   await expect(page.getByText(/Demo preview generated.*No school records were saved/)).toBeVisible();
   await expect(page.getByRole("region", { name: "Report card results" }).locator("tbody tr").first()).toBeVisible();
 });
@@ -121,7 +121,7 @@ test("S19: generated report averages stay within the percentage scale", async ({
   await seedDemoSession(page, "headmaster");
   await page.goto("/dashboard/report-cards/");
   await page.getByLabel("Select Class", { exact: true }).selectOption("4");
-  await page.getByRole("button", { name: "Generate Now", exact: true }).click();
+  await page.getByRole("button", { name: "Generate selected class", exact: true }).click();
   await expect(page.getByText(/Demo preview generated.*No school records were saved/)).toBeVisible();
   const rows = page.getByRole("region", { name: "Report card results" }).locator("tbody tr");
   await expect(rows.first()).toBeVisible();
@@ -154,14 +154,14 @@ test("S19 CBC: changing format clears stale reports and missing assessments stay
   await seedDemoSession(page, "headmaster");
   await page.goto("/dashboard/report-cards/");
   await page.getByLabel("Select Class", { exact: true }).selectOption("4");
-  await page.getByRole("button", { name: "Generate Now", exact: true }).click();
+  await page.getByRole("button", { name: "Generate selected class", exact: true }).click();
   const results = page.getByRole("region", { name: "Report card results" });
   await expect(results).toBeVisible();
   await page.getByLabel("Report Format", { exact: true }).selectOption("cbc");
   await expect(results).toHaveCount(0);
   const gradeRequests: string[] = [];
   page.on("request", (request) => { if (new URL(request.url()).pathname.includes("/rest/v1/grades")) gradeRequests.push(request.url()); });
-  await page.getByRole("button", { name: "Generate Now", exact: true }).click();
+  await page.getByRole("button", { name: "Generate selected class", exact: true }).click();
   await expect(page.getByText(/Demo preview generated.*No school records were saved/).last()).toBeVisible();
   const first = results.locator("tbody tr").first();
   await expect(first.locator("[data-report-average]")).toHaveText("—");

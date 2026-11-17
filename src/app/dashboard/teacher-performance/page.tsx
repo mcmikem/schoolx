@@ -238,8 +238,9 @@ export default function TeacherPerformancePage() {
       badges: getBadges(t, metric),
       metric: metric,
     }));
-    const top3Ids = new Set(top10.slice(0, 3).map((entry) => entry.teacherId));
-    return top10.map((entry) => ({
+    const activeEntries = top10.filter((entry) => entry.score > 0);
+    const top3Ids = new Set(activeEntries.slice(0, 3).map((entry) => entry.teacherId));
+    return activeEntries.map((entry) => ({
       ...entry,
       badges: top3Ids.has(entry.teacherId) ? Array.from(new Set(["top", ...entry.badges])) : entry.badges,
     }));
@@ -373,7 +374,9 @@ export default function TeacherPerformancePage() {
                     </button>
                   ))}
                   {leaderboard.length === 0 && (
-                    <div className="p-8 text-center text-on-surface-variant">No teacher data available</div>
+                    <div className="p-8 text-center text-on-surface-variant">
+                      No activity recorded for this metric yet. Rankings appear once activity is recorded.
+                    </div>
                   )}
                 </div>
               </CardBody>

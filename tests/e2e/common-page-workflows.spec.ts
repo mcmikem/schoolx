@@ -12,7 +12,7 @@ test("headmaster can search generated report cards, clear empty results, and edi
     await page.setViewportSize({ width, height: 844 });
     await page.goto("/dashboard/report-cards/");
     await page.getByLabel("Select Class", { exact: true }).selectOption("4");
-    await page.getByRole("button", { name: "Generate Now", exact: true }).click();
+    await page.getByRole("button", { name: "Generate selected class", exact: true }).click();
     // The table becomes visible before report persistence finishes. Wait for
     // the demo confirmation before capturing the count used by the filter
     // assertions, otherwise the late result update looks like a broken clear.

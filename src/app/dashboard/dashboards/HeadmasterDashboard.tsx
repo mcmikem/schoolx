@@ -370,7 +370,8 @@ function HeadmasterDashboardContent() {
           <SchoolHero
             school={school}
             userName={user?.full_name?.split(" ")[0] || "there"}
-            subtitle={[school?.name, todayLabel, `Term ${currentTerm}, ${academicYear}`].filter(Boolean).join(" · ")}
+            dateLabel={todayLabel}
+            subtitle={[school?.name, `Term ${currentTerm}, ${academicYear}`].filter(Boolean).join(" · ")}
             rightSection={
               <Link href="/dashboard/students?action=add" className="btn-pill btn-primary">
                 <MaterialIcon icon="add" style={{ fontSize: 16 }} />

@@ -310,7 +310,7 @@ export default function LibraryPage() {
               <VideoLessonButton lesson="library" label="Watch how" />
               {canManageCatalog && (
                 <Button onClick={() => setShowAdd(true)} icon={<MaterialIcon icon="add" />}>
-                  New volume
+                  Add Book
                 </Button>
               )}
             </>

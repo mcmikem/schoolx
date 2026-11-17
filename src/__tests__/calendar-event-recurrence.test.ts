@@ -1,4 +1,9 @@
-import { expandRecurringEvents, isWithinRecurrenceLimit } from "@/lib/calendar-event-recurrence";
+import {
+  eventOverlapsRange,
+  countCalendarOccurrences,
+  expandRecurringEvents,
+  isWithinRecurrenceLimit,
+} from "@/lib/calendar-event-recurrence";
 
 describe("calendar recurrence expansion", () => {
   it("expands a weekly event through its inclusive final date", () => {
@@ -64,5 +69,18 @@ describe("calendar recurrence expansion", () => {
   it("keeps recurring events within a five-year window", () => {
     expect(isWithinRecurrenceLimit("2026-11-10", "2031-11-10")).toBe(true);
     expect(isWithinRecurrenceLimit("2026-11-10", "2031-11-11")).toBe(false);
+  });
+});
+
+describe("calendar reporting periods", () => {
+  it("includes a term spanning the whole month and excludes dates outside it", () => {
+    const term = { start_date: "2026-09-16", end_date: "2026-12-06" };
+    expect(eventOverlapsRange(term, "2026-11-01", "2026-11-30")).toBe(true);
+    expect(eventOverlapsRange(term, "2027-01-01", "2027-01-31")).toBe(false);
+    expect(eventOverlapsRange({ start_date: "2026-11-30" }, "2026-11-01", "2026-11-30")).toBe(true);
+  });
+  it("counts a multi-day event once but keeps separate recurring occurrences", () => {
+    const first = { id: "meeting", start_date: "2026-11-02" };
+    expect(countCalendarOccurrences([first, first, { id: "meeting", start_date: "2026-11-09" }])).toBe(2);
   });
 });

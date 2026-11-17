@@ -190,6 +190,8 @@ const PAGE_TITLE_OVERRIDES: Record<string, string> = deepFreeze({
   "/dashboard/student-transfers": "Student Transfers",
   "/dashboard/class-comparison": "Class Comparison",
   "/dashboard/scheme-of-work": "Scheme of Work",
+  "/dashboard/homework": "Class Tests",
+  "/dashboard/exam-lab": "Past Paper Practice",
   "/dashboard/homework-submissions": "Homework Submissions",
   "/dashboard/exam-timetable": "Exam Timetable",
 });

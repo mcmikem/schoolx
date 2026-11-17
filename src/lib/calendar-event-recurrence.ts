@@ -71,3 +71,17 @@ export function expandRecurringEvents<T extends RecurringCalendarEvent>(
   }
   return occurrences;
 }
+
+/** Inclusive date-only overlap, including events spanning an entire reporting period. */
+export function eventOverlapsRange(
+  event: { start_date: string; end_date?: string | null },
+  from: string,
+  to: string,
+): boolean {
+  return event.start_date <= to && (event.end_date || event.start_date) >= from;
+}
+
+/** Count an occurrence once even when its multi-day span appears in several day columns. */
+export function countCalendarOccurrences(events: readonly { id: string; start_date: string }[]): number {
+  return new Set(events.map((event) => `${event.id}:${event.start_date}`)).size;
+}

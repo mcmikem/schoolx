@@ -158,7 +158,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
         },
         {
           href: "/dashboard/homework",
-          label: "Assignments",
+          label: "Class Tests",
           icon: "assignment",
         },
         {
@@ -521,7 +521,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
       ],
     },
     {
-      label: "Assignments",
+      label: "Class Tests",
       icon: "assignment",
       defaultOpen: true,
       items: [
