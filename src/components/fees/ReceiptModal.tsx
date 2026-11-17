@@ -14,7 +14,7 @@ interface ReceiptModalProps {
   paymentAmount?: number;
   receiptNumber?: string | null;
   schoolDetails?: { phone?: string; email?: string; code?: string; logoUrl?: string; color?: string };
-  contentRef?: RefObject<HTMLDivElement>;
+  contentRef?: RefObject<HTMLDivElement | null>;
 }
 
 /**

@@ -2,7 +2,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
@@ -247,7 +247,7 @@ export default function DashboardRouter() {
   // teaches is both, and should be able to pick — but only between dashboards
   // they really hold, never one they merely inherited via role equivalence.
   const eligibleDashboards = useMemo(() => {
-    const available: Record<string, () => JSX.Element> = {
+    const available: Record<string, () => ReactElement> = {
       headmaster: () => <HeadmasterDashboard />,
       dean_of_studies: () => <DeanDashboard />,
       bursar: () => <BursarDashboard />,
