@@ -441,7 +441,10 @@ export default function SubjectsPage() {
                       key={subj.id}
                       className="border-b border-[var(--border)] hover:bg-[var(--surface-container-low)] transition-colors"
                     >
-                      <td className="px-4 py-3 font-medium text-[var(--on-surface)]">{subj.name}</td>
+                      <td className="px-4 py-3 font-medium text-[var(--on-surface)]">
+                        {subj.name}
+                        <span className="ml-2 text-[10px] uppercase tracking-wider text-[var(--t3)]">{subj.level}</span>
+                      </td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--primary)]/10 text-[var(--primary)]">
                           {subj.code}
