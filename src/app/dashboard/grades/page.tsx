@@ -50,6 +50,7 @@ import {
   getNextGradeWorkflowStatusActions,
   getPrevGradeWorkflowStatusActions,
   gradeWorkflowRank,
+  sortGradeSheetsForReview,
   canUnlockGradeSheet,
 } from "@/lib/operations";
 import { isClassScopedRole } from "@/lib/roles";
@@ -502,6 +503,9 @@ export default function GradesPage() {
    * Grouped by class and subject, because that is what a sheet is: one
    * subject's marks for one class, in this term.
    */
+  /** The people who hand work on rather than do it. */
+  const isReviewer = ["headmaster", "school_admin", "admin", "dean_of_studies"].includes(user?.role || "");
+
   const submittedSheets = useMemo<SubmittedSheet[]>(() => {
     const bySheet = new Map<string, SubmittedSheet>();
     for (const grade of (existingGrades ?? []) as Array<Record<string, any>>) {
@@ -533,15 +537,8 @@ export default function GradesPage() {
       }
     }
     // The waiting ones first: that is the list the headmaster came for.
-    return [...bySheet.values()].sort((a, b) => {
-      const rank = gradeWorkflowRank(b.status) - gradeWorkflowRank(a.status);
-      if (rank !== 0) return rank;
-      return a.className.localeCompare(b.className);
-    });
-  }, [existingGrades, classes, subjects, staff, currentTerm, academicYear]);
-
-  /** The people who hand work on rather than do it. */
-  const isReviewer = ["headmaster", "school_admin", "admin", "dean_of_studies"].includes(user?.role || "");
+    return sortGradeSheetsForReview([...bySheet.values()], isReviewer);
+  }, [existingGrades, classes, subjects, staff, currentTerm, academicYear, isReviewer]);
 
   const sheetNextAction = (sheet: SubmittedSheet) => {
     const next = getNextGradeWorkflowStatusActions(sheet.status, user?.role);

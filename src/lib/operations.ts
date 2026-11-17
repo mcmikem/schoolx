@@ -156,10 +156,47 @@ const TERMINAL_CLASS_NAMES = ["P.7", "P7", "S.6", "S6"];
 const GRADE_STATUS_ORDER: GradeWorkflowStatus[] = ["draft", "submitted", "approved", "published"];
 
 /** How far along the workflow a sheet is. Used to pick the highest status a
- *  set of grade rows has reached, and to sort what is waiting first. */
+ *  set of grade rows has reached. Sorting the review queue uses
+ *  `sortGradeSheetsForReview` instead — rank ascending puts finished work at
+ *  the top of a list whose whole point is what still needs doing. */
 export function gradeWorkflowRank(status: GradeWorkflowStatus | string | null | undefined): number {
   const index = GRADE_STATUS_ORDER.indexOf(status as GradeWorkflowStatus);
   return index < 0 ? 0 : index;
+}
+
+/**
+ * Sort order for the grade-sheet queue on the Grades page.
+ *
+ * `gradeWorkflowRank` ascends draft → published, so a descending sort on it
+ * puts PUBLISHED sheets first: the finished work sits at the top of the
+ * headmaster's review queue and the sheets waiting for approval are pushed
+ * underneath. The queue is ordered by what THIS viewer can act on next, then
+ * by class name so the list is stable between renders.
+ *
+ * A teacher's actionable sheet is the draft they still have to send; a
+ * reviewer's are the submitted and approved ones waiting on them.
+ */
+export function sortGradeSheetsForReview<T extends { status: GradeWorkflowStatus; className: string }>(
+  sheets: T[],
+  isReviewer: boolean,
+): T[] {
+  const priority = (status: GradeWorkflowStatus): number => {
+    if (isReviewer) {
+      if (status === "submitted") return 0; // Approve now
+      if (status === "approved") return 1; // Publish now
+      if (status === "draft") return 2; // Teacher has not handed it in
+      return 3; // Published — done
+    }
+    if (status === "draft") return 0; // Send now
+    if (status === "submitted") return 1;
+    if (status === "approved") return 2;
+    return 3;
+  };
+  return [...sheets].sort((a, b) => {
+    const diff = priority(a.status) - priority(b.status);
+    if (diff !== 0) return diff;
+    return a.className.localeCompare(b.className);
+  });
 }
 
 export function getNextClassName(name: string): string {
