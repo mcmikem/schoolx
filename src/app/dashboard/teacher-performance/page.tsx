@@ -355,7 +355,10 @@ export default function TeacherPerformancePage() {
               </CardHeader>
               <CardBody className="p-0">
                 <div className="divide-y divide-outline-variant/10">
-                  {leaderboard.map((entry) => (
+                  {stats.every((t) => t.lessonPlansCount === 0 && t.syllabusCoverage === 0 && t.gradesEntered === 0 && t.attendanceMarked === 0) ? (
+                    <p className="p-4 text-sm text-[var(--t3)]">Not enough activity to rank yet.</p>
+                  ) : (
+                    leaderboard.map((entry) => (
                     <button
                       key={entry.teacherId}
                       onClick={() => setSelectedTeacher(stats.find((s) => s.teacherId === entry.teacherId) || null)}
@@ -372,7 +375,8 @@ export default function TeacherPerformancePage() {
                       </div>
                       <div className="text-xl font-bold text-[var(--primary)]">{entry.score}</div>
                     </button>
-                  ))}
+                  ))
+                  )}
                   {leaderboard.length === 0 && (
                     <div className="p-8 text-center text-on-surface-variant">
                       No activity recorded for this metric yet. Rankings appear once activity is recorded.
