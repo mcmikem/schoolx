@@ -49,6 +49,30 @@ type PlannerMode = "day" | "week" | "month" | "timeline";
 type EventCategory = "meetings" | "task_due" | "milestones" | "deadlines" | "personal" | "birthdays";
 type CalendarScope = "school" | "academic" | "staff" | "personal";
 
+/**
+ * "Show everything". The defaults below deliberately start with personal and
+ * birthdays switched off, which is right for the initial view — but it also
+ * meant a month containing only those events rendered the panel text "No
+ * events scheduled this month yet" while the events were sitting there,
+ * filtered. These are the reset targets for the "show all" action.
+ */
+const SHOW_ALL_CATEGORIES: Record<EventCategory, boolean> = {
+  meetings: true,
+  task_due: true,
+  milestones: true,
+  deadlines: true,
+  personal: true,
+  birthdays: true,
+};
+const SHOW_ALL_SCOPES: Record<CalendarScope, boolean> = { school: true, academic: true, staff: true, personal: true };
+const SHOW_ALL_AUDIENCES: Record<SchoolEvent["audience"], boolean> = {
+  personal: true,
+  staff: true,
+  school: true,
+  parents: true,
+  class: true,
+};
+
 const months = [
   "January",
   "February",
@@ -368,6 +392,27 @@ export default function CalendarPage() {
     .filter(matchesFilter)
     .sort((a, b) => a.start_date.localeCompare(b.start_date));
 
+  // The same month with the filters ignored, so an empty result can say
+  // whether the month is empty or the filters emptied it.
+  const monthEventsUnfiltered = calendarEvents.filter((evt) => {
+    const monthStart = `${monthKey}-01`;
+    const monthEnd = toDateKey(new Date(currentYear, currentMonth + 1, 0));
+    return eventOverlapsRange(evt, monthStart, monthEnd);
+  });
+  const hiddenByFilters = monthEventsUnfiltered.length - monthEvents.length;
+  const filtersActive =
+    searchQuery.trim().length > 0 ||
+    Object.values(categoryFilters).some((value) => !value) ||
+    Object.values(calendarScopes).some((value) => !value) ||
+    Object.values(audienceFilters).some((value) => !value);
+
+  const showAllEvents = () => {
+    setSearchQuery("");
+    setCategoryFilters({ ...SHOW_ALL_CATEGORIES });
+    setCalendarScopes({ ...SHOW_ALL_SCOPES });
+    setAudienceFilters({ ...SHOW_ALL_AUDIENCES });
+  };
+
   const featuredEvent = monthEvents[0];
   const upcomingEvent = calendarEvents
     .filter((evt) => evt.start_date >= todayKey)
@@ -391,12 +436,22 @@ export default function CalendarPage() {
 
   const dayEvents = getEventsForDate(selectedDate);
   const selectedDateEvents = getEventsForDate(selectedDate);
+  // Same day, filters ignored — so an empty panel can tell "nothing on the
+  // 14th" apart from "your filters are hiding the 14th".
+  const selectedDateUnfiltered = calendarEvents.filter(
+    (evt) =>
+      (evt.start_date <= selectedDate && !!evt.end_date && evt.end_date >= selectedDate) ||
+      evt.start_date === selectedDate,
+  ).length;
 
   const statCards = [
     {
       label: "This month",
       value: String(monthEvents.length),
-      note: "Filtered events",
+      note:
+        hiddenByFilters > 0
+          ? `${monthEvents.length} of ${monthEventsUnfiltered.length} after filters`
+          : "Scheduled this month",
     },
     {
       label: "This week",
@@ -730,6 +785,20 @@ export default function CalendarPage() {
                       </h3>
                       <p className="mt-1 text-xs text-white/80">{deriveEventSlot(featuredEvent).label}</p>
                     </>
+                  ) : hiddenByFilters > 0 ? (
+                    <>
+                      <p className="mt-2 text-sm text-white/85">
+                        {monthEventsUnfiltered.length} event{monthEventsUnfiltered.length === 1 ? "" : "s"} scheduled
+                        this month, all hidden by the current filters.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={showAllEvents}
+                        className="mt-2 rounded-lg bg-white/15 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/25"
+                      >
+                        Show all events
+                      </button>
+                    </>
                   ) : (
                     <p className="mt-2 text-sm text-white/85">No events scheduled this month yet.</p>
                   )}
@@ -1013,7 +1082,23 @@ export default function CalendarPage() {
                   </p>
                   <div className="mt-2 space-y-2">
                     {selectedDateEvents.length === 0 ? (
-                      <p className="text-sm text-[var(--t2)]">No events on this date.</p>
+                      selectedDateUnfiltered > 0 ? (
+                        <div>
+                          <p className="text-sm text-[var(--t2)]">
+                            {selectedDateUnfiltered} event{selectedDateUnfiltered === 1 ? "" : "s"} on this date,
+                            hidden by the current filters.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={showAllEvents}
+                            className="mt-1.5 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-bold text-[var(--primary)] hover:bg-[var(--surface-container-low)]"
+                          >
+                            Show all events
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-[var(--t2)]">No events on this date.</p>
+                      )
                     ) : (
                       selectedDateEvents.map((evt) => (
                         <div
