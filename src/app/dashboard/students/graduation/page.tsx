@@ -120,7 +120,7 @@ export default function GraduationPage() {
         completed++;
       }
 
-      toast.success(`${completed} student(s) marked as completed`);
+      toast.success(`${completed} student${completed === 1 ? "" : "s"} marked as completed`);
       setEligibleStudents((prev) => prev.filter((s) => !selectedIds.has(s.id)));
       setSelectedIds(new Set());
     } catch (err: unknown) {
