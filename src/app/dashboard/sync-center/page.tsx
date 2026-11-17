@@ -122,6 +122,7 @@ export default function SyncCenterPage() {
   const [quarantinedCount, setQuarantinedCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [selectedFailed, setSelectedFailed] = useState<Set<number>>(new Set());
   const [syncResult, setSyncResult] = useState<{
     success: number;
     failed: number;
@@ -301,6 +302,24 @@ export default function SyncCenterPage() {
   ];
 
   const failedColumns: DataColumn<PendingItem>[] = [
+    {
+      key: "select",
+      header: "",
+      render: (item) => (
+        <input
+          type="checkbox"
+          checked={selectedFailed.has(item.id)}
+          onChange={(e) => {
+            setSelectedFailed((prev) => {
+              const next = new Set(prev);
+              if (e.target.checked) next.add(item.id);
+              else next.delete(item.id);
+              return next;
+            });
+          }}
+        />
+      ),
+    },
     ...pendingColumns,
     {
       key: "reason",
@@ -451,6 +470,16 @@ export default function SyncCenterPage() {
             >
               <MaterialIcon icon="download" />
               Export failed
+            </Button>
+          )}
+          {failed.length > 0 && selectedFailed.size > 0 && (
+            <Button variant="ghost" onClick={async () => {
+              for (const id of selectedFailed) await offlineDB.removeSyncItem(id);
+              setSelectedFailed(new Set());
+              await loadData();
+            }}>
+              <MaterialIcon icon="delete" />
+              Discard selected ({selectedFailed.size})
             </Button>
           )}
           {failed.length > 0 && (
