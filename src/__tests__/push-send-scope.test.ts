@@ -10,7 +10,8 @@ let savedEndpoint = "https://fcm.googleapis.com/fcm/send/subscription-token";
 
 jest.mock("web-push", () => ({
   __esModule: true,
-  default: { setVapidDetails: jest.fn(), sendNotification: (...args: unknown[]) => mockSendNotification(...args) },
+  setVapidDetails: jest.fn(),
+  sendNotification: (...args: unknown[]) => mockSendNotification(...args),
 }));
 jest.mock("@/lib/api-utils", () => ({
   apiSuccess: (data: unknown, message?: string) => Response.json({ success: true, data, message }),

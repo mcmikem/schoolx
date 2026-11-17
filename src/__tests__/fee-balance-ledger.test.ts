@@ -28,7 +28,7 @@ describe("fee balances use the complete payment ledger", () => {
   it("groups payments for the balances from the complete ledger, not the cashbook page", () => {
     const group = PAGE.slice(PAGE.indexOf("const paymentsByStudent"));
     const body = group.slice(0, group.indexOf("}, ["));
-    expect(body).toMatch(/completePayments\.forEach/);
+    expect(body).toMatch(/confirmedFeePayments\(completePayments\)\.forEach/);
     expect(body).not.toMatch(/^\s*payments\.forEach/m);
   });
 

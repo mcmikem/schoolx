@@ -60,8 +60,8 @@ const nextConfig = {
     };
     return config;
   },
+  reactCompiler: true,
   experimental: {
-    reactCompiler: true,
     optimizePackageImports: ["lucide-react", "date-fns", "recharts", "qrcode.react", "react-to-print"],
   },
   images: {

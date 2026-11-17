@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import webpush from "web-push";
+import * as webpush from "web-push";
 import { apiSuccess, apiError, requireUserWithSchool, createServiceRoleClientOrThrow } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 import { isAllowedWebPushEndpoint, isValidWebPushKeys } from "@/lib/push-security";
