@@ -426,6 +426,23 @@ export default function SyncCenterPage() {
             </Button>
           )}
           {failed.length > 0 && (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                const blob = new Blob([JSON.stringify(failed, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "failed-sync-items.json";
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+            >
+              <MaterialIcon icon="download" />
+              Export failed
+            </Button>
+          )}
+          {failed.length > 0 && (
             <Button variant="ghost" onClick={() => setConfirmClear(true)}>
               <MaterialIcon icon="delete_sweep" />
               Discard all failed
