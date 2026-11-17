@@ -1693,7 +1693,7 @@ export default function AttendancePage() {
                 <div className="flex items-center gap-3">
                   <h2 className="text-sm font-bold text-[var(--t1)]">Register</h2>
                   <span className="text-xs font-medium text-[var(--t3)]">
-                    {presentCount} present · {absentCount} absent · {lateCount} late · {excusedCount} excused
+                    {effectivePresentCount} present (incl. unmarked) · {absentCount} absent · {lateCount} late · {excusedCount} excused
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
