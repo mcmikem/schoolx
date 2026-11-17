@@ -344,7 +344,7 @@ export default function ExamLabPage() {
               Review student submissions
             </Link>
             <a
-              href={process.env.NEXT_PUBLIC_STUDENT_EXAMS_URL || "/student-portal/"}
+              href="/student-portal/"
               target="_blank"
               rel="noopener noreferrer"
               style={{
