@@ -968,7 +968,7 @@ export default function StudentDetailPanel({
                         </p>
                       </div>
                     ) : (
-                      <select
+                      <select aria-label="Class"
                         id="student-class-id"
                         name="class_id"
                         value={cId}

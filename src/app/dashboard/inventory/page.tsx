@@ -247,8 +247,8 @@ export default function InventoryPage() {
               <CardBody>
                 <form onSubmit={handleTransactionSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-[var(--on-surface)]">Quantity</label>
-                    <input
+                    <label className="text-sm font-medium text-[var(--on-surface)]" htmlFor="quantity">Quantity</label>
+                    <input id="quantity"
                       name="quantity"
                       type="number"
                       inputMode="numeric"
@@ -259,8 +259,8 @@ export default function InventoryPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-[var(--on-surface)]">Notes</label>
-                    <textarea
+                    <label className="text-sm font-medium text-[var(--on-surface)]" htmlFor="notes">Notes</label>
+                    <textarea id="notes"
                       name="notes"
                       rows={3}
                       className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"

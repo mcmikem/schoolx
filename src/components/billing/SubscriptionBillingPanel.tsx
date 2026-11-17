@@ -475,8 +475,8 @@ export default function SubscriptionBillingPanel({ onRefresh }: { onRefresh?: ()
               ))}
             </div>
 
-            <label className="block text-xs uppercase tracking-wider text-[var(--t3)] mb-1">Promo code</label>
-            <input
+            <label className="block text-xs uppercase tracking-wider text-[var(--t3)] mb-1" htmlFor="promo-code">Promo code</label>
+            <input id="promo-code"
               value={promoCode}
               onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
               placeholder="Optional"

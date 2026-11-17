@@ -128,8 +128,8 @@ export default function SyllabusTrackerPage() {
           <div className="grid grid-cols-2 items-end gap-2 sm:flex sm:flex-wrap sm:gap-3">
             {/* Class Filter */}
             <div className="min-w-0 flex-1">
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1.5">Class</label>
-              <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input w-full">
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1.5" htmlFor="class">Class</label>
+              <select id="class" value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input w-full">
                 <option value="">All Classes</option>
                 {classes.map((cls) => (
                   <option key={cls.id} value={cls.id}>
@@ -141,8 +141,8 @@ export default function SyllabusTrackerPage() {
 
             {/* Subject Filter */}
             <div className="min-w-0 flex-1">
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1.5">Subject</label>
-              <select
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1.5" htmlFor="subject">Subject</label>
+              <select id="subject"
                 value={selectedSubject}
                 onChange={(e) => setSelectedSubject(e.target.value)}
                 className="input w-full"
@@ -158,8 +158,8 @@ export default function SyllabusTrackerPage() {
 
             {/* Term Filter */}
             <div className="min-w-0 flex-1">
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1.5">Term</label>
-              <select value={selectedTerm} onChange={(e) => setSelectedTerm(e.target.value)} className="input w-full">
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1.5" htmlFor="term">Term</label>
+              <select id="term" value={selectedTerm} onChange={(e) => setSelectedTerm(e.target.value)} className="input w-full">
                 <option value="1">Term 1</option>
                 <option value="2">Term 2</option>
                 <option value="3">Term 3</option>

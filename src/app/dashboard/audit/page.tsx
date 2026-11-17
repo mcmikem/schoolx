@@ -284,8 +284,8 @@ export default function AuditLogPage() {
           <CardBody className="p-5">
             <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
               <div className="flex-1 min-w-[140px]">
-                <label className="block text-xs font-medium text-[var(--t3)] mb-1">Start Date</label>
-                <input
+                <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="start-date">Start Date</label>
+                <input id="start-date"
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
@@ -293,8 +293,8 @@ export default function AuditLogPage() {
                 />
               </div>
               <div className="flex-1 min-w-[140px]">
-                <label className="block text-xs font-medium text-[var(--t3)] mb-1">End Date</label>
-                <input
+                <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="end-date">End Date</label>
+                <input id="end-date"
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
@@ -316,8 +316,8 @@ export default function AuditLogPage() {
                 className="flex-1 min-w-[140px]"
               />
               <div className="flex-1 min-w-[160px]">
-                <label className="block text-xs font-medium text-[var(--t3)] mb-1">User</label>
-                <input
+                <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="user">User</label>
+                <input id="user"
                   type="text"
                   placeholder="Search user..."
                   value={filterUser}

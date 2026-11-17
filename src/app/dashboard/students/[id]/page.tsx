@@ -1412,8 +1412,8 @@ export default function StudentProfilePage() {
             <div className="max-h-[65vh] overflow-y-auto px-4 py-4 sm:px-5">
               <div className="space-y-3">
                 <div>
-                  <label className="mb-1.5 block text-[11px] font-medium text-[var(--t4)]">Full Name</label>
-                  <input
+                  <label className="mb-1.5 block text-[11px] font-medium text-[var(--t4)]" htmlFor="full-name">Full Name</label>
+                  <input id="full-name"
                     type="text"
                     value={guardianForm.name}
                     onChange={(e) => setGuardianForm({ ...guardianForm, name: e.target.value })}
@@ -1423,8 +1423,8 @@ export default function StudentProfilePage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-[11px] font-medium text-[var(--t4)]">Phone Number</label>
-                  <input
+                  <label className="mb-1.5 block text-[11px] font-medium text-[var(--t4)]" htmlFor="phone-number">Phone Number</label>
+                  <input id="phone-number"
                     type="tel"
                     inputMode="tel"
                     value={guardianForm.phone}
@@ -1435,8 +1435,8 @@ export default function StudentProfilePage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-[11px] font-medium text-[var(--t4)]">Email (optional)</label>
-                  <input
+                  <label className="mb-1.5 block text-[11px] font-medium text-[var(--t4)]" htmlFor="email-optional">Email (optional)</label>
+                  <input id="email-optional"
                     type="email"
                     value={guardianForm.email}
                     onChange={(e) => setGuardianForm({ ...guardianForm, email: e.target.value })}
@@ -1445,8 +1445,8 @@ export default function StudentProfilePage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-[11px] font-medium text-[var(--t4)]">Relationship</label>
-                  <select
+                  <label className="mb-1.5 block text-[11px] font-medium text-[var(--t4)]" htmlFor="relationship">Relationship</label>
+                  <select id="relationship"
                     value={guardianForm.relationship}
                     onChange={(e) =>
                       setGuardianForm({

@@ -196,8 +196,8 @@ export default function AttendanceScanPage() {
         <Card>
           <div className="space-y-4 p-4">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-2">Class</label>
-              <select
+              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-2" htmlFor="class">Class</label>
+              <select id="class"
                 value={selectedClass}
                 onChange={(e) => {
                   setSelectedClass(e.target.value);
@@ -215,8 +215,8 @@ export default function AttendanceScanPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-2">Date</label>
-              <input
+              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-2" htmlFor="date">Date</label>
+              <input id="date"
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}

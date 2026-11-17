@@ -532,8 +532,8 @@ export default function InventoryPage() {
                 <form onSubmit={handleCreateAsset} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2">
-                      <label className="text-sm font-medium text-[var(--t1)]">Asset Name</label>
-                      <input
+                      <label className="text-sm font-medium text-[var(--t1)]" htmlFor="asset-name">Asset Name</label>
+                      <input id="asset-name"
                         value={assetForm.name}
                         onChange={(event) => setAssetForm((prev) => ({ ...prev, name: event.target.value }))}
                         required
@@ -543,8 +543,8 @@ export default function InventoryPage() {
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium text-[var(--t1)]">Category</label>
-                      <select
+                      <label className="text-sm font-medium text-[var(--t1)]" htmlFor="category">Category</label>
+                      <select id="category"
                         value={assetForm.category}
                         onChange={(event) =>
                           setAssetForm((prev) => ({ ...prev, category: event.target.value as AssetCategory }))
@@ -560,8 +560,8 @@ export default function InventoryPage() {
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium text-[var(--t1)]">Condition</label>
-                      <select
+                      <label className="text-sm font-medium text-[var(--t1)]" htmlFor="condition">Condition</label>
+                      <select id="condition"
                         value={assetForm.condition}
                         onChange={(event) =>
                           setAssetForm((prev) => ({ ...prev, condition: event.target.value as Asset["condition"] }))
@@ -577,8 +577,8 @@ export default function InventoryPage() {
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium text-[var(--t1)]">Location</label>
-                      <input
+                      <label className="text-sm font-medium text-[var(--t1)]" htmlFor="location">Location</label>
+                      <input id="location"
                         value={assetForm.location}
                         onChange={(event) => setAssetForm((prev) => ({ ...prev, location: event.target.value }))}
                         className="mt-1 w-full rounded-xl border border-[var(--border)] px-4 py-3 bg-[var(--surface)]"
@@ -587,8 +587,8 @@ export default function InventoryPage() {
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium text-[var(--t1)]">Serial Number (optional)</label>
-                      <input
+                      <label className="text-sm font-medium text-[var(--t1)]" htmlFor="serial-number-optional">Serial Number (optional)</label>
+                      <input id="serial-number-optional"
                         value={assetForm.serial_number}
                         onChange={(event) => setAssetForm((prev) => ({ ...prev, serial_number: event.target.value }))}
                         className="mt-1 w-full rounded-xl border border-[var(--border)] px-4 py-3 bg-[var(--surface)]"
@@ -597,8 +597,8 @@ export default function InventoryPage() {
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium text-[var(--t1)]">Opening Units</label>
-                      <input
+                      <label className="text-sm font-medium text-[var(--t1)]" htmlFor="opening-units">Opening Units</label>
+                      <input id="opening-units"
                         type="number"
                         inputMode="numeric"
                         min="0"
@@ -609,8 +609,8 @@ export default function InventoryPage() {
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium text-[var(--t1)]">Unit Price (UGX)</label>
-                      <input
+                      <label className="text-sm font-medium text-[var(--t1)]" htmlFor="unit-price-ugx">Unit Price (UGX)</label>
+                      <input id="unit-price-ugx"
                         type="number"
                         inputMode="numeric"
                         min="0"
@@ -621,8 +621,8 @@ export default function InventoryPage() {
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium text-[var(--t1)]">Supplier (optional)</label>
-                      <input
+                      <label className="text-sm font-medium text-[var(--t1)]" htmlFor="supplier-optional">Supplier (optional)</label>
+                      <input id="supplier-optional"
                         value={assetForm.supplier}
                         onChange={(event) => setAssetForm((prev) => ({ ...prev, supplier: event.target.value }))}
                         className="mt-1 w-full rounded-xl border border-[var(--border)] px-4 py-3 bg-[var(--surface)]"
@@ -630,8 +630,8 @@ export default function InventoryPage() {
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium text-[var(--t1)]">Purchase Date</label>
-                      <input
+                      <label className="text-sm font-medium text-[var(--t1)]" htmlFor="purchase-date">Purchase Date</label>
+                      <input id="purchase-date"
                         type="date"
                         value={assetForm.purchased_date}
                         onChange={(event) => setAssetForm((prev) => ({ ...prev, purchased_date: event.target.value }))}
@@ -652,8 +652,8 @@ export default function InventoryPage() {
                       </label>
                       {assetForm.is_consumable && (
                         <div className="mt-3">
-                          <label className="text-sm font-medium text-[var(--t1)]">Minimum Stock Level</label>
-                          <input
+                          <label className="text-sm font-medium text-[var(--t1)]" htmlFor="minimum-stock-level">Minimum Stock Level</label>
+                          <input id="minimum-stock-level"
                             type="number"
                             inputMode="numeric"
                             min="0"
@@ -668,8 +668,8 @@ export default function InventoryPage() {
                     </div>
 
                     <div className="md:col-span-2">
-                      <label className="text-sm font-medium text-[var(--t1)]">Description</label>
-                      <textarea
+                      <label className="text-sm font-medium text-[var(--t1)]" htmlFor="description">Description</label>
+                      <textarea id="description"
                         rows={3}
                         value={assetForm.description}
                         onChange={(event) => setAssetForm((prev) => ({ ...prev, description: event.target.value }))}
@@ -711,8 +711,8 @@ export default function InventoryPage() {
               <CardBody>
                 <form onSubmit={handleTransactionSubmit} className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-[var(--t1)]">Quantity</label>
-                    <input
+                    <label className="text-sm font-medium text-[var(--t1)]" htmlFor="quantity">Quantity</label>
+                    <input id="quantity"
                       name="quantity"
                       type="number"
                       inputMode="numeric"
@@ -723,8 +723,8 @@ export default function InventoryPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-[var(--t1)]">Notes</label>
-                    <textarea
+                    <label className="text-sm font-medium text-[var(--t1)]" htmlFor="notes">Notes</label>
+                    <textarea id="notes"
                       name="notes"
                       rows={3}
                       className="mt-1 w-full rounded-xl border border-[var(--border)] px-4 py-3 bg-[var(--surface)]"

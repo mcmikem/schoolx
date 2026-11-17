@@ -1394,7 +1394,7 @@ export default function AttendancePage() {
                     )}
                   </div>
                 ) : (
-                  <select
+                  <select aria-label="Select class"
                     value={selectedClass || ""}
                     onChange={(e) => setSelectedClass(e.target.value || null)}
                     className="input h-10 text-sm font-medium"
@@ -1411,10 +1411,10 @@ export default function AttendancePage() {
               </div>
               <div className="flex items-end gap-2">
                 <div className="w-full">
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--t3)]" htmlFor="date">
                     Date
                   </label>
-                  <input
+                  <input id="date"
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}

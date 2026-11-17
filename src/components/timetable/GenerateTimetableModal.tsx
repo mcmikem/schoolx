@@ -203,8 +203,8 @@ export default function GenerateTimetableModal({
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[var(--t2)]">Default periods / week</label>
-              <input
+              <label className="text-sm font-medium text-[var(--t2)]" htmlFor="default-periods-week">Default periods / week</label>
+              <input id="default-periods-week"
                 type="number"
                 min={1}
                 max={20}
@@ -239,7 +239,7 @@ export default function GenerateTimetableModal({
                     <span className="text-sm text-[var(--t1)]">
                       {s.name} {s.code ? <span className="text-xs text-[var(--t4)]">({s.code})</span> : null}
                     </span>
-                    <input
+                    <input aria-label="Periods per subject"
                       type="number"
                       min={0}
                       max={20}

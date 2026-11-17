@@ -79,7 +79,7 @@ export default function AutoPlannerPanel({
                     Use AI to generate detailed lesson plans with objectives, procedures, and assessment
                   </p>
                 </div>
-                <input
+                <input aria-label="Enable AI generation"
                   type="checkbox"
                   checked={config.enable_ai_generation || false}
                   onChange={(e) => handleToggle("enable_ai_generation", e.target.checked)}
@@ -92,8 +92,8 @@ export default function AutoPlannerPanel({
                 <>
                   {/* AI Provider */}
                   <div>
-                    <label className="font-medium text-[var(--t1)] block mb-2">AI Provider</label>
-                    <select
+                    <label className="font-medium text-[var(--t1)] block mb-2" htmlFor="ai-provider">AI Provider</label>
+                    <select id="ai-provider"
                       value={config.ai_provider || "rules_based"}
                       onChange={(e) => handleToggle("ai_provider", e.target.value as AutoPlannerConfig["ai_provider"])}
                       disabled={saving}
@@ -110,10 +110,10 @@ export default function AutoPlannerPanel({
 
                   {/* Temperature */}
                   <div>
-                    <label className="font-medium text-[var(--t1)] block mb-2">
+                    <label className="font-medium text-[var(--t1)] block mb-2" htmlFor="ai-temperature-config-ai-temperature-0-7-tofixed-2">
                       AI Temperature ({(config.ai_temperature || 0.7).toFixed(2)})
                     </label>
-                    <input
+                    <input aria-label="AI temperature" id="ai-temperature-config-ai-temperature-0-7-tofixed-2"
                       type="range"
                       min="0"
                       max="1"
@@ -159,7 +159,7 @@ export default function AutoPlannerPanel({
                     Automatically distribute topics across weeks accounting for term dates
                   </p>
                 </div>
-                <input
+                <input aria-label="Enable smart scheduling"
                   type="checkbox"
                   checked={config.enable_smart_scheduling || false}
                   onChange={(e) => handleToggle("enable_smart_scheduling", e.target.checked)}
@@ -172,8 +172,8 @@ export default function AutoPlannerPanel({
                 <>
                   {/* Lessons Per Week */}
                   <div>
-                    <label className="font-medium text-[var(--t1)] block mb-2">Target Lessons Per Week</label>
-                    <input
+                    <label className="font-medium text-[var(--t1)] block mb-2" htmlFor="target-lessons-per-week">Target Lessons Per Week</label>
+                    <input id="target-lessons-per-week"
                       type="number"
                       inputMode="numeric"
                       min="1"
@@ -187,8 +187,8 @@ export default function AutoPlannerPanel({
 
                   {/* Account for Holidays */}
                   <div className="flex items-center justify-between">
-                    <label className="font-medium text-[var(--t1)]">Account for Holidays</label>
-                    <input
+                    <label className="font-medium text-[var(--t1)]" htmlFor="account-for-holidays">Account for Holidays</label>
+                    <input id="account-for-holidays"
                       type="checkbox"
                       checked={config.account_for_holidays || false}
                       onChange={(e) => handleToggle("account_for_holidays", e.target.checked)}
@@ -199,8 +199,8 @@ export default function AutoPlannerPanel({
 
                   {/* Account for Exams */}
                   <div className="flex items-center justify-between">
-                    <label className="font-medium text-[var(--t1)]">Account for Exam Dates</label>
-                    <input
+                    <label className="font-medium text-[var(--t1)]" htmlFor="account-for-exam-dates">Account for Exam Dates</label>
+                    <input id="account-for-exam-dates"
                       type="checkbox"
                       checked={config.account_for_exams || false}
                       onChange={(e) => handleToggle("account_for_exams", e.target.checked)}
@@ -238,7 +238,7 @@ export default function AutoPlannerPanel({
               <div>
                 <label className="font-medium text-[var(--t1)] block mb-2">Default Lesson Duration</label>
                 <div className="flex items-center gap-2">
-                  <input
+                  <input aria-label="Default lesson duration"
                     type="number"
                     inputMode="numeric"
                     min="20"
@@ -254,8 +254,8 @@ export default function AutoPlannerPanel({
 
               {/* Include Homework */}
               <div className="flex items-center justify-between">
-                <label className="font-medium text-[var(--t1)]">Include Homework Assignments</label>
-                <input
+                <label className="font-medium text-[var(--t1)]" htmlFor="include-homework-assignments">Include Homework Assignments</label>
+                <input id="include-homework-assignments"
                   type="checkbox"
                   checked={config.include_homework || false}
                   onChange={(e) => handleToggle("include_homework", e.target.checked)}
@@ -266,8 +266,8 @@ export default function AutoPlannerPanel({
 
               {/* Include Assessment */}
               <div className="flex items-center justify-between">
-                <label className="font-medium text-[var(--t1)]">Include Assessment Tasks</label>
-                <input
+                <label className="font-medium text-[var(--t1)]" htmlFor="include-assessment-tasks">Include Assessment Tasks</label>
+                <input id="include-assessment-tasks"
                   type="checkbox"
                   checked={config.include_assessment || false}
                   onChange={(e) => handleToggle("include_assessment", e.target.checked)}

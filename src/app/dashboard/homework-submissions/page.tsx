@@ -123,7 +123,7 @@ export default function HomeworkSubmissionsPage() {
                   No classes available
                 </div>
               ) : (
-                <select
+                <select aria-label="Filter by class"
                   value={classFilter}
                   onChange={(e) => setClassFilter(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm"

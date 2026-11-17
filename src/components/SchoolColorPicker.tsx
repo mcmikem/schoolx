@@ -47,7 +47,7 @@ export default function SchoolColorPicker({
           </button>
           {customOpen && (
             <div className="absolute top-full left-0 mt-2 z-10 bg-[var(--surface)] border border-[var(--border)] rounded-xl p-3 shadow-xl">
-              <input
+              <input aria-label="Custom colour"
                 type="color"
                 value={value}
                 onChange={(e) => onChange(e.target.value)}

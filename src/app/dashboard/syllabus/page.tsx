@@ -405,7 +405,7 @@ export default function SyllabusPage() {
 
         {/* Filters */}
         <div className="flex flex-wrap gap-3 mb-6">
-          <select
+          <select aria-label="Class"
             value={selectedClass}
             onChange={(e) => {
               setSelectedClass(e.target.value);
@@ -420,7 +420,7 @@ export default function SyllabusPage() {
               </option>
             ))}
           </select>
-          <select
+          <select aria-label="Subject"
             value={selectedSubject}
             onChange={(e) => {
               setSelectedSubject(e.target.value);
@@ -435,7 +435,7 @@ export default function SyllabusPage() {
               </option>
             ))}
           </select>
-          <select
+          <select aria-label="Term"
             value={selectedTerm}
             onChange={(e) => {
               setSelectedTerm(e.target.value);
@@ -574,7 +574,7 @@ export default function SyllabusPage() {
                             </div>
                           )}
                       </div>
-                      <select
+                      <select aria-label="Topic status"
                         value={topic.status}
                         onChange={(e) =>
                           updateStatus(topic.id, e.target.value as "not_started" | "in_progress" | "completed")
@@ -612,8 +612,8 @@ export default function SyllabusPage() {
               </div>
               <form onSubmit={handleAddTopic} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-[var(--t1)] mb-1">Topic Name *</label>
-                  <input
+                  <label className="block text-sm font-medium text-[var(--t1)] mb-1" htmlFor="topic-name">Topic Name *</label>
+                  <input id="topic-name"
                     type="text"
                     value={newTopic.topic}
                     onChange={(e) => setNewTopic({ ...newTopic, topic: e.target.value })}
@@ -624,8 +624,8 @@ export default function SyllabusPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-[var(--t1)] mb-1">Weeks</label>
-                    <input
+                    <label className="block text-sm font-medium text-[var(--t1)] mb-1" htmlFor="weeks">Weeks</label>
+                    <input id="weeks"
                       type="text"
                       value={newTopic.weeks_covered}
                       onChange={(e) =>
@@ -639,8 +639,8 @@ export default function SyllabusPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[var(--t1)] mb-1">Resources</label>
-                    <input
+                    <label className="block text-sm font-medium text-[var(--t1)] mb-1" htmlFor="resources">Resources</label>
+                    <input id="resources"
                       type="text"
                       value={newTopic.resources}
                       onChange={(e) => setNewTopic({ ...newTopic, resources: e.target.value })}
@@ -650,8 +650,8 @@ export default function SyllabusPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[var(--t1)] mb-1">Learning Objectives</label>
-                  <textarea
+                  <label className="block text-sm font-medium text-[var(--t1)] mb-1" htmlFor="learning-objectives">Learning Objectives</label>
+                  <textarea id="learning-objectives"
                     value={newTopic.objectives}
                     onChange={(e) => setNewTopic({ ...newTopic, objectives: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)]"
@@ -660,8 +660,8 @@ export default function SyllabusPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[var(--t1)] mb-1">Subtopics (one per line)</label>
-                  <textarea
+                  <label className="block text-sm font-medium text-[var(--t1)] mb-1" htmlFor="subtopics-one-per-line">Subtopics (one per line)</label>
+                  <textarea id="subtopics-one-per-line"
                     value={newTopic.subtopics}
                     onChange={(e) => setNewTopic({ ...newTopic, subtopics: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)]"

@@ -1169,8 +1169,8 @@ export default function CalendarPage() {
               </div>
               <form onSubmit={handleAddEvent} className="space-y-4 p-6">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-[var(--t1)]">Event Title</label>
-                  <input
+                  <label className="mb-2 block text-sm font-medium text-[var(--t1)]" htmlFor="event-title">Event Title</label>
+                  <input id="event-title"
                     type="text"
                     value={newEvent.title}
                     onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
@@ -1179,8 +1179,8 @@ export default function CalendarPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-[var(--t1)]">Event Type</label>
-                  <select
+                  <label className="mb-2 block text-sm font-medium text-[var(--t1)]" htmlFor="event-type">Event Type</label>
+                  <select id="event-type"
                     value={newEvent.event_type}
                     onChange={(e) =>
                       setNewEvent({ ...newEvent, event_type: e.target.value as SchoolEvent["event_type"] })
@@ -1193,8 +1193,8 @@ export default function CalendarPage() {
                     <option value="holiday">Holiday</option>
                     <option value="academic">Academic</option>
                   </select>
-                  <label className="mb-2 block text-sm font-medium text-[var(--t1)]">Audience</label>
-                  <select
+                  <label className="mb-2 block text-sm font-medium text-[var(--t1)]" htmlFor="audience">Audience</label>
+                  <select id="audience"
                     value={newEvent.audience}
                     onChange={(e) => setNewEvent({ ...newEvent, audience: e.target.value as SchoolEvent["audience"] })}
                     className="input"
@@ -1208,8 +1208,8 @@ export default function CalendarPage() {
                 </div>
                 {newEvent.audience === "class" && (
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-[var(--t1)]">Class</label>
-                    <select
+                    <label className="mb-2 block text-sm font-medium text-[var(--t1)]" htmlFor="class">Class</label>
+                    <select id="class"
                       value={newEvent.class_id}
                       onChange={(e) => setNewEvent({ ...newEvent, class_id: e.target.value })}
                       className="input"
@@ -1253,8 +1253,8 @@ export default function CalendarPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-[var(--t1)]">Start Date</label>
-                    <input
+                    <label className="mb-2 block text-sm font-medium text-[var(--t1)]" htmlFor="start-date">Start Date</label>
+                    <input id="start-date"
                       type="date"
                       value={newEvent.start_date}
                       onChange={(e) => setNewEvent({ ...newEvent, start_date: e.target.value })}
@@ -1263,8 +1263,8 @@ export default function CalendarPage() {
                     />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-[var(--t1)]">End Date (Optional)</label>
-                    <input
+                    <label className="mb-2 block text-sm font-medium text-[var(--t1)]" htmlFor="end-date-optional">End Date (Optional)</label>
+                    <input id="end-date-optional"
                       type="date"
                       value={newEvent.end_date}
                       onChange={(e) => setNewEvent({ ...newEvent, end_date: e.target.value })}
@@ -1328,10 +1328,10 @@ export default function CalendarPage() {
                 {!newEvent.all_day && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-[var(--t1)]">
+                      <label className="mb-2 block text-sm font-medium text-[var(--t1)]" htmlFor="start-time-timezonelabel">
                         Start time ({timezoneLabel})
                       </label>
-                      <input
+                      <input id="start-time-timezonelabel"
                         type="time"
                         value={newEvent.start_time}
                         onChange={(e) => setNewEvent({ ...newEvent, start_time: e.target.value })}
@@ -1340,10 +1340,10 @@ export default function CalendarPage() {
                       />
                     </div>
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-[var(--t1)]">
+                      <label className="mb-2 block text-sm font-medium text-[var(--t1)]" htmlFor="end-time-timezonelabel">
                         End time ({timezoneLabel})
                       </label>
-                      <input
+                      <input id="end-time-timezonelabel"
                         type="time"
                         value={newEvent.end_time}
                         onChange={(e) => setNewEvent({ ...newEvent, end_time: e.target.value })}
@@ -1354,8 +1354,8 @@ export default function CalendarPage() {
                   </div>
                 )}
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-[var(--t1)]">Location (Optional)</label>
-                  <input
+                  <label className="mb-2 block text-sm font-medium text-[var(--t1)]" htmlFor="location-optional">Location (Optional)</label>
+                  <input id="location-optional"
                     type="text"
                     value={newEvent.location}
                     onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
@@ -1365,8 +1365,8 @@ export default function CalendarPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-[var(--t1)]">Description (Optional)</label>
-                  <textarea
+                  <label className="mb-2 block text-sm font-medium text-[var(--t1)]" htmlFor="description-optional">Description (Optional)</label>
+                  <textarea id="description-optional"
                     value={newEvent.description}
                     onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
                     className="input min-h-[80px]"

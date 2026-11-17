@@ -873,8 +873,8 @@ function RegisterTab({
           <h3 className="text-[13px] font-bold text-[var(--t1)] mb-3">School Information</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">School Name *</label>
-              <input
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="school-name">School Name *</label>
+              <input id="school-name"
                 value={form.schoolName}
                 onChange={(e) => handleChange("schoolName", e.target.value)}
                 className={`w-full px-3 py-2 rounded-xl border ${fieldErrors.schoolName ? "border-red-400" : "border-[var(--border)]"} bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30`}
@@ -884,8 +884,8 @@ function RegisterTab({
               )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">District *</label>
-              <input
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="district">District *</label>
+              <input id="district"
                 value={form.district}
                 onChange={(e) => handleChange("district", e.target.value)}
                 className={`w-full px-3 py-2 rounded-xl border ${fieldErrors.district ? "border-red-400" : "border-[var(--border)]"} bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30`}
@@ -893,8 +893,8 @@ function RegisterTab({
               {fieldErrors.district && <p className="mt-1 text-xs font-medium text-red-500">{fieldErrors.district}</p>}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Subcounty *</label>
-              <input
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="subcounty">Subcounty *</label>
+              <input id="subcounty"
                 value={form.subcounty}
                 onChange={(e) => handleChange("subcounty", e.target.value)}
                 className={`w-full px-3 py-2 rounded-xl border ${fieldErrors.subcounty ? "border-red-400" : "border-[var(--border)]"} bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30`}
@@ -904,24 +904,24 @@ function RegisterTab({
               )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Parish</label>
-              <input
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="parish">Parish</label>
+              <input id="parish"
                 value={form.parish}
                 onChange={(e) => handleChange("parish", e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Village</label>
-              <input
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="village">Village</label>
+              <input id="village"
                 value={form.village}
                 onChange={(e) => handleChange("village", e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">School Type</label>
-              <select
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="school-type">School Type</label>
+              <select id="school-type"
                 value={form.schoolType}
                 onChange={(e) => handleChange("schoolType", e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
@@ -932,8 +932,8 @@ function RegisterTab({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Ownership</label>
-              <select
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="ownership">Ownership</label>
+              <select id="ownership"
                 value={form.ownership}
                 onChange={(e) => handleChange("ownership", e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
@@ -944,8 +944,8 @@ function RegisterTab({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Subscription Plan</label>
-              <select
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="subscription-plan">Subscription Plan</label>
+              <select id="subscription-plan"
                 value={form.selectedPackage}
                 onChange={(e) => handleChange("selectedPackage", e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
@@ -968,8 +968,8 @@ function RegisterTab({
           <h3 className="text-[13px] font-bold text-[var(--t1)] mb-3">School Contact (Optional)</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">School Phone</label>
-              <input
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="school-phone">School Phone</label>
+              <input id="school-phone"
                 value={form.phone}
                 onChange={(e) => handleChange("phone", e.target.value)}
                 placeholder="0700000000"
@@ -977,8 +977,8 @@ function RegisterTab({
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">School Email</label>
-              <input
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="school-email">School Email</label>
+              <input id="school-email"
                 value={form.email}
                 onChange={(e) => handleChange("email", e.target.value)}
                 placeholder="school@example.com"
@@ -1010,8 +1010,8 @@ function RegisterTab({
           {form.digitizeData && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Fee (UGX) *</label>
-                <input
+                <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="fee-ugx">Fee (UGX) *</label>
+                <input id="fee-ugx"
                   type="number"
                   min={10000}
                   max={50000}
@@ -1026,8 +1026,8 @@ function RegisterTab({
                 )}
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Notes</label>
-                <input
+                <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="notes">Notes</label>
+                <input id="notes"
                   value={form.digitizationFeeNotes}
                   onChange={(e) => handleChange("digitizationFeeNotes", e.target.value)}
                   placeholder="e.g., Digitize 200 student records"
@@ -1044,8 +1044,8 @@ function RegisterTab({
           <h3 className="text-[13px] font-bold text-[var(--t1)] mb-3">Admin Account</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Admin Name *</label>
-              <input
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="admin-name">Admin Name *</label>
+              <input id="admin-name"
                 value={form.adminName}
                 onChange={(e) => handleChange("adminName", e.target.value)}
                 className={`w-full px-3 py-2 rounded-xl border ${fieldErrors.adminName ? "border-red-400" : "border-[var(--border)]"} bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30`}
@@ -1055,8 +1055,8 @@ function RegisterTab({
               )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Admin Phone *</label>
-              <input
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="admin-phone">Admin Phone *</label>
+              <input id="admin-phone"
                 value={form.adminPhone}
                 onChange={(e) => handleChange("adminPhone", e.target.value)}
                 placeholder="0700000000"
@@ -1067,10 +1067,10 @@ function RegisterTab({
               )}
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="password-min-8-chars-1-uppercase-1-number">
                 Password * (min 8 chars, 1 uppercase, 1 number)
               </label>
-              <input
+              <input id="password-min-8-chars-1-uppercase-1-number"
                 type="password"
                 value={form.password}
                 onChange={(e) => handleChange("password", e.target.value)}
@@ -1353,7 +1353,7 @@ function LeadsTab({ onConvertToSchool }: { onConvertToSchool?: (lead: LeadRow) =
                       </td>
                       <td className="px-4 py-2.5 text-[var(--t2)]">{l.district || "—"}</td>
                       <td className="px-4 py-2.5">
-                        <select
+                        <select aria-label="Lead status"
                           value={l.status}
                           onChange={(e) => updateStatus(l.id, e.target.value)}
                           className="px-2 py-1 rounded-lg text-xs font-bold border-0 cursor-pointer"
@@ -1879,8 +1879,8 @@ function SettingsTab() {
 
         <form onSubmit={handleSave} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Full Name</label>
-            <input
+            <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="full-name">Full Name</label>
+            <input id="full-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -1888,24 +1888,24 @@ function SettingsTab() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Phone</label>
-            <input
+            <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="phone">Phone</label>
+            <input id="phone"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Email (read-only)</label>
-            <input
+            <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="email-read-only">Email (read-only)</label>
+            <input id="email-read-only"
               value={user?.email || ""}
               disabled
               className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t4)] cursor-not-allowed"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Role</label>
-            <input
+            <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="role">Role</label>
+            <input id="role"
               value="Field Marketer"
               disabled
               className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t4)] cursor-not-allowed"
@@ -2002,8 +2002,8 @@ function EditSchoolModal({
         )}
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Phone</label>
-            <input
+            <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="phone-2">Phone</label>
+            <input id="phone-2"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="0700000000"
@@ -2011,8 +2011,8 @@ function EditSchoolModal({
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Email</label>
-            <input
+            <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="email">Email</label>
+            <input id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="school@example.com"

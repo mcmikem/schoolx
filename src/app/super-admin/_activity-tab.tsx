@@ -80,7 +80,7 @@ export function AppActivityTab() {
           </button>
         ))}
         {view === "usage" && (
-          <select
+          <select aria-label="Date range"
             value={range}
             onChange={(e) => setRange(e.target.value)}
             className="ml-2 px-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[12px] text-[var(--t1)]"

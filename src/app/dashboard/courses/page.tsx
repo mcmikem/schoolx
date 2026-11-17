@@ -305,7 +305,7 @@ export default function CoursesPage() {
         />
 
         <div className="flex gap-4 mb-6">
-          <select
+          <select aria-label="Filter by category"
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
             className="px-4 py-2 border border-[var(--border)] rounded-xl"
@@ -412,8 +412,8 @@ export default function CoursesPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Course Name</label>
-                <input
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="course-name">Course Name</label>
+                <input id="course-name"
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -422,8 +422,8 @@ export default function CoursesPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Code</label>
-                <input
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="code">Code</label>
+                <input id="code"
                   type="text"
                   value={formData.code}
                   onChange={(e) =>
@@ -439,8 +439,8 @@ export default function CoursesPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[var(--t2)] mb-1">Description</label>
-              <textarea
+              <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="description">Description</label>
+              <textarea id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
@@ -451,8 +451,8 @@ export default function CoursesPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Category</label>
-                <select
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="category">Category</label>
+                <select id="category"
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
@@ -465,8 +465,8 @@ export default function CoursesPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Icon</label>
-                <select
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="icon">Icon</label>
+                <select id="icon"
                   value={formData.icon}
                   onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
                   className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
@@ -482,8 +482,8 @@ export default function CoursesPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Color</label>
-                <input
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="color">Color</label>
+                <input id="color"
                   type="color"
                   value={formData.color}
                   onChange={(e) => setFormData({ ...formData, color: e.target.value })}
@@ -491,8 +491,8 @@ export default function CoursesPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Credit Hours</label>
-                <input
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="credit-hours">Credit Hours</label>
+                <input id="credit-hours"
                   type="number"
                   inputMode="numeric"
                   value={formData.credit_hours}
@@ -509,8 +509,8 @@ export default function CoursesPage() {
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Max Score</label>
-                <input
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="max-score">Max Score</label>
+                <input id="max-score"
                   type="number"
                   inputMode="numeric"
                   value={formData.max_score}
@@ -524,8 +524,8 @@ export default function CoursesPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Pass Score</label>
-                <input
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="pass-score">Pass Score</label>
+                <input id="pass-score"
                   type="number"
                   inputMode="numeric"
                   value={formData.passing_score}

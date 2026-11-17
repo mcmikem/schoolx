@@ -807,13 +807,13 @@ export default function SchoolsPage() {
               className="input pl-10 w-full"
             />
           </div>
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="input sm:w-32">
+          <select aria-label="Status filter" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="input sm:w-32">
             <option value="all">Status</option>
             <option value="active">Active</option>
             <option value="trial">Trial</option>
             <option value="expired">Expired</option>
           </select>
-          <select value={filterPlan} onChange={(e) => setFilterPlan(e.target.value)} className="input sm:w-32">
+          <select aria-label="Plan filter" value={filterPlan} onChange={(e) => setFilterPlan(e.target.value)} className="input sm:w-32">
             <option value="all">Plan</option>
             <option value="starter">Starter</option>
             <option value="growth">Growth</option>
@@ -1191,8 +1191,8 @@ export default function SchoolsPage() {
               {addStep === 1 ? (
                 <div className="p-6 space-y-4">
                   <div>
-                    <label className="label">School Name</label>
-                    <input
+                    <label className="label" htmlFor="school-name">School Name</label>
+                    <input id="school-name"
                       type="text"
                       value={newSchool.name}
                       onChange={(e) => setNewSchool({ ...newSchool, name: e.target.value })}
@@ -1202,8 +1202,8 @@ export default function SchoolsPage() {
                     />
                   </div>
                   <div>
-                    <label className="label">School Code</label>
-                    <input
+                    <label className="label" htmlFor="school-code">School Code</label>
+                    <input id="school-code"
                       type="text"
                       value={newSchool.school_code}
                       onChange={(e) => setNewSchool({ ...newSchool, school_code: e.target.value })}
@@ -1213,8 +1213,8 @@ export default function SchoolsPage() {
                     />
                   </div>
                   <div>
-                    <label className="label">District</label>
-                    <input
+                    <label className="label" htmlFor="district">District</label>
+                    <input id="district"
                       type="text"
                       value={newSchool.district}
                       onChange={(e) => setNewSchool({ ...newSchool, district: e.target.value })}
@@ -1225,8 +1225,8 @@ export default function SchoolsPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="label">School Type</label>
-                      <select
+                      <label className="label" htmlFor="school-type">School Type</label>
+                      <select id="school-type"
                         value={newSchool.school_type}
                         onChange={(e) => setNewSchool({ ...newSchool, school_type: e.target.value })}
                         className="input"
@@ -1237,8 +1237,8 @@ export default function SchoolsPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="label">Ownership</label>
-                      <select
+                      <label className="label" htmlFor="ownership">Ownership</label>
+                      <select id="ownership"
                         value={newSchool.ownership}
                         onChange={(e) => setNewSchool({ ...newSchool, ownership: e.target.value })}
                         className="input"
@@ -1250,8 +1250,8 @@ export default function SchoolsPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="label">School Phone</label>
-                    <input
+                    <label className="label" htmlFor="school-phone">School Phone</label>
+                    <input id="school-phone"
                       type="tel"
                       inputMode="tel"
                       value={newSchool.phone}
@@ -1261,8 +1261,8 @@ export default function SchoolsPage() {
                     />
                   </div>
                   <div>
-                    <label className="label">Starting Plan</label>
-                    <select
+                    <label className="label" htmlFor="starting-plan">Starting Plan</label>
+                    <select id="starting-plan"
                       value={newSchool.subscription_plan}
                       onChange={(e) => setNewSchool({ ...newSchool, subscription_plan: e.target.value })}
                       className="input"
@@ -1311,8 +1311,8 @@ export default function SchoolsPage() {
                     </p>
                   </div>
                   <div>
-                    <label className="label">Admin Full Name</label>
-                    <input
+                    <label className="label" htmlFor="admin-full-name">Admin Full Name</label>
+                    <input id="admin-full-name"
                       type="text"
                       value={newAdmin.name}
                       onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })}
@@ -1322,8 +1322,8 @@ export default function SchoolsPage() {
                     />
                   </div>
                   <div>
-                    <label className="label">Admin Phone (Login ID)</label>
-                    <input
+                    <label className="label" htmlFor="admin-phone-login-id">Admin Phone (Login ID)</label>
+                    <input id="admin-phone-login-id"
                       type="tel"
                       inputMode="tel"
                       value={newAdmin.phone}
@@ -1334,8 +1334,8 @@ export default function SchoolsPage() {
                     />
                   </div>
                   <div>
-                    <label className="label">Admin Password</label>
-                    <input
+                    <label className="label" htmlFor="admin-password">Admin Password</label>
+                    <input id="admin-password"
                       type="text"
                       value={newAdmin.password}
                       onChange={(e) => setNewAdmin({ ...newAdmin, password: e.target.value })}
@@ -1466,8 +1466,8 @@ export default function SchoolsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="label">Status</label>
-                  <select
+                  <label className="label" htmlFor="status">Status</label>
+                  <select id="status"
                     value={subForm.status}
                     onChange={(e) => setSubForm({ ...subForm, status: e.target.value })}
                     className="input"
@@ -1478,8 +1478,8 @@ export default function SchoolsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="label">Billing</label>
-                  <select
+                  <label className="label" htmlFor="billing">Billing</label>
+                  <select id="billing"
                     value={subForm.billing}
                     onChange={(e) => setSubForm({ ...subForm, billing: e.target.value })}
                     className="input"
@@ -1539,8 +1539,8 @@ export default function SchoolsPage() {
                   login.
                 </p>
                 <div>
-                  <label className="label">User Phone</label>
-                  <select value={resetPhone} onChange={(e) => setResetPhone(e.target.value)} className="input">
+                  <label className="label" htmlFor="user-phone">User Phone</label>
+                  <select id="user-phone" value={resetPhone} onChange={(e) => setResetPhone(e.target.value)} className="input">
                     <option value="">Select user...</option>
                     {schoolUsers.map((u) => (
                       <option key={u.id} value={u.phone}>
@@ -1581,8 +1581,8 @@ export default function SchoolsPage() {
               </div>
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="label">Extend by (days)</label>
-                  <input
+                  <label className="label" htmlFor="extend-by-days">Extend by (days)</label>
+                  <input id="extend-by-days"
                     type="number"
                     inputMode="numeric"
                     value={trialDays}
@@ -1672,8 +1672,8 @@ export default function SchoolsPage() {
               </div>
               <form onSubmit={handleAddUser} className="p-6 space-y-4">
                 <div>
-                  <label className="label">Full Name</label>
-                  <input
+                  <label className="label" htmlFor="full-name">Full Name</label>
+                  <input id="full-name"
                     type="text"
                     value={newUserForm.name}
                     onChange={(e) => setNewUserForm({ ...newUserForm, name: e.target.value })}
@@ -1683,8 +1683,8 @@ export default function SchoolsPage() {
                   />
                 </div>
                 <div>
-                  <label className="label">Phone (Login ID)</label>
-                  <input
+                  <label className="label" htmlFor="phone-login-id">Phone (Login ID)</label>
+                  <input id="phone-login-id"
                     type="tel"
                     inputMode="tel"
                     value={newUserForm.phone}
@@ -1695,8 +1695,8 @@ export default function SchoolsPage() {
                   />
                 </div>
                 <div>
-                  <label className="label">Role</label>
-                  <select
+                  <label className="label" htmlFor="role">Role</label>
+                  <select id="role"
                     value={newUserForm.role}
                     onChange={(e) => setNewUserForm({ ...newUserForm, role: e.target.value })}
                     className="input"
@@ -1710,8 +1710,8 @@ export default function SchoolsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="label">Password</label>
-                  <input
+                  <label className="label" htmlFor="password">Password</label>
+                  <input id="password"
                     type="text"
                     value={newUserForm.password}
                     onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}

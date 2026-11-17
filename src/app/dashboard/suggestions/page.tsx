@@ -352,8 +352,8 @@ export default function SuggestionBoxPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Title</label>
-                  <input
+                  <label className="block text-sm font-medium mb-1" htmlFor="title">Title</label>
+                  <input id="title"
                     type="text"
                     value={form.title}
                     onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -364,8 +364,8 @@ export default function SuggestionBoxPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Details</label>
-                  <textarea
+                  <label className="block text-sm font-medium mb-1" htmlFor="details">Details</label>
+                  <textarea id="details"
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                     className="input min-h-[100px]"

@@ -104,11 +104,11 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
           { label: "Email", name: "email", tp: "email", placeholder: "admin@school.ug" },
         ].map((f) => (
           <div key={f.name}>
-            <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+            <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5" htmlFor="f-label-f-required">
               {f.label}
               {f.required && <span className="text-red-500 ml-0.5">*</span>}
             </label>
-            <input
+            <input id="f-label-f-required"
               type={(f as any).tp || "text"}
               value={(form as any)[f.name]}
               onChange={(e) => set(f.name, e.target.value)}
@@ -121,10 +121,10 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5" htmlFor="school-type">
             School Type <span className="text-red-500">*</span>
           </label>
-          <select
+          <select id="school-type"
             value={form.school_type}
             onChange={(e) => set("school_type", e.target.value)}
             className="w-full rounded-xl bg-[var(--bg)] border border-[var(--border)] px-4 py-2.5 text-[13px] text-[var(--t1)] outline-none focus:border-[var(--primary)]"
@@ -135,10 +135,10 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5" htmlFor="ownership">
             Ownership <span className="text-red-500">*</span>
           </label>
-          <select
+          <select id="ownership"
             value={form.ownership}
             onChange={(e) => set("ownership", e.target.value)}
             className="w-full rounded-xl bg-[var(--bg)] border border-[var(--border)] px-4 py-2.5 text-[13px] text-[var(--t1)] outline-none focus:border-[var(--primary)]"
@@ -149,10 +149,10 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5" htmlFor="subscription-plan">
             Subscription Plan
           </label>
-          <select
+          <select id="subscription-plan"
             value={form.subscription_plan}
             onChange={(e) => set("subscription_plan", e.target.value)}
             className="w-full rounded-xl bg-[var(--bg)] border border-[var(--border)] px-4 py-2.5 text-[13px] text-[var(--t1)] outline-none focus:border-[var(--primary)]"
@@ -165,10 +165,10 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5" htmlFor="feature-access">
             Feature Access
           </label>
-          <select
+          <select id="feature-access"
             value={form.feature_stage}
             onChange={(e) => set("feature_stage", e.target.value)}
             className="w-full rounded-xl bg-[var(--bg)] border border-[var(--border)] px-4 py-2.5 text-[13px] text-[var(--t1)] outline-none focus:border-[var(--primary)]"
@@ -180,10 +180,10 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5" htmlFor="trial-duration-days">
             Trial Duration (days)
           </label>
-          <input
+          <input id="trial-duration-days"
             type="number"
             inputMode="numeric"
             min={1}
@@ -213,10 +213,10 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
       <p className="text-xs text-[var(--t3)] -mt-2">The school admin will use these credentials to sign in.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5" htmlFor="admin-name">
             Admin Name <span className="text-red-500">*</span>
           </label>
-          <input
+          <input id="admin-name"
             type="text"
             value={form.admin_name}
             onChange={(e) => set("admin_name", e.target.value)}
@@ -226,10 +226,10 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
           />
         </div>
         <div>
-          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5" htmlFor="admin-phone">
             Admin Phone <span className="text-red-500">*</span>
           </label>
-          <input
+          <input id="admin-phone"
             type="tel"
             value={form.admin_phone}
             onChange={(e) => set("admin_phone", e.target.value)}
@@ -239,11 +239,11 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
           />
         </div>
         <div className="sm:col-span-2">
-          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5" htmlFor="password-min-8-chars-1-uppercase-1-number">
             Password <span className="text-red-500">*</span>
             <span className="font-normal normal-case text-[var(--t4)] ml-1">(min 8 chars, 1 uppercase, 1 number)</span>
           </label>
-          <input
+          <input id="password-min-8-chars-1-uppercase-1-number"
             type="password"
             value={form.admin_password}
             onChange={(e) => set("admin_password", e.target.value)}
@@ -260,10 +260,10 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5" htmlFor="digitization-fee-ugx">
             Digitization Fee (UGX)
           </label>
-          <input
+          <input id="digitization-fee-ugx"
             type="number"
             inputMode="numeric"
             min={0}

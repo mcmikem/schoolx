@@ -685,7 +685,7 @@ export default function SuperAdminPage() {
                     className="w-full rounded-xl bg-[var(--surface)] border border-[var(--border)] pl-9 pr-4 py-2.5 text-[13px] outline-none focus:border-[var(--primary)] transition-colors"
                   />
                 </div>
-                <select
+                <select aria-label="Status filter"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className="rounded-xl bg-[var(--surface)] border border-[var(--border)] px-3 py-2.5 text-[12px] text-[var(--t2)] outline-none focus:border-[var(--primary)]"
@@ -698,7 +698,7 @@ export default function SuperAdminPage() {
                   <option value="past_due">Past Due</option>
                   <option value="canceled">Canceled</option>
                 </select>
-                <select
+                <select aria-label="Plan filter"
                   value={planFilter}
                   onChange={(e) => setPlanFilter(e.target.value)}
                   className="rounded-xl bg-[var(--surface)] border border-[var(--border)] px-3 py-2.5 text-[12px] text-[var(--t2)] outline-none focus:border-[var(--primary)]"
@@ -710,7 +710,7 @@ export default function SuperAdminPage() {
                   <option value="lifetime">Lifetime</option>
                   <option value="free_trial">Free Trial</option>
                 </select>
-                <select
+                <select aria-label="Tester filter"
                   value={testerFilter}
                   onChange={(e) => setTesterFilter(e.target.value as "all" | "tester" | "normal")}
                   className="rounded-xl bg-[var(--surface)] border border-[var(--border)] px-3 py-2.5 text-[12px] text-[var(--t2)] outline-none focus:border-[var(--primary)]"
@@ -852,7 +852,7 @@ export default function SuperAdminPage() {
                     className="w-full rounded-xl bg-[var(--surface)] border border-[var(--border)] pl-9 pr-4 py-2.5 text-[13px] outline-none focus:border-[var(--primary)] transition-colors"
                   />
                 </div>
-                <select
+                <select aria-label="Role filter"
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
                   className="rounded-xl bg-[var(--surface)] border border-[var(--border)] px-3 py-2.5 text-[12px] text-[var(--t2)] outline-none focus:border-[var(--primary)]"
@@ -1201,10 +1201,10 @@ export default function SuperAdminPage() {
                   },
                 ].map((f) => (
                   <div key={f.key}>
-                    <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+                    <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5" htmlFor="f-label">
                       {f.label}
                     </label>
-                    <input
+                    <input id="f-label"
                       type={f.type}
                       value={settings[f.key]}
                       onChange={(e) => setSettings((s) => ({ ...s, [f.key]: e.target.value }))}
@@ -1214,10 +1214,10 @@ export default function SuperAdminPage() {
                   </div>
                 ))}
                 <div>
-                  <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+                  <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5" htmlFor="default-trial-duration-days">
                     Default Trial Duration (days)
                   </label>
-                  <input
+                  <input id="default-trial-duration-days"
                     type="number"
                     inputMode="numeric"
                     min={1}

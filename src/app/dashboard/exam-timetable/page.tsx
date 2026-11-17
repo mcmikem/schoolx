@@ -570,11 +570,10 @@ export default function ExamTimetablePage() {
                         color: "var(--t3)",
                         marginBottom: 6,
                         display: "block",
-                      }}
-                    >
+                      }} htmlFor="exam-date">
                       Exam Date *
                     </label>
-                    <input
+                    <input id="exam-date"
                       type="date"
                       value={newExam.exam_date}
                       onChange={(e) => setNewExam({ ...newExam, exam_date: e.target.value })}
@@ -591,11 +590,10 @@ export default function ExamTimetablePage() {
                         color: "var(--t3)",
                         marginBottom: 6,
                         display: "block",
-                      }}
-                    >
+                      }} htmlFor="room">
                       Room *
                     </label>
-                    <input
+                    <input id="room"
                       type="text"
                       value={newExam.room}
                       onChange={(e) => setNewExam({ ...newExam, room: e.target.value })}
@@ -623,11 +621,10 @@ export default function ExamTimetablePage() {
                         color: "var(--t3)",
                         marginBottom: 6,
                         display: "block",
-                      }}
-                    >
+                      }} htmlFor="start-time">
                       Start Time *
                     </label>
-                    <input
+                    <input id="start-time"
                       type="time"
                       value={newExam.start_time}
                       onChange={(e) => setNewExam({ ...newExam, start_time: e.target.value })}
@@ -644,11 +641,10 @@ export default function ExamTimetablePage() {
                         color: "var(--t3)",
                         marginBottom: 6,
                         display: "block",
-                      }}
-                    >
+                      }} htmlFor="end-time">
                       End Time *
                     </label>
-                    <input
+                    <input id="end-time"
                       type="time"
                       value={newExam.end_time}
                       onChange={(e) => setNewExam({ ...newExam, end_time: e.target.value })}
@@ -685,7 +681,7 @@ export default function ExamTimetablePage() {
                       No subjects available
                     </div>
                   ) : (
-                    <select
+                    <select aria-label="Subject"
                       value={newExam.subject_id}
                       onChange={(e) => setNewExam({ ...newExam, subject_id: e.target.value })}
                       className="input"
@@ -728,7 +724,7 @@ export default function ExamTimetablePage() {
                       No classes available
                     </div>
                   ) : (
-                    <select
+                    <select aria-label="Class"
                       value={newExam.class_id}
                       onChange={(e) => setNewExam({ ...newExam, class_id: e.target.value })}
                       className="input"
@@ -771,7 +767,7 @@ export default function ExamTimetablePage() {
                       No teachers available
                     </div>
                   ) : (
-                    <select
+                    <select aria-label="Supervisor"
                       value={newExam.supervisor_id}
                       onChange={(e) => setNewExam({ ...newExam, supervisor_id: e.target.value })}
                       className="input"

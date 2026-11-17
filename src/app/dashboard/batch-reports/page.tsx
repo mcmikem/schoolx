@@ -86,10 +86,10 @@ export default function BatchReportsPage() {
           <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)] mb-6">Batch Configuration</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2">
+              <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2" htmlFor="academic-year">
                 Academic Year
               </label>
-              <input
+              <input id="academic-year"
                 readOnly
                 value={academicYear}
                 className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl font-bold text-[var(--t2)] text-sm"
@@ -131,7 +131,7 @@ export default function BatchReportsPage() {
           <div className={cardClassName + " overflow-hidden"}>
             <div className="p-5 border-b border-[var(--border)] bg-[var(--surface-container-low)] flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <input
+                <input aria-label="Select all students"
                   type="checkbox"
                   checked={selected.length === students.length}
                   onChange={toggleAll}

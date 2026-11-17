@@ -696,8 +696,8 @@ export default function TermEndPage() {
           <CardBody>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="label">Current Term</label>
-                <select
+                <label className="label" htmlFor="current-term">Current Term</label>
+                <select id="current-term"
                   value={currentTerm}
                   onChange={(e) => setCurrentTerm(e.target.value)}
                   className="input"
@@ -709,8 +709,8 @@ export default function TermEndPage() {
                 </select>
               </div>
               <div>
-                <label className="label">Academic Year</label>
-                <input
+                <label className="label" htmlFor="academic-year">Academic Year</label>
+                <input id="academic-year"
                   type="text"
                   value={academicYear}
                   onChange={(e) => setAcademicYear(e.target.value)}
@@ -719,8 +719,8 @@ export default function TermEndPage() {
                 />
               </div>
               <div>
-                <label className="label">Next Term</label>
-                <select
+                <label className="label" htmlFor="next-term">Next Term</label>
+                <select id="next-term"
                   value={nextTerm}
                   onChange={(e) => setNextTerm(e.target.value)}
                   className="input"

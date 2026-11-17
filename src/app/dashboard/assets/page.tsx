@@ -256,10 +256,10 @@ export default function AssetsPage() {
                   </button>
                 </div>
                 <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]" htmlFor="asset-name">
                     Asset Name
                   </label>
-                  <input
+                  <input id="asset-name"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     placeholder="e.g. Dell Optiplex Computers"
@@ -268,10 +268,10 @@ export default function AssetsPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]" htmlFor="category">
                       Category
                     </label>
-                    <select
+                    <select id="category"
                       value={form.category}
                       onChange={(e) => setForm({ ...form, category: e.target.value })}
                       className="select w-full"
@@ -282,10 +282,10 @@ export default function AssetsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]" htmlFor="quantity">
                       Quantity
                     </label>
-                    <input
+                    <input id="quantity"
                       type="number"
                       inputMode="numeric"
                       min="1"
@@ -297,10 +297,10 @@ export default function AssetsPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]" htmlFor="location">
                       Location
                     </label>
-                    <input
+                    <input id="location"
                       value={form.location}
                       onChange={(e) => setForm({ ...form, location: e.target.value })}
                       placeholder="e.g. Computer Lab 1"
@@ -308,10 +308,10 @@ export default function AssetsPage() {
                     />
                   </div>
                   <div>
-                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]" htmlFor="condition">
                       Condition
                     </label>
-                    <select
+                    <select id="condition"
                       value={form.condition}
                       onChange={(e) => setForm({ ...form, condition: e.target.value as any })}
                       className="select w-full"
@@ -324,10 +324,10 @@ export default function AssetsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]" htmlFor="notes-optional">
                     Notes (optional)
                   </label>
-                  <textarea
+                  <textarea id="notes-optional"
                     value={form.notes}
                     onChange={(e) => setForm({ ...form, notes: e.target.value })}
                     rows={2}

@@ -516,7 +516,7 @@ export default function ExamLabPage() {
               </label>
             </div>
 
-            <textarea
+            <textarea aria-label="Extracted text"
               value={text}
               onChange={(e) => {
                 setText(e.target.value);

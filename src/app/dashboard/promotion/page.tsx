@@ -127,10 +127,10 @@ export default function PromotionPage() {
                 <h2 className="font-semibold text-[var(--on-surface)]">Select Class to Promote From</h2>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]" htmlFor="from-class">
                       From Class
                     </label>
-                    <select
+                    <select id="from-class"
                       value={selectedClass}
                       onChange={(e) => {
                         setSelectedClass(e.target.value);
@@ -147,10 +147,10 @@ export default function PromotionPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]" htmlFor="to-class">
                       To Class
                     </label>
-                    <select
+                    <select id="to-class"
                       value={targetClass}
                       onChange={(e) => setTargetClass(e.target.value)}
                       className="select w-full"

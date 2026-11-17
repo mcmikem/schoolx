@@ -340,10 +340,10 @@ export default function StudentWalletsPage() {
 
                 <div className="space-y-6">
                   <div>
-                    <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] mb-2 block">
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] mb-2 block" htmlFor="amount-ugx">
                       Amount (UGX)
                     </label>
-                    <input
+                    <input id="amount-ugx"
                       type="number"
                       inputMode="numeric"
                       value={topupAmount}

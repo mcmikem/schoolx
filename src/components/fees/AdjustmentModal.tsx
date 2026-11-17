@@ -87,10 +87,10 @@ export default function AdjustmentModal({
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2" htmlFor="adjustment-type">
               Adjustment Type
             </label>
-            <select
+            <select id="adjustment-type"
               value={newAdjustment.adjustment_type}
               onChange={(e) =>
                 onAdjustmentChange({ adjustment_type: e.target.value as AdjustmentData["adjustment_type"] })
@@ -107,10 +107,10 @@ export default function AdjustmentModal({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2" htmlFor="amount-ugx">
               Amount (UGX)
             </label>
-            <input
+            <input id="amount-ugx"
               type="number"
               inputMode="numeric"
               min="1"
@@ -131,10 +131,10 @@ export default function AdjustmentModal({
         />
 
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+          <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2" htmlFor="reason-notes">
             Reason / Notes
           </label>
-          <textarea
+          <textarea id="reason-notes"
             value={newAdjustment.description}
             onChange={(e) => onAdjustmentChange({ description: e.target.value })}
             className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm min-h-28 resize-y"

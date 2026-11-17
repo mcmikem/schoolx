@@ -171,8 +171,8 @@ export default function AcademicSettings() {
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
-            <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Active Academic Year</label>
-            <select value={academicYear} onChange={(e) => setAcademicYear(e.target.value)} className="input w-full">
+            <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="active-academic-year">Active Academic Year</label>
+            <select id="active-academic-year" value={academicYear} onChange={(e) => setAcademicYear(e.target.value)} className="input w-full">
               {Array.from({ length: 5 }).map((_, i) => {
                 const year = new Date().getFullYear() - 2 + i;
                 return (
@@ -184,8 +184,8 @@ export default function AcademicSettings() {
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Current Term</label>
-            <select
+            <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="current-term">Current Term</label>
+            <select id="current-term"
               value={currentTerm}
               onChange={(e) => setCurrentTerm(Number(e.target.value) as 1 | 2 | 3)}
               className="input w-full"
@@ -253,7 +253,7 @@ export default function AcademicSettings() {
             <div className="space-y-3 max-h-[400px] overflow-y-auto">
               {examWeights.map((exam) => (
                 <div key={exam.id} className="flex items-center gap-3 p-3 bg-[var(--surface-container-low)] rounded-lg">
-                  <input
+                  <input aria-label={`Include ${exam.name}`}
                     type="checkbox"
                     checked={exam.isActive}
                     onChange={(e) => updateExamWeight(exam.id, "isActive", e.target.checked)}
@@ -261,7 +261,7 @@ export default function AcademicSettings() {
                   />
                   <span className="flex-1 text-sm">{exam.name}</span>
                   <span className="text-xs text-[var(--t4)] w-8">{exam.shortName}</span>
-                  <input
+                  <input aria-label={`Weight for ${exam.name}`}
                     type="number"
                     inputMode="numeric"
                     value={exam.weight}

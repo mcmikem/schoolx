@@ -306,7 +306,7 @@ export default function SyncCenterPage() {
       key: "select",
       header: "",
       render: (item) => (
-        <input
+        <input aria-label="Select failed item"
           type="checkbox"
           checked={selectedFailed.has(item.id)}
           onChange={(e) => {

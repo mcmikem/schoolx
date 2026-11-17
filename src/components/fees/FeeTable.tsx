@@ -460,8 +460,8 @@ export default function FeeTable({
             <thead>
               <tr className="bg-[var(--surface-container-low)] text-left">
                 <th className="px-6 py-3.5 w-12">
-                  <label className="sr-only">Select all students</label>
-                  <input
+                  <label className="sr-only" htmlFor="select-all-students">Select all students</label>
+                  <input id="select-all-students"
                     type="checkbox"
                     checked={allSelected}
                     onChange={() => {
@@ -518,8 +518,8 @@ export default function FeeTable({
                       className={`hover:bg-surface-bright transition-colors ${selectedIds.has(student.id) ? "bg-[var(--primary)]/5" : ""}`}
                     >
                       <td className="px-6 py-4">
-                        <label className="sr-only">Select {student.name}</label>
-                        <input
+                        <label className="sr-only" htmlFor="select-student-name">Select {student.name}</label>
+                        <input id="select-student-name"
                           type="checkbox"
                           checked={selectedIds.has(student.id)}
                           onChange={() => {

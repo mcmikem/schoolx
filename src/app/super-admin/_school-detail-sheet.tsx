@@ -274,10 +274,10 @@ export function SchoolDetailSheet({
                   </div>
                   <div className="space-y-2.5">
                     <div>
-                      <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
+                      <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide" htmlFor="name">
                         Name <span className="text-red-500">*</span>
                       </label>
-                      <input
+                      <input id="name"
                         className={ic}
                         value={name}
                         onChange={(e) => setName(e.target.value)}
@@ -286,10 +286,10 @@ export function SchoolDetailSheet({
                     </div>
                     <div className="grid grid-cols-2 gap-2.5">
                       <div>
-                        <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
+                        <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide" htmlFor="district">
                           District
                         </label>
-                        <input
+                        <input id="district"
                           className={ic}
                           value={district}
                           onChange={(e) => setDistrict(e.target.value)}
@@ -311,10 +311,10 @@ export function SchoolDetailSheet({
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
+                        <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide" htmlFor="phone">
                           Phone
                         </label>
-                        <input
+                        <input id="phone"
                           className={ic}
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
@@ -324,10 +324,10 @@ export function SchoolDetailSheet({
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
+                        <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide" htmlFor="email">
                           Email
                         </label>
-                        <input
+                        <input id="email"
                           className={ic}
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
@@ -454,7 +454,7 @@ export function SchoolDetailSheet({
                 <div className="rounded-xl bg-[#fffbeb] border border-[#fef3c7] p-4">
                   <div className="text-[12px] font-bold text-[var(--amber)] mb-3">Extend / Activate Trial</div>
                   <div className="flex gap-2 items-center">
-                    <select
+                    <select aria-label="Trial days"
                       value={trialDays}
                       onChange={(e) => setTrialDays(Number(e.target.value))}
                       className="flex-1 rounded-lg bg-white border border-[#fde68a] px-3 py-2 text-[12px] text-[#92400e]"
@@ -525,10 +525,10 @@ export function SchoolDetailSheet({
                   <div className="text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-3">School Identity</div>
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
+                      <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide" htmlFor="physical-address">
                         Physical Address
                       </label>
-                      <input
+                      <input id="physical-address"
                         className={ic}
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
@@ -536,10 +536,10 @@ export function SchoolDetailSheet({
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
+                      <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide" htmlFor="school-motto">
                         School Motto
                       </label>
-                      <input
+                      <input id="school-motto"
                         className={ic}
                         value={motto}
                         onChange={(e) => setMotto(e.target.value)}
@@ -547,10 +547,10 @@ export function SchoolDetailSheet({
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
+                      <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide" htmlFor="head-teacher-principal-name">
                         Head Teacher / Principal Name
                       </label>
-                      <input
+                      <input id="head-teacher-principal-name"
                         className={ic}
                         value={principalName}
                         onChange={(e) => setPrincipalName(e.target.value)}

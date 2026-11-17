@@ -262,8 +262,8 @@ export default function TransportPage() {
                   </button>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-[var(--t2)] block mb-1">Route Name *</label>
-                  <input
+                  <label className="text-xs font-medium text-[var(--t2)] block mb-1" htmlFor="route-name">Route Name *</label>
+                  <input id="route-name"
                     value={form.route_name}
                     onChange={(e) => setForm({ ...form, route_name: e.target.value })}
                     placeholder="e.g. Kampala – Entebbe Road"
@@ -272,8 +272,8 @@ export default function TransportPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-[var(--t2)] block mb-1">Vehicle Number</label>
-                    <input
+                    <label className="text-xs font-medium text-[var(--t2)] block mb-1" htmlFor="vehicle-number">Vehicle Number</label>
+                    <input id="vehicle-number"
                       value={form.vehicle_number}
                       onChange={(e) => setForm({ ...form, vehicle_number: e.target.value })}
                       placeholder="e.g. UAB 123X"
@@ -281,8 +281,8 @@ export default function TransportPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-[var(--t2)] block mb-1">Monthly Fee (UGX)</label>
-                    <input
+                    <label className="text-xs font-medium text-[var(--t2)] block mb-1" htmlFor="monthly-fee-ugx">Monthly Fee (UGX)</label>
+                    <input id="monthly-fee-ugx"
                       type="number"
                       inputMode="numeric"
                       min="0"
@@ -295,8 +295,8 @@ export default function TransportPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-[var(--t2)] block mb-1">Driver Name</label>
-                    <input
+                    <label className="text-xs font-medium text-[var(--t2)] block mb-1" htmlFor="driver-name">Driver Name</label>
+                    <input id="driver-name"
                       value={form.driver_name}
                       onChange={(e) => setForm({ ...form, driver_name: e.target.value })}
                       placeholder="Full name"
@@ -304,8 +304,8 @@ export default function TransportPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-[var(--t2)] block mb-1">Driver Phone</label>
-                    <input
+                    <label className="text-xs font-medium text-[var(--t2)] block mb-1" htmlFor="driver-phone">Driver Phone</label>
+                    <input id="driver-phone"
                       value={form.driver_phone}
                       onChange={(e) => setForm({ ...form, driver_phone: e.target.value })}
                       placeholder="07XXXXXXXX"

@@ -395,8 +395,8 @@ export default function LessonPlansPage() {
               <form onSubmit={handleSubmit} className="space-y-6 p-4 sm:p-6">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
                   <div>
-                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Class *</label>
-                    <select
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="class">Class *</label>
+                    <select id="class"
                       value={form.class_id}
                       onChange={(e) => setForm({ ...form, class_id: e.target.value })}
                       className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
@@ -411,8 +411,8 @@ export default function LessonPlansPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Subject *</label>
-                    <select
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="subject">Subject *</label>
+                    <select id="subject"
                       value={form.subject_id}
                       onChange={(e) => setForm({ ...form, subject_id: e.target.value })}
                       className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
@@ -427,8 +427,8 @@ export default function LessonPlansPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Week</label>
-                    <select
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="week">Week</label>
+                    <select id="week"
                       value={form.week}
                       onChange={(e) => setForm({ ...form, week: e.target.value })}
                       className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
@@ -441,8 +441,8 @@ export default function LessonPlansPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Lesson #</label>
-                    <select
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="lesson">Lesson #</label>
+                    <select id="lesson"
                       value={form.lesson}
                       onChange={(e) => setForm({ ...form, lesson: e.target.value })}
                       className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
@@ -472,8 +472,8 @@ export default function LessonPlansPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Duration (min)</label>
-                    <select
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="duration-min">Duration (min)</label>
+                    <select id="duration-min"
                       value={form.duration}
                       onChange={(e) => setForm({ ...form, duration: e.target.value })}
                       className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
@@ -487,8 +487,8 @@ export default function LessonPlansPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-[var(--t3)] mb-1">Lesson Date</label>
-                  <input
+                  <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="lesson-date">Lesson Date</label>
+                  <input id="lesson-date"
                     type="date"
                     value={form.lesson_date}
                     onChange={(e) => setForm({ ...form, lesson_date: e.target.value })}
@@ -512,8 +512,8 @@ export default function LessonPlansPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Subtopic</label>
-                    <input
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="subtopic">Subtopic</label>
+                    <input id="subtopic"
                       type="text"
                       value={form.subtopic}
                       onChange={(e) => setForm({ ...form, subtopic: e.target.value })}
@@ -524,8 +524,8 @@ export default function LessonPlansPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-[var(--t3)] mb-1">Learning Objectives</label>
-                  <textarea
+                  <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="learning-objectives">Learning Objectives</label>
+                  <textarea id="learning-objectives"
                     value={form.objectives}
                     onChange={(e) => setForm({ ...form, objectives: e.target.value })}
                     className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
@@ -538,8 +538,8 @@ export default function LessonPlansPage() {
                   <h3 className="text-sm font-bold text-[var(--t1)]">Lesson Structure</h3>
 
                   <div>
-                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Introduction (5 min)</label>
-                    <textarea
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="introduction-5-min">Introduction (5 min)</label>
+                    <textarea id="introduction-5-min"
                       value={form.introduction}
                       onChange={(e) => setForm({ ...form, introduction: e.target.value })}
                       className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
@@ -549,8 +549,8 @@ export default function LessonPlansPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Presentation (15 min)</label>
-                    <textarea
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="presentation-15-min">Presentation (15 min)</label>
+                    <textarea id="presentation-15-min"
                       value={form.presentation}
                       onChange={(e) => setForm({ ...form, presentation: e.target.value })}
                       className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
@@ -560,8 +560,8 @@ export default function LessonPlansPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Consolidation (15 min)</label>
-                    <textarea
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="consolidation-15-min">Consolidation (15 min)</label>
+                    <textarea id="consolidation-15-min"
                       value={form.consolidation}
                       onChange={(e) => setForm({ ...form, consolidation: e.target.value })}
                       className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
@@ -571,8 +571,8 @@ export default function LessonPlansPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Evaluation (5 min)</label>
-                    <textarea
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="evaluation-5-min">Evaluation (5 min)</label>
+                    <textarea id="evaluation-5-min"
                       value={form.evaluation}
                       onChange={(e) => setForm({ ...form, evaluation: e.target.value })}
                       className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
@@ -584,8 +584,8 @@ export default function LessonPlansPage() {
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Resources</label>
-                    <textarea
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="resources">Resources</label>
+                    <textarea id="resources"
                       value={form.resources}
                       onChange={(e) => setForm({ ...form, resources: e.target.value })}
                       className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
@@ -594,8 +594,8 @@ export default function LessonPlansPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Homework</label>
-                    <textarea
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="homework">Homework</label>
+                    <textarea id="homework"
                       value={form.homework}
                       onChange={(e) => setForm({ ...form, homework: e.target.value })}
                       className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"

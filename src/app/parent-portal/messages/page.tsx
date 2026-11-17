@@ -241,10 +241,10 @@ export default function ParentMessagesPage() {
                 </button>
               </div>
               <div>
-                <label className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+                <label className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2" htmlFor="subject">
                   Subject
                 </label>
-                <input
+                <input id="subject"
                   type="text"
                   value={subject}
                   onChange={(event) => setSubject(event.target.value)}
@@ -253,10 +253,10 @@ export default function ParentMessagesPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+                <label className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2" htmlFor="message">
                   Message
                 </label>
-                <textarea
+                <textarea id="message"
                   value={newMessage}
                   onChange={(event) => setNewMessage(event.target.value)}
                   rows={5}

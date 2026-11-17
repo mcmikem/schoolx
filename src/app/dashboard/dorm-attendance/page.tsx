@@ -149,7 +149,7 @@ export default function DormAttendancePage() {
                   No dorms
                 </div>
               ) : (
-                <select
+                <select aria-label="Select dorm"
                   value={selectedDormId || ""}
                   onChange={(e) => setSelectedDormId(e.target.value || undefined)}
                   className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm"
@@ -164,8 +164,8 @@ export default function DormAttendancePage() {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Date</label>
-              <input
+              <label className="block text-sm font-medium mb-1" htmlFor="date">Date</label>
+              <input id="date"
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
@@ -173,8 +173,8 @@ export default function DormAttendancePage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Check Type</label>
-              <select
+              <label className="block text-sm font-medium mb-1" htmlFor="check-type">Check Type</label>
+              <select id="check-type"
                 value={checkType}
                 onChange={(e) => setCheckType(e.target.value as CheckType)}
                 className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm"
@@ -270,7 +270,7 @@ export default function DormAttendancePage() {
                         <td className="p-4">
                           {status === "absent" && editingReason === student.id ? (
                             <div className="flex flex-col gap-1">
-                              <select
+                              <select aria-label="Absence reason"
                                 value={record?.absence_reason || ""}
                                 onChange={(e) => updateReason(student.id, e.target.value as AbsenceReason)}
                                 className="px-3 py-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs"

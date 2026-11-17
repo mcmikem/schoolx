@@ -1816,8 +1816,8 @@ function DirectoryTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Full Name</label>
-                <input
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="full-name">Full Name</label>
+                <input id="full-name"
                   type="text"
                   value={newStaff.full_name}
                   onChange={(e) => setNewStaff({ ...newStaff, full_name: e.target.value })}
@@ -1828,8 +1828,8 @@ function DirectoryTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Phone Number</label>
-                <input
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="phone-number">Phone Number</label>
+                <input id="phone-number"
                   type="tel"
                   inputMode="tel"
                   placeholder="0700000000"
@@ -1842,8 +1842,8 @@ function DirectoryTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Role</label>
-                <select
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="role">Role</label>
+                <select id="role"
                   value={newStaff.role}
                   onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
                   className="input"
@@ -1861,10 +1861,10 @@ function DirectoryTab({
               {newStaff.role === "teacher" && (
                 <>
                   <div>
-                    <label className="text-sm font-medium text-[var(--t1)] mb-2 block">
+                    <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="class-teacher-of-optional">
                       Class Teacher Of <span className="font-normal text-[var(--t3)]">(optional)</span>
                     </label>
-                    <select
+                    <select id="class-teacher-of-optional"
                       value={newStaff.class_teacher_for}
                       onChange={(e) =>
                         setNewStaff({
@@ -1899,8 +1899,8 @@ function DirectoryTab({
               )}
 
               <div>
-                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Email (optional)</label>
-                <input
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="email-optional">Email (optional)</label>
+                <input id="email-optional"
                   type="email"
                   placeholder="teacher@school.edu.ug"
                   value={newStaff.email}
@@ -1911,8 +1911,8 @@ function DirectoryTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Password</label>
-                <input
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="password">Password</label>
+                <input id="password"
                   type="password"
                   placeholder="Min 6 characters"
                   value={newStaff.password}
@@ -1999,8 +1999,8 @@ function DirectoryTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Full Name</label>
-                <input
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="full-name-2">Full Name</label>
+                <input id="full-name-2"
                   type="text"
                   value={editForm.full_name}
                   onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
@@ -2011,8 +2011,8 @@ function DirectoryTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Phone Number</label>
-                <input
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="phone-number-2">Phone Number</label>
+                <input id="phone-number-2"
                   type="tel"
                   inputMode="tel"
                   placeholder="0700000000"
@@ -2069,11 +2069,11 @@ function DirectoryTab({
 
               {editForm.roles.length > 1 && (
                 <div>
-                  <label className="text-sm font-medium text-[var(--t1)] mb-1 block">Which screen do they open?</label>
+                  <label className="text-sm font-medium text-[var(--t1)] mb-1 block" htmlFor="which-screen-do-they-open">Which screen do they open?</label>
                   <p className="text-xs text-[var(--t3)] mb-2">
                     With more than one hat, this is the screen they land on.
                   </p>
-                  <select
+                  <select id="which-screen-do-they-open"
                     value={editForm.preferred_dashboard}
                     onChange={(e) => setEditForm({ ...editForm, preferred_dashboard: e.target.value })}
                     className="input"
@@ -2093,10 +2093,10 @@ function DirectoryTab({
               {editForm.roles.includes("teacher") && (
                 <>
                   <div>
-                    <label className="text-sm font-medium text-[var(--t1)] mb-2 block">
+                    <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="class-teacher-of-optional-2">
                       Class Teacher Of <span className="font-normal text-[var(--t3)]">(optional)</span>
                     </label>
-                    <select
+                    <select id="class-teacher-of-optional-2"
                       value={editForm.class_teacher_for}
                       onChange={(e) =>
                         setEditForm({
@@ -2532,8 +2532,8 @@ function ReviewsTab({
             <form onSubmit={handleReviewSubmit} className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--on-surface)]">Select Staff Member</label>
-                  <select
+                  <label className="text-sm font-medium text-[var(--on-surface)]" htmlFor="select-staff-member">Select Staff Member</label>
+                  <select id="select-staff-member"
                     required
                     value={selectedStaffId}
                     onChange={(e) => setSelectedStaffId(e.target.value)}
@@ -2576,8 +2576,8 @@ function ReviewsTab({
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--on-surface)]">Key Strengths</label>
-                  <textarea
+                  <label className="text-sm font-medium text-[var(--on-surface)]" htmlFor="key-strengths">Key Strengths</label>
+                  <textarea id="key-strengths"
                     name="strengths"
                     required
                     rows={2}
@@ -2586,8 +2586,8 @@ function ReviewsTab({
                   ></textarea>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--on-surface)]">Areas for Improvement</label>
-                  <textarea
+                  <label className="text-sm font-medium text-[var(--on-surface)]" htmlFor="areas-for-improvement">Areas for Improvement</label>
+                  <textarea id="areas-for-improvement"
                     name="areas_for_improvement"
                     rows={2}
                     className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
@@ -2595,8 +2595,8 @@ function ReviewsTab({
                   ></textarea>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--on-surface)]">Development Goals</label>
-                  <textarea
+                  <label className="text-sm font-medium text-[var(--on-surface)]" htmlFor="development-goals">Development Goals</label>
+                  <textarea id="development-goals"
                     name="goals"
                     rows={2}
                     className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
@@ -2988,8 +2988,8 @@ function LeaveTab({
               className="p-6 space-y-4 overflow-y-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]"
             >
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Leave Type</label>
-                <select
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block" htmlFor="leave-type">Leave Type</label>
+                <select id="leave-type"
                   value={form.leave_type}
                   onChange={(e) => setForm({ ...form, leave_type: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
@@ -3005,8 +3005,8 @@ function LeaveTab({
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Start Date</label>
-                  <input
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block" htmlFor="start-date">Start Date</label>
+                  <input id="start-date"
                     type="date"
                     value={form.start_date}
                     onChange={(e) => setForm({ ...form, start_date: e.target.value })}
@@ -3015,8 +3015,8 @@ function LeaveTab({
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">End Date</label>
-                  <input
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block" htmlFor="end-date">End Date</label>
+                  <input id="end-date"
                     type="date"
                     value={form.end_date}
                     onChange={(e) => setForm({ ...form, end_date: e.target.value })}
@@ -3037,8 +3037,8 @@ function LeaveTab({
               )}
 
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Reason</label>
-                <textarea
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block" htmlFor="reason">Reason</label>
+                <textarea id="reason"
                   value={form.reason}
                   onChange={(e) => setForm({ ...form, reason: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 min-h-[80px]"
@@ -3048,10 +3048,10 @@ function LeaveTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block" htmlFor="substitute-suggestion-optional">
                   Substitute Suggestion (Optional)
                 </label>
-                <input
+                <input id="substitute-suggestion-optional"
                   type="text"
                   value={form.substitute_suggestion}
                   onChange={(e) =>

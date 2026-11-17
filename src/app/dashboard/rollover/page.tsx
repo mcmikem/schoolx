@@ -341,8 +341,8 @@ export default function RolloverPage() {
             {rolloverType === "year" && (
               <div className="mt-4 space-y-4">
                 <div>
-                  <label className="label">New Academic Year</label>
-                  <input
+                  <label className="label" htmlFor="new-academic-year">New Academic Year</label>
+                  <input id="new-academic-year"
                     type="text"
                     value={newAcademicYear}
                     onChange={(e) => setNewAcademicYear(e.target.value)}

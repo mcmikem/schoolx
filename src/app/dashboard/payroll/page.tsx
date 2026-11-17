@@ -457,7 +457,7 @@ export default function PayrollPage() {
                           </td>
                           <td className="px-6 py-4 text-right">
                             <div className="flex flex-col items-end gap-1">
-                              <select
+                              <select aria-label="Payroll grade"
                                 value={config.grade}
                                 onChange={(e) =>
                                   setPayroll((prev) => ({
@@ -474,7 +474,7 @@ export default function PayrollPage() {
                                 ))}
                               </select>
                               {config.grade === "Custom" ? (
-                                <input
+                                <input aria-label="Custom gross amount"
                                   type="number"
                                   inputMode="numeric"
                                   value={config.customGross || ""}

@@ -220,7 +220,7 @@ export default function PermissionsPage() {
                     />
                   </div>
 
-                  <select
+                  <select aria-label="Role"
                     value={selectedOverrideRole}
                     onChange={(event) => setSelectedOverrideRole(event.target.value as UserRole)}
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--t1)] outline-none sm:w-72"
@@ -273,7 +273,7 @@ export default function PermissionsPage() {
                               )}
                             </td>
                             <td className="px-3 py-2">
-                              <select
+                              <select aria-label="Route access"
                                 value={value}
                                 disabled={!moduleAllowed}
                                 onChange={(event) =>
@@ -318,7 +318,7 @@ export default function PermissionsPage() {
                 />
               </div>
 
-              <select
+              <select aria-label="Role filter"
                 value={selectedRole}
                 onChange={(event) => setSelectedRole(event.target.value as UserRole | "all")}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--t1)] outline-none sm:w-64"

@@ -439,12 +439,12 @@ function InspectionReportContent() {
           <CardBody>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[var(--on-surface)] mb-1">Academic Year</label>
-                <input value={academicYear} disabled className="input w-full" />
+                <label className="block text-sm font-medium text-[var(--on-surface)] mb-1" htmlFor="academic-year">Academic Year</label>
+                <input id="academic-year" value={academicYear} disabled className="input w-full" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[var(--on-surface)] mb-1">Term</label>
-                <input value={`Term ${currentTerm}`} disabled className="input w-full" />
+                <label className="block text-sm font-medium text-[var(--on-surface)] mb-1" htmlFor="term">Term</label>
+                <input id="term" value={`Term ${currentTerm}`} disabled className="input w-full" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">&nbsp;</label>

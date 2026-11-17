@@ -1356,8 +1356,8 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-[var(--t2)] mb-2">Ownership Type</label>
-                      <select
+                      <label className="block text-sm font-semibold text-[var(--t2)] mb-2" htmlFor="ownership-type">Ownership Type</label>
+                      <select id="ownership-type"
                         value={schoolDetails.ownership}
                         onChange={(e) =>
                           setSchoolDetails({
@@ -1581,7 +1581,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                           />
                         ))}
                         <div className="relative">
-                          <input
+                          <input aria-label="Primary colour"
                             type="color"
                             value={branding.primary_color}
                             onChange={(e) => setBranding({ ...branding, primary_color: e.target.value })}
@@ -1612,7 +1612,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                           />
                         ))}
                         <div className="relative">
-                          <input
+                          <input aria-label="Accent colour"
                             type="color"
                             value={branding.accent_color}
                             onChange={(e) => setBranding({ ...branding, accent_color: e.target.value })}
@@ -1786,8 +1786,8 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                         <p className="text-sm font-semibold text-[var(--t2)] mb-2">{term.name}</p>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="text-xs text-[var(--t3)] mb-1 block">Start Date</label>
-                            <input
+                            <label className="text-xs text-[var(--t3)] mb-1 block" htmlFor="start-date">Start Date</label>
+                            <input id="start-date"
                               type="date"
                               value={term.start}
                               onChange={(e) => {
@@ -1799,8 +1799,8 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                             />
                           </div>
                           <div>
-                            <label className="text-xs text-[var(--t3)] mb-1 block">End Date</label>
-                            <input
+                            <label className="text-xs text-[var(--t3)] mb-1 block" htmlFor="end-date">End Date</label>
+                            <input id="end-date"
                               type="date"
                               value={term.end}
                               onChange={(e) => {
@@ -1854,7 +1854,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                             placeholder="UGX"
                           />
                         </div>
-                        <select
+                        <select aria-label="Fee category"
                           value={fee.category}
                           onChange={(e) => {
                             const newFees = [...fees];
@@ -1871,7 +1871,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                           <option value="Other">Other</option>
                         </select>
                         <div className="grid grid-cols-2 gap-2">
-                          <select
+                          <select aria-label="Fee class"
                             value={fee.class_id}
                             onChange={(e) => {
                               const newFees = [...fees];
@@ -1888,7 +1888,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                               </option>
                             ))}
                           </select>
-                          <select
+                          <select aria-label="Fee term"
                             value={fee.term}
                             onChange={(e) => {
                               const newFees = [...fees];
@@ -1955,8 +1955,8 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
 
                   <div className="mb-6 rounded-2xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4 shadow-sm space-y-3">
                     <div>
-                      <label className="text-sm font-semibold text-[var(--t2)] mb-2 block">Passing Mark (%)</label>
-                      <input
+                      <label className="text-sm font-semibold text-[var(--t2)] mb-2 block" htmlFor="passing-mark">Passing Mark (%)</label>
+                      <input id="passing-mark"
                         type="number"
                         inputMode="numeric"
                         value={gradingPrefs.passing_mark}
@@ -2011,8 +2011,8 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
 
                   <div className="mb-6 rounded-2xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4 shadow-sm space-y-3">
                     <div>
-                      <label className="text-xs font-semibold text-[var(--t2)] mb-1 block">Report Header Text</label>
-                      <input
+                      <label className="text-xs font-semibold text-[var(--t2)] mb-1 block" htmlFor="report-header-text">Report Header Text</label>
+                      <input id="report-header-text"
                         type="text"
                         value={reportBrand.header}
                         onChange={(e) => setReportBrand({ ...reportBrand, header: e.target.value })}
@@ -2021,8 +2021,8 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-[var(--t2)] mb-1 block">Report Footer Text</label>
-                      <input
+                      <label className="text-xs font-semibold text-[var(--t2)] mb-1 block" htmlFor="report-footer-text">Report Footer Text</label>
+                      <input id="report-footer-text"
                         type="text"
                         value={reportBrand.footer}
                         onChange={(e) => setReportBrand({ ...reportBrand, footer: e.target.value })}
@@ -2031,8 +2031,8 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-[var(--t2)] mb-1 block">Receipt Footer Text</label>
-                      <input
+                      <label className="text-xs font-semibold text-[var(--t2)] mb-1 block" htmlFor="receipt-footer-text">Receipt Footer Text</label>
+                      <input id="receipt-footer-text"
                         type="text"
                         value={reportBrand.receipt_footer}
                         onChange={(e) => setReportBrand({ ...reportBrand, receipt_footer: e.target.value })}

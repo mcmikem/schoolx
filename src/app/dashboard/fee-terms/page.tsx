@@ -358,8 +358,8 @@ export default function FeeTermsPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Name</label>
-                <input
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="name">Name</label>
+                <input id="name"
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -368,8 +368,8 @@ export default function FeeTermsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Code</label>
-                <input
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="code">Code</label>
+                <input id="code"
                   type="text"
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value })}
@@ -380,8 +380,8 @@ export default function FeeTermsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[var(--t2)] mb-1">Description</label>
-              <textarea
+              <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="description">Description</label>
+              <textarea id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
@@ -392,8 +392,8 @@ export default function FeeTermsPage() {
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Total Amount (UGX)</label>
-                <input
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="total-amount-ugx">Total Amount (UGX)</label>
+                <input id="total-amount-ugx"
                   type="number"
                   inputMode="numeric"
                   value={formData.total_amount}
@@ -407,8 +407,8 @@ export default function FeeTermsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Discount %</label>
-                <input
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="discount">Discount %</label>
+                <input id="discount"
                   type="number"
                   inputMode="numeric"
                   value={formData.discount_percentage}
@@ -422,8 +422,8 @@ export default function FeeTermsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Academic Year</label>
-                <input
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="academic-year">Academic Year</label>
+                <input id="academic-year"
                   type="text"
                   value={formData.academic_year}
                   onChange={(e) => setFormData({ ...formData, academic_year: e.target.value })}

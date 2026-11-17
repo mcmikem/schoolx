@@ -176,8 +176,8 @@ export default function CommentsPage() {
           <CardBody>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="label">Class</label>
-                <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input">
+                <label className="label" htmlFor="class">Class</label>
+                <select id="class" value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input">
                   <option value="">Select class</option>
                   {classes.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -187,8 +187,8 @@ export default function CommentsPage() {
                 </select>
               </div>
               <div>
-                <label className="label">Subject</label>
-                <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)} className="input">
+                <label className="label" htmlFor="subject">Subject</label>
+                <select id="subject" value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)} className="input">
                   <option value="">Select subject</option>
                   {subjects.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -329,7 +329,7 @@ export default function CommentsPage() {
                                   </span>
                                 )}
                               </div>
-                              <textarea
+                              <textarea aria-label="Comment"
                                 value={comment}
                                 onChange={(e) => setComments((prev) => ({ ...prev, [studentId]: e.target.value }))}
                                 className="w-full resize-none rounded-[16px] border border-[var(--border)] bg-[var(--surface)] p-3 text-sm text-[var(--t2)] shadow-sm outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/12"

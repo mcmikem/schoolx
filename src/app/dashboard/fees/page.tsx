@@ -2229,7 +2229,7 @@ export default function FinanceHubPage() {
                   />
                 </div>
                 <div className="flex gap-3 w-full lg:w-auto overflow-x-auto no-scrollbar">
-                  <select
+                  <select aria-label="Class"
                     value={selectedClass}
                     onChange={(e) => setSelectedClass(e.target.value)}
                     className="bg-surface-container-lowest border-none rounded-xl py-3 px-4 text-sm font-bold text-primary cursor-pointer min-w-[140px] min-h-[44px]"
@@ -2242,7 +2242,7 @@ export default function FinanceHubPage() {
                       </option>
                     ))}
                   </select>
-                  <select
+                  <select aria-label="Status"
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
                     className="bg-surface-container-lowest border-none rounded-xl py-3 px-4 text-sm font-bold text-primary cursor-pointer min-w-[150px] min-h-[44px]"

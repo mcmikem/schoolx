@@ -213,7 +213,7 @@ export default function StudentEnrollmentsPage() {
         />
 
         <div className="flex gap-4 mb-6">
-          <select
+          <select aria-label="Filter by year"
             value={filterYear}
             onChange={(e) => setFilterYear(e.target.value)}
             className="px-4 py-2 border border-[var(--border)] rounded-xl"
@@ -224,7 +224,7 @@ export default function StudentEnrollmentsPage() {
               </option>
             ))}
           </select>
-          <select
+          <select aria-label="Filter by class"
             value={filterClass}
             onChange={(e) => setFilterClass(e.target.value)}
             className="px-4 py-2 border border-[var(--border)] rounded-xl"
@@ -284,7 +284,7 @@ export default function StudentEnrollmentsPage() {
                       {new Date(enrollment.enrollment_date).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <select
+                      <select aria-label="Enrollment state"
                         value={enrollment.state}
                         onChange={(e) => updateState(enrollment.id, e.target.value)}
                         className="text-sm border border-[var(--border)] rounded px-2 py-1 mr-2"
@@ -312,8 +312,8 @@ export default function StudentEnrollmentsPage() {
         <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Add Enrollment" size="md">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-[var(--t2)] mb-1">Student</label>
-              <select
+              <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="student">Student</label>
+              <select id="student"
                 value={formData.student_id}
                 onChange={(e) => setFormData({ ...formData, student_id: e.target.value })}
                 className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
@@ -327,8 +327,8 @@ export default function StudentEnrollmentsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-[var(--t2)] mb-1">Class</label>
-              <select
+              <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="class">Class</label>
+              <select id="class"
                 value={formData.class_id}
                 onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
                 className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
@@ -343,8 +343,8 @@ export default function StudentEnrollmentsPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Academic Year</label>
-                <select
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="academic-year">Academic Year</label>
+                <select id="academic-year"
                   value={formData.academic_year}
                   onChange={(e) => setFormData({ ...formData, academic_year: e.target.value })}
                   className="w-full px-4 py-2 border border-[var(--border)] rounded-xl"
@@ -357,8 +357,8 @@ export default function StudentEnrollmentsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Roll Number</label>
-                <input
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="roll-number">Roll Number</label>
+                <input id="roll-number"
                   type="text"
                   value={formData.roll_number}
                   onChange={(e) => setFormData({ ...formData, roll_number: e.target.value })}

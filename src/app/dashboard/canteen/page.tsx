@@ -225,7 +225,7 @@ export default function CanteenPage() {
                         </div>
                       </div>
                       <div className="font-bold text-primary">{order.total.toLocaleString()} UGX</div>
-                      <select
+                      <select aria-label="Order status"
                         value={order.status}
                         onChange={(e) => updateOrderStatus(order.id, e.target.value)}
                         className={`px-3 py-1 rounded-lg text-sm font-medium ${
@@ -328,8 +328,8 @@ export default function CanteenPage() {
               <h3 className="text-lg font-semibold text-on-surface mb-4">Add Canteen Item</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-on-surface-variant mb-1">Name</label>
-                  <input
+                  <label className="block text-sm font-medium text-on-surface-variant mb-1" htmlFor="name">Name</label>
+                  <input id="name"
                     type="text"
                     value={newItem.name}
                     onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
@@ -339,8 +339,8 @@ export default function CanteenPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-on-surface-variant mb-1">Category</label>
-                    <select
+                    <label className="block text-sm font-medium text-on-surface-variant mb-1" htmlFor="category">Category</label>
+                    <select id="category"
                       value={newItem.category}
                       onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
                       className="w-full px-4 py-2 rounded-xl bg-surface-container border-none"
@@ -351,8 +351,8 @@ export default function CanteenPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-on-surface-variant mb-1">Price (UGX)</label>
-                    <input
+                    <label className="block text-sm font-medium text-on-surface-variant mb-1" htmlFor="price-ugx">Price (UGX)</label>
+                    <input id="price-ugx"
                       type="number"
                       inputMode="numeric"
                       value={newItem.price}
@@ -364,8 +364,8 @@ export default function CanteenPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-on-surface-variant mb-1">Initial Stock</label>
-                    <input
+                    <label className="block text-sm font-medium text-on-surface-variant mb-1" htmlFor="initial-stock">Initial Stock</label>
+                    <input id="initial-stock"
                       type="number"
                       inputMode="numeric"
                       value={newItem.stock}
@@ -375,8 +375,8 @@ export default function CanteenPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-on-surface-variant mb-1">Unit</label>
-                    <select
+                    <label className="block text-sm font-medium text-on-surface-variant mb-1" htmlFor="unit">Unit</label>
+                    <select id="unit"
                       value={newItem.unit}
                       onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
                       className="w-full px-4 py-2 rounded-xl bg-surface-container border-none"

@@ -160,10 +160,10 @@ export default function MessagingPaymentsSettings() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {TEMPLATE_KEYS.map(({ kind, label }) => (
                 <div key={kind}>
-                  <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-1.5">
+                  <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-1.5" htmlFor="label">
                     {label}
                   </label>
-                  <input
+                  <input id="label"
                     className={FIELD}
                     value={templates[kind] ?? ""}
                     onChange={(e) => setTemplates((prev) => ({ ...prev, [kind]: e.target.value }))}
@@ -190,10 +190,10 @@ export default function MessagingPaymentsSettings() {
         <div className="card-body space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-1.5">
+              <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-1.5" htmlFor="mtn-momo-number">
                 MTN MoMo number
               </label>
-              <input
+              <input id="mtn-momo-number"
                 className={FIELD}
                 value={momo}
                 onChange={(e) => setMomo(e.target.value)}
@@ -202,10 +202,10 @@ export default function MessagingPaymentsSettings() {
               />
             </div>
             <div>
-              <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-1.5">
+              <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-1.5" htmlFor="airtel-money-number">
                 Airtel Money number
               </label>
-              <input
+              <input id="airtel-money-number"
                 className={FIELD}
                 value={airtel}
                 onChange={(e) => setAirtel(e.target.value)}
@@ -215,10 +215,10 @@ export default function MessagingPaymentsSettings() {
             </div>
           </div>
           <div>
-            <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-1.5">
+            <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-1.5" htmlFor="instructions-for-parents">
               Instructions for parents
             </label>
-            <textarea
+            <textarea id="instructions-for-parents"
               className={`${FIELD} min-h-[90px] resize-none`}
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}

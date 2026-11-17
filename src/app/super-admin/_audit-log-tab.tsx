@@ -46,7 +46,7 @@ export function AuditLogTab() {
           onChange={(e) => setModuleFilter(e.target.value)}
           className="w-48 px-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[12px] text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
         />
-        <select
+        <select aria-label="Module filter"
           value={moduleFilter}
           onChange={(e) => setModuleFilter(e.target.value)}
           className="px-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[12px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"

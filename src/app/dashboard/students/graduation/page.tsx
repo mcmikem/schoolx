@@ -247,7 +247,7 @@ export default function GraduationPage() {
                       {eligibleStudents.map((student) => (
                         <tr key={student.id}>
                           <td>
-                            <input
+                            <input aria-label="Select student"
                               type="checkbox"
                               checked={selectedIds.has(student.id)}
                               onChange={() => toggleStudent(student.id)}

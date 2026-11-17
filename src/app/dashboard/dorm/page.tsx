@@ -203,7 +203,7 @@ export default function DormitoryPage() {
                 </Button>
               ) : (
                 <>
-                  <select
+                  <select aria-label="Select dorm"
                     value={selectedDormId}
                     onChange={(e) => setSelectedDormId(e.target.value)}
                     className="px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
@@ -354,7 +354,7 @@ export default function DormitoryPage() {
                     onSubmit={handleAssignResident}
                     className="mt-4 pt-4 border-t border-[var(--border)] grid grid-cols-1 sm:grid-cols-3 gap-3"
                   >
-                    <select
+                    <select aria-label="Student"
                       name="student_id"
                       required
                       className="px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--on-surface)]"
@@ -475,8 +475,8 @@ export default function DormitoryPage() {
               </div>
               <form onSubmit={handleAddDorm} className="p-4 space-y-4">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-[var(--on-surface)]">Dorm Name</label>
-                  <input
+                  <label className="text-sm font-medium text-[var(--on-surface)]" htmlFor="dorm-name">Dorm Name</label>
+                  <input id="dorm-name"
                     name="name"
                     required
                     placeholder="e.g. Boys Block A"
@@ -484,8 +484,8 @@ export default function DormitoryPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-[var(--on-surface)]">Type</label>
-                  <select
+                  <label className="text-sm font-medium text-[var(--on-surface)]" htmlFor="type">Type</label>
+                  <select id="type"
                     name="type"
                     required
                     className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
@@ -517,8 +517,8 @@ export default function DormitoryPage() {
               </div>
               <form onSubmit={handleAddRoom} className="p-4 space-y-4">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-[var(--on-surface)]">Room Number</label>
-                  <input
+                  <label className="text-sm font-medium text-[var(--on-surface)]" htmlFor="room-number">Room Number</label>
+                  <input id="room-number"
                     name="room_number"
                     required
                     placeholder="e.g. A1"
@@ -526,8 +526,8 @@ export default function DormitoryPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-[var(--on-surface)]">Capacity</label>
-                  <input
+                  <label className="text-sm font-medium text-[var(--on-surface)]" htmlFor="capacity">Capacity</label>
+                  <input id="capacity"
                     name="capacity"
                     type="number"
                     min={1}
@@ -559,8 +559,8 @@ export default function DormitoryPage() {
               </div>
               <form onSubmit={handleAddIncident} className="p-4 space-y-4">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-[var(--on-surface)]">Student</label>
-                  <select
+                  <label className="text-sm font-medium text-[var(--on-surface)]" htmlFor="student">Student</label>
+                  <select id="student"
                     name="student_id"
                     required
                     className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
@@ -575,8 +575,8 @@ export default function DormitoryPage() {
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-[var(--on-surface)]">Type</label>
-                  <select
+                  <label className="text-sm font-medium text-[var(--on-surface)]" htmlFor="type-2">Type</label>
+                  <select id="type-2"
                     name="incident_type"
                     className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
                   >
@@ -587,8 +587,8 @@ export default function DormitoryPage() {
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-[var(--on-surface)]">Description</label>
-                  <textarea
+                  <label className="text-sm font-medium text-[var(--on-surface)]" htmlFor="description">Description</label>
+                  <textarea id="description"
                     name="description"
                     required
                     rows={3}

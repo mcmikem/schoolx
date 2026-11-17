@@ -393,7 +393,7 @@ export default function SubjectsPage() {
               className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--primary)]"
             />
           </div>
-          <select
+          <select aria-label="Filter by level"
             value={levelFilter}
             onChange={(e) => setLevelFilter(e.target.value)}
             className="px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--primary)]"
@@ -492,8 +492,8 @@ export default function SubjectsPage() {
               </h2>
 
               <div>
-                <label className="block text-sm font-medium text-[var(--on-surface-variant)] mb-1">Subject Name</label>
-                <input
+                <label className="block text-sm font-medium text-[var(--on-surface-variant)] mb-1" htmlFor="subject-name">Subject Name</label>
+                <input id="subject-name"
                   value={form.name}
                   onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
                   placeholder="e.g. English, Mathematics"
@@ -503,8 +503,8 @@ export default function SubjectsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[var(--on-surface-variant)] mb-1">Subject Code</label>
-                <input
+                <label className="block text-sm font-medium text-[var(--on-surface-variant)] mb-1" htmlFor="subject-code">Subject Code</label>
+                <input id="subject-code"
                   value={form.code}
                   onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value }))}
                   placeholder="e.g. ENG, MATH"
@@ -513,8 +513,8 @@ export default function SubjectsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[var(--on-surface-variant)] mb-1">Level</label>
-                <select
+                <label className="block text-sm font-medium text-[var(--on-surface-variant)] mb-1" htmlFor="level">Level</label>
+                <select id="level"
                   value={form.level}
                   onChange={(e) =>
                     setForm((prev) => ({ ...prev, level: e.target.value as "primary" | "secondary" | "both" }))

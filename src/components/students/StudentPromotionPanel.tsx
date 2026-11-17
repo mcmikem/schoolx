@@ -184,7 +184,7 @@ export default function StudentPromotionPanel({
                   No classes available
                 </div>
               ) : (
-                <select
+                <select aria-label="From class"
                   value={fromClass}
                   onChange={(e) => setFromClass(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
@@ -205,7 +205,7 @@ export default function StudentPromotionPanel({
                   No classes available
                 </div>
               ) : (
-                <select
+                <select aria-label="Promote to class"
                   value={toClass}
                   onChange={(e) => setToClass(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
@@ -268,7 +268,7 @@ export default function StudentPromotionPanel({
                         return (
                           <tr key={student.id}>
                             <td>
-                              <input
+                              <input aria-label="Select student"
                                 type="checkbox"
                                 checked={selectedStudents.has(student.id)}
                                 onChange={() => toggleStudent(student.id)}
@@ -399,8 +399,8 @@ export default function StudentPromotionPanel({
             </div>
             <div className="p-6">
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-2 text-[var(--on-surface)]">Demote to Class</label>
-                <select
+                <label className="block text-sm font-medium mb-2 text-[var(--on-surface)]" htmlFor="demote-to-class">Demote to Class</label>
+                <select id="demote-to-class"
                   value={demoteClass}
                   onChange={(e) => setDemoteClass(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
@@ -415,8 +415,8 @@ export default function StudentPromotionPanel({
                 </select>
               </div>
               <div className="mb-5">
-                <label className="block text-sm font-medium mb-2 text-[var(--on-surface)]">Reason</label>
-                <textarea
+                <label className="block text-sm font-medium mb-2 text-[var(--on-surface)]" htmlFor="reason">Reason</label>
+                <textarea id="reason"
                   value={demoteReason}
                   onChange={(e) => setDemoteReason(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] resize-none"

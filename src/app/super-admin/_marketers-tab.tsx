@@ -262,8 +262,8 @@ export function MarketersTab() {
         <form onSubmit={createMarketer} className="flex items-end gap-3">
           {contactMethod === "email" ? (
             <div className="flex-1">
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Email *</label>
-              <input
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="email">Email *</label>
+              <input id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -274,8 +274,8 @@ export function MarketersTab() {
             </div>
           ) : (
             <div className="flex-1">
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Phone *</label>
-              <input
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="phone">Phone *</label>
+              <input id="phone"
                 type="tel"
                 inputMode="tel"
                 value={phone}
@@ -287,8 +287,8 @@ export function MarketersTab() {
             </div>
           )}
           <div className="flex-1">
-            <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Full Name</label>
-            <input
+            <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="full-name">Full Name</label>
+            <input id="full-name"
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
@@ -432,7 +432,7 @@ export function MarketersTab() {
               </div>
             </div>
             <div className="flex items-end gap-2 border-t border-[var(--border)] pt-3">
-              <select
+              <select aria-label="Earning type"
                 value={earningForm.earning_type}
                 onChange={(e) => setEarningForm((f) => ({ ...f, earning_type: e.target.value }))}
                 className="px-2 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs"
@@ -450,7 +450,7 @@ export function MarketersTab() {
                 placeholder="Amount"
                 className="w-24 px-2 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs"
               />
-              <select
+              <select aria-label="School"
                 value={earningForm.school_id}
                 onChange={(e) => setEarningForm((f) => ({ ...f, school_id: e.target.value }))}
                 className="px-2 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs max-w-[160px]"

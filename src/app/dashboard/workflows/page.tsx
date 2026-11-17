@@ -265,10 +265,10 @@ export default function WorkflowsBuilder() {
                 </button>
               </div>
               <div className="mb-8">
-                <label className="block text-xs font-black uppercase tracking-widest text-[var(--t3)] mb-2">
+                <label className="block text-xs font-black uppercase tracking-widest text-[var(--t3)] mb-2" htmlFor="workflow-name">
                   Workflow Name
                 </label>
-                <input
+                <input id="workflow-name"
                   type="text"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}

@@ -421,8 +421,8 @@ export function GradeImportModal({
               <h4 className="text-sm font-semibold">Column Mapping</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-medium text-[var(--t2)] block mb-1">Student Column *</label>
-                  <select
+                  <label className="text-xs font-medium text-[var(--t2)] block mb-1" htmlFor="student-column">Student Column *</label>
+                  <select id="student-column"
                     className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm"
                     value={mapping.studentColumn}
                     onChange={(e) => updateMapping("studentColumn", e.target.value)}
@@ -436,8 +436,8 @@ export function GradeImportModal({
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-[var(--t2)] block mb-1">Subject Column</label>
-                  <select
+                  <label className="text-xs font-medium text-[var(--t2)] block mb-1" htmlFor="subject-column">Subject Column</label>
+                  <select id="subject-column"
                     className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm"
                     value={mapping.subjectColumn}
                     onChange={(e) => updateMapping("subjectColumn", e.target.value)}
@@ -451,8 +451,8 @@ export function GradeImportModal({
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-[var(--t2)] block mb-1">Score Column *</label>
-                  <select
+                  <label className="text-xs font-medium text-[var(--t2)] block mb-1" htmlFor="score-column">Score Column *</label>
+                  <select id="score-column"
                     className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm"
                     value={mapping.scoreColumn}
                     onChange={(e) => updateMapping("scoreColumn", e.target.value)}
@@ -466,8 +466,8 @@ export function GradeImportModal({
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-[var(--t2)] block mb-1">Assessment Type Column</label>
-                  <select
+                  <label className="text-xs font-medium text-[var(--t2)] block mb-1" htmlFor="assessment-type-column">Assessment Type Column</label>
+                  <select id="assessment-type-column"
                     className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm"
                     value={mapping.assessmentTypeColumn}
                     onChange={(e) => updateMapping("assessmentTypeColumn", e.target.value)}
@@ -482,8 +482,8 @@ export function GradeImportModal({
                 </div>
                 {!mapping.assessmentTypeColumn && (
                   <div>
-                    <label className="text-xs font-medium text-[var(--t2)] block mb-1">Fixed Assessment Type</label>
-                    <select
+                    <label className="text-xs font-medium text-[var(--t2)] block mb-1" htmlFor="fixed-assessment-type">Fixed Assessment Type</label>
+                    <select id="fixed-assessment-type"
                       className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm"
                       value={mapping.fixedAssessmentType}
                       onChange={(e) => updateMapping("fixedAssessmentType", e.target.value)}

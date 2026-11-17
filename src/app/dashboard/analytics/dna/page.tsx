@@ -314,7 +314,7 @@ export default function PerformanceDNAPage() {
               <p className="text-xs text-[var(--t3)] mt-1">8-week attendance rate for the selected class</p>
             </div>
             <div className="sm:w-56">
-              <select
+              <select aria-label="Class"
                 value={trendClass}
                 onChange={(e) => setTrendClass(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-white text-xs font-semibold text-[var(--t2)] outline-none focus:ring-4 focus:ring-indigo-100"

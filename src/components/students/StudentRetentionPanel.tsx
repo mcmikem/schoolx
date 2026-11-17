@@ -272,10 +272,10 @@ export default function StudentRetentionPanel({
                 This will set the student status to &quot;dropped&quot;. Please provide a reason.
               </p>
               <div className="mb-5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2" htmlFor="reason-for-dropout">
                   Reason for Dropout
                 </label>
-                <select
+                <select id="reason-for-dropout"
                   value={dropoutReason}
                   onChange={(e) => setDropoutReason(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"

@@ -254,7 +254,7 @@ export default function FeePaymentPlans({
                 No students available
               </div>
             ) : (
-              <select
+              <select aria-label="Student"
                 value={newPlan.student_id}
                 onChange={(e) => setNewPlan({ ...newPlan, student_id: e.target.value })}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm"
@@ -269,8 +269,8 @@ export default function FeePaymentPlans({
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--t1)]">Total Amount (UGX)</label>
-            <input
+            <label className="mb-1 block text-sm font-medium text-[var(--t1)]" htmlFor="total-amount-ugx">Total Amount (UGX)</label>
+            <input id="total-amount-ugx"
               type="number"
               inputMode="numeric"
               value={newPlan.total_amount}
@@ -280,8 +280,8 @@ export default function FeePaymentPlans({
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--t1)]">Number of Instalments</label>
-            <select
+            <label className="mb-1 block text-sm font-medium text-[var(--t1)]" htmlFor="number-of-instalments">Number of Instalments</label>
+            <select id="number-of-instalments"
               value={newPlan.installments}
               onChange={(e) => setNewPlan({ ...newPlan, installments: Number(e.target.value) })}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm"
@@ -293,8 +293,8 @@ export default function FeePaymentPlans({
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--t1)]">Start Date</label>
-            <input
+            <label className="mb-1 block text-sm font-medium text-[var(--t1)]" htmlFor="start-date">Start Date</label>
+            <input id="start-date"
               type="date"
               value={newPlan.start_date}
               onChange={(e) => setNewPlan({ ...newPlan, start_date: e.target.value })}

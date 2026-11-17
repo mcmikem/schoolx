@@ -489,10 +489,10 @@ export default function PaymentModal({
             </div>
             {newPayment.payment_method === "in_kind" && (
               <div>
-                <label className="block text-xs font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2">
+                <label className="block text-xs font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2" htmlFor="description-of-goods-services">
                   Description of Goods/Services
                 </label>
-                <textarea
+                <textarea id="description-of-goods-services"
                   value={newPayment.notes}
                   onChange={(e) => onPaymentChange({ notes: e.target.value })}
                   className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl py-3.5 px-4 text-sm min-h-20 resize-y text-[var(--t1)]"

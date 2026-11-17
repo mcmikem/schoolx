@@ -277,10 +277,10 @@ export default function AdmissionPackagePage() {
                 <h3 className="font-bold text-[var(--t1)] mb-3 uppercase tracking-widest text-xs">Customise Letter</h3>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs font-bold uppercase text-[var(--t3)] mb-1 block">
+                    <label className="text-xs font-bold uppercase text-[var(--t3)] mb-1 block" htmlFor="admission-fee-ugx">
                       Admission Fee (UGX)
                     </label>
-                    <input
+                    <input id="admission-fee-ugx"
                       type="text"
                       value={letterConfig.admissionFee}
                       onChange={(e) => setLetterConfig((p) => ({ ...p, admissionFee: e.target.value }))}
@@ -289,8 +289,8 @@ export default function AdmissionPackagePage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold uppercase text-[var(--t3)] mb-1 block">Term Start</label>
-                    <input
+                    <label className="text-xs font-bold uppercase text-[var(--t3)] mb-1 block" htmlFor="term-start">Term Start</label>
+                    <input id="term-start"
                       type="text"
                       value={letterConfig.termStart}
                       onChange={(e) => setLetterConfig((p) => ({ ...p, termStart: e.target.value }))}
@@ -299,8 +299,8 @@ export default function AdmissionPackagePage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold uppercase text-[var(--t3)] mb-1 block">Requirements</label>
-                    <textarea
+                    <label className="text-xs font-bold uppercase text-[var(--t3)] mb-1 block" htmlFor="requirements">Requirements</label>
+                    <textarea id="requirements"
                       value={letterConfig.requirements}
                       onChange={(e) => setLetterConfig((p) => ({ ...p, requirements: e.target.value }))}
                       className="input text-sm"

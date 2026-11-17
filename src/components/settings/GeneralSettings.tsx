@@ -488,8 +488,8 @@ export default function GeneralSettings({
         <h2 className="text-lg font-semibold text-[var(--t1)] mb-6">School Information</h2>
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-[var(--t1)] mb-2 block">School Name</label>
-            <input
+            <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="school-name">School Name</label>
+            <input id="school-name"
               type="text"
               value={schoolData.name}
               onChange={(e) => setSchoolData({ ...schoolData, name: e.target.value })}
@@ -500,8 +500,8 @@ export default function GeneralSettings({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-[var(--t1)] mb-2 block">District</label>
-              <input
+              <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="district">District</label>
+              <input id="district"
                 type="text"
                 value={schoolData.district}
                 onChange={(e) => setSchoolData({ ...schoolData, district: e.target.value })}
@@ -509,8 +509,8 @@ export default function GeneralSettings({
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Sub-county</label>
-              <input
+              <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="sub-county">Sub-county</label>
+              <input id="sub-county"
                 type="text"
                 value={schoolData.subcounty}
                 onChange={(e) => setSchoolData({ ...schoolData, subcounty: e.target.value })}
@@ -520,8 +520,8 @@ export default function GeneralSettings({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Phone</label>
-              <input
+              <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="phone">Phone</label>
+              <input id="phone"
                 type="tel"
                 inputMode="tel"
                 value={schoolData.phone}
@@ -530,8 +530,8 @@ export default function GeneralSettings({
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Email</label>
-              <input
+              <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="email">Email</label>
+              <input id="email"
                 type="email"
                 value={schoolData.email}
                 onChange={(e) => setSchoolData({ ...schoolData, email: e.target.value })}

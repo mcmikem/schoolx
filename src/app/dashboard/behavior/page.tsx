@@ -381,8 +381,8 @@ export default function BehaviorPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Incident Type</label>
-                  <select
+                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="incident-type">Incident Type</label>
+                  <select id="incident-type"
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                     className="input"
@@ -398,8 +398,8 @@ export default function BehaviorPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Severity</label>
-                  <select
+                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="severity">Severity</label>
+                  <select id="severity"
                     value={formData.severity}
                     onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
                     className="input"
@@ -415,8 +415,8 @@ export default function BehaviorPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Incident Date</label>
-                  <input
+                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="incident-date">Incident Date</label>
+                  <input id="incident-date"
                     type="date"
                     value={formData.incident_date}
                     onChange={(e) => setFormData({ ...formData, incident_date: e.target.value })}
@@ -426,8 +426,8 @@ export default function BehaviorPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Description</label>
-                  <textarea
+                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="description">Description</label>
+                  <textarea id="description"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="input"
@@ -438,8 +438,8 @@ export default function BehaviorPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Action Taken</label>
-                  <textarea
+                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="action-taken">Action Taken</label>
+                  <textarea id="action-taken"
                     value={formData.action_taken}
                     onChange={(e) => setFormData({ ...formData, action_taken: e.target.value })}
                     className="input"

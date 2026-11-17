@@ -255,7 +255,7 @@ export default function ClassManager({
                     </span>
                     {cls.class_teacher_id && <span className="text-xs text-[var(--t3)]">Teacher assigned</span>}
                   </div>
-                  <select
+                  <select aria-label="Class teacher"
                     value={cls.class_teacher_id || ""}
                     onChange={(e) => onAssignClassTeacher(cls.id, e.target.value)}
                     className="input text-sm"
@@ -370,8 +370,8 @@ export default function ClassManager({
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">House Name</label>
-                <input
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block" htmlFor="house-name">House Name</label>
+                <input id="house-name"
                   type="text"
                   value={newHouse.name}
                   onChange={(e) => setNewHouse({ ...newHouse, name: e.target.value })}
@@ -398,8 +398,8 @@ export default function ClassManager({
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Motto (optional)</label>
-                <input
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block" htmlFor="motto-optional">Motto (optional)</label>
+                <input id="motto-optional"
                   type="text"
                   value={newHouse.motto}
                   onChange={(e) => setNewHouse({ ...newHouse, motto: e.target.value })}
@@ -443,8 +443,8 @@ export default function ClassManager({
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Class Name</label>
-                <input
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block" htmlFor="class-name">Class Name</label>
+                <input id="class-name"
                   type="text"
                   value={newClass.name}
                   onChange={(e) => setNewClass({ ...newClass, name: e.target.value })}
@@ -454,8 +454,8 @@ export default function ClassManager({
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Stream (Optional)</label>
-                <input
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block" htmlFor="stream-optional">Stream (Optional)</label>
+                <input id="stream-optional"
                   type="text"
                   value={newClass.stream}
                   onChange={(e) => setNewClass({ ...newClass, stream: e.target.value })}

@@ -404,20 +404,20 @@ export default function HealthPage() {
               <div className="space-y-5">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2" htmlFor="condition">
                       Condition
                     </label>
-                    <input
+                    <input id="condition"
                       value={editForm.condition}
                       onChange={(e) => setEditForm({ ...editForm, condition: e.target.value })}
                       className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl text-sm font-bold outline-none"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2" htmlFor="severity">
                       Severity
                     </label>
-                    <select
+                    <select id="severity"
                       value={editForm.severity}
                       onChange={(e) => setEditForm({ ...editForm, severity: e.target.value as any })}
                       className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl text-sm font-bold outline-none"
@@ -429,10 +429,10 @@ export default function HealthPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2">
+                  <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2" htmlFor="status">
                     Status
                   </label>
-                  <select
+                  <select id="status"
                     value={editForm.status}
                     onChange={(e) => setEditForm({ ...editForm, status: e.target.value as any })}
                     className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl text-sm font-bold outline-none"
@@ -443,10 +443,10 @@ export default function HealthPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2">
+                  <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2" htmlFor="treatment">
                     Treatment
                   </label>
-                  <textarea
+                  <textarea id="treatment"
                     value={editForm.treatment}
                     onChange={(e) => setEditForm({ ...editForm, treatment: e.target.value })}
                     rows={2}
@@ -501,10 +501,10 @@ export default function HealthPage() {
 
                 <div className="space-y-5">
                   <div className="relative">
-                    <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2" htmlFor="student">
                       Student
                     </label>
-                    <input
+                    <input id="student"
                       value={studentSearch}
                       onChange={(e) => searchStudents(e.target.value)}
                       placeholder="Search student name..."
@@ -531,10 +531,10 @@ export default function HealthPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2">
+                      <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2" htmlFor="condition-2">
                         Condition
                       </label>
-                      <input
+                      <input id="condition-2"
                         value={form.condition}
                         onChange={(e) => setForm({ ...form, condition: e.target.value })}
                         placeholder="e.g. Malaria"
@@ -542,10 +542,10 @@ export default function HealthPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2">
+                      <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2" htmlFor="severity-2">
                         Severity
                       </label>
-                      <select
+                      <select id="severity-2"
                         value={form.severity}
                         onChange={(e) => setForm({ ...form, severity: e.target.value as any })}
                         className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl text-sm font-bold outline-none"
@@ -558,10 +558,10 @@ export default function HealthPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-2" htmlFor="treatment-given">
                       Treatment Given
                     </label>
-                    <textarea
+                    <textarea id="treatment-given"
                       value={form.treatment}
                       onChange={(e) => setForm({ ...form, treatment: e.target.value })}
                       rows={2}

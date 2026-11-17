@@ -76,11 +76,11 @@ export default function SystemPreferences({ settings, onSettingChange }: SystemP
           <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-6">Warning Thresholds</h2>
           <div className="space-y-6">
             <div>
-              <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
+              <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block" htmlFor="attendance-rate-threshold">
                 Attendance Rate Threshold (%)
               </label>
               <p className="text-sm text-[var(--t3)] mb-2">Students below this attendance rate will be flagged</p>
-              <input
+              <input id="attendance-rate-threshold"
                 type="number"
                 inputMode="numeric"
                 value={settings.attendance_threshold}
@@ -91,11 +91,11 @@ export default function SystemPreferences({ settings, onSettingChange }: SystemP
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Grade Threshold (%)</label>
+              <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block" htmlFor="grade-threshold">Grade Threshold (%)</label>
               <p className="text-sm text-[var(--t3)] mb-2">
                 Students scoring below this in 2+ subjects will be flagged
               </p>
-              <input
+              <input id="grade-threshold"
                 type="number"
                 inputMode="numeric"
                 value={settings.grade_threshold}
@@ -106,9 +106,9 @@ export default function SystemPreferences({ settings, onSettingChange }: SystemP
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Fee Threshold (UGX)</label>
+              <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block" htmlFor="fee-threshold-ugx">Fee Threshold (UGX)</label>
               <p className="text-sm text-[var(--t3)] mb-2">Students with payments below this amount will be flagged</p>
-              <input
+              <input id="fee-threshold-ugx"
                 type="number"
                 inputMode="numeric"
                 value={settings.fee_threshold}

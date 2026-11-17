@@ -323,7 +323,7 @@ export default function ExamsPage() {
                     No classes - Add classes first
                   </div>
                 ) : (
-                  <select
+                  <select aria-label="Class"
                     value={selectedClass}
                     onChange={(e) => {
                       setSelectedClass(e.target.value);
@@ -349,7 +349,7 @@ export default function ExamsPage() {
                     No subjects - Add subjects first
                   </div>
                 ) : (
-                  <select
+                  <select aria-label="Subject"
                     value={selectedSubject}
                     onChange={(e) => setSelectedSubject(e.target.value)}
                     className="input !h-10 !py-0 text-sm"
@@ -365,10 +365,10 @@ export default function ExamsPage() {
                 )}
               </div>
               <div className="min-w-[150px] flex-1">
-                <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1 block">
+                <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1 block" htmlFor="exam-type">
                   Exam Type
                 </label>
-                <select
+                <select id="exam-type"
                   value={selectedExamType}
                   onChange={(e) => setSelectedExamType(e.target.value)}
                   className="input !h-10 !py-0 text-sm"
@@ -616,10 +616,10 @@ export default function ExamsPage() {
               </div>
               <div className="modal-body p-5">
                 <div className="mb-4">
-                  <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block">
+                  <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block" htmlFor="exam-name">
                     Exam Name
                   </label>
-                  <input
+                  <input id="exam-name"
                     type="text"
                     value={newExam.name}
                     onChange={(e) => setNewExam({ ...newExam, name: e.target.value })}
@@ -629,10 +629,10 @@ export default function ExamsPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block" htmlFor="exam-type-2">
                       Exam Type
                     </label>
-                    <select
+                    <select id="exam-type-2"
                       value={newExam.exam_type}
                       onChange={(e) => setNewExam({ ...newExam, exam_type: e.target.value })}
                       className="input"
@@ -645,10 +645,10 @@ export default function ExamsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block" htmlFor="exam-date">
                       Exam Date
                     </label>
-                    <input
+                    <input id="exam-date"
                       type="date"
                       value={newExam.exam_date}
                       onChange={(e) => setNewExam({ ...newExam, exam_date: e.target.value })}
@@ -658,10 +658,10 @@ export default function ExamsPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block" htmlFor="class">
                       Class
                     </label>
-                    <select
+                    <select id="class"
                       value={newExam.class_id}
                       onChange={(e) => setNewExam({ ...newExam, class_id: e.target.value })}
                       className="input"
@@ -675,10 +675,10 @@ export default function ExamsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block" htmlFor="subject">
                       Subject
                     </label>
-                    <select
+                    <select id="subject"
                       value={newExam.subject_id}
                       onChange={(e) => setNewExam({ ...newExam, subject_id: e.target.value })}
                       className="input"
@@ -694,10 +694,10 @@ export default function ExamsPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block" htmlFor="max-score">
                       Max Score
                     </label>
-                    <input
+                    <input id="max-score"
                       type="number"
                       inputMode="numeric"
                       value={newExam.max_score}
@@ -711,10 +711,10 @@ export default function ExamsPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1.5 block" htmlFor="weight">
                       Weight (%)
                     </label>
-                    <input
+                    <input id="weight"
                       type="number"
                       inputMode="numeric"
                       value={newExam.weight}

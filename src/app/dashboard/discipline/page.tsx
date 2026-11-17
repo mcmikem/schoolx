@@ -300,7 +300,7 @@ export default function DisciplinePage() {
                       No students available
                     </div>
                   ) : (
-                    <select
+                    <select aria-label="Student"
                       value={newRecord.student_id}
                       onChange={(e) => setNewRecord({ ...newRecord, student_id: e.target.value })}
                       className="input"
@@ -317,8 +317,8 @@ export default function DisciplinePage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Incident Type</label>
-                  <select
+                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="incident-type">Incident Type</label>
+                  <select id="incident-type"
                     value={newRecord.incident_type}
                     onChange={(e) =>
                       setNewRecord({
@@ -341,8 +341,8 @@ export default function DisciplinePage() {
 
                 {newRecord.incident_type === "Exam Malpractice" && (
                   <div>
-                    <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Link to Exam (Optional)</label>
-                    <select
+                    <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="link-to-exam-optional">Link to Exam (Optional)</label>
+                    <select id="link-to-exam-optional"
                       value={newRecord.exam_id}
                       onChange={(e) => setNewRecord({ ...newRecord, exam_id: e.target.value })}
                       className="input"
@@ -358,8 +358,8 @@ export default function DisciplinePage() {
                 )}
 
                 <div>
-                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Description</label>
-                  <textarea
+                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="description">Description</label>
+                  <textarea id="description"
                     value={newRecord.description}
                     onChange={(e) => setNewRecord({ ...newRecord, description: e.target.value })}
                     className="input min-h-[80px]"
@@ -369,8 +369,8 @@ export default function DisciplinePage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Action Taken</label>
-                  <select
+                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="action-taken">Action Taken</label>
+                  <select id="action-taken"
                     value={newRecord.action_taken}
                     onChange={(e) => setNewRecord({ ...newRecord, action_taken: e.target.value })}
                     className="input"
@@ -386,8 +386,8 @@ export default function DisciplinePage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Follow-up Date (Optional)</label>
-                  <input
+                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="follow-up-date-optional">Follow-up Date (Optional)</label>
+                  <input id="follow-up-date-optional"
                     type="date"
                     value={newRecord.follow_up_date}
                     onChange={(e) => setNewRecord({ ...newRecord, follow_up_date: e.target.value })}

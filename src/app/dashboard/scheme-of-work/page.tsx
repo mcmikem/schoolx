@@ -183,7 +183,7 @@ export default function SchemeOfWorkPage() {
         />
 
         <div className="flex flex-wrap gap-3 mb-6">
-          <select
+          <select aria-label="Class"
             value={selectedClass}
             onChange={(e) => {
               setSelectedClass(e.target.value);
@@ -198,7 +198,7 @@ export default function SchemeOfWorkPage() {
               </option>
             ))}
           </select>
-          <select
+          <select aria-label="Subject"
             value={selectedSubject}
             onChange={(e) => {
               setSelectedSubject(e.target.value);
@@ -213,7 +213,7 @@ export default function SchemeOfWorkPage() {
               </option>
             ))}
           </select>
-          <select
+          <select aria-label="Term"
             value={term}
             onChange={(e) => {
               setTerm(e.target.value);
@@ -279,8 +279,8 @@ export default function SchemeOfWorkPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Topic(s)</label>
-                    <input
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="topic-s">Topic(s)</label>
+                    <input id="topic-s"
                       type="text"
                       value={week.topic}
                       onChange={(e) => updateWeek(idx, "topic", e.target.value)}
@@ -289,8 +289,8 @@ export default function SchemeOfWorkPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Resources</label>
-                    <input
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="resources">Resources</label>
+                    <input id="resources"
                       type="text"
                       value={week.resources}
                       onChange={(e) => updateWeek(idx, "resources", e.target.value)}
@@ -299,8 +299,8 @@ export default function SchemeOfWorkPage() {
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Subtopics</label>
-                    <input
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="subtopics">Subtopics</label>
+                    <input id="subtopics"
                       type="text"
                       value={week.subtopics}
                       onChange={(e) => updateWeek(idx, "subtopics", e.target.value)}
@@ -309,8 +309,8 @@ export default function SchemeOfWorkPage() {
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Learning Objectives</label>
-                    <input
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1" htmlFor="learning-objectives">Learning Objectives</label>
+                    <input id="learning-objectives"
                       type="text"
                       value={week.objectives}
                       onChange={(e) => updateWeek(idx, "objectives", e.target.value)}

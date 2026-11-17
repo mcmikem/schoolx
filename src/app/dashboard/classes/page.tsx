@@ -432,7 +432,7 @@ export default function ClassesPage() {
               className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--primary)]"
             />
           </div>
-          <select
+          <select aria-label="Filter by year"
             value={yearFilter}
             onChange={(e) => setYearFilter(e.target.value)}
             className="px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm outline-none focus:ring-2 focus:ring-[var(--primary)]"
@@ -584,10 +584,10 @@ export default function ClassesPage() {
               <form onSubmit={handleSave} className="p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
-                    <label className="block text-xs font-semibold text-[var(--on-surface-variant)] uppercase tracking-wide mb-1.5">
+                    <label className="block text-xs font-semibold text-[var(--on-surface-variant)] uppercase tracking-wide mb-1.5" htmlFor="class-name">
                       Class Name *
                     </label>
-                    <input
+                    <input id="class-name"
                       value={form.name}
                       onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                       placeholder="e.g. P.5A, S.2 Science"
@@ -597,10 +597,10 @@ export default function ClassesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[var(--on-surface-variant)] uppercase tracking-wide mb-1.5">
+                    <label className="block text-xs font-semibold text-[var(--on-surface-variant)] uppercase tracking-wide mb-1.5" htmlFor="level">
                       Level *
                     </label>
-                    <input
+                    <input id="level"
                       value={form.level}
                       onChange={(e) => setForm((f) => ({ ...f, level: e.target.value }))}
                       placeholder="e.g. P.5, S.2"
@@ -610,10 +610,10 @@ export default function ClassesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[var(--on-surface-variant)] uppercase tracking-wide mb-1.5">
+                    <label className="block text-xs font-semibold text-[var(--on-surface-variant)] uppercase tracking-wide mb-1.5" htmlFor="stream">
                       Stream
                     </label>
-                    <input
+                    <input id="stream"
                       value={form.stream}
                       onChange={(e) => setForm((f) => ({ ...f, stream: e.target.value }))}
                       placeholder="e.g. A, Science, Arts"
@@ -622,10 +622,10 @@ export default function ClassesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[var(--on-surface-variant)] uppercase tracking-wide mb-1.5">
+                    <label className="block text-xs font-semibold text-[var(--on-surface-variant)] uppercase tracking-wide mb-1.5" htmlFor="max-students">
                       Max Students
                     </label>
-                    <input
+                    <input id="max-students"
                       type="number"
                       inputMode="numeric"
                       min={1}
@@ -636,10 +636,10 @@ export default function ClassesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[var(--on-surface-variant)] uppercase tracking-wide mb-1.5">
+                    <label className="block text-xs font-semibold text-[var(--on-surface-variant)] uppercase tracking-wide mb-1.5" htmlFor="academic-year">
                       Academic Year
                     </label>
-                    <input
+                    <input id="academic-year"
                       value={form.academic_year}
                       onChange={(e) => setForm((f) => ({ ...f, academic_year: e.target.value }))}
                       placeholder={CURRENT_YEAR}
@@ -649,10 +649,10 @@ export default function ClassesPage() {
                   </div>
                   {teachers.length > 0 && (
                     <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-[var(--on-surface-variant)] uppercase tracking-wide mb-1.5">
+                      <label className="block text-xs font-semibold text-[var(--on-surface-variant)] uppercase tracking-wide mb-1.5" htmlFor="class-teacher">
                         Class Teacher
                       </label>
-                      <select
+                      <select id="class-teacher"
                         value={form.class_teacher_id}
                         onChange={(e) => setForm((f) => ({ ...f, class_teacher_id: e.target.value }))}
                         className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] text-sm outline-none focus:ring-2 focus:ring-[var(--primary)]"
@@ -684,10 +684,10 @@ export default function ClassesPage() {
         <Modal isOpen={showBulk} onClose={() => setShowBulk(false)} title="Assign a class teacher in bulk">
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[var(--on-surface-variant)] uppercase tracking-wide mb-1.5">
+              <label className="block text-xs font-semibold text-[var(--on-surface-variant)] uppercase tracking-wide mb-1.5" htmlFor="teacher">
                 Teacher
               </label>
-              <select
+              <select id="teacher"
                 value={bulkTeacherId}
                 onChange={(e) => setBulkTeacherId(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] text-sm outline-none focus:ring-2 focus:ring-[var(--primary)]"

@@ -250,10 +250,10 @@ export default function ExportPage() {
         <UICard className="max-w-2xl p-6">
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-[var(--on-surface)] mb-2">
+              <label className="block text-sm font-medium text-[var(--on-surface)] mb-2" htmlFor="what-do-you-want-to-export">
                 What do you want to export?
               </label>
-              <select
+              <select id="what-do-you-want-to-export"
                 value={exportType}
                 onChange={(e) =>
                   setExportType(e.target.value as "students" | "uneb" | "grades" | "attendance" | "fees")
@@ -269,8 +269,8 @@ export default function ExportPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[var(--on-surface)] mb-2">Class</label>
-              <select
+              <label className="block text-sm font-medium text-[var(--on-surface)] mb-2" htmlFor="class">Class</label>
+              <select id="class"
                 value={selectedClass}
                 onChange={(e) => setSelectedClass(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors"

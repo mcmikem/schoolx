@@ -296,8 +296,8 @@ export default function MealScanPage() {
                   </label>
                 </div>
 
-                <label className="block text-xs font-semibold text-[var(--t3)]">Eligibility</label>
-                <select
+                <label className="block text-xs font-semibold text-[var(--t3)]" htmlFor="eligibility">Eligibility</label>
+                <select id="eligibility"
                   value={rule.eligibility}
                   onChange={(e) =>
                     updateRule(rule.meal_type, { eligibility: e.target.value as "all" | "boarding_only" })
@@ -310,8 +310,8 @@ export default function MealScanPage() {
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Start</label>
-                    <input
+                    <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="start">Start</label>
+                    <input id="start"
                       type="time"
                       value={rule.start_time || ""}
                       onChange={(e) => updateRule(rule.meal_type, { start_time: e.target.value || null })}
@@ -319,8 +319,8 @@ export default function MealScanPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[var(--t3)] mb-1">End</label>
-                    <input
+                    <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="end">End</label>
+                    <input id="end"
                       type="time"
                       value={rule.end_time || ""}
                       onChange={(e) => updateRule(rule.meal_type, { end_time: e.target.value || null })}
@@ -330,8 +330,8 @@ export default function MealScanPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Max servings/day</label>
-                  <input
+                  <label className="block text-xs font-semibold text-[var(--t3)] mb-1" htmlFor="max-servings-day">Max servings/day</label>
+                  <input id="max-servings-day"
                     type="number"
                     inputMode="numeric"
                     min={1}

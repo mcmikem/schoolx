@@ -1336,8 +1336,8 @@ export default function TimetablePage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">Subject</label>
-                  <select name="subject_id" required className="input">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]" htmlFor="subject">Subject</label>
+                  <select id="subject" name="subject_id" required className="input">
                     <option value="">Choose subject...</option>
                     {subjects.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -1348,8 +1348,8 @@ export default function TimetablePage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">Teacher</label>
-                  <select name="teacher_id" required onChange={handleTeacherChange} className="input">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]" htmlFor="teacher">Teacher</label>
+                  <select id="teacher" name="teacher_id" required onChange={handleTeacherChange} className="input">
                     <option value="">Select teacher...</option>
                     {teachers.map((t) => (
                       <option key={t.id} value={t.id}>
@@ -1360,10 +1360,10 @@ export default function TimetablePage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]" htmlFor="room-optional">
                     Room (optional)
                   </label>
-                  <input
+                  <input id="room-optional"
                     name="room"
                     value={roomValue}
                     onChange={(e) => {

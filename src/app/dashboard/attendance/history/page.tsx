@@ -261,8 +261,8 @@ export default function AttendanceHistoryPage() {
         <Card className="p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[var(--t2)] mb-1">Start Date</label>
-              <input
+              <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="start-date">Start Date</label>
+              <input id="start-date"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
@@ -270,8 +270,8 @@ export default function AttendanceHistoryPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[var(--t2)] mb-1">End Date</label>
-              <input
+              <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="end-date">End Date</label>
+              <input id="end-date"
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
@@ -279,8 +279,8 @@ export default function AttendanceHistoryPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[var(--t2)] mb-1">Class</label>
-              <select
+              <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="class">Class</label>
+              <select id="class"
                 value={selectedClass || ""}
                 onChange={(e) => setSelectedClass(e.target.value || null)}
                 className="w-full px-3 py-2 min-h-[44px] rounded-lg border border-[var(--border)] bg-[var(--surface)] text-base"
@@ -294,8 +294,8 @@ export default function AttendanceHistoryPage() {
               </select>
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-[var(--t2)] mb-1">Search Student</label>
-              <input
+              <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="search-student">Search Student</label>
+              <input id="search-student"
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -479,7 +479,7 @@ export default function AttendanceHistoryPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <h3 className="text-base font-semibold text-[var(--t1)]">Day register (single day)</h3>
           <div className="flex gap-2 items-center">
-            <input
+            <input aria-label="Register date"
               type="date"
               value={dayDate}
               onChange={(e) => setDayDate(e.target.value)}

@@ -836,7 +836,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                     Number of Dormitories
                                   </label>
                                   <div className="flex items-center gap-3">
-                                    <input
+                                    <input aria-label="Number of dormitories"
                                       type="range"
                                       min={1}
                                       max={10}
@@ -880,7 +880,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                         }
                                         className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-xs text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                                       />
-                                      <select
+                                      <select aria-label="Dormitory type"
                                         value={dorm.type}
                                         onChange={(e) =>
                                           setDormConfig((prev) => {
@@ -944,7 +944,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                             {houseConfig.hasHouses && (
                               <>
                                 <div className="flex items-center gap-3">
-                                  <input
+                                  <input aria-label="Number of houses"
                                     type="range"
                                     min={1}
                                     max={8}
@@ -985,7 +985,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                         }
                                         className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-xs text-[var(--t1)] outline-none focus:border-[var(--primary)]"
                                       />
-                                      <input
+                                      <input aria-label="House colour"
                                         type="color"
                                         value={house.color}
                                         onChange={(e) =>

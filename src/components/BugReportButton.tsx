@@ -74,8 +74,8 @@ export function BugReportModal({ open, onClose }: { open: boolean; onClose: () =
 
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">Title</label>
-            <input
+            <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5" htmlFor="title">Title</label>
+            <input id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Brief summary of the issue"
@@ -83,10 +83,10 @@ export function BugReportModal({ open, onClose }: { open: boolean; onClose: () =
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+            <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5" htmlFor="description">
               Description
             </label>
-            <textarea
+            <textarea id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What happened? What did you expect? Steps to reproduce..."

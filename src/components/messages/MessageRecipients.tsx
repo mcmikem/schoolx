@@ -194,7 +194,7 @@ export default function MessageRecipients({
                     No classes available
                   </div>
                 ) : (
-                  <select
+                  <select aria-label="Select class"
                     value={bulkSelectedClass}
                     onChange={(e) => onBulkSelectedClassChange(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm"
@@ -268,8 +268,8 @@ export default function MessageRecipients({
             <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">Message</h2>
             {templates.length > 0 && (
               <div className="mb-4">
-                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Use Template</label>
-                <select
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block" htmlFor="use-template">Use Template</label>
+                <select id="use-template"
                   value={selectedTemplateId}
                   onChange={(e) => onTemplateSelect(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm"

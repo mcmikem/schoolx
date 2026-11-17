@@ -336,8 +336,8 @@ export default function ConductManagementPage() {
               <form onSubmit={handleSubmit}>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium mb-1 block">Student *</label>
-                    <select
+                    <label className="text-sm font-medium mb-1 block" htmlFor="student">Student *</label>
+                    <select id="student"
                       value={form.studentId}
                       onChange={(e) => setForm({ ...form, studentId: e.target.value })}
                       className="input w-full"
@@ -353,8 +353,8 @@ export default function ConductManagementPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium mb-1 block">Type *</label>
-                      <select
+                      <label className="text-sm font-medium mb-1 block" htmlFor="type">Type *</label>
+                      <select id="type"
                         value={form.incidentType}
                         onChange={(e) => {
                           setForm({ ...form, incidentType: e.target.value as any, category: "" });
@@ -367,8 +367,8 @@ export default function ConductManagementPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-sm font-medium mb-1 block">Category</label>
-                      <select
+                      <label className="text-sm font-medium mb-1 block" htmlFor="category">Category</label>
+                      <select id="category"
                         value={form.category}
                         onChange={(e) => setForm({ ...form, category: e.target.value })}
                         className="input w-full"
@@ -383,8 +383,8 @@ export default function ConductManagementPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium mb-1 block">Date</label>
-                    <input
+                    <label className="text-sm font-medium mb-1 block" htmlFor="date">Date</label>
+                    <input id="date"
                       type="date"
                       value={form.date}
                       onChange={(e) => setForm({ ...form, date: e.target.value })}
@@ -412,8 +412,8 @@ export default function ConductManagementPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium mb-1 block">Description *</label>
-                    <textarea
+                    <label className="text-sm font-medium mb-1 block" htmlFor="description">Description *</label>
+                    <textarea id="description"
                       value={form.description}
                       onChange={(e) => setForm({ ...form, description: e.target.value })}
                       className="input w-full min-h-[80px]"
@@ -422,8 +422,8 @@ export default function ConductManagementPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium mb-1 block">Action Taken</label>
-                    <input
+                    <label className="text-sm font-medium mb-1 block" htmlFor="action-taken">Action Taken</label>
+                    <input id="action-taken"
                       type="text"
                       value={form.actionTaken}
                       onChange={(e) => setForm({ ...form, actionTaken: e.target.value })}

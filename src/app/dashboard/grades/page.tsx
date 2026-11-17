@@ -2031,7 +2031,7 @@ export default function GradesPage() {
                     )}
                   </div>
                 ) : (
-                  <select
+                  <select aria-label="Target class"
                     id="grade-target-class"
                     value={selectedClass}
                     onChange={(e) => setSelectedClass(e.target.value)}
@@ -2806,7 +2806,7 @@ export default function GradesPage() {
                                 {competencyMode ? (
                                   <td className="px-2 py-1.5">
                                     <div className="relative">
-                                      <select
+                                      <select aria-label="Competency level"
                                         className="w-24 mx-auto block text-center font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all bg-surface-container-low"
                                         value={marks[`${student.id}_competency`] ?? ""}
                                         onChange={(e) => {
@@ -3146,10 +3146,10 @@ export default function GradesPage() {
                         const val = getMark(studentId, "competency");
                         return (
                           <div className="col-span-2 space-y-2">
-                            <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+                            <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider" htmlFor="competency-level">
                               COMPETENCY LEVEL
                             </label>
-                            <select
+                            <select id="competency-level"
                               className="w-full text-center text-2xl font-bold py-4 rounded-xl border-none focus:outline-none transition-all bg-surface-container-low"
                               value={val ?? ""}
                               onChange={(e) => handleMarkChange(studentId, "competency", e.target.value)}

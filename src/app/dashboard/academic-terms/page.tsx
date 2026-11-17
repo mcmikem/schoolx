@@ -367,8 +367,8 @@ export default function AcademicTermsPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Name</label>
-                <input
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="name">Name</label>
+                <input id="name"
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -377,8 +377,8 @@ export default function AcademicTermsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Code</label>
-                <input
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="code">Code</label>
+                <input id="code"
                   type="text"
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value })}
@@ -389,8 +389,8 @@ export default function AcademicTermsPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Start Date</label>
-                <input
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="start-date">Start Date</label>
+                <input id="start-date"
                   type="date"
                   value={formData.start_date}
                   onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
@@ -398,8 +398,8 @@ export default function AcademicTermsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">End Date</label>
-                <input
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="end-date">End Date</label>
+                <input id="end-date"
                   type="date"
                   value={formData.end_date}
                   onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
@@ -409,8 +409,8 @@ export default function AcademicTermsPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Term Number</label>
-                <select
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="term-number">Term Number</label>
+                <select id="term-number"
                   value={formData.term_number}
                   onChange={(e) =>
                     setFormData({
@@ -428,8 +428,8 @@ export default function AcademicTermsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-[var(--t2)] mb-1">Academic Year</label>
-                <input
+                <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="academic-year">Academic Year</label>
+                <input id="academic-year"
                   type="text"
                   value={formData.academic_year}
                   onChange={(e) => setFormData({ ...formData, academic_year: e.target.value })}

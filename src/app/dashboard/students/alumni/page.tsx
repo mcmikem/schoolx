@@ -131,7 +131,7 @@ export default function AlumniPage() {
                   className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm"
                 />
               </div>
-              <select
+              <select aria-label="Filter by year"
                 value={yearFilter}
                 onChange={(e) => setYearFilter(e.target.value)}
                 className="px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm"

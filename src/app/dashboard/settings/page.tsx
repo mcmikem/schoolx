@@ -1034,8 +1034,8 @@ export default function SettingsPage() {
                 </p>
                 <div className="flex items-end gap-3">
                   <div className="flex-1">
-                    <label className="block text-sm font-medium text-[var(--t2)] mb-1">Support WhatsApp Number</label>
-                    <input
+                    <label className="block text-sm font-medium text-[var(--t2)] mb-1" htmlFor="support-whatsapp-number">Support WhatsApp Number</label>
+                    <input id="support-whatsapp-number"
                       type="tel"
                       inputMode="tel"
                       value={supportPhone}
@@ -1504,8 +1504,8 @@ export default function SettingsPage() {
               </div>
               <div className="space-y-3">
                 <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
-                  <label className="block text-xs font-semibold text-[var(--t2)] mb-1">Mobile Money Phone Number</label>
-                  <input
+                  <label className="block text-xs font-semibold text-[var(--t2)] mb-1" htmlFor="mobile-money-phone-number">Mobile Money Phone Number</label>
+                  <input id="mobile-money-phone-number"
                     type="tel"
                     inputMode="tel"
                     value={paymentPhone}

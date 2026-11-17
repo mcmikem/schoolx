@@ -520,7 +520,7 @@ export default function SMSCenterPage() {
                 {segment === "class" && (
                   <div>
                     <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)] mb-2">Select Class</p>
-                    <select
+                    <select aria-label="Select class"
                       value={selectedClass}
                       onChange={(e) => setSelectedClass(e.target.value)}
                       className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-2xl outline-none font-bold text-[var(--t1)] text-sm"

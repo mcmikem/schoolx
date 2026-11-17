@@ -819,7 +819,7 @@ export default function ReportsPage() {
                 className="input"
               />
             </div>
-            <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input sm:w-48">
+            <select aria-label="Class" value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input sm:w-48">
               <option value="">All Classes</option>
               {classes.length > 0 ? (
                 classes.map((c) => (

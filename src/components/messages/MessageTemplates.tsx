@@ -97,8 +97,8 @@ export default function MessageTemplates({
             <h2 className="text-xl font-bold text-[var(--t1)] mb-4">Create SMS Template</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Template Name</label>
-                <input
+                <label className="block text-sm font-medium mb-1" htmlFor="template-name">Template Name</label>
+                <input id="template-name"
                   value={newTemplate.name}
                   onChange={(e) =>
                     onNewTemplateChange({
@@ -111,8 +111,8 @@ export default function MessageTemplates({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Category</label>
-                <select
+                <label className="block text-sm font-medium mb-1" htmlFor="category">Category</label>
+                <select id="category"
                   value={newTemplate.category}
                   onChange={(e) =>
                     onNewTemplateChange({
@@ -130,8 +130,8 @@ export default function MessageTemplates({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Message</label>
-                <textarea
+                <label className="block text-sm font-medium mb-1" htmlFor="message">Message</label>
+                <textarea id="message"
                   value={newTemplate.message}
                   onChange={(e) =>
                     onNewTemplateChange({
@@ -169,8 +169,8 @@ export default function MessageTemplates({
             <h2 className="text-xl font-bold text-[var(--t1)] mb-4">Edit SMS Template</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Template Name</label>
-                <input
+                <label className="block text-sm font-medium mb-1" htmlFor="template-name-2">Template Name</label>
+                <input id="template-name-2"
                   value={editingTemplate.name}
                   onChange={(e) =>
                     onEditingTemplateChange({
@@ -182,8 +182,8 @@ export default function MessageTemplates({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Category</label>
-                <select
+                <label className="block text-sm font-medium mb-1" htmlFor="category-2">Category</label>
+                <select id="category-2"
                   value={editingTemplate.category}
                   onChange={(e) =>
                     onEditingTemplateChange({
@@ -201,8 +201,8 @@ export default function MessageTemplates({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Message</label>
-                <textarea
+                <label className="block text-sm font-medium mb-1" htmlFor="message-2">Message</label>
+                <textarea id="message-2"
                   value={editingTemplate.message}
                   onChange={(e) =>
                     onEditingTemplateChange({

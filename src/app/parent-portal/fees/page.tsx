@@ -822,10 +822,10 @@ export default function ParentFeesPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2" htmlFor="amount-you-paid-ugx">
                       Amount you paid (UGX)
                     </label>
-                    <input
+                    <input id="amount-you-paid-ugx"
                       type="number"
                       inputMode="numeric"
                       value={payAmount}
@@ -870,10 +870,10 @@ export default function ParentFeesPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2" htmlFor="how-did-you-pay">
                       How did you pay?
                     </label>
-                    <select
+                    <select id="how-did-you-pay"
                       value={payMethod}
                       onChange={(event) =>
                         setPayMethod(event.target.value as "mobile_money" | "cash" | "bank" | "in_kind")
@@ -888,10 +888,10 @@ export default function ParentFeesPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2" htmlFor="reference-optional">
                       Reference (optional)
                     </label>
-                    <input
+                    <input id="reference-optional"
                       type="text"
                       value={payReference}
                       onChange={(event) => setPayReference(event.target.value)}
@@ -904,10 +904,10 @@ export default function ParentFeesPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2" htmlFor="note-optional">
                       Note (optional)
                     </label>
-                    <input
+                    <input id="note-optional"
                       type="text"
                       value={payNote}
                       onChange={(event) => setPayNote(event.target.value)}

@@ -265,8 +265,8 @@ export default function LeavePage() {
               <form onSubmit={handleSubmit}>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium mb-1 block">Leave Type</label>
-                    <select
+                    <label className="text-sm font-medium mb-1 block" htmlFor="leave-type">Leave Type</label>
+                    <select id="leave-type"
                       value={form.leaveType}
                       onChange={(e) => setForm({ ...form, leaveType: e.target.value })}
                       className="input w-full"
@@ -290,8 +290,8 @@ export default function LeavePage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium mb-1 block">Start Date</label>
-                      <input
+                      <label className="text-sm font-medium mb-1 block" htmlFor="start-date">Start Date</label>
+                      <input id="start-date"
                         type="date"
                         value={form.startDate}
                         onChange={(e) => setForm({ ...form, startDate: e.target.value })}
@@ -300,8 +300,8 @@ export default function LeavePage() {
                       />
                     </div>
                     <div>
-                      <label className="text-sm font-medium mb-1 block">End Date</label>
-                      <input
+                      <label className="text-sm font-medium mb-1 block" htmlFor="end-date">End Date</label>
+                      <input id="end-date"
                         type="date"
                         value={form.endDate}
                         min={form.startDate}
@@ -315,8 +315,8 @@ export default function LeavePage() {
                     <p className="text-xs text-[var(--t3)]">{diffDays(form.startDate, form.endDate)} day(s)</p>
                   )}
                   <div>
-                    <label className="text-sm font-medium mb-1 block">Reason</label>
-                    <textarea
+                    <label className="text-sm font-medium mb-1 block" htmlFor="reason">Reason</label>
+                    <textarea id="reason"
                       value={form.reason}
                       onChange={(e) => setForm({ ...form, reason: e.target.value })}
                       className="input w-full min-h-[80px]"

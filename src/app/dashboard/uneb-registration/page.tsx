@@ -297,8 +297,8 @@ export default function UNEBRegistrationPage() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-[var(--t1)]">Exam Type</label>
-                  <select
+                  <label className="block text-sm font-medium mb-1 text-[var(--t1)]" htmlFor="exam-type">Exam Type</label>
+                  <select id="exam-type"
                     value={selectedExam}
                     onChange={(e) => setSelectedExam(e.target.value as "PLE" | "UCE" | "UACE")}
                     className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--t1)]"
@@ -310,8 +310,8 @@ export default function UNEBRegistrationPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-[var(--t1)]">Select Class</label>
-                  <select
+                  <label className="block text-sm font-medium mb-1 text-[var(--t1)]" htmlFor="select-class">Select Class</label>
+                  <select id="select-class"
                     value={selectedClass}
                     onChange={(e) => {
                       setSelectedClass(e.target.value);

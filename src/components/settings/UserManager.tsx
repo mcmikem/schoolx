@@ -195,8 +195,8 @@ export default function UserManager({
             <div className="p-6 space-y-4">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Full Name</label>
-                  <input
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block" htmlFor="full-name">Full Name</label>
+                  <input id="full-name"
                     type="text"
                     value={newUser.full_name}
                     onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })}
@@ -205,8 +205,8 @@ export default function UserManager({
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Phone Number</label>
-                  <input
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block" htmlFor="phone-number">Phone Number</label>
+                  <input id="phone-number"
                     type="tel"
                     inputMode="tel"
                     placeholder="0700000000"
@@ -217,8 +217,8 @@ export default function UserManager({
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Role</label>
-                  <select
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block" htmlFor="role">Role</label>
+                  <select id="role"
                     value={newUser.role}
                     onChange={(e) =>
                       setNewUser({
@@ -252,8 +252,8 @@ export default function UserManager({
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Password</label>
-                  <input
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block" htmlFor="password">Password</label>
+                  <input id="password"
                     type="password"
                     placeholder="Min 6 characters"
                     value={newUser.password}

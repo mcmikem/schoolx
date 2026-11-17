@@ -190,8 +190,8 @@ export default function MessageAutomation({
                 required
               />
               <div>
-                <label className="block text-sm font-medium text-[var(--on-surface)] mb-2">Trigger Event</label>
-                <select
+                <label className="block text-sm font-medium text-[var(--on-surface)] mb-2" htmlFor="trigger-event">Trigger Event</label>
+                <select id="trigger-event"
                   value={ruleForm.event_type}
                   disabled={Boolean(editingTrigger)}
                   onChange={(e) =>
