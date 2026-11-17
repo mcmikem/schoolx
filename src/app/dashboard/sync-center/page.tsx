@@ -652,7 +652,7 @@ export default function SyncCenterPage() {
           <EmptyState
             icon="cloud_done"
             title="No changes waiting to upload"
-            description="No pending or failed changes are waiting on this device. Check offline preparation above before relying on downloaded data or pages."
+            description="All local changes have been uploaded. Check offline preparation above for downloaded data and saved pages before relying on this device offline."
           />
         )}
       </div>
