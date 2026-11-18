@@ -144,7 +144,9 @@ export default function MessageTemplates({
                   placeholder="Enter message template..."
                 />
                 <p className="text-xs text-[var(--t3)] mt-1">
-                  Use {"{{variable}}"} for dynamic content (e.g., {"{{student_name}}"}, {"{{amount}}"})
+                  Use {"{{student_name}}"}, {"{{parent_name}}"}, {"{{class_name}}"}, {"{{school_name}}"} or{" "}
+                {"{{date}}"} — each one fills in per parent when the message is sent. Anything else is sent
+                literally.
                 </p>
               </div>
             </div>

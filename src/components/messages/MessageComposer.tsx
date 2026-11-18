@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardBody } from "@/components/ui/Card";
 import { Tabs } from "@/components/ui/Tabs";
 import { Button } from "@/components/ui/index";
 import MaterialIcon from "@/components/MaterialIcon";
+import { baseSmsVars, SMS_VARIABLE_HINTS, unresolvedSmsTokens } from "@/lib/sms-template";
 
 interface ClassItem {
   id: string;
@@ -26,6 +27,8 @@ interface MessageComposerProps {
   /** Reachable parents for the current composer target (0 when unknown). */
   recipientCount: number;
   classRecipientCounts: Record<string, number>;
+  /** Needed to show which template tokens will actually be filled in. */
+  schoolName?: string;
 }
 
 const messageTypeTabs = [
@@ -50,8 +53,16 @@ export default function MessageComposer({
   onSend,
   recipientCount,
   classRecipientCounts,
+  schoolName,
 }: MessageComposerProps) {
   const noRecipients = messageType !== "individual" && recipientCount === 0;
+  /**
+   * The composer used to accept a template like "Fee Reminder" and hand the
+   * literal `{{amount}}` to every parent. The variables are filled per
+   * household at send time, so the ones the composer can actually supply are
+   * listed here and anything else is called out before the send.
+   */
+  const unresolved = unresolvedSmsTokens(message, baseSmsVars(schoolName));
   const sendLabel =
     messageType === "individual"
       ? deliveryChannel === "whatsapp"
@@ -147,6 +158,16 @@ export default function MessageComposer({
             maxLength={160}
           />
           <p className="text-xs text-[var(--t3)] mt-2">{message.length}/160 characters</p>
+          <p className="mt-1 text-xs text-[var(--t4)]">
+            You can use {SMS_VARIABLE_HINTS.map((v) => `{${v.token.replace(/[{}]/g, "")}}`).join(", ")} — they fill in
+            for each parent.
+          </p>
+          {unresolved.length > 0 && (
+            <p role="alert" className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              <strong className="font-bold">Not filled in: {unresolved.map((v) => `{${v}}`).join(", ")}.</strong>{" "}
+              Parents would receive those literal braces, so the send is blocked until you edit the message.
+            </p>
+          )}
         </div>
         {messageType !== "individual" && (
           <p className="text-sm text-[var(--t2)]" role="status">
@@ -159,7 +180,12 @@ export default function MessageComposer({
             )}
           </p>
         )}
-        <Button onClick={onSend} disabled={sending || !message.trim() || noRecipients} loading={sending}>
+        <Button
+          onClick={onSend}
+          disabled={sending || !message.trim() || noRecipients || unresolved.length > 0}
+          title={unresolved.length > 0 ? `Fill in ${unresolved.map((v) => `{${v}}`).join(", ")} first` : undefined}
+          loading={sending}
+        >
           <MaterialIcon icon="send" className="text-lg" />
           {sending ? "Sending..." : sendLabel}
         </Button>

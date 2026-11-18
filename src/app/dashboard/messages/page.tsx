@@ -85,33 +85,38 @@ const DEFAULT_TEMPLATES = [
     name: "Fee Reminder",
     category: "fee_reminder",
     message:
-      "Dear parent, this is a reminder that school fees for {{student_name}} is due. Please pay UGX {{amount}} to avoid penalties. Thank you.",
+      "Dear parent, this is a reminder that school fees for {{student_name}} are still due. Please contact the school office to arrange payment. Thank you.",
   },
   {
     name: "Fee Payment Received",
     category: "fee_payment",
     message:
-      "Dear parent, we have received UGX {{amount}} for {{student_name}} school fees. Balance: UGX {{balance}}. Thank you.",
+      "Dear parent, thank you for the school fees payment for {{student_name}}. The school office has received it. Thank you.",
   },
   {
     name: "Attendance Alert",
     category: "attendance",
     message:
-      "Dear parent, {{student_name}} was marked {{status}} today at school. Please contact us if you have concerns.",
+      "Dear parent, {{student_name}} was marked absent at school today. Please contact the office if this was not expected.",
   },
   {
     name: "Exam Notice",
     category: "exam",
     message:
-      "Dear parent, {{exam_name}} for {{student_name}} will be held on {{date}}. Please ensure they are prepared.",
+      "Dear parent, {{student_name}} will sit end-of-term examinations soon. Please ensure they are prepared. Thank you.",
   },
   {
     name: "Homework Notice",
     category: "homework",
     message:
-      "Dear parent, {{student_name}} has homework in {{subject}}. Due date: {{due_date}}. Please support them to complete it.",
+      "Dear parent, {{student_name}} has homework this week. Please support them to complete and return it. Thank you.",
   },
-  { name: "General Notice", category: "general", message: "Dear parent/guardian, {{message}}. Thank you." },
+  {
+    name: "General Notice",
+    category: "general",
+    message:
+      "Dear parent, {{school_name}} has an announcement for you. Please contact the school office for details. Thank you.",
+  },
 ];
 
 const noticeCategories = ["All", "General", "Academic", "Finance", "Sports", "Emergency"];
@@ -1373,6 +1378,7 @@ export default function CommunicationHubPage() {
                     : composerReachable
               }
               classRecipientCounts={composerClassCounts}
+              schoolName={school?.name}
             />
             <MessageHistory
               recentTab={recentTab}
