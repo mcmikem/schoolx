@@ -386,6 +386,37 @@ export const PERMISSION_LABELS: Record<keyof RolePermissions, string> = deepFree
 });
 
 /**
+ * What each permission actually lets a person DO, in the headmaster's words.
+ *
+ * The matrix used to show only terse labels ("Warnings", "Fee Status
+ * (Silent)") above a wall of Allow/Deny pills, so the person deciding who can
+ * see what had to guess. These sentences are shown under each module name and
+ * are deliberately about the task, not the menu item.
+ */
+export const PERMISSION_DESCRIPTIONS: Record<keyof RolePermissions, string> = deepFreeze({
+  students: "Add, search and update pupils, enrol them, move them between classes, print ID cards.",
+  attendance: "Take the register, see who was absent, and read attendance summaries.",
+  grades: "Enter marks, work through the review queue and publish report cards.",
+  fees: "Set fee structures, record payments and follow up balances.",
+  fee_status: "See who has paid and who has not, without being able to change anything.",
+  messages: "Send SMS and WhatsApp messages to parents and staff.",
+  reports: "Build and print term reports, analyse results and export data.",
+  staff: "Manage staff records, assign roles and track who is employed.",
+  settings: "Change school details, academic setup and system preferences.",
+  discipline: "Record behaviour incidents, merits and follow-up actions.",
+  invoicing: "Raise invoices and track what is owed against them.",
+  assets: "Keep the school's inventory, assign items and flag what needs replacing.",
+  analytics: "Read the dashboards: enrolment, attendance, grades and money trends.",
+  export: "Download school data to Excel or PDF.",
+  boardReport: "Prepare the summary a school board or the district asks for.",
+  autoSMS: "Set up scheduled fee reminders and absence alerts that send themselves.",
+  warnings: "See the alerts for overdue fees, low stock and other problems.",
+  visitors: "Log and read visitor entries at the gate.",
+  payroll: "Run payroll, and see salary, NSSF and PAYE figures.",
+  performance: "Record lesson observations and staff performance reviews.",
+});
+
+/**
  * Roles whose row access follows the classes they teach instead of the whole
  * school — the client-side twin of `is_class_scoped_role()` in
  * supabase/migrations/202611030001_teacher_class_scope.sql. Shared by UI

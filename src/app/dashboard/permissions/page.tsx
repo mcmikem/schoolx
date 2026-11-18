@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -16,6 +16,7 @@ import {
   type RouteOverrideValue,
 } from "@/lib/role-access-overrides";
 import {
+  PERMISSION_DESCRIPTIONS,
   PERMISSION_LABELS,
   ROLE_LABELS,
   ROLE_ORDER,
@@ -23,6 +24,7 @@ import {
   type RolePermissions,
   type UserRole,
 } from "@/lib/roles";
+import { MODULE_CATALOG } from "@/lib/modules/catalog";
 import { saveSchoolSetting } from "@/lib/school-settings";
 import { ROLE_ROUTE_OVERRIDES_KEY } from "@/lib/role-access-overrides";
 
@@ -31,6 +33,25 @@ const OVERRIDEABLE_ROUTES = Object.keys(roleBasedRoutes)
   .filter((route) => route !== "/dashboard")
   .sort();
 const PROTECTED_ADMIN_ROLES = new Set<UserRole>(["super_admin", "school_admin", "admin", "headmaster"]);
+
+/** Module display names, for grouping the route table into sections a headmaster recognises. */
+const MODULE_NAMES: Record<string, string> = Object.fromEntries(
+  MODULE_CATALOG.map((mod) => [mod.module_key, mod.display_name]),
+);
+const MODULE_ORDER: Record<string, number> = Object.fromEntries(
+  MODULE_CATALOG.map((mod) => [mod.module_key, mod.sort_order]),
+);
+
+/**
+ * Who gets a route by default. "Inherit default" meant nothing on its own — a
+ * headmaster setting an override could not see what they were overriding, so
+ * the roles are spelled out against every route.
+ */
+function defaultRolesForRoute(route: string): UserRole[] {
+  const permission = roleBasedRoutes[route];
+  if (!permission) return [];
+  return ROLE_ORDER.filter((role) => ROLE_PERMISSIONS[role][permission]);
+}
 
 function formatRate(enabledCount: number, total: number) {
   if (total === 0) return "0%";
@@ -60,10 +81,18 @@ export default function PermissionsPage() {
 
   const normalizedRouteQuery = routeQuery.trim().toLowerCase();
   const filteredRoutes = useMemo(() => {
-    return OVERRIDEABLE_ROUTES.filter((route) => {
+    const matches = OVERRIDEABLE_ROUTES.filter((route) => {
       if (!normalizedRouteQuery) return true;
       const title = getPageTitle(route).toLowerCase();
       return route.toLowerCase().includes(normalizedRouteQuery) || title.includes(normalizedRouteQuery);
+    });
+    // Grouped by module and ordered by the catalogue, so the list reads as
+    // "everything under Fees", not 150 alphabetical paths.
+    return matches.sort((a, b) => {
+      const moduleA = MODULE_FOR_ROUTE[a as keyof typeof MODULE_FOR_ROUTE] || "";
+      const moduleB = MODULE_FOR_ROUTE[b as keyof typeof MODULE_FOR_ROUTE] || "";
+      const order = (MODULE_ORDER[moduleA] || 999) - (MODULE_ORDER[moduleB] || 999);
+      return order !== 0 ? order : a.localeCompare(b);
     });
   }, [normalizedRouteQuery]);
 
@@ -185,8 +214,9 @@ export default function PermissionsPage() {
               <div>
                 <p className="text-sm font-semibold text-[var(--t1)]">Custom Route Overrides</p>
                 <p className="text-xs text-[var(--t3)]">
-                  Headmaster can grant or restrict route access per role. Locked modules cannot be enabled outside your
-                  feature stage.
+                  Pick a role, then allow or deny any page. &ldquo;Inherit default&rdquo; keeps the role&apos;s normal
+                  access, shown in the Default access column. Locked modules cannot be enabled outside your feature
+                  stage.
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -233,64 +263,101 @@ export default function PermissionsPage() {
                   </select>
                 </div>
 
+                <p className="text-xs text-[var(--t3)]" aria-live="polite">
+                  {ROLE_LABELS[selectedOverrideRole]} inherits access to{" "}
+                  <strong className="text-[var(--t2)]">
+                    {OVERRIDEABLE_ROUTES.filter((route) =>
+                      defaultRolesForRoute(route).includes(selectedOverrideRole),
+                    ).length}
+                  </strong>{" "}
+                  of {OVERRIDEABLE_ROUTES.length} pages by default.
+                </p>
+
                 <div className="overflow-x-auto">
                   <table className="min-w-full border-collapse text-sm">
                     <thead>
                       <tr className="border-b border-[var(--border)] bg-[var(--surface-container)] text-left">
                         <th className="px-3 py-2 font-semibold text-[var(--t2)]">Route</th>
                         <th className="px-3 py-2 font-semibold text-[var(--t2)]">Module Gate</th>
+                        <th className="px-3 py-2 font-semibold text-[var(--t2)]">Default access</th>
                         <th className="px-3 py-2 font-semibold text-[var(--t2)]">Override</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredRoutes.map((route) => {
+                      {filteredRoutes.map((route, index) => {
                         const moduleKey = MODULE_FOR_ROUTE[route as keyof typeof MODULE_FOR_ROUTE];
                         const moduleAllowed = !moduleKey || canUseModule(featureStage, moduleKey);
                         const value = selectedRoleOverrides[route] || "inherit";
+                        const previousModule =
+                          index === 0
+                            ? undefined
+                            : MODULE_FOR_ROUTE[
+                                filteredRoutes[index - 1] as keyof typeof MODULE_FOR_ROUTE
+                              ];
+                        const showModuleHeader = index === 0 || previousModule !== moduleKey;
+                        const defaultRoles = defaultRolesForRoute(route);
 
                         return (
-                          <tr
-                            key={`${selectedOverrideRole}-${route}`}
-                            className="border-b border-[var(--border)] last:border-b-0"
-                          >
-                            <td className="px-3 py-2">
-                              <p className="font-medium text-[var(--t1)]">{getPageTitle(route)}</p>
-                              <p className="text-xs text-[var(--t3)]">{route}</p>
-                            </td>
-                            <td className="px-3 py-2">
-                              {moduleKey ? (
-                                <span
-                                  className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
-                                    moduleAllowed ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                                  }`}
+                          <Fragment key={`${selectedOverrideRole}-${route}`}>
+                            {showModuleHeader && (
+                              <tr className="border-b border-[var(--border)] bg-[var(--surface-container-low)]">
+                                <td
+                                  colSpan={4}
+                                  className="px-3 py-1.5 text-xs font-black uppercase tracking-[0.14em] text-[var(--t3)]"
                                 >
-                                  {moduleAllowed ? `${moduleKey} enabled` : `${moduleKey} locked by plan`}
-                                </span>
-                              ) : (
-                                <span className="inline-flex rounded-full bg-[var(--surface-container)] px-2 py-1 text-xs text-[var(--t2)]">
-                                  n/a
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-3 py-2">
-                              <select aria-label="Route access"
-                                value={value}
-                                disabled={!moduleAllowed}
-                                onChange={(event) =>
-                                  updateOverride(
-                                    selectedOverrideRole,
-                                    route,
-                                    event.target.value as RouteOverrideValue | "inherit",
-                                  )
-                                }
-                                className="w-44 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-xs text-[var(--t1)]"
-                              >
-                                <option value="inherit">Inherit default</option>
-                                <option value="allow">Allow</option>
-                                <option value="deny">Deny</option>
-                              </select>
-                            </td>
-                          </tr>
+                                  {moduleKey ? MODULE_NAMES[moduleKey] || moduleKey : "Other pages"}
+                                </td>
+                              </tr>
+                            )}
+                            <tr className="border-b border-[var(--border)] last:border-b-0">
+                              <td className="px-3 py-2">
+                                <p className="font-medium text-[var(--t1)]">{getPageTitle(route)}</p>
+                                <p className="text-xs text-[var(--t3)]">{route}</p>
+                              </td>
+                              <td className="px-3 py-2">
+                                {moduleKey ? (
+                                  <span
+                                    className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+                                      moduleAllowed ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                                    }`}
+                                  >
+                                    {moduleAllowed ? `${moduleKey} enabled` : `${moduleKey} locked by plan`}
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex rounded-full bg-[var(--surface-container)] px-2 py-1 text-xs text-[var(--t2)]">
+                                    n/a
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2">
+                                {defaultRoles.length > 0 ? (
+                                  <span className="text-xs text-[var(--t3)]">
+                                    {defaultRoles.map((role) => ROLE_LABELS[role]).join(", ")}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-[var(--t4)]">Nobody</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2">
+                                <select aria-label={`Access for ${getPageTitle(route)}`}
+                                  value={value}
+                                  disabled={!moduleAllowed}
+                                  onChange={(event) =>
+                                    updateOverride(
+                                      selectedOverrideRole,
+                                      route,
+                                      event.target.value as RouteOverrideValue | "inherit",
+                                    )
+                                  }
+                                  className="w-44 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-xs text-[var(--t1)]"
+                                >
+                                  <option value="inherit">Inherit default</option>
+                                  <option value="allow">Allow</option>
+                                  <option value="deny">Deny</option>
+                                </select>
+                              </td>
+                            </tr>
+                          </Fragment>
                         );
                       })}
                     </tbody>
@@ -347,7 +414,12 @@ export default function PermissionsPage() {
                 <tbody>
                   {filteredFeatures.map((feature) => (
                     <tr key={feature} className="border-b border-[var(--border)] last:border-b-0">
-                      <td className="px-3 py-2 text-[var(--t1)]">{PERMISSION_LABELS[feature]}</td>
+                      <td className="px-3 py-2">
+                        <span className="font-medium text-[var(--t1)]">{PERMISSION_LABELS[feature]}</span>
+                        <span className="mt-0.5 block text-xs text-[var(--t3)]">
+                          {PERMISSION_DESCRIPTIONS[feature]}
+                        </span>
+                      </td>
                       {roles.map((role) => {
                         const allowed = ROLE_PERMISSIONS[role][feature];
                         return (
