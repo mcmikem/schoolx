@@ -7,7 +7,6 @@ import Script from "next/script";
 import { AppUpdatePrompt } from "@/components/AppUpdatePrompt";
 import { PushOptInPrompt } from "@/components/PushOptInPrompt";
 import { AppUpdateNotification } from "@/components/app-update-notification";
-import DebugPing from "@/components/DebugPing";
 import DiagnosticsPanel from "@/components/DiagnosticsPanel";
 import { APP_NAME } from "@/lib/app-name";
 import { LEGACY_COMPAT_SCRIPT } from "@/lib/legacy-compat";
@@ -219,8 +218,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <PushOptInPrompt />
           <DiagnosticsPanel />
         </Providers>
-        {process.env.NODE_ENV === "development" && <DebugPing />}
-      </body>
+        </body>
     </html>
   );
 }
