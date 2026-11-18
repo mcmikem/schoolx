@@ -74,14 +74,22 @@ export async function POST(request: NextRequest) {
         // Send email alert if configured and supplier looks like an email
         if (item.supplier && item.supplier.includes("@")) {
           try {
-            await sendInventoryAlertEmail(item.supplier, item.name, currentStock, reorderLevel, deficit, estimatedCost);
+            const emailResult = await sendInventoryAlertEmail(item.supplier, item.name, currentStock, reorderLevel, deficit, estimatedCost);
 
-            alertsSent.push({
-              itemId: item.id,
-              name: item.name,
-              channel: "email",
-              recipient: item.supplier,
-            });
+            if (emailResult.success) {
+              alertsSent.push({
+                itemId: item.id,
+                name: item.name,
+                channel: "email",
+                recipient: item.supplier,
+              });
+            } else {
+              errors.push({
+                itemId: item.id,
+                name: item.name,
+                reason: emailResult.error || "Email alert failed",
+              });
+            }
           } catch (emailErr) {
             errors.push({
               itemId: item.id,
