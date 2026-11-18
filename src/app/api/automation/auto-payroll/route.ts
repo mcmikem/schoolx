@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     const subCheck = await requireActiveSubscription({
       supabase,
       schoolId: school.schoolId,
-      requiredPlan: "enterprise",
+      requiredPlan: "growth",
     });
     if (!subCheck.ok) return subCheck.response;
 
