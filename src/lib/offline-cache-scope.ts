@@ -14,7 +14,7 @@ const STUDENT_SCOPED_TABLES = new Set([
   "promotion_history",
 ]);
 
-const CLASS_SCOPED_TABLES = new Set(["teacher_timetable", "timetable", "homework", "teacher_substitutions"]);
+const CLASS_SCOPED_TABLES = new Set(["teacher_timetable", "homework", "teacher_substitutions"]);
 
 /** Whether a cached row is outside a successfully downloaded class selection. */
 export function isOutsideOfflineClassSelection(

@@ -35,7 +35,7 @@ const OFFLINE_DATA_TABLES = [
   "fee_adjustments",
   "messages",
   "events",
-  "timetable",
+  "timetable_slots",
   "teacher_timetable",
   "homework",
   "homework_submissions",

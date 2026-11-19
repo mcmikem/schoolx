@@ -1633,7 +1633,7 @@ class OfflineDB {
         "student_promotions",
         "promotion_history",
       ]);
-      const classScopedTables = new Set(["teacher_timetable", "timetable", "homework", "teacher_substitutions"]);
+      const classScopedTables = new Set(["teacher_timetable", "homework", "teacher_substitutions"]);
       const tablesToWarm = selectedClassIds.length > 0 ? [...new Set(["students", ...tables])] : tables;
       for (const table of tablesToWarm) {
         if (missingTables.has(table)) continue;

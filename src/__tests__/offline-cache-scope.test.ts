@@ -26,7 +26,7 @@ describe("selected-class offline cache pruning", () => {
     ).toBe(true);
     expect(
       isOutsideOfflineClassSelection(
-        "timetable",
+        "teacher_timetable",
         { id: "period-2", school_id: schoolId, class_id: "class-2" },
         schoolId,
         classIds,

@@ -71,7 +71,6 @@ export default function SchoolHero({
           )}
           <p className="text-[13px] text-[var(--t3)] mt-1 break-words leading-relaxed">
             {subtitle || school?.name}
-            {!bottomCenter && !bottomRight && resolvedDateLabel ? ` · ${resolvedDateLabel}` : ""}
           </p>
         </div>
         {rightSection && <div className="hidden sm:block flex-shrink-0">{rightSection}</div>}
