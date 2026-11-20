@@ -111,13 +111,13 @@ export function parseAssessmentMaxScores(raw: unknown): Record<string, number> {
 /** UNEB-style division. Shared by the sheet, summaries and printed reports. */
 export function getGrade(score: number): GradeResult {
   if (score >= 80) return { grade: "D1", color: "text-secondary" };
-  if (score >= 70) return { grade: "D2", color: "text-secondary" };
-  if (score >= 65) return { grade: "C3", color: "text-primary" };
-  if (score >= 60) return { grade: "C4", color: "text-primary" };
-  if (score >= 55) return { grade: "C5", color: "text-tertiary" };
-  if (score >= 50) return { grade: "C6", color: "text-tertiary" };
-  if (score >= 45) return { grade: "P7", color: "text-yellow-600" };
-  if (score >= 40) return { grade: "P8", color: "text-yellow-500" };
+  if (score >= 75) return { grade: "D2", color: "text-secondary" };
+  if (score >= 70) return { grade: "C3", color: "text-primary" };
+  if (score >= 65) return { grade: "C4", color: "text-primary" };
+  if (score >= 60) return { grade: "C5", color: "text-tertiary" };
+  if (score >= 55) return { grade: "C6", color: "text-tertiary" };
+  if (score >= 50) return { grade: "P7", color: "text-yellow-600" };
+  if (score >= 45) return { grade: "P8", color: "text-yellow-500" };
   return { grade: "F9", color: "text-error" };
 }
 

@@ -1397,17 +1397,22 @@ export default function CommunicationHubPage() {
         <TabPanel activeTab={activeTab} tabId="parent-inbox" lazy>
           {isWebPushSupported() && (
             <div className="mb-4">
-              <Button size="sm" variant="secondary" aria-label="Enable push notifications" onClick={() => user?.id && subscribeWebPush(user.id)}>
+              <Button
+                size="sm"
+                variant="secondary"
+                aria-label="Enable push notifications"
+                onClick={() => user?.id && subscribeWebPush(user.id)}
+              >
                 Enable push notifications
               </Button>
             </div>
           )}
           {parentInboxLoading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="h-16 rounded-2xl bg-[var(--surface-container)] animate-pulse" />
-                ))}
-              </div>
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-16 rounded-2xl bg-[var(--surface-container)] animate-pulse" />
+              ))}
+            </div>
           ) : parentInboxMessages.length === 0 ? (
             <p className="text-sm text-[var(--t3)]">No parent messages yet.</p>
           ) : (
