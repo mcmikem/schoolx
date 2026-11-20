@@ -26,7 +26,6 @@ export default function AnimatedLogo({ type = "opening", className = "", autopla
         className="object-contain"
         priority
         unoptimized={autoplay}
-        style={{ contentVisibility: "auto" }}
       />
     </div>
   );
