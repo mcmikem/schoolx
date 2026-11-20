@@ -101,7 +101,7 @@ describe("Library page", () => {
     expect(await screen.findByText("No books yet")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /add your first book/i }));
 
-    expect(screen.getByRole("dialog", { name: /add volume/i })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: /add book/i })).toBeInTheDocument();
   });
 
   it("requires a title and author in the add form", async () => {
@@ -114,7 +114,7 @@ describe("Library page", () => {
     expect(screen.getByLabelText("Author *")).toBeRequired();
     expect(screen.getByLabelText("Total copies *")).toBeRequired();
     expect(
-      within(screen.getByRole("dialog", { name: /add volume/i })).getByRole("button", { name: /add book/i }),
+      within(screen.getByRole("dialog", { name: /add book/i })).getByRole("button", { name: /add book/i }),
     ).toBeDisabled();
   });
 
@@ -124,7 +124,7 @@ describe("Library page", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /edit fountain of knowledge/i }));
 
-    const dialog = screen.getByRole("dialog", { name: /edit volume/i });
+    const dialog = screen.getByRole("dialog", { name: /edit book/i });
     expect(within(dialog).getByLabelText("Title *")).toHaveValue("Fountain of Knowledge");
     expect(within(dialog).getByLabelText("Author *")).toHaveValue("Okot p'Bitek");
     expect(within(dialog).getByLabelText("Total copies *")).toHaveValue(5);
