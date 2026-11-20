@@ -51,9 +51,11 @@ export default function ExamsPage() {
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedExamType, setSelectedExamType] = useState("eot");
   const [showAddExam, setShowAddExam] = useState(false);
-  const [examTypeTab, setExamTypeTab] = useState(school?.school_type === "primary" ? "primary" : "secondary");
+  const [examTypeTab, setExamTypeTab] = useState<"primary" | "secondary">(
+    school?.school_type === "secondary" ? "secondary" : "primary",
+  );
   useEffect(() => {
-    setExamTypeTab(school?.school_type === "primary" ? "primary" : "secondary");
+    setExamTypeTab(school?.school_type === "secondary" ? "secondary" : "primary");
   }, [school?.id, school?.school_type]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showWeights, setShowWeights] = useState(false);
@@ -311,7 +313,7 @@ export default function ExamsPage() {
                 { id: "primary", label: "Primary", count: 3 },
               ]}
               activeTab={examTypeTab}
-              onChange={setExamTypeTab}
+              onChange={(tab) => setExamTypeTab(tab === "secondary" ? "secondary" : "primary")}
             />
           </div>
           <div className="mt-4 border-y border-[var(--border)] py-3">
@@ -580,7 +582,14 @@ export default function ExamsPage() {
               <TableSkeleton rows={3} />
             </div>
           ) : exams.length === 0 ? (
-            <p className="py-6 text-sm text-[var(--t3)]">No exams yet. Create one to record scores against it.</p>
+            <div className="py-6 text-sm text-[var(--t3)] space-y-1">
+              <p>No exams created for this level yet.</p>
+              <p className="text-xs">
+                Marks entered on the Marks page are saved per assessment (BOT, Mid Term, EOT). Use{" "}
+                <strong className="text-[var(--t2)]">Create exam</strong> above to schedule a paper and record scores
+                against it. Switching levels only changes which exam types are available — it does not delete marks.
+              </p>
+            </div>
           ) : (
             <ul className="mt-2 divide-y divide-[var(--border)]">
               {exams.map((exam) => (
