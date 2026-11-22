@@ -75,6 +75,7 @@ import {
   orderUgandaSubjects,
   sumUgandaTotals,
   type UgandaSubjectResult,
+  isPleCoreSubject,
 } from "@/lib/uganda-report";
 
 interface StudentReport {
@@ -1052,11 +1053,16 @@ export default function ReportCardsPage() {
       const rptBest4 =
         rpt.recordedSubjects !== undefined
           ? rpt.subjects
+              .filter((subject) => isPleCoreSubject(subject))
               .map((subject) => subject.uganda?.agg)
               .filter((points): points is number => points != null)
               .sort((left, right) => left - right)
               .slice(0, 4)
-          : [...rpt.subjects.map((subject) => subject.score)].sort((left, right) => right - left).slice(0, 4);
+          : rpt.subjects
+              .filter((subject) => isPleCoreSubject(subject))
+              .map((subject) => subject.score)
+              .sort((left, right) => right - left)
+              .slice(0, 4);
       return {
         school_id: school?.id,
         student_id: rpt.studentId,

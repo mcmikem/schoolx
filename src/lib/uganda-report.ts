@@ -282,3 +282,16 @@ export function orderUgandaSubjects<T extends { name: string }>(subjects: T[]): 
     .sort((a, b) => rank(a.s.name) - rank(b.s.name) || a.i - b.i)
     .map(({ s }) => s);
 }
+
+/** The four subjects that count toward the UNEB PLE aggregate.
+ *  Identified by code (stable) with a name-based fallback for legacy rows. */
+export function isPleCoreSubject(subject: { name?: string | null; code?: string | null }): boolean {
+  const code = (subject.code || "").toUpperCase().trim();
+  const name = (subject.name || "").toLowerCase().trim();
+  if (["ENG", "MATH", "SCI", "SST"].includes(code)) return true;
+  if (/\benglish\b/.test(name)) return true;
+  if (/\bmath/.test(name)) return true;
+  if (/\b(integrated\s*science|science)\b/.test(name)) return true;
+  if (/\b(social\s*studies|sst)\b/.test(name)) return true;
+  return false;
+}
