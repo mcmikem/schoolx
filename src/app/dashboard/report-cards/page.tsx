@@ -403,6 +403,7 @@ export default function ReportCardsPage() {
   const [confirmOverwrite, setConfirmOverwrite] = useState<{ field: "classTeacher" | "hm"; count: number } | null>(
     null,
   );
+  const [confirmGenerateAll, setConfirmGenerateAll] = useState(false);
   const [sendingSms, setSendingSms] = useState(false);
   const [printingAll, setPrintingAll] = useState(false);
   const [printProgress, setPrintProgress] = useState<{ current: number; total: number } | null>(null);
@@ -2591,7 +2592,7 @@ export default function ReportCardsPage() {
       {classes.length > 0 && (
         <Button
           variant="ghost"
-          onClick={handleGenerateAll}
+          onClick={() => setConfirmGenerateAll(true)}
           disabled={generatingAll || generating}
           className="border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
         >
@@ -2622,6 +2623,15 @@ export default function ReportCardsPage() {
         title="Replace existing remarks?"
         message={`${confirmOverwrite?.count ?? 0} pupil(s) already have a ${confirmOverwrite?.field === "hm" ? "head teacher" : "class teacher"} remark written. Replace them with drafted text?`}
         confirmLabel="Replace"
+        variant="danger"
+      />
+      <ConfirmDialog
+        isOpen={confirmGenerateAll}
+        onClose={() => setConfirmGenerateAll(false)}
+        onConfirm={() => { setConfirmGenerateAll(false); handleGenerateAll(); }}
+        title="Generate report cards for all classes?"
+        message={`This will generate and save report cards for every class with students (${classes.length} classes). It may take a while. Continue?`}
+        confirmLabel="Generate all"
         variant="danger"
       />
       <div className="p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8">
@@ -2750,12 +2760,14 @@ export default function ReportCardsPage() {
                         ? readiness.missingMarksCount === 0
                           ? "All marks in"
                           : `${readiness.missingMarksCount} pupil${readiness.missingMarksCount === 1 ? "" : "s"} missing marks`
-                        : "Marks: shown after a generate"}
+                        : "Marks: check after generating"}
                     </p>
                     <p className="text-xs text-[var(--t3)]">
-                      {readiness.missingMarksCount > 0
-                        ? "Those blank slots print with a dash"
-                        : "Everything the teachers recorded is on the cards"}
+                      {generated
+                        ? readiness.missingMarksCount > 0
+                          ? "Those blank slots print with a dash"
+                          : "Everything the teachers recorded is on the cards"
+                        : "Generate the class cards to see which pupils have missing marks."}
                     </p>
                   </div>
                 </div>
