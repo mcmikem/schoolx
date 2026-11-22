@@ -1,5 +1,4 @@
 "use client";
-import { readDraft, writeDraft } from "@/lib/draft-storage";
 import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { NoData } from "@/components/EmptyState";
@@ -7,9 +6,9 @@ import { ClassAverageRow } from "@/components/grades/ClassAverageRow";
 import { GradeStatusBadge } from "@/components/grades/GradeStatusBadge";
 import SubmittedSheetsPanel, { type SubmittedSheet } from "@/components/grades/SubmittedSheetsPanel";
 import MaterialIcon from "@/components/MaterialIcon";
-import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { OwlyTrigger } from "@/components/owly/OwlyTrigger";
 import { VideoLessonButton } from "@/components/onboarding/VideoLesson";
+import { OwlyTrigger } from "@/components/owly/OwlyTrigger";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useToast } from "@/components/Toast";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
@@ -21,44 +20,45 @@ import { useAcademic } from "@/lib/academic-context";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
 import { useAuth } from "@/lib/auth-context";
 import { createRecord, updateRecord, upsertRecordReturning } from "@/lib/crud-service";
-import { COMPETENCY_SCHEME, CompetencyValue, calculateSubjectTotal, getCompetencyLabel } from "@/lib/grading";
-import { GRADING_TRACKS, resolveTrackForClass, resolveUseBot } from "@/lib/grading-tracks";
+import { readDraft, writeDraft } from "@/lib/draft-storage";
 import {
   ASSESSMENT_MAX,
-  TRADITIONAL_ASSESSMENT_TYPES,
+  ASSESSMENT_MAX_SCORES_KEY,
   assessmentLabel,
   assessmentTypesFor,
-  getGrade,
-  getStudentTotal as computeStudentTotal,
   isStudentGraded as computeIsStudentGraded,
-  ASSESSMENT_MAX_SCORES_KEY,
+  getStudentTotal as computeStudentTotal,
+  getGrade,
   parseAssessmentMaxScores,
   parseMarkKey,
   readMark,
   type SaveStatus,
   type StudentMarks,
+  TRADITIONAL_ASSESSMENT_TYPES,
 } from "@/lib/grades/entry";
+import { COMPETENCY_SCHEME, CompetencyValue, calculateSubjectTotal, getCompetencyLabel } from "@/lib/grading";
+import { GRADING_TRACKS, resolveTrackForClass, resolveUseBot } from "@/lib/grading-tracks";
 import { useClasses, useStaff, useSubjects } from "@/lib/hooks";
+import { useAssessmentSittings } from "@/lib/hooks/assessment-sittings";
 import { timeoutFallback, withTimeout } from "@/lib/hooks/utils";
 import { lazyWithIdlePrefetch } from "@/lib/lazy-prefetch";
 import { logger } from "@/lib/logger";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { useOfflineGrades, useOfflineStudents } from "@/lib/offline-hooks";
 import {
+  canUnlockGradeSheet,
   deriveGradeWorkflowStatus,
   GradeWorkflowStatus,
   getNextGradeWorkflowStatusActions,
   getPrevGradeWorkflowStatusActions,
   gradeWorkflowRank,
   sortGradeSheetsForReview,
-  canUnlockGradeSheet,
 } from "@/lib/operations";
-import { isClassScopedRole } from "@/lib/roles";
-import { canAccess, type UserRole } from "@/lib/roles";
-import { TERM_GRADE_BASIS_KEY, parseTermGradeBasis } from "@/lib/report-rows";
-import { gradeBasisAvg } from "@/lib/uganda-report";
+import { parseTermGradeBasis, TERM_GRADE_BASIS_KEY } from "@/lib/report-rows";
+import { canAccess, isClassScopedRole, type UserRole } from "@/lib/roles";
 import { loadSchoolSettings } from "@/lib/school-settings";
 import { supabase } from "@/lib/supabase";
+import { gradeBasisAvg } from "@/lib/uganda-report";
 
 // Split out of the first-load bundle, then warmed in idle time so the import
 // dialog still opens offline after the page has been visited once.
@@ -108,6 +108,7 @@ async function saveGrade(grade: {
   assessment_type: string;
   score: number;
   max_score?: number;
+  assessment_sitting_id?: string | null;
   identifier_score?: number;
   competency_level?: string;
   topic_name?: string;
@@ -130,6 +131,7 @@ async function saveGrade(grade: {
   const payload = {
     ...rest,
     max_score: maxScore,
+    assessment_sitting_id: grade.assessment_sitting_id ?? null,
     ...(grade.assessment_type === "competency"
       ? { competency_level: grade.competency_level || getCompetencyLabel(grade.score as CompetencyValue) }
       : {}),
@@ -385,6 +387,13 @@ export default function GradesPage() {
     return labels;
   }, [track, assessmentMaximums]);
   const [selectedSubject, setSelectedSubject] = useState("");
+  const { sittings: assessmentSittings } = useAssessmentSittings(
+    school?.id,
+    academicYear,
+    currentTerm,
+    selectedClass || undefined,
+    selectedSubject || undefined,
+  );
   // A teacher who is assigned one class and one subject should land on the
   // marks, not on a form asking them to choose what they already chose.
   // The pickers are still there, one tap away, for the days they cover for
@@ -1126,6 +1135,13 @@ export default function GradesPage() {
             assessment_type: type,
             score,
             max_score: maxScore,
+            assessment_sitting_id:
+              assessmentSittings.find(
+                (s) =>
+                  s.assessment_type === type &&
+                  (s.class_id === null || s.class_id === classId) &&
+                  (s.subject_id === null || s.subject_id === subjectId),
+              )?.id ?? null,
             term: currentTerm,
             academic_year: academicYear,
             recorded_by: user?.id,
@@ -1425,6 +1441,13 @@ export default function GradesPage() {
           assessment_type: assessmentType,
           score,
           max_score: markMaxScores[key] ?? (assessmentType === "competency" ? 3 : getAssessmentMaximum(assessmentType)),
+          assessment_sitting_id:
+            assessmentSittings.find(
+              (s) =>
+                s.assessment_type === assessmentType &&
+                (s.class_id === null || s.class_id === selectedClass) &&
+                (s.subject_id === null || s.subject_id === selectedSubject),
+            )?.id ?? null,
           term: currentTerm,
           academic_year: academicYear,
           recorded_by: user?.id,
@@ -1500,7 +1523,13 @@ export default function GradesPage() {
       ? [...assessmentTypesFor(true, useBotEnabled)]
       : [...gradingTotalAssessmentTypes];
 
-    const headers = ["Student Name", "Student Number", ...exportTypes.map((t) => t.toUpperCase().replace(/_/g, " ")), "Total", "Grade"];
+    const headers = [
+      "Student Name",
+      "Student Number",
+      ...exportTypes.map((t) => t.toUpperCase().replace(/_/g, " ")),
+      "Total",
+      "Grade",
+    ];
     const rows = filteredStudents.map((student) => {
       const values = exportTypes.map((type) => {
         const score = getMark(student.id, type);
@@ -1509,8 +1538,12 @@ export default function GradesPage() {
       const total = getStudentTotal(student.id);
       const gradeInfo = total !== null ? getGrade(total) : null;
       const totalStr = competencyMode
-        ? (getMark(student.id, "competency") !== null ? String(getMark(student.id, "competency")) : "")
-        : total !== null ? String(total) : "";
+        ? getMark(student.id, "competency") !== null
+          ? String(getMark(student.id, "competency"))
+          : ""
+        : total !== null
+          ? String(total)
+          : "";
       return [
         `${student.first_name} ${student.last_name}`,
         student.student_number || "",
@@ -2015,7 +2048,8 @@ export default function GradesPage() {
                     )}
                   </div>
                 ) : (
-                  <select aria-label="Target class"
+                  <select
+                    aria-label="Target class"
                     id="grade-target-class"
                     value={selectedClass}
                     onChange={(e) => setSelectedClass(e.target.value)}
@@ -2790,7 +2824,8 @@ export default function GradesPage() {
                                 {competencyMode ? (
                                   <td className="px-2 py-1.5">
                                     <div className="relative">
-                                      <select aria-label="Competency level"
+                                      <select
+                                        aria-label="Competency level"
                                         className="w-24 mx-auto block text-center font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all bg-surface-container-low"
                                         value={marks[`${student.id}_competency`] ?? ""}
                                         onChange={(e) => {
@@ -3130,10 +3165,14 @@ export default function GradesPage() {
                         const val = getMark(studentId, "competency");
                         return (
                           <div className="col-span-2 space-y-2">
-                            <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider" htmlFor="competency-level">
+                            <label
+                              className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider"
+                              htmlFor="competency-level"
+                            >
                               COMPETENCY LEVEL
                             </label>
-                            <select id="competency-level"
+                            <select
+                              id="competency-level"
                               className="w-full text-center text-2xl font-bold py-4 rounded-xl border-none focus:outline-none transition-all bg-surface-container-low"
                               value={val ?? ""}
                               onChange={(e) => handleMarkChange(studentId, "competency", e.target.value)}
