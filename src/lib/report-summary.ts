@@ -1,6 +1,7 @@
 import { detectLevelFromClass, isALevel, pleAggregate, uceAggregate } from "@/lib/grading-tracks";
 import {
   bucketUgandaSubject,
+  isPleCoreSubject,
   type TermGradeBasis,
   type UgandaGradeRow,
   type UgandaSubjectResult,
@@ -22,14 +23,21 @@ export function classicReportSubject(rows: UgandaGradeRow[], basis?: TermGradeBa
 }
 
 export function summarizeClassicReport(
-  subjects: { isMissing?: boolean; uganda?: UgandaSubjectResult }[],
+  subjects: { name?: string | null; code?: string | null; isMissing?: boolean; uganda?: UgandaSubjectResult }[],
   className = "P.1",
 ) {
   const recorded = subjects.filter((subject) => !subject.isMissing && subject.uganda?.avg != null);
+  const level = detectLevelFromClass(className);
+  // PLE aggregate counts only the four core subjects (English, Maths, Science,
+  // Social Studies) — never the best four arbitrary scores. Filtering here keeps
+  // the summary in line with the saved best4 field and the printed report.
+  const recordedForAggregate =
+    level === "primary"
+      ? recorded.filter((subject) => isPleCoreSubject({ name: subject.name, code: subject.code }))
+      : recorded;
   const totalMarks = Math.round(recorded.reduce((total, subject) => total + subject.uganda!.avg!, 0) * 10) / 10;
   const complete = subjects.length > 0 && recorded.length === subjects.length;
-  const points = recorded.map((subject) => subject.uganda!.agg).filter((value): value is number => value != null);
-  const level = detectLevelFromClass(className);
+  const points = recordedForAggregate.map((subject) => subject.uganda!.agg).filter((value): value is number => value != null);
   const aggregate = !complete
     ? { aggregate: null, division: "Incomplete" }
     : level === "nursery" || isALevel(className)

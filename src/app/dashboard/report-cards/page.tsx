@@ -71,11 +71,11 @@ import { loadSchoolSettings } from "@/lib/school-settings";
 import { AssessmentMaximumsCard, ReportRowsCard, TermGradeBasisCard } from "@/components/settings/AcademicSettings";
 import { canSendSms } from "@/lib/sms-permissions";
 import {
-  bucketUgandaSubject,
   orderUgandaSubjects,
   sumUgandaTotals,
   type UgandaSubjectResult,
   isPleCoreSubject,
+  bucketUgandaSubject,
 } from "@/lib/uganda-report";
 
 interface StudentReport {
@@ -813,10 +813,31 @@ export default function ReportCardsPage() {
       });
 
       // A subject the learner does not take must not appear on their report.
-      // Only subjects with recorded evidence (or a recorded competency) are
-      // included; fabricating "M.M" rows for every school subject made
-      // partially-graded learners look incomplete (spec §4).
-      const allSubjectDetails = subjectDetails;
+      // Start from recorded evidence, then add any subject allocated to this
+      // class that has no marks yet (so a partially graded learner still shows
+      // the missing subjects instead of looking complete). Fabricating rows for
+      // every school subject (the old behaviour) is wrong; fabricating none is
+      // also wrong — a missing mark is information, not absence of a subject.
+      const classSubjectIds = Object.keys(subjectTeachers[classId] || {});
+      const allSubjectDetails = [...subjectDetails];
+      for (const subjId of classSubjectIds) {
+        if (allSubjectDetails.some((sd) => sd.subjectId === subjId)) continue;
+        const sub = subjects.find((s: any) => s.id === subjId);
+        if (!sub) continue;
+        allSubjectDetails.push({
+          subjectId: subjId,
+          name: sub.name,
+          score: 0,
+          grade: "M.M",
+          gradeColor: "text-[var(--amber)]",
+          competencyLevel: studentComp[subjId]?.level || "not_started",
+          competencyNotes: studentComp[subjId]?.notes || "",
+          teacherInitials: subjectTeacherInitialsFor(classId, subjId, []),
+          isMissing: true,
+          teacherRemark: "",
+          uganda: bucketUgandaSubject([]),
+        });
+      }
 
       // Subjects the school reports as one line (e.g. science and social
       // studies on a P.2 card) fold together here; ungrouped subjects keep

@@ -52,5 +52,3 @@ CREATE INDEX IF NOT EXISTS idx_grades_sitting
 -- Extend report_config_snapshot shape is handled in app code; no DB change
 -- needed beyond the grades column above. Historical reports keep their
 -- captured snapshot and are not recalculated.
-EOF
-echo written
