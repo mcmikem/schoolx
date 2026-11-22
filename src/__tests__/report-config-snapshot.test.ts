@@ -18,7 +18,7 @@ describe("buildReportConfigSnapshot", () => {
     });
 
     expect(snapshot).toMatchObject({
-      schemaVersion: 1,
+      schemaVersion: 2,
       format: "both",
       layout: "uganda_classic",
       useBeginningOfTerm: true,
