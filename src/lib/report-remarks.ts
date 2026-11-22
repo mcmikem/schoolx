@@ -109,7 +109,7 @@ export function suggestClassTeacherRemark(facts: RemarkFacts): string {
   }
 
   if (parts.length === 0) {
-    return `${who} has started this term well. More marks will give a fuller picture.`;
+    return `${who} has no recorded marks or attendance for this term yet. Add assessments to generate a useful remark.`;
   }
 
   return parts.join(" ");

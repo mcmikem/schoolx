@@ -407,10 +407,12 @@ export function generateNurseryReportBody(input: UgandaPrintInput): string {
   const { school, pupil, subjects, comments, behaviour } = input;
   const brand = school.primaryColor || "#002045";
   const ratingLabel = (level?: string) => {
-    const l = (level || "").toLowerCase();
+    const l = (level || "").trim().toLowerCase();
+    if (!l) return "Not assessed";
     if (l === "secure" || l === "mastered" || l === "achieved") return "Secure (3)";
     if (l === "developing" || l === "demonstrates") return "Developing (2)";
-    return "Emerging (1)";
+    if (l === "emerging" || l === "beginning" || l === "fair") return "Emerging (1)";
+    return "Not assessed";
   };
   const subjectRows = subjects
     .map(
