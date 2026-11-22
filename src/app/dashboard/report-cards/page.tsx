@@ -656,7 +656,7 @@ export default function ReportCardsPage() {
     } catch {
       const { offlineDB } = await import("@/lib/offline");
       const cached = await offlineDB.getAll("grades", { class_id: classId });
-      const nameById = new Map((reportSubjects as any[]).map((s: any) => [s.id, s.name]));
+      const nameById = new Map((subjects as any[]).map((s: any) => [s.id, s.name]));
       const rows = (cached as Record<string, unknown>[])
         .filter(
           (g) =>
@@ -666,7 +666,7 @@ export default function ReportCardsPage() {
         )
         .map((g) => ({
           ...(g as object),
-          subjects: { id: g.subject_id, name: nameById.get(g.subject_id as string) || "Unknown" },
+          subjects: { id: g.subject_id, name: nameById.get(g.subject_id as string) || (g as any).subject_id || "Subject" },
         }));
       return { rows, offline: true };
     }
@@ -744,7 +744,7 @@ export default function ReportCardsPage() {
       if (!studentSubjectScores[g.student_id]) {
         studentSubjectScores[g.student_id] = {};
       }
-      const subjName = g.subjects?.name || "Unknown";
+      const subjName = g.subjects?.name || subjects.find((s: any) => s.id === g.subject_id)?.name || "Subject";
       if (!studentSubjectScores[g.student_id][g.subject_id]) {
         studentSubjectScores[g.student_id][g.subject_id] = {
           name: subjName,
@@ -764,7 +764,7 @@ export default function ReportCardsPage() {
       if (!studentCompetencies[c.student_id]) {
         studentCompetencies[c.student_id] = {};
       }
-      const subjName = c.subjects?.name || "Unknown";
+      const subjName = c.subjects?.name || subjects.find((s: any) => s.id === c.subject_id)?.name || "Subject";
       studentCompetencies[c.student_id][c.subject_id] = {
         level: c.competency_level || "not_started",
         notes: c.competency_notes || "",
