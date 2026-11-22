@@ -186,11 +186,10 @@ export default function HomePage() {
       router.push(deviceTarget.href);
       return;
     }
-    if (/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())) {
-      setShowIosModal(true);
-      return;
-    }
-    router.push("/login");
+    // No native install prompt and no direct download link. Never send the
+    // visitor to the login page for an "install" action — show how to install
+    // from the browser instead.
+    setShowIosModal(true);
   };
 
   return (
@@ -1188,10 +1187,13 @@ export default function HomePage() {
               className="bg-[var(--surface)] rounded-2xl w-full max-w-sm max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto p-6 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-lg font-bold text-[var(--t1)] mb-3">Add to Home Screen</h3>
+              <h3 className="text-lg font-bold text-[var(--t1)] mb-3">Install SkoolMate</h3>
               <p className="text-sm text-[var(--t2)] mb-4">
-                On iPhone or iPad: Open this page in <strong>Safari</strong>, tap the <strong>Share Button</strong> (the
-                square with arrow pointing up), then tap <strong>&quot;Add to Home Screen&quot;</strong>.
+                {/iphone|ipad|ipod/.test(typeof navigator !== "undefined" ? navigator.userAgent.toLowerCase() : "")
+                  ? 'On iPhone or iPad: open this page in Safari, tap the Share button (square with arrow pointing up), then tap "Add to Home Screen".'
+                  : /android/.test(typeof navigator !== "undefined" ? navigator.userAgent.toLowerCase() : "")
+                    ? 'On Android: open the browser menu (three dots) and tap "Install app" or "Add to Home screen". If that option is missing, use Chrome and try again.'
+                    : 'On desktop: open the browser menu and choose "Install SkoolMate" or "Install app". Use Chrome, Edge, or Safari on a supported device.'}
               </p>
               <button
                 onClick={() => setShowIosModal(false)}
