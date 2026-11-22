@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { isPleCoreSubject } from "@/lib/uganda-report";
 import { getDivisionColor, getGradeColor } from "@/lib/grading";
 import { supabase } from "@/lib/supabase";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
@@ -90,7 +91,7 @@ function getDemoReportCards(child: {
     subjects: t.subjects,
     aggregate: t.aggregate,
     division: t.division,
-    best4: t.subjects.slice(0, 4).map((s) => s.finalScore),
+    best4: t.subjects.filter((s) => isPleCoreSubject(s)).slice(0, 4).map((s) => s.finalScore),
     attendance_rate: 95,
     generated_at: new Date("2026-04-20T09:00:00Z").toISOString(),
   }));

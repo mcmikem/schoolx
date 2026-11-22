@@ -138,10 +138,14 @@ export function suggestHeadTeacherRemark(facts: RemarkFacts): string {
     );
   }
 
-  if (typeof position === "number" && position <= 10) {
-    parts.push("Keep up the good work.");
-  } else {
-    parts.push("Continued effort at home will make a real difference.");
+  if (parts.length > 0 && typeof position === "number") {
+    if (position <= 10) {
+      parts.push("Keep up the good work.");
+    } else {
+      parts.push("Continued effort at home will make a real difference.");
+    }
+  } else if (parts.length === 0) {
+    return `${who} has no recorded marks or attendance for this term yet. Add assessments to generate a useful remark.`;
   }
 
   return parts.join(" ");

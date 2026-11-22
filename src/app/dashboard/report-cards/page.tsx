@@ -381,7 +381,7 @@ export default function ReportCardsPage() {
   const [selectedClass, setSelectedClass] = useState("");
   const [reportFormat, setReportFormat] = useState<"numerical" | "competency" | "both" | "cbc">("numerical");
   const [generated, setGenerated] = useState(false);
-  const [hideWithFees, setHideWithFees] = useState(true);
+  const [hideWithFees, setHideWithFees] = useState(false);
   const [reports, setReports] = useState<StudentReport[]>([]);
   const [progressiveVisibleColumns, setProgressiveVisibleColumns] = useState<string[] | null>(null);
   const [comments, setComments] = useState<Record<string, { classTeacher: string; hm: string }>>({});
@@ -812,23 +812,11 @@ export default function ReportCardsPage() {
         };
       });
 
-      const allSubjectDetails = subjects.map((sub: any) => {
-        const existing = subjectDetails.find((sd) => sd.subjectId === sub.id);
-        return (
-          existing || {
-            subjectId: sub.id,
-            name: sub.name,
-            score: 0,
-            grade: "M.M",
-            gradeColor: "text-amber-500",
-            competencyLevel: studentComp[sub.id]?.level || "not_started",
-            competencyNotes: studentComp[sub.id]?.notes || "",
-            teacherInitials: subjectTeacherInitialsFor(classId, sub.id, []),
-            isMissing: competencyOnly ? !studentComp[sub.id] : true,
-            uganda: bucketUgandaSubject([]),
-          }
-        );
-      });
+      // A subject the learner does not take must not appear on their report.
+      // Only subjects with recorded evidence (or a recorded competency) are
+      // included; fabricating "M.M" rows for every school subject made
+      // partially-graded learners look incomplete (spec §4).
+      const allSubjectDetails = subjectDetails;
 
       // Subjects the school reports as one line (e.g. science and social
       // studies on a P.2 card) fold together here; ungrouped subjects keep
