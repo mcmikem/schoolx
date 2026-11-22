@@ -1496,45 +1496,29 @@ export default function GradesPage() {
       toast.error("No grades to export");
       return;
     }
-    let headers: string[];
-    let rows: string[][];
-    if (competencyMode) {
-      headers = ["Student Name", "Student Number", "Competency Level", "Status"];
-      rows = filteredStudents.map((student) => {
-        const comp = getMark(student.id, "competency");
-        const label = comp !== null ? getCompetencyLabel(comp as CompetencyValue) : "";
-        return [
-          `${student.first_name} ${student.last_name}`,
-          student.student_number || "",
-          comp !== null ? String(comp) : "",
-          label,
-        ];
+    const exportTypes = competencyMode
+      ? [...assessmentTypesFor(true, useBotEnabled)]
+      : [...gradingTotalAssessmentTypes];
+
+    const headers = ["Student Name", "Student Number", ...exportTypes.map((t) => t.toUpperCase().replace(/_/g, " ")), "Total", "Grade"];
+    const rows = filteredStudents.map((student) => {
+      const values = exportTypes.map((type) => {
+        const score = getMark(student.id, type);
+        return score !== null ? String(score) : "";
       });
-    } else {
-      headers = ["Student Name", "Student Number", "CA1", "CA2", "CA3", "CA4", "Project", "Exam", "Total", "Grade"];
-      rows = filteredStudents.map((student) => {
-        const ca1 = getMark(student.id, "ca1");
-        const ca2 = getMark(student.id, "ca2");
-        const ca3 = getMark(student.id, "ca3");
-        const ca4 = getMark(student.id, "ca4");
-        const project = getMark(student.id, "project");
-        const exam = getMark(student.id, "exam");
-        const total = getStudentTotal(student.id);
-        const gradeInfo = total !== null ? getGrade(total) : null;
-        return [
-          `${student.first_name} ${student.last_name}`,
-          student.student_number || "",
-          ca1 !== null ? String(ca1) : "",
-          ca2 !== null ? String(ca2) : "",
-          ca3 !== null ? String(ca3) : "",
-          ca4 !== null ? String(ca4) : "",
-          project !== null ? String(project) : "",
-          exam !== null ? String(exam) : "",
-          total !== null ? String(total) : "",
-          gradeInfo ? gradeInfo.grade : "",
-        ];
-      });
-    }
+      const total = getStudentTotal(student.id);
+      const gradeInfo = total !== null ? getGrade(total) : null;
+      const totalStr = competencyMode
+        ? (getMark(student.id, "competency") !== null ? String(getMark(student.id, "competency")) : "")
+        : total !== null ? String(total) : "";
+      return [
+        `${student.first_name} ${student.last_name}`,
+        student.student_number || "",
+        ...values,
+        totalStr,
+        gradeInfo ? gradeInfo.grade : "",
+      ];
+    });
     const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
