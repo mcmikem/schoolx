@@ -31,9 +31,10 @@ export function summarizeClassicReport(
   // PLE aggregate counts only the four core subjects (English, Maths, Science,
   // Social Studies) — never the best four arbitrary scores. Filtering here keeps
   // the summary in line with the saved best4 field and the printed report.
+  const coreRecorded = recorded.filter((subject) => isPleCoreSubject({ name: subject.name, code: subject.code }));
   const recordedForAggregate =
     level === "primary"
-      ? recorded.filter((subject) => isPleCoreSubject({ name: subject.name, code: subject.code }))
+      ? (coreRecorded.length > 0 ? coreRecorded : recorded)
       : recorded;
   const totalMarks = Math.round(recorded.reduce((total, subject) => total + subject.uganda!.avg!, 0) * 10) / 10;
   const complete = subjects.length > 0 && recorded.length === subjects.length;
