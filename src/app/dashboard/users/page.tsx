@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function DashboardUsersRedirectPage() {
-  redirect("/dashboard/schools");
+  redirect("/dashboard/settings?tab=users");
 }

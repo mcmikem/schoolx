@@ -79,6 +79,7 @@ export default function DropoutTrackingPage() {
   const [actionTaken, setActionTaken] = useState("");
   const [dropoutReason, setDropoutReason] = useState<DropoutReasonOption | "">("");
   const [saving, setSaving] = useState(false);
+  const [hasAttendanceData, setHasAttendanceData] = useState(true);
 
   const fetchAtRiskStudents = useCallback(async () => {
     if (!school?.id) return;
@@ -106,6 +107,16 @@ export default function DropoutTrackingPage() {
       setLoading(false);
       return;
     }
+
+    // Distinguish "no absences" from "no attendance recorded at all" so the
+    // empty state never reads as "all regular" when the school simply hasn't
+    // taken the register.
+    const { count: attendanceCount } = await supabase
+      .from("attendance")
+      .select("id", { count: "exact", head: true })
+      .gte("date", thirtyDaysAgo);
+
+    setHasAttendanceData((attendanceCount ?? 0) > 0);
 
     // Group by student and count consecutive absences
     const studentMap = new Map<string, { name: string; class: string; dates: string[] }>();
@@ -317,11 +328,17 @@ export default function DropoutTrackingPage() {
             </h2>
             {loading ? (
               <div className="text-center py-8 text-[var(--on-surface-variant)]">Analysing attendance data…</div>
+            ) : !hasAttendanceData ? (
+              <EmptyState
+                icon="event_busy"
+                title="No attendance recorded yet"
+                description="Take the register for a few days before dropout risk can be assessed. Attendance data is needed to detect at-risk students."
+              />
             ) : students.length === 0 ? (
               <EmptyState
                 icon="check_circle"
                 title="No at-risk students detected"
-                description="All students have regular attendance"
+                description="All students have regular attendance in the last 30 days."
               />
             ) : (
               <div className="space-y-3">

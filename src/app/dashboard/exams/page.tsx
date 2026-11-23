@@ -348,7 +348,11 @@ export default function ExamsPage() {
                 </label>
                 {subjects.length === 0 ? (
                   <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
-                    No subjects - Add subjects first
+                    No subjects yet.{" "}
+                    <a href="/dashboard/subjects" className="font-bold underline">
+                      Add subjects
+                    </a>{" "}
+                    first, then return here.
                   </div>
                 ) : (
                   <select aria-label="Subject"

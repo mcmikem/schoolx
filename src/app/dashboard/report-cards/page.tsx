@@ -971,7 +971,7 @@ export default function ReportCardsPage() {
           name: subject.name,
           score: calculation.totalMark ?? 0,
           gradeColor:
-            grade === "A+" || grade === "A"
+            grade === "A*" || grade === "A"
               ? "text-green-600"
               : grade === "B" || grade === "C"
                 ? "text-blue-600"
@@ -2055,6 +2055,11 @@ export default function ReportCardsPage() {
           name: s.name || s.subject || "Subject",
           score: reportScoreForPrint(Boolean(s.isMissing), scoreValue),
           grade: s.grade || "",
+          assessments: (s.uganda?.assessmentBreakdown || []).map((a: any) => ({
+            type: a.type,
+            label: a.label,
+            score: a.score,
+          })),
         };
       });
       await downloadReportPDF(

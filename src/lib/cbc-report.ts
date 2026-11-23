@@ -92,7 +92,7 @@ const IDENTIFIER_RANGES = [
 ];
 
 const GRADING_SCALE = [
-  { min: 85, max: 100, grade: "A+" },
+  { min: 85, max: 100, grade: "A*" },
   { min: 80, max: 84, grade: "A" },
   { min: 75, max: 79, grade: "B" },
   { min: 70, max: 74, grade: "C" },

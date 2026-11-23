@@ -28,7 +28,7 @@ export interface ReportPDFData {
   className: string;
   term: number;
   academicYear: string;
-  subjects: { name: string; score: number | null; grade: string }[];
+  subjects: { name: string; score: number | null; grade: string; assessments?: Array<{ type: string; label: string; score: number | null }> }[];
   classTeacherRemark?: string;
   headTeacherRemark?: string;
   feeBalance?: number | null;
@@ -63,12 +63,18 @@ export function StudentReportDocument({ data }: { data: ReportPDFData }) {
         <View style={styles.table}>
           <View style={styles.tableHeader}>
             <Text style={styles.col1}>Subject</Text>
-            <Text style={styles.col2}>Score</Text>
+            {data.subjects[0]?.assessments?.map((a, i) => (
+              <Text key={i} style={styles.col2}>{a.label}</Text>
+            ))}
+            <Text style={styles.col2}>Total</Text>
             <Text style={styles.col3}>Grade</Text>
           </View>
           {data.subjects.map((s, i) => (
             <View key={i} style={styles.tableRow}>
               <Text style={styles.col1}>{s.name}</Text>
+              {s.assessments?.map((a, j) => (
+                <Text key={j} style={styles.col2}>{formatReportScore(a.score)}</Text>
+              ))}
               <Text style={styles.col2}>{formatReportScore(s.score)}</Text>
               <Text style={styles.col3}>{s.grade}</Text>
             </View>
