@@ -1,7 +1,7 @@
 // Bumped by hand only as an emergency: prebuild stamps this with the build id
 // on every real deploy. Raised here so installs already holding a stale runtime
 // chunk purge their caches the moment this worker activates.
-const CACHE_VERSION = 'skoolmate-2026111201';
+const CACHE_VERSION = 'skoolmate-c7c09d7e';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;

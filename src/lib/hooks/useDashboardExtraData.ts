@@ -32,6 +32,7 @@ interface DashboardExtraData {
   staffOnDuty: number;
   overdueFeeCount: number;
   lowAttendanceClasses: number;
+  hasAttendanceData: boolean;
   dropoutRiskCount: number;
   loading: boolean;
   isStale: boolean;
@@ -50,6 +51,7 @@ interface DashboardPayload {
   staffOnDuty: number;
   overdueFeeCount: number;
   lowAttendanceClasses: number;
+  hasAttendanceData: boolean;
   dropoutRiskCount: number;
 }
 
@@ -91,6 +93,7 @@ const DEMO_PAYLOAD: DashboardPayload = {
   staffOnDuty: 18,
   overdueFeeCount: 15,
   lowAttendanceClasses: 1,
+  hasAttendanceData: true,
   dropoutRiskCount: 3,
 };
 
@@ -106,6 +109,7 @@ const EMPTY_PAYLOAD: DashboardPayload = {
   staffOnDuty: 0,
   overdueFeeCount: 0,
   lowAttendanceClasses: 0,
+  hasAttendanceData: false,
   dropoutRiskCount: 0,
 };
 
@@ -401,6 +405,7 @@ function computePayloadLegacy(
       staffOnDuty: staffAttRes.data?.length || 0,
       overdueFeeCount: overdueCount,
       lowAttendanceClasses: lowAtt,
+      hasAttendanceData: hasAttendanceMarkedToday,
       dropoutRiskCount: computedDropoutCount,
     };
   })();
@@ -437,6 +442,7 @@ export function payloadFromRpc(extra: RpcExtra): DashboardPayload {
     staffOnDuty: extra.staff_on_duty || 0,
     overdueFeeCount: extra.overdue_count || 0,
     lowAttendanceClasses: extra.low_attendance_classes || 0,
+    hasAttendanceData: true,
     dropoutRiskCount: extra.dropout_risk_count || 0,
   };
 }

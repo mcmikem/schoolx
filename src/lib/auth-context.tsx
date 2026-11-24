@@ -609,12 +609,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (err) {
           logger.error("[Auth] getUser failed in auth state handler:", err);
           // A timed-out session read is a connectivity problem, not a sign-out.
-          // Keep the cached profile so the classroom keeps working offline.
-          if (restoreCachedProfile()) return;
-          setUser(null);
-          setSchool(null);
+          // Never clear the user here: the onAuthStateChange handler is the
+          // single source of truth and will populate (or clear) the session.
+          // Clearing on a timeout logged users out even when their session was
+          // valid, which made every sign-in appear to fail.
+          restoreCachedProfile();
           setIsDemo(false);
           setLoading(false);
+          setAuthInitialized(true);
         }
       } else {
         setIsDemo(false);

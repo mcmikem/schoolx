@@ -89,6 +89,7 @@ function InspectionReportContent() {
     staffOnDuty,
     overdueFeeCount,
     lowAttendanceClasses,
+    hasAttendanceData,
     dropoutRiskCount,
     loading: loadingExtra,
   } = useDashboardExtraData(school?.id, rosterReady ? students : null, feeStructure, currentTerm, academicYear);
@@ -416,7 +417,9 @@ function InspectionReportContent() {
         link: "/dashboard/attendance",
         detail:
           lowAttendanceClasses === 0
-            ? "All classes on track"
+            ? hasAttendanceData
+              ? "All classes on track"
+              : "No attendance recorded yet"
             : `${lowAttendanceClasses} class${lowAttendanceClasses > 1 ? "es" : ""} below 70%`,
       },
     ],
