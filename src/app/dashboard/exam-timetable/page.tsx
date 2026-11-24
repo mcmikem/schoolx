@@ -397,9 +397,12 @@ export default function ExamTimetablePage() {
                     <div key={slot.id} className="rounded-xl border border-[var(--border)] p-3">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="truncate font-semibold text-[var(--t1)]">{subject?.name || "Subject"}</p>
+                          <p className="truncate font-semibold text-[var(--t1)]">
+                            {subject?.name || <span className="text-[var(--red)]">Subject not set</span>}
+                          </p>
                           <p className="mt-0.5 text-xs text-[var(--t3)]">
-                            {classObj?.name || "All classes"} · {slot.room || "No room"}
+                            {classObj?.name || <span className="text-[var(--red)]">Class not set</span>} ·{" "}
+                            {slot.room || <span className="text-[var(--red)]">No room</span>}
                           </p>
                         </div>
                         <span className="shrink-0 rounded-lg bg-[var(--surface-container)] px-2 py-1 text-xs font-bold tabular-nums text-[var(--t2)]">
@@ -446,9 +449,9 @@ export default function ExamTimetablePage() {
                           <td style={{ fontFamily: "DM Mono", fontSize: 12 }}>
                             {slot.start_time} - {slot.end_time}
                           </td>
-                          <td>{subject?.name || "-"}</td>
-                          <td>{classObj?.name || "-"}</td>
-                          <td>{slot.room}</td>
+                          <td>{subject?.name || "—"}</td>
+                          <td>{classObj?.name || "—"}</td>
+                          <td>{slot.room || "—"}</td>
                           <td>{sup?.full_name || "-"}</td>
                           <td>
                             {canManageExams && (
