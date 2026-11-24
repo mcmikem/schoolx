@@ -1059,16 +1059,19 @@ export default function ReportCardsPage() {
             }
           : {}),
       }));
+      // Prefer the four PLE core subjects (English, Maths, Science, SST).
+      // Fall back to all subjects when none are identifiable, so legacy/demo
+      // rows without subject codes still aggregate.
+      const coreSubjects = rpt.subjects.filter((subject) => isPleCoreSubject(subject));
+      const aggregateSubjects = coreSubjects.length > 0 ? coreSubjects : rpt.subjects;
       const rptBest4 =
         rpt.recordedSubjects !== undefined
-          ? rpt.subjects
-              .filter((subject) => isPleCoreSubject(subject))
+          ? aggregateSubjects
               .map((subject) => subject.uganda?.agg)
               .filter((points): points is number => points != null)
               .sort((left, right) => left - right)
               .slice(0, 4)
-          : rpt.subjects
-              .filter((subject) => isPleCoreSubject(subject))
+          : aggregateSubjects
               .map((subject) => subject.score)
               .sort((left, right) => right - left)
               .slice(0, 4);

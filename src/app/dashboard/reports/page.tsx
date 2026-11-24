@@ -31,6 +31,7 @@ export default function ReportsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [studentListLimit, setStudentListLimit] = useState(50);
   const [reportData, setReportData] = useState<ReportCardType | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
   const [assessmentColumns, setAssessmentColumns] = useState<string[] | null>(null);
@@ -110,6 +111,10 @@ export default function ReportsPage() {
     const matchesClass = selectedClass === "" || s.class_id === selectedClass;
     return matchesSearch && matchesClass;
   });
+
+  useEffect(() => {
+    setStudentListLimit(50);
+  }, [searchTerm, selectedClass]);
 
   const fetchStudentReport = useCallback(
     async (studentId: string) => {
@@ -904,7 +909,7 @@ export default function ReportsPage() {
               />
             ) : (
               <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                {filteredStudents.map((student) => (
+                {filteredStudents.slice(0, studentListLimit).map((student) => (
                   <div
                     key={student.id}
                     className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${
@@ -949,6 +954,15 @@ export default function ReportsPage() {
                     </button>
                   </div>
                 ))}
+                {filteredStudents.length > studentListLimit && (
+                  <button
+                    type="button"
+                    onClick={() => setStudentListLimit((n) => n + 50)}
+                    className="w-full py-2 text-sm font-medium text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-xl"
+                  >
+                    Show {Math.min(50, filteredStudents.length - studentListLimit)} more of {filteredStudents.length}
+                  </button>
+                )}
               </div>
             )}
           </Card>
