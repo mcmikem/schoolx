@@ -50,6 +50,31 @@ describe("stamp-sw-version", () => {
     expect(readVersion(dir)).toBe("skoolmate-abcdef123456");
   });
 
+  it("stamps a manually invoked production build without CI flags", () => {
+    const dir = makeProject();
+    dirs.push(dir);
+
+    stamp(
+      dir,
+      {
+        CI: "",
+        VERCEL: "",
+        VERCEL_ENV: "",
+        GITHUB_ACTIONS: "",
+        CF_PAGES: "",
+        CF_PAGES_COMMIT_SHA: "",
+        CF_PAGES_BRANCH: "",
+        PAGES: "",
+        VERCEL_GIT_COMMIT_SHA: "",
+        GITHUB_SHA: "",
+        BUILD_ID: "manual-release",
+      },
+      ["--force"],
+    );
+
+    expect(readVersion(dir)).toBe("skoolmate-manual-relea");
+  });
+
   it("prefers the Vercel commit sha", () => {
     const dir = makeProject();
     dirs.push(dir);

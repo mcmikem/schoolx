@@ -2281,8 +2281,12 @@ export default function ReportCardsPage() {
                 : `<div class="summary-card"><div class="summary-value">${report.maxMarks ? `${report.totalMarks}/${report.maxMarks}` : "—"}</div><div class="summary-label">Total</div></div>
                  <div class="summary-card"><div class="summary-value">${report.maxMarks ? `${report.average}%` : "—"}</div><div class="summary-label">Average (recorded subjects)</div></div>`
             }
-            <div class="summary-card"><div class="summary-value">${report.position || "—"}</div><div class="summary-label">Position</div></div>
-            <div class="summary-card"><div class="summary-value">${escapeHtml(report.division)}</div><div class="summary-label">Division</div></div>
+            ${
+              selectedClassStage !== "nursery" && reportFormat === "numerical"
+                ? `<div class="summary-card"><div class="summary-value">${report.position || "—"}</div><div class="summary-label">Position</div></div>
+                 <div class="summary-card"><div class="summary-value">${escapeHtml(report.division)}</div><div class="summary-label">Division</div></div>`
+                : ""
+            }
           </div>`
       }
       ${
