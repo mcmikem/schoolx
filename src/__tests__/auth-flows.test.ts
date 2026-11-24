@@ -343,7 +343,7 @@ describe("offline cold start keeps the signed-in profile", () => {
 
   it("does not sign out when the session read times out", () => {
     expect(src).toMatch(
-      /getUser failed in auth state handler:[\s\S]{0,400}restoreCachedProfile\(\)[\s\S]{0,200}return;/,
+      /getUser failed in auth state handler:[\s\S]{0,400}restoreCachedProfile\(\)[\s\S]{0,200}setAuthInitialized\(true\);/,
     );
   });
 
