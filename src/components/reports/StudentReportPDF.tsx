@@ -32,6 +32,10 @@ export interface ReportPDFData {
   classTeacherRemark?: string;
   headTeacherRemark?: string;
   feeBalance?: number | null;
+  position?: number | null;
+  division?: string | null;
+  attendancePresent?: number | null;
+  attendanceTotal?: number | null;
 }
 
 export function StudentReportDocument({ data }: { data: ReportPDFData }) {
@@ -80,6 +84,25 @@ export function StudentReportDocument({ data }: { data: ReportPDFData }) {
             </View>
           ))}
         </View>
+
+        {data.attendancePresent != null && data.attendanceTotal != null && (
+          <View style={styles.section}>
+            <Text style={styles.label}>Attendance:</Text>
+            <Text>{data.attendancePresent} of {data.attendanceTotal} days</Text>
+          </View>
+        )}
+        {data.position != null && data.position > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.label}>Position:</Text>
+            <Text>Class: {data.position}</Text>
+          </View>
+        )}
+        {data.division && data.division !== "—" && (
+          <View style={styles.section}>
+            <Text style={styles.label}>Division:</Text>
+            <Text>{data.division}</Text>
+          </View>
+        )}
 
         {data.classTeacherRemark && (
           <View style={styles.section}>

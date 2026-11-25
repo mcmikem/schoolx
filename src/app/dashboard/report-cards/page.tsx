@@ -2077,6 +2077,8 @@ export default function ReportCardsPage() {
           classTeacherRemark: report.classTeacherComment,
           headTeacherRemark: report.hmComment,
           feeBalance: report.feeBalance,
+          position: report.position,
+          division: report.division,
         },
         `Report-${report.name.replace(/\\s+/g, "_")}.pdf`,
       );
