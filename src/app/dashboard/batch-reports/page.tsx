@@ -14,7 +14,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 
 export default function BatchReportsPage() {
   const { school } = useAuth();
-  const { academicYear } = useAcademic();
+  const { academicYear, currentTerm } = useAcademic();
   const router = useRouter();
   const toast = useToast();
   const [classes, setClasses] = useState<any[]>([]);
@@ -125,6 +125,37 @@ export default function BatchReportsPage() {
             </div>
           </div>
         </div>
+
+        {/* Scope summary — what is about to be produced, before any output. */}
+        {students.length > 0 && (
+          <div className={cardClassName + " p-5"}>
+            <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)] mb-3">Output scope</p>
+            <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+              <div>
+                <dt className="text-xs text-[var(--t3)]">Cohort</dt>
+                <dd className="font-bold text-[var(--t1)]">
+                  {classes.find((c) => c.id === selectedClass)?.name || "—"}
+                  {classes.find((c) => c.id === selectedClass)?.stream ? ` ${classes.find((c) => c.id === selectedClass)?.stream}` : ""}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-[var(--t3)]">Term / year</dt>
+                <dd className="font-bold text-[var(--t1)]">Term {currentTerm}, {academicYear}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-[var(--t3)]">Selected</dt>
+                <dd className="font-bold text-[var(--t1)]">{selected.length} of {students.length}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-[var(--t3)]">Output</dt>
+                <dd className="font-bold text-[var(--t1)]">Print / PDF (A4)</dd>
+              </div>
+            </dl>
+            <p className="mt-2 text-xs text-[var(--t3)]">
+              Only selected pupils are included. Changing the class or search filter changes this scope.
+            </p>
+          </div>
+        )}
 
         {/* Student List */}
         {students.length > 0 && (
