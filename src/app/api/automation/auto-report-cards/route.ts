@@ -1,24 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createServiceRoleClientOrThrow, requireCronSecretOrDeny, requireExistingSchoolOrDeny } from "@/lib/api-utils";
 import {
   computePLEAggregate,
-  computeUCEDivision,
   computeUACEResult,
-  getGradeLabel,
+  computeUCEDivision,
   generateAutoComment,
+  getGradeLabel,
 } from "@/lib/automation";
 import { getUNEBGrade } from "@/lib/grading";
 import { logger } from "@/lib/logger";
-import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
-import { loadFeeClearanceMap } from "@/lib/server/fee-clearance";
 import {
-  REPORT_ROWS_KEY,
-  TERM_GRADE_BASIS_KEY,
   groupSubjectDetails,
   parseReportRows,
   parseTermGradeBasis,
+  REPORT_ROWS_KEY,
   resolveReportRows,
+  TERM_GRADE_BASIS_KEY,
 } from "@/lib/report-rows";
 import { classicReportSubject } from "@/lib/report-summary";
+import { loadFeeClearanceMap } from "@/lib/server/fee-clearance";
 import type { UgandaGradeRow } from "@/lib/uganda-report";
 
 export async function POST(request: NextRequest) {
@@ -42,10 +42,7 @@ export async function POST(request: NextRequest) {
     // but graded as one) or a term grade basis get cards built by the same
     // engine the dashboard uses. Without either setting the fixed CA/exam
     // recipe below runs untouched.
-    const settingsRows = await supabase
-      .from("school_settings")
-      .select("key, value")
-      .eq("school_id", school.schoolId);
+    const settingsRows = await supabase.from("school_settings").select("key, value").eq("school_id", school.schoolId);
     const settingsMap = Object.fromEntries(
       ((settingsRows.data as { key: string; value: string }[]) ?? []).map((r) => [r.key, r.value ?? ""]),
     );
@@ -205,7 +202,7 @@ export async function POST(request: NextRequest) {
 
         // Compute subject totals and aggregates
         const subjectResults: any[] = [];
-        const subjectScores: number[] = [];
+        const subjectScores: Array<{ score: number; name?: string | null }> = [];
 
         if (useReportConfig) {
           // Configured schools: same engine as the dashboard — grades rows →
@@ -228,11 +225,7 @@ export async function POST(request: NextRequest) {
               subjectId,
               name: data.name,
               ...result,
-              comment: generateAutoComment(
-                result.score,
-                data.name,
-                `${student.first_name} ${student.last_name}`,
-              ),
+              comment: generateAutoComment(result.score, data.name, `${student.first_name} ${student.last_name}`),
             };
           });
           const grouped = groupSubjectDetails(details, resolveReportRows(reportRowsConfig, studentClass.level));
@@ -248,7 +241,7 @@ export async function POST(request: NextRequest) {
               gradeLabel: getGradeLabel(d.score),
             };
             subjectResults.push(entry);
-            subjectScores.push(d.score);
+            subjectScores.push({ score: d.score, name: d.name });
           }
         } else {
           // Group grade rows per subject (grades are stored one row per assessment_type)
@@ -297,7 +290,7 @@ export async function POST(request: NextRequest) {
               comment,
             });
 
-            subjectScores.push(finalScore);
+            subjectScores.push({ score: finalScore, name: rows[0]?.subjects?.name });
           }
         }
 
@@ -319,8 +312,8 @@ export async function POST(request: NextRequest) {
           const gradeStrings = subjectResults.map((r: any) => r.grade);
           division = computeUCEDivision(gradeStrings);
         } else if (level.startsWith("S") && level.includes("6")) {
-          const principalScores = subjectScores.slice(0, 3);
-          const subsidiaryScores = subjectScores.slice(3);
+          const principalScores = subjectScores.slice(0, 3).map((s) => (typeof s === "number" ? s : s.score));
+          const subsidiaryScores = subjectScores.slice(3).map((s) => (typeof s === "number" ? s : s.score));
           const uaceResult = computeUACEResult(principalScores, subsidiaryScores);
           division = uaceResult.division;
           aggregate = uaceResult.points;

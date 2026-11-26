@@ -1,27 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createServiceRoleClientOrThrow, requireCronSecretOrDeny, requireExistingSchoolOrDeny } from "@/lib/api-utils";
 import {
-  computeSubjectTotal,
   computePLEAggregate,
-  computeUCEDivision,
+  computeSubjectTotal,
   computeUACEResult,
+  computeUCEDivision,
   generateAutoComment,
 } from "@/lib/automation";
-import { buildRolloverPreview } from "@/lib/operations";
-import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
-import { loadFeeClearanceMap } from "@/lib/server/fee-clearance";
+import { logger } from "@/lib/logger";
 import { sendToParent } from "@/lib/messaging-server";
+import { buildRolloverPreview } from "@/lib/operations";
 import {
-  REPORT_ROWS_KEY,
-  TERM_GRADE_BASIS_KEY,
   groupSubjectDetails,
   parseReportRows,
   parseTermGradeBasis,
+  REPORT_ROWS_KEY,
   resolveReportRows,
+  TERM_GRADE_BASIS_KEY,
 } from "@/lib/report-rows";
 import { classicReportSubject } from "@/lib/report-summary";
-import type { UgandaGradeRow } from "@/lib/uganda-report";
-import { logger } from "@/lib/logger";
+import { loadFeeClearanceMap } from "@/lib/server/fee-clearance";
 import { loadSchoolStudentIds, loadScopedTermStudentGrades, lockScopedTermStudentGrades } from "@/lib/term-end-scope";
+import type { UgandaGradeRow } from "@/lib/uganda-report";
 
 export async function POST(request: NextRequest) {
   try {
@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
                 finalScore: d.score,
               };
             });
-            const subjectScores = subjectResults.map((r: any) => r.finalScore);
+            const subjectScores = subjectResults.map((r: any) => ({ score: r.finalScore, name: r.subjectName }));
 
             const level = studentClass.level || "";
             let aggregate = null;
@@ -222,7 +222,10 @@ export async function POST(request: NextRequest) {
             } else if (level.startsWith("S") && level.includes("4")) {
               division = computeUCEDivision(subjectResults.map((r: any) => r.grade));
             } else if (level.startsWith("S") && level.includes("6")) {
-              const uaceResult = computeUACEResult(subjectScores.slice(0, 3), subjectScores.slice(3));
+              const uaceResult = computeUACEResult(
+                subjectScores.slice(0, 3).map((s) => (typeof s === "number" ? s : s.score)),
+                subjectScores.slice(3).map((s) => (typeof s === "number" ? s : s.score)),
+              );
               division = uaceResult.division;
               aggregate = uaceResult.points;
             }
@@ -340,7 +343,7 @@ export async function POST(request: NextRequest) {
           if (!grades || grades.length === 0) continue;
 
           const subjectResults: any[] = [];
-          const subjectScores: number[] = [];
+          const subjectScores: Array<{ score: number; name?: string | null }> = [];
 
           for (const grade of grades as any[]) {
             const ca1 = grade.ca1 || 0;
@@ -379,7 +382,7 @@ export async function POST(request: NextRequest) {
               comment,
             });
 
-            subjectScores.push(finalScore);
+            subjectScores.push({ score: finalScore, name: grade.subjects?.name });
           }
 
           const level = studentClass.level || "";
@@ -398,7 +401,10 @@ export async function POST(request: NextRequest) {
           } else if (level.startsWith("S") && level.includes("4")) {
             division = computeUCEDivision(subjectResults.map((r: any) => r.grade));
           } else if (level.startsWith("S") && level.includes("6")) {
-            const uaceResult = computeUACEResult(subjectScores.slice(0, 3), subjectScores.slice(3));
+            const uaceResult = computeUACEResult(
+              subjectScores.slice(0, 3).map((s) => (typeof s === "number" ? s : s.score)),
+              subjectScores.slice(3).map((s) => (typeof s === "number" ? s : s.score)),
+            );
             division = uaceResult.division;
             aggregate = uaceResult.points;
           }

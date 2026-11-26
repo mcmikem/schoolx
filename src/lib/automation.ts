@@ -1,7 +1,8 @@
 // Automation utilities for SkoolMate OS
 // Auto-grade computation, UNEB division calculation, report card generation, etc.
 
-import { getPLEGrade, getPLEDivision, getUCEDivision, getUACEGrade, getUACEPoints, getUNEBGrade } from "@/lib/grading";
+import { getPLEDivision, getPLEGrade, getUACEGrade, getUACEPoints, getUCEDivision, getUNEBGrade } from "@/lib/grading";
+import { isPleCoreSubject } from "@/lib/uganda-report";
 
 // ============================================
 // AUTO-GRADE COMPUTATION
@@ -59,13 +60,23 @@ export function computeSubjectTotalNewCurriculum(
   return { totalCA, finalScore, grade, gradeLabel, competencyLevel };
 }
 
-export function computePLEAggregate(subjectScores: number[]): {
+export function computePLEAggregate(
+  subjectScores: Array<number | { score: number; name?: string | null; code?: string | null }>,
+): {
   aggregate: number;
   division: string;
   best4: number[];
 } {
-  // Best 4 subjects for PLE
-  const sorted = [...subjectScores].sort((a, b) => a - b);
+  const normalized = subjectScores.map((entry) =>
+    typeof entry === "number" ? { score: entry, name: null, code: null } : entry,
+  );
+  // PLE aggregate counts only the four core subjects (English, Maths, Science,
+  // Social Studies) — never the best four arbitrary scores. Fall back to all
+  // subjects only when no core subject is identifiable (legacy/demo data).
+  const core = normalized.filter((entry) => isPleCoreSubject({ name: entry.name, code: entry.code }));
+  const pool = core.length > 0 ? core : normalized;
+  // Best 4 subjects for PLE (lowest points = highest grades)
+  const sorted = pool.map((entry) => entry.score).sort((a, b) => a - b);
   const best4 = sorted.slice(0, 4);
   const aggregate = best4.reduce((sum, s) => sum + s, 0);
   const division = getPLEDivision(aggregate);
