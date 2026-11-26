@@ -46,7 +46,6 @@ import { buildReportConfigSnapshot } from "@/lib/report-config-snapshot";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
 import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print-window";
-import { downloadReportPDF } from "@/components/reports/StudentReportPDF";
 import { writeAnalysisRemark } from "@/lib/report-analysis";
 import { competencyBadge, reportGradeColor } from "@/lib/report-card-presentation";
 import { searchReportList } from "@/lib/report-list";
@@ -2050,42 +2049,10 @@ export default function ReportCardsPage() {
   };
 
   const handleDownloadPDF = async (report: StudentReport) => {
-    try {
-      const schoolName = school?.name || "School";
-      const subjects = (report.subjects || []).map((s: any) => {
-        const scoreValue = s.finalScore ?? s.total ?? s.score;
-        return {
-          name: s.name || s.subject || "Subject",
-          score: reportScoreForPrint(Boolean(s.isMissing), scoreValue),
-          grade: s.grade || "",
-          assessments: (s.uganda?.assessmentBreakdown || []).map((a: any) => ({
-            type: a.type,
-            label: a.label,
-            score: a.score,
-          })),
-        };
-      });
-      await downloadReportPDF(
-        {
-          schoolName,
-          studentName: report.name,
-          studentNumber: report.studentNumber || "",
-          className: report.className || "",
-          term: currentTerm || 1,
-          academicYear: academicYear || "",
-          subjects,
-          classTeacherRemark: report.classTeacherComment,
-          headTeacherRemark: report.hmComment,
-          feeBalance: report.feeBalance,
-          position: report.position,
-          division: report.division,
-        },
-        `Report-${report.name.replace(/\\s+/g, "_")}.pdf`,
-      );
-      toast.success("PDF downloaded");
-    } catch (err) {
-      toast.error("Failed to generate PDF");
-    }
+    // Print and Download PDF must produce the same content, so both go through
+    // the same renderer. The browser's "Save as PDF" in the print dialog is
+    // what actually writes the file, guaranteeing identical output.
+    handlePrintReport(report);
   };
 
   const handlePrintReport = (report: StudentReport) => {
